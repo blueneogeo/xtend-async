@@ -212,9 +212,16 @@ class Stream<T> implements Publisher<Entry<T>> {
 	override apply(Entry<T> value) {
 		if(value == null) throw new NullPointerException('cannot stream a null value')
 		if(isStarted.get) {
+			println('applying ' + value)
 			switch value {
-				Value<T>: if(openListenerCount.get > 0) stream.apply(value)
-				Finish<T>: openListenerCount.set(0)
+				Value<T>: {
+					if(openListenerCount.get > 0) 
+						stream.apply(value)
+				}
+				Finish<T>: {
+					openListenerCount.set(0)
+					stream.apply(value)
+				}
 				default: stream.apply(value)
 			}
 		} else {
@@ -233,6 +240,10 @@ class Stream<T> implements Publisher<Entry<T>> {
 		if(value == null) throw new NullPointerException('cannot stream a null value')
 		apply(new Value(value))
 		this
+	}
+
+	def getBuffer() {
+		buffer
 	}
 
 	/**
@@ -286,7 +297,7 @@ class Stream<T> implements Publisher<Entry<T>> {
 	 * the passed listener will be called with this stream.
 	 */	
 	def onFinish(Procedure1<Void> listener) {
-		onChange [ switch it { Finish<T>: listener.apply(null)	} ]
+		onChange [ switch it { Finish<T>: listener.apply(null) } ]
 		this
 	}
 	
@@ -305,6 +316,7 @@ class Stream<T> implements Publisher<Entry<T>> {
 			try {
 				listener.apply(it)
 			} catch(Throwable t) {
+				println(t)
 				if(catchErrors) stream.apply(new Error(t))
 				else throw new StreamException('onChange listener threw an error:', t)
 			}

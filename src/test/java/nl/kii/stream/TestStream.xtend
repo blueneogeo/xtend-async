@@ -11,12 +11,11 @@ class TestStream {
 	
 	@Test
 	def void testStreamCreation() {
-		val s1 = String.stream << 'a' << 'b' << 'c'
+		val s1 = String.stream << 'a' << 'b' << 'c' << finish
+		println(s1.buffer)
+
 		val ts = String.stream
-		s1.each [
-			println(it) 
-			it >> ts
-		]
+		s1.each [ it >> ts ]
 		ts.finish.collect.then [
 			println('done') 
 			length.assertEquals(3)
