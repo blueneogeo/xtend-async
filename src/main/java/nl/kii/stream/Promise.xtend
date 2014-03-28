@@ -42,19 +42,18 @@ class Promise<T> implements Publisher<T> {
 		isFinished
 	}
 	
-	// LISTEN /////////////////////////////////////////////////////////////////
+	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def then(Procedure1<T> listener) {
+	def void then(Procedure1<T> listener) {
 		onNext.onChange(listener)
 		if(!isStarted) {
 			isStarted = true
 			if(buffer != null)
 				apply(buffer)
 		}
-		this
 	}
 	
-	override onChange(Procedure1<T> listener) {
+	override void onChange(Procedure1<T> listener) {
 		then(listener)
 	}
 	

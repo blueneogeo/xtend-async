@@ -6,8 +6,6 @@ import java.util.WeakHashMap
 import nl.kii.stream.Publisher
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-import static extension nl.kii.util.FunctionExtensions.*
-
 class SimplePublisher<T> implements Publisher<T> {
 	
 	val public boolean usesWeakReferences
@@ -31,7 +29,7 @@ class SimplePublisher<T> implements Publisher<T> {
 	override apply(T change) {
 		if(_listeners == null || !isPublishing) return;
 		for(listener : _listeners.keySet)
-			listener << change
+			listener.apply(change)
 	}
 	
 }

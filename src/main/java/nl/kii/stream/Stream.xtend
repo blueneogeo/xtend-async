@@ -1,24 +1,30 @@
 package nl.kii.stream
 
 import java.util.List
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import nl.kii.stream.impl.ThreadSafePublisher
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 
 /**
  * <h1>what is a stream</h1>
+ * 
  * A stream can receive values, and then transmit these values
  * to its listeners. To push a value into a stream, use .push().
  * To listen to values, call .each()
  * 
  * <h1>what a stream passes</h1>
+ * 
  * A Stream is a publisher of three kinds of entries:
  * <li>a value
  * <li>a finish of a batch
  * <li>an error
  * 
  * <h1>finishing a stream</h1>
+ * 
  * A stream can be finished by calling .finish(). This marks the end
  * of a batch of values that you have inputted.
  * <p>
@@ -33,6 +39,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * To just get the first value from a stream, call .then() or .first().
  * 
  * <h1>buffering</h1>
+ * 
  * A stream will only start streaming after start() has been called.
  * Until start is called, it will attempt to buffer the incoming
  * entries, until the maximum buffer size has been reached. Entries
@@ -40,6 +47,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * discarded.
  * 
  * <h1>catching listener errors</h1>
+ * 
  * If you have multiple asynchronous processes happening, it can be
  * practical to catch any errors thrown at the end of a stream chain,
  * and not inside the listeners. If you enable catchErrors, the stream
@@ -47,15 +55,18 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * them to a listener that you can pass by calling onError().
  * 
  * <h1>extensions</h1>
- * The stream class only supports a basic publishing interface 
  * 
- * 
+ * The stream class only supports a basic publishing interface.
+ * You can add extra functionality by importing extensions:
+ * <li>StreamExt
+ * <li>StreamPairExt
+ * <p>
+ * Or creating your own extensions.
  */
 class Stream<T> implements Publisher<Entry<T>> {
 	
 	/** Set these to set how all streams are set by default */
 	public static var CATCH_ERRORS_DEFAULT = false
-	public static var AUTOSTART_DEFAULT = true
 	public static var MAX_BUFFERSIZE_DEFAULT = 1000
 	
 	/** 
@@ -84,13 +95,11 @@ class Stream<T> implements Publisher<Entry<T>> {
 	val Stream<?> parentStream
 
 	/**
-	 * A function that can be called by this stream to communicate to the parentStream 
-	 * that the listener that spawned this substream is done. This means the parentStream
-	 * can stop sending messages, and when all of its substreams are done, it can
-	 * stop alltogether. This means no unnecessary messages will be sent by the
-	 * parent stream, which saves performance.
+	 * Handler to be invoked when the stream is done and requires no more data
+	 * until the next Finish is applied. There is always only a single done
+	 * handler.
 	 */
-	public var =>void onDone
+	var Procedure0 onDone
 
 	/** 
 	 * Stores if a stream is started. A started stream pushes data to its listeners
@@ -102,24 +111,41 @@ class Stream<T> implements Publisher<Entry<T>> {
 	 * Stores if a stream is done. A done stream stops streaming, until it recieves
 	 * a finish command, at which it resets itself and starts again.
 	 */
-	val isStreamDone = new AtomicBoolean(false)
+	val stoppedStreaming = new AtomicBoolean(false)
 
+	/**
+	 * Amount of listeners attached to this stream.
+	 */
+	val listenerCount = new AtomicInteger(0)
+	
 	/** 
 	 * Amount of open listeners. Used to know if a stream is done. If there are
 	 * no open listeners anymore, a stream can stop streaming until the next finish. 
 	 */
 	val openListenerCount = new AtomicInteger(0) 
 
-	/** how many entries the stream, when not yet started, will buffer before overflowing */
-	public var maxBufferSize = MAX_BUFFERSIZE_DEFAULT
-
 	/**
-	 * If true, once you call .each(true), the stream will automatically start.
-	 * Sometimes this is unwanted behavior and you want to construct a stream chain
-	 * and manually call .start() at the end. By setting autostart to false, the
-	 * stream will only start once you call .start()
+	 * Amount of values that have passed through this stream since the start
+	 * or the last finish
 	 */
-	public var autostart = AUTOSTART_DEFAULT	
+	val batchValueCount = new AtomicLong(0)
+	
+	/**
+	 * Amount of values that have passed through this stream.
+	 */
+	val totalValueCount = new AtomicLong(0)
+	
+	/**
+	 * Amount of batches (values separated by a finish) that have passed 
+	 * through this stream.
+	 */
+	val batchCount = new AtomicLong(0)
+	
+	/** 
+	 * How many entries the stream, when not yet started, will buffer 
+	 * before overflowing
+	 */
+	public var maxBufferSize = MAX_BUFFERSIZE_DEFAULT
 
 	/** 
 	 * If true, errors will be caught and propagated as error entries. You can then
@@ -130,54 +156,70 @@ class Stream<T> implements Publisher<Entry<T>> {
 
 	// NEW /////////////////////////////////////////////////////////////////////
 
+	/**
+	 * Creates a new Stream.
+	 */
 	new() {	
 		this(null)
 	}
 	
-	/** 
-	 * pass a parentStream when creating a derived stream (filter, map, etc), 
+	/**
+	 * Creates a new Stream.
+	 * Pass a parentStream when creating a derived stream (filter, map, etc), 
 	 * so the childstream can communicate messages up the chain.
 	 */
 	new(Stream<?> parentStream) {
 		this(new ThreadSafePublisher<Entry<T>>, parentStream)
 	}
 	
-	new(Publisher<Entry<T>> entryStream, Stream<?> parentStream) {
-		this.stream = entryStream
+	/**
+	 * Most detailed constructor, where you can specify your own publisher.
+	 */
+	new(Publisher<Entry<T>> publisher, Stream<?> parentStream) {
+		this.stream = publisher
 		this.parentStream = parentStream
 		// inherit properties from the parent stream, if any
 		if(parentStream != null) {
-			this.autostart = parentStream.autostart
 			this.catchErrors = parentStream.catchErrors
 		}
 	}
 	
 	// GETTERS & SETTERS ///////////////////////////////////////////////////////
 
-	/**
-	 * Che
+	/** 
+	 * If true, the stream has been started and will no longer buffer, but flush the buffer
+	 * and any newly pushed value directly to its listeners. default: false.
+	 * Calling an endpoint method will automatically start a stream.
 	 */
-	def isStreamDone() {
-		isStreamDone.get
+	def isStarted() {
+		isStarted.get
 	}
 	
-	/** meant for substreams to call when they no longer require values */
-	def void setStreamDone() {
-		isStreamDone.set(true)
+	/**
+	 * Returns the buffer that gets built up when values are pushed into a stream without the
+	 * stream having started.
+	 */
+	def getBuffer() {
+		buffer
+	}
+
+	/** 
+	 * If true, the stream will catch listener handler errors. You can listen for these errors
+	 * using the method .onError(handler).
+	 */
+	def setCatchErrors(boolean catchErrors) {
+		this.catchErrors = catchErrors
+		if(parentStream != null) parentStream.catchErrors = catchErrors
+	}
+
+	/** 
+	 * Called internally when all listeners are done listening until the next finish.
+	 */
+	protected def void stopStreaming() {
+		stoppedStreaming.set(true)
 		if(onDone != null) onDone.apply
 	}
 
-	def autostart(boolean enabled) { 
-		this.autostart = enabled
-		this
-	}
-	
-	/** If true, errors will be caught and propagated as error entries. default: false */
-	def catchErrors(boolean enabled) { 
-		this.catchErrors = enabled
-		this
-	}
-		
 	// PUSH ///////////////////////////////////////////////////////////////////
 
 	/** 
@@ -187,6 +229,7 @@ class Stream<T> implements Publisher<Entry<T>> {
 	def Stream<T> start() {
 		if(isStarted.get) throw new StreamException('cannot start an already started stream.')
 		isStarted.set(true)
+		batchCount.incrementAndGet
 		if(parentStream != null) parentStream.start		
 		if(buffer != null) {
 			buffer.forEach [ apply(it) ]
@@ -195,15 +238,6 @@ class Stream<T> implements Publisher<Entry<T>> {
 		this
 	}
 	
-	def isStarted() {
-		isStarted
-	}
-	
-	def setCatchErrors(boolean catchErrors) {
-		this.catchErrors = catchErrors
-		if(parentStream != null) parentStream.catchErrors = catchErrors
-	}
-
 	/**
 	 * Push an entry into the stream. An entry can be a Value, a Finish or an Error.
 	 * If the stream was not yet started, a buffer will be created and the entry buffered,
@@ -212,20 +246,24 @@ class Stream<T> implements Publisher<Entry<T>> {
 	override apply(Entry<T> value) {
 		if(value == null) throw new NullPointerException('cannot stream a null value')
 		if(isStarted.get) {
-			println('applying ' + value)
 			switch value {
 				Value<T>: {
-					if(openListenerCount.get > 0) 
+					if(openListenerCount.get > 0) {
 						stream.apply(value)
+						batchValueCount.incrementAndGet
+						totalValueCount.incrementAndGet
+					}
 				}
 				Finish<T>: {
-					openListenerCount.set(0)
+					openListenerCount.set(listenerCount.get)
 					stream.apply(value)
+					batchCount.incrementAndGet
+					batchValueCount.set(0)
 				}
 				default: stream.apply(value)
 			}
 		} else {
-			if(buffer == null) buffer = newLinkedList
+			if(buffer == null) buffer = new CopyOnWriteArrayList
 			if(buffer.length < maxBufferSize) buffer.add(value)
 			else throw new StreamException('stream buffer overflow, max buffer size is ' + maxBufferSize + '. adding ' + value)
 		}
@@ -241,9 +279,14 @@ class Stream<T> implements Publisher<Entry<T>> {
 		apply(new Value(value))
 		this
 	}
-
-	def getBuffer() {
-		buffer
+	
+	/**
+	 * Report an error to the stream. It is also pushed down substreams as a message,
+	 * so you can listen for errors at any point below where the error is generated
+	 * in a stream chain.
+	 */
+	def error(Throwable t) {
+		apply(new Error(t))
 	}
 
 	/**
@@ -268,27 +311,40 @@ class Stream<T> implements Publisher<Entry<T>> {
 	 * data from the stream. This allows the stream to to stop streaming values
 	 * when all of its listeners are done.
 	 */
-	def each(boolean startStream, (T, =>void)=>void listener) {
+	def each(boolean startStream, (T, =>void, Stream<T>)=>void listener) {
+		// keep track of open listeners
+		openListenerCount.set(listenerCount.incrementAndGet)
 		// create a proc that can be called by the listener when it needs
 		// no further values.
 		val doneCalled = new AtomicBoolean(false)
-		val onDone = [|
+		val onListenerDone = [|
 			if(doneCalled.get) return;
 			doneCalled.set(true)
-			// stop streaming once all listeners are done 
-			if(openListenerCount.decrementAndGet <= 0) 
-				setStreamDone
+			// we are done streaming once all listeners are done 
+			if(openListenerCount.decrementAndGet <= 0) stopStreaming
 		]
-		// keep track of open listeners
-		openListenerCount.incrementAndGet
 		onChange [ 
 			switch it { 
 				Value<T>: if(!doneCalled.get) {
-					listener.apply(value, onDone)
+					listener.apply(
+						value,
+						onListenerDone,
+						this
+					)
 				}
 			}
 		]
-		if(startStream && !isStarted.get && autostart) start
+		if(startStream && !isStarted.get) start
+		this
+	}
+	
+	/**
+	 * Set the listener to invoke when a stream is done. There can only one listener,
+	 * and it is meant for informing parent streams that this stream is done until the
+	 * batch is finished.
+	 */
+	def onDone(Procedures.Procedure0 listener) {
+		this.onDone = listener
 		this
 	}
 	
@@ -300,10 +356,12 @@ class Stream<T> implements Publisher<Entry<T>> {
 		onChange [ switch it { Finish<T>: listener.apply(null) } ]
 		this
 	}
-	
+	/**
+	 * Listen for errors in the stream or parent streams. 
+	 * The stream only catches errors if catchErrors is set to true.
+	 */
 	def onError(Procedure1<Throwable> listener) {
 		stream.onChange [ switch it { Error<T>: listener.apply(error) } ]
-		setCatchErrors(true)
 		this
 	}
 	
@@ -312,20 +370,21 @@ class Stream<T> implements Publisher<Entry<T>> {
 	 * the passed listerer will be called with the value.
 	 */
 	override onChange(Procedure1<Entry<T>> listener) {
+		// start listening
 		stream.onChange [
 			try {
 				listener.apply(it)
 			} catch(Throwable t) {
-				println(t)
 				if(catchErrors) stream.apply(new Error(t))
-				else throw new StreamException('onChange listener threw an error:', t)
+				else throw new StreamException(t)
 			}
 		]
 	}
 	
 	override toString() '''«this.class.name» { 
-		started: «isStarted», buffer: «IF(buffer != null) » «buffer.length» of «maxBufferSize» «ELSE» none «ENDIF»,
-		parent: «if(parentStream != null) parentStream else 'none'»
+			started: «isStarted», buffer: «IF(buffer != null) » «buffer.length» of «maxBufferSize» «ELSE» none «ENDIF»,
+			parent: «if(parentStream != null) parentStream else 'none'»
+		}
 	'''
 	
 }
@@ -334,7 +393,8 @@ class Stream<T> implements Publisher<Entry<T>> {
 
 class StreamException extends Exception {
 	new(String msg) { super(msg) }
-	new(String msg, Throwable e) { super(msg, e) }
+	new(Throwable e) { super(e) }
+	new(String msg, Throwable e) { super(msg + ': ' + e.message, e) }
 }
 
 // STREAM ENTRY ///////////////////////////////////////////////////////////////
@@ -346,10 +406,12 @@ class Value<T> implements Entry<T> {
 	public val T value
 	new(T value) { this.value = value }
 	override toString() { value.toString }
+	override equals(Object o) { o instanceof Value<?> && (o as Value<?>).value == this.value }
 }
 
 class Finish<T> implements Entry<T> {
 	override toString() { 'finish' }
+	override equals(Object o) { o instanceof Finish<?> }
 }
 
 class Error<T> implements Entry<T> {
