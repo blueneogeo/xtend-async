@@ -1,5 +1,7 @@
 # xtend-streams
 
+WARNING: WIP, not production ready!
+
 Xtend-streams give streams and promises to Xtend. It is inspired by the Java Streams and RXJava, but is specifically built to work well with the Xtend language and Vert.x. It has no dependencies apart from Xtend.
 
 So why was this library built, even though Java8 already has stream support?
