@@ -11,25 +11,27 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 class StreamExt {
 	
+	// CREATION ///////////////////////////////////////////////////////////////
+	
 	/** create a stream of the given type */
 	def static <T> stream(Class<T> type) {
-		new Stream<T>
+		new BufferedStream<T>
 	}
 	
 	/** create a stream of a set of data */
 	def static <T> stream(T... data) {
-		val newStream = new Stream<T>
-		data.forEach [ newStream.push(it) ]
-		newStream.finish
-		newStream
+		new BufferedStream<T> => [
+			for(i : data) push(i)
+			finish
+		]
 	}
 
 	/** stream the data of a map as a list of key->value pairs */
 	def static <K, V> stream(Map<K, V> data) {
-		val newStream = new Stream<Pair<K, V>>
-		data.entrySet.forEach [ newStream.push(key -> value) ]
-		newStream.finish
-		newStream
+		new BufferedStream<Pair<K, V>> => [
+			for(i : data.entrySet) push(i.key -> i.value)
+			finish
+		]
 	}
 	
 	// OPERATORS //////////////////////////////////////////////////////////////
@@ -75,11 +77,14 @@ class StreamExt {
 	 * Transform each item in the stream using the passed mappingFn
 	 */
 	def static <T, R> map(Stream<T> stream, (T)=>R mappingFn) {
-		val newStream = new Stream<R>(stream)
-		stream.onFinish [ newStream.finish ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | newStream.onDone(done).push(mappingFn.apply(it)) ]
+		val newStream = new Stream<R>
+		stream
+			.onFinish [ newStream.finish ]
+			.onError [ newStream.error(it) ]
+			.each [ newStream.push(mappingFn.apply(it)) ]
 		newStream
+			.onOpen [ stream.open ]
+			.onClose [ stream.close ]
 	}
 	
 	/**
@@ -87,22 +92,43 @@ class StreamExt {
 	 * returns a true for.
 	 */
 	def static <T> filter(Stream<T> stream, (T)=>boolean filterFn) {
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ newStream.finish ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | if(filterFn.apply(it)) newStream.push(it) ]
+		val newStream = new Stream<T>
+		stream
+			.onFinish [ newStream.finish ]
+			.onError [ newStream.error(it) ]
+			.each [ if(filterFn.apply(it)) newStream.push(it) ]
 		newStream
+			.onOpen [ stream.open ]
+			.onClose [ stream.close ]
+	}
+
+	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
+		val newStream = new Stream<T>
+		stream
+			.onFinish [ newStream.finish ]
+			.onError [ newStream.error(it) ]
+			.each [
+				it >> newStream
+				if(splitConditionFn.apply(it)) newStream.finish
+			]
+		newStream
+			.onOpen [ stream.open ]
+			.onClose [ stream.close ]
 	}
 	
-	/**
-	 * Flatten a stream of lists to just the items in that list
+	/** 
+	 * Create from an existing stream a stream of streams, separated by finishes in the start stream.
 	 */
-	def static <T> flatten(Stream<List<T>> stream) {
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ newStream.finish ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | forEach [ newStream.push(it) ] ]
+	def static <T> Stream<Stream<T>> substream(Stream<T> stream) {
+		val substream = new AtomicReference(new BufferedStream<T>)
+		val newStream = new Stream<Stream<T>>
+		stream
+			.onFinish [ newStream.push(substream.get); substream.set(new BufferedStream<T>) ]
+			.onError [ newStream.error(it) ]
+			.each [ substream.get.push(it) ]
 		newStream
+			.onOpen [ stream.open ]
+			.onClose [ stream.close ]
 	}
 
 	/**
@@ -110,25 +136,16 @@ class StreamExt {
 	 */
 	def static <T> Stream<List<T>> collect(Stream<T> stream) {
 		val list = new AtomicReference(new LinkedList<T>)
-		val newStream = new Stream<List<T>>(stream)
-		stream.onFinish [ newStream.push(list.get); list.set(new LinkedList<T>) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | list.get.add(it) ]
+		val newStream = new Stream<List<T>>
+		stream
+			.onFinish [ newStream.push(list.get); list.set(new LinkedList<T>) ]
+			.onError [ newStream.error(it) ]
+			.each [ list.get.add(it) ]
 		newStream
+			.onOpen [ stream.open ]
+			.onClose [ stream.close ]
 	}
 	
-	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ newStream.finish ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s |
-			it >> newStream
-			if(splitConditionFn.apply(it))
-				newStream.finish
-		]
-		newStream
-	}
-
 	// PROMISE CHAINING ///////////////////////////////////////////////////////	
 	
 	/**
@@ -170,10 +187,7 @@ class StreamExt {
 	  */
 	def static <T> Promise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
-	 	stream.each(true) [ it, done, s |
- 			promise.apply(it)
-	 		done.apply
-	 	]
+	 	stream.each [ if(!promise.finished) promise.apply(it) ]
 		promise
 	}
 

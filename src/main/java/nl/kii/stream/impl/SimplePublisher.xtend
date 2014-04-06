@@ -16,7 +16,7 @@ class SimplePublisher<T> implements Publisher<T> {
 	
 	Map<Procedure1<T>, String> _listeners
 	
-	override onChange(Procedure1<T> listener) {
+	override =>void onChange(Procedure1<T> listener) {
 		// FIX: use weak references or we get a memory problem...
 		// however, currently it seems to let go too soon!
 		if(_listeners == null) 
@@ -24,12 +24,17 @@ class SimplePublisher<T> implements Publisher<T> {
 				new WeakHashMap 
 				else new HashMap
 		_listeners.put(listener, '')
+		return [| _listeners.remove(listener) ]
 	}
 	
 	override apply(T change) {
 		if(_listeners == null || !isPublishing) return;
 		for(listener : _listeners.keySet)
 			listener.apply(change)
+	}
+	
+	override getSubscriptionCount() {
+		_listeners.size
 	}
 	
 }

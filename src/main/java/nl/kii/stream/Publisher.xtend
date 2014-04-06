@@ -8,4 +8,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  */
 interface Publisher<T> extends Observable<T>, Procedure1<T> {
 	
+	def int getSubscriptionCount()
+	
 }

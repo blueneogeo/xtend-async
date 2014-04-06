@@ -29,3 +29,8 @@
 /Value.java
 /.Close.java._trace
 /.StreamStats.java._trace
+/.BufferedStream.java._trace
+/.DirectStream.java._trace
+/.BasicStream.java._trace
+/.ShortableStream.java._trace
+/.SkippableStream.java._trace

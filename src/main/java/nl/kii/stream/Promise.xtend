@@ -6,7 +6,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 /**
  * A Promise is a publisher of a value. The value may arrive later.
  */
-class Promise<T> implements Publisher<T> {
+class 
+Promise<T> implements Publisher<T> {
 	
 	var Publisher<T> onNext
 	
@@ -44,17 +45,22 @@ class Promise<T> implements Publisher<T> {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def void then(Procedure1<T> listener) {
-		onNext.onChange(listener)
+	def =>void then(Procedure1<T> listener) {
+		val unsubscribeFn = onNext.onChange(listener)
 		if(!isStarted) {
 			isStarted = true
 			if(buffer != null)
 				apply(buffer)
 		}
+		unsubscribeFn
 	}
 	
-	override void onChange(Procedure1<T> listener) {
+	override =>void onChange(Procedure1<T> listener) {
 		then(listener)
+	}
+	
+	override getSubscriptionCount() {
+		onNext.subscriptionCount
 	}
 	
 }

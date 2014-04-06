@@ -14,15 +14,20 @@ class ThreadSafePublisher<T> implements Publisher<T> {
 		new ConcurrentHashMap<Procedure1<T>, String>
 	}
 	
-	override onChange(Procedure1<T> listener) {
+	override =>void onChange(Procedure1<T> listener) {
 		if(listeners == null) listeners = newListenersMap
 		listeners.put(listener, '')
+		return [| listeners.remove(listener) ]
 	}
 	
 	override apply(T change) {
 		if(listeners == null || !isPublishing) return;
 		for(listener : listeners.keySet)
 			listener.apply(change)
+	}
+	
+	override getSubscriptionCount() {
+		listeners.size
 	}
 	
 }
