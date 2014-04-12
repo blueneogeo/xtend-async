@@ -58,8 +58,8 @@ public class SkippableStream<T extends Object> extends Stream<T> {
   
   public SkippableStream(final Publisher<Entry<T>> publisher, final Stream<?> parentStream) {
     throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from Publisher<Entry<T>> to Stream<?>"
-      + "\nType mismatch: cannot convert from Stream<?> to ()=>Queue<Entry<T>>");
+      + "\nType mismatch: cannot convert from Stream<?> to ()=>Queue<Entry<T>>"
+      + "\nType mismatch: cannot convert from Publisher<Entry<T>> to Stream<?>");
   }
   
   /**
