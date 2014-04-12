@@ -126,10 +126,10 @@ class BufferedStream<T> extends Stream<T> {
 	// NEW /////////////////////////////////////////////////////////////////////
 
 	/** Creates a new Stream. */
-	new() {	this(new ThreadSafePublisher) }
+	new() {	super(new ThreadSafePublisher) }
 	
-	/** Most detailed constructor, where you can specify your own publisher. */
-	new(Publisher<Entry<T>> publisher) { super(publisher) }
+	/** Define the Queue implementation to use */
+	new(Queue<Entry<T>> queue) { super(); this.buffer = queue }
 	
 	// GETTERS & SETTERS ///////////////////////////////////////////////////////
 
@@ -158,7 +158,7 @@ class BufferedStream<T> extends Stream<T> {
 	override open() {
 		if(isOpen.get) throw new StreamException('cannot start an already started stream.')
 		super.open
-		if(ready) processNext
+		if(ready) processNextFromQueue
 		this
 	}
 	
@@ -169,17 +169,17 @@ class BufferedStream<T> extends Stream<T> {
 	override void apply(Entry<T> value) {
 		if(value == null) throw new NullPointerException('cannot stream a null value')
 		getBuffer.add(value)
-		if(ready) processNext
+		if(ready) processNextFromQueue
 	}
 
 	/**
 	 * Takes a value from the buffer/queue and pushes it to the listeners for processing.
 	 * @return true if a value was processed from the buffer.
 	 */
-	def boolean processNext() {
+	def boolean processNextFromQueue() {
 		// if anything was buffered, get the next value from the buffer and push it
 		if(buffer != null && !buffer.empty) {
-			stream.apply(buffer.poll)
+			publisher.apply(buffer.poll)
 			true
 		} else false
 	}
@@ -192,7 +192,7 @@ class BufferedStream<T> extends Stream<T> {
 			// one more listener is ready
 			readyListenerCount.incrementAndGet
 			// if all listeners are now ready, process the next value
-			if(ready) processNext
+			if(ready) processNextFromQueue
 		]
 		// start listening, passing along the readyFn
 		each [ listener.apply(it, nextFn) ]

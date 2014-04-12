@@ -15,12 +15,12 @@ class StreamExt {
 	
 	/** create a stream of the given type */
 	def static <T> stream(Class<T> type) {
-		new BufferedStream<T>
+		new Stream<T>
 	}
 	
 	/** create a stream of a set of data */
 	def static <T> stream(T... data) {
-		new BufferedStream<T> => [
+		new Stream<T> => [
 			for(i : data) push(i)
 			finish
 		]
@@ -28,7 +28,7 @@ class StreamExt {
 
 	/** stream the data of a map as a list of key->value pairs */
 	def static <K, V> stream(Map<K, V> data) {
-		new BufferedStream<Pair<K, V>> => [
+		new Stream<Pair<K, V>> => [
 			for(i : data.entrySet) push(i.key -> i.value)
 			finish
 		]
@@ -79,12 +79,11 @@ class StreamExt {
 	def static <T, R> map(Stream<T> stream, (T)=>R mappingFn) {
 		val newStream = new Stream<R>
 		stream
+			.chain(newStream)
 			.onFinish [ newStream.finish ]
 			.onError [ newStream.error(it) ]
 			.each [ newStream.push(mappingFn.apply(it)) ]
 		newStream
-			.onOpen [ stream.open ]
-			.onClose [ stream.close ]
 	}
 	
 	/**
@@ -94,17 +93,18 @@ class StreamExt {
 	def static <T> filter(Stream<T> stream, (T)=>boolean filterFn) {
 		val newStream = new Stream<T>
 		stream
-			.onFinish [ newStream.finish ]
+			.chain(newStream)
+			.onSkip [ newStream.skip ]
 			.onError [ newStream.error(it) ]
-			.each [ if(filterFn.apply(it)) newStream.push(it) ]
+			.onFinish [ newStream.finish ]
+			.forEach [ if(filterFn.apply(it)) newStream.push(it) ]
 		newStream
-			.onOpen [ stream.open ]
-			.onClose [ stream.close ]
 	}
 
 	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
 		val newStream = new Stream<T>
 		stream
+			.chain(newStream)
 			.onFinish [ newStream.finish ]
 			.onError [ newStream.error(it) ]
 			.each [
@@ -112,8 +112,6 @@ class StreamExt {
 				if(splitConditionFn.apply(it)) newStream.finish
 			]
 		newStream
-			.onOpen [ stream.open ]
-			.onClose [ stream.close ]
 	}
 	
 	/** 
@@ -123,12 +121,11 @@ class StreamExt {
 		val substream = new AtomicReference(new BufferedStream<T>)
 		val newStream = new Stream<Stream<T>>
 		stream
+			.chain(newStream)
 			.onFinish [ newStream.push(substream.get); substream.set(new BufferedStream<T>) ]
 			.onError [ newStream.error(it) ]
 			.each [ substream.get.push(it) ]
 		newStream
-			.onOpen [ stream.open ]
-			.onClose [ stream.close ]
 	}
 
 	/**
@@ -138,12 +135,11 @@ class StreamExt {
 		val list = new AtomicReference(new LinkedList<T>)
 		val newStream = new Stream<List<T>>
 		stream
+			.chain(newStream)
 			.onFinish [ newStream.push(list.get); list.set(new LinkedList<T>) ]
 			.onError [ newStream.error(it) ]
 			.each [ list.get.add(it) ]
 		newStream
-			.onOpen [ stream.open ]
-			.onClose [ stream.close ]
 	}
 	
 	// PROMISE CHAINING ///////////////////////////////////////////////////////	
@@ -164,22 +160,26 @@ class StreamExt {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/**
-	 * Start the stream and handle each streamed value.
-	 * <p>
-	 * If autostart is true for the stream (which is it by default), this will
-	 * start the stream, as well as call the listerer for each pushed stream value.
+	 * Start listening to the stream immediately and handle each streamed value.
+	 * Automatically asks for the next item.
 	 */
-	def static <T> void each(Stream<T> stream, Procedure1<T> listener) {
-		stream.each(true) [ it, done, s | 
+	def static <T> Connection<T> each(Stream<T> stream, Procedure1<T> listener) {
+		val conn = stream.connect [
 			listener.apply(it)
+			self.next
 		]
+		conn.open
+		conn
 	}
-	
+
 	/**
-	 * Forward the results of the stream to another stream 
+	 * Forward the results of the stream to another stream and start that stream. 
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
-		stream.onChange [ otherStream.apply(it) ]
+		stream
+			.onFinish [ otherStream.finish ]
+			.onError [ otherStream.error(it) ]
+			.each [ otherStream.push(it) ]
 	}
 	
 	 /**
@@ -205,10 +205,15 @@ class StreamExt {
 	 */
 	def static <T extends Number> sum(Stream<T> stream) {
 		val sum = new AtomicDouble(0)
-		val newStream = new Stream<Double>(stream)
-		stream.onFinish [ newStream.push(sum.doubleValue); sum.set(0) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | sum.addAndGet(doubleValue) ]
+		val newStream = new Stream<Double>
+		stream
+			.chain(newStream)
+			.onFinish [ newStream.push(sum.doubleValue); sum.set(0) ]
+			.onError [ newStream.error(it) ]
+			.connect [ 
+				sum.addAndGet(doubleValue)
+				self.next
+			]
 		newStream
 	}
 
@@ -218,10 +223,16 @@ class StreamExt {
 	def static <T extends Number> avg(Stream<T> stream) {
 		val sum = new AtomicDouble
 		val count = new AtomicLong(0)
-		val newStream = new Stream<Double>(stream)
-		stream.onFinish [ newStream.push(sum.doubleValue / count.getAndSet(0)); sum.set(0) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | sum.addAndGet(doubleValue); count.incrementAndGet ]
+		val newStream = new Stream<Double>
+		stream
+			.chain(newStream)
+			.onFinish [ newStream.push(sum.doubleValue / count.getAndSet(0)); sum.set(0) ]
+			.onError [ newStream.error(it) ]
+			.connect [ 
+				sum.addAndGet(doubleValue)
+				count.incrementAndGet
+				self.next
+			]
 		newStream
 	}
 	
@@ -230,10 +241,15 @@ class StreamExt {
 	 */
 	def static <T> count(Stream<T> stream) {
 		val count = new AtomicLong(0)
-		val newStream = new Stream<Long>(stream)
-		stream.onFinish [ newStream.push(count.getAndSet(0)) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | count.incrementAndGet ]
+		val newStream = new Stream<Long>
+		stream
+			.chain(newStream)
+			.onFinish [ newStream.push(count.getAndSet(0)) ]
+			.onError [ newStream.error(it) ]
+			.connect [ 
+				count.incrementAndGet
+				self.next
+			]
 		newStream
 	}
 
@@ -242,10 +258,15 @@ class StreamExt {
 	 */
 	def static <T> Stream<T> reduce(Stream<T> stream, T initial, (T, T)=>T reducerFn) {
 		val reduced = new AtomicReference<T>(initial)
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ newStream.push(reduced.getAndSet(initial)) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | reduced.set(reducerFn.apply(reduced.get, it)) ]
+		val newStream = new Stream<T>
+		stream
+			.chain(newStream)
+			.onFinish [ newStream.push(reduced.getAndSet(initial)) ]
+			.onError [ newStream.error(it) ]
+			.connect [ 
+				reduced.set(reducerFn.apply(reduced.get, it))
+				self.next
+			]
 		newStream
 	}
 
@@ -256,10 +277,15 @@ class StreamExt {
 	def static <T> Stream<T> reduce(Stream<T> stream, T initial, (T, T, Long)=>T reducerFn) {
 		val reduced = new AtomicReference<T>(initial)
 		val count = new AtomicLong(0)
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ newStream.push(reduced.getAndSet(initial)); count.set(0) ]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s | reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement)) ]
+		val newStream = new Stream<T>
+		stream
+			.chain(newStream)
+			.onError [ newStream.error(it) ]
+			.onFinish [ newStream.push(reduced.getAndSet(initial)); count.set(0) ]
+			.connect [ 
+				reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement))
+				self.next
+			]
 		newStream
 	}
 
@@ -268,20 +294,46 @@ class StreamExt {
 	 */
 	def static <T> Stream<T> limit(Stream<T> stream, int amount) {
 		val count = new AtomicLong(0)
-		val newStream = new Stream<T>(stream)
-		stream.onFinish [ 
-			count.set(0)
-			newStream.finish
-		]
-		stream.onError [ newStream.error(it) ]
-		stream.each(false) [ it, done, s |
-			println('OI!' + count.get)
-			if(count.incrementAndGet > amount) {
-				done.apply
-			} else {
-				newStream.push(it)
-			}
-		]
+		val newStream = new Stream<T>
+		stream
+			.chain(newStream)
+			.onError [ newStream.error(it) ]
+			.onFinish [ 
+				count.set(0)
+				newStream.finish
+			]
+			.connect [
+				if(count.incrementAndGet > amount) {
+					self.close
+				} else {
+					newStream.push(it)
+					self.next
+				}
+			]
+		newStream
+	}
+	
+	/**
+	 * Limit the amount of items in this batch (stop listening until the next finish)
+	 */
+	def static <T> Stream<T> limitBatch(Stream<T> stream, int amount) {
+		val count = new AtomicLong(0)
+		val newStream = new Stream<T>
+		stream
+			.chain(newStream)
+			.onError [ newStream.error(it) ]
+			.onFinish [ 
+				count.set(0)
+				newStream.finish
+			]
+			.connect [
+				if(count.incrementAndGet > amount) {
+					self.skip
+				} else {
+					newStream.push(it)
+					self.next
+				}
+			]
 		newStream
 	}
 	
@@ -290,22 +342,36 @@ class StreamExt {
 	 */
 	 def static <T> Stream<Boolean> anyMatch(Stream<T> stream, (T)=>boolean testFn) {
 	 	val anyMatch = new AtomicBoolean(false)
-	 	val newStream = new Stream<Boolean>(stream)
+	 	val newStream = new Stream<Boolean>
 	 	stream.onFinish [	
 	 		if(!anyMatch.get) newStream.push(false)
 	 		anyMatch.set(false)
 	 	]
 		stream.onError [ newStream.error(it) ]
-	 	stream.each(false) [ it, done, s | 
+	 	stream.forEach [ 
 		 	// if we get a match, we communicate directly
 		 	// and tell the stream we are done
 	 		if(testFn.apply(it)) {	
 	 			anyMatch.set(true)
 	 			newStream.push(true)
-	 			done.apply
+	 			self.skip
 	 		}
+	 		self.next
 	 	]
-	 	newStream
+		newStream
+			.onOpen [ stream.open ]
+			.onSkip [ stream.skip ]
+			.onClose [ stream.close ]
 	 }
+	 
+	 /** 
+	  * When the child stream opens, closes or skips, pass these messages to the
+	  * parent stream. Used when chaining streams together.
+	  */
+	 def static private <T, R> chain(Stream<T> stream, Stream<R> childStream) {
+		childStream
+			.onSkip [ stream.skip ]
+		stream
+	 } 
 
 }

@@ -4,12 +4,9 @@ import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
 import nl.kii.stream.Publisher;
 import nl.kii.stream.Stream;
-import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 /**
@@ -56,51 +53,26 @@ public class SkippableStream<T extends Object> extends Stream<T> {
   }
   
   public SkippableStream(final Stream<?> parentStream) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from Stream<?> to Publisher<Entry<T>>");
+    super(parentStream);
   }
   
   public SkippableStream(final Publisher<Entry<T>> publisher, final Stream<?> parentStream) {
     throw new Error("Unresolved compilation problems:"
-      + "\nInvalid number of arguments. The constructor Stream(Publisher<Entry<T>>) is not applicable for the arguments (Publisher<Entry<T>>,Stream<?>)");
+      + "\nType mismatch: cannot convert from Publisher<Entry<T>> to Stream<?>"
+      + "\nType mismatch: cannot convert from Stream<?> to ()=>Queue<Entry<T>>");
   }
   
   /**
    * Push an entry into the stream. An entry can be a Value, a Finish or an Error.
    */
   public void apply(final Entry<T> entry) {
-    boolean _matched = false;
-    if (!_matched) {
-      if (Objects.equal(entry, null)) {
-        _matched=true;
-        throw new NullPointerException("cannot stream a null entry");
-      }
-    }
-    if (!_matched) {
-      if (entry instanceof Value) {
-        _matched=true;
-        boolean _get = this.skippingToFinish.get();
-        boolean _not = (!_get);
-        if (_not) {
-          this.stream.apply(entry);
-        }
-      }
-    }
-    if (!_matched) {
-      if (entry instanceof Finish) {
-        _matched=true;
-        this.timesFinished.incrementAndGet();
-        this.skippingToFinish.set(false);
-        this.doneListenerCount.set(0);
-        this.stream.apply(entry);
-      }
-    }
-    if (!_matched) {
-      if (entry instanceof nl.kii.stream.Error) {
-        _matched=true;
-        this.stream.apply(entry);
-      }
-    }
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field publisher is undefined for the type SkippableStream"
+      + "\nThe method or field publisher is undefined for the type SkippableStream"
+      + "\nThe method or field publisher is undefined for the type SkippableStream"
+      + "\napply cannot be resolved"
+      + "\napply cannot be resolved"
+      + "\napply cannot be resolved");
   }
   
   /**
@@ -137,47 +109,8 @@ public class SkippableStream<T extends Object> extends Stream<T> {
    * listerer will be called with the value.
    */
   public SkippableStream<T> each(final Procedure2<? super T, ? super Procedure0> listener) {
-    SkippableStream<T> _xblockexpression = null;
-    {
-      final AtomicInteger timesCalled = new AtomicInteger(0);
-      final Procedure0 _function = new Procedure0() {
-        public void apply() {
-          int _get = timesCalled.get();
-          int _get_1 = SkippableStream.this.timesFinished.get();
-          int _plus = (_get_1 + 1);
-          boolean _lessEqualsThan = (_get <= _plus);
-          if (_lessEqualsThan) {
-            timesCalled.incrementAndGet();
-            final int amountDone = SkippableStream.this.doneListenerCount.incrementAndGet();
-            int _subscriptionCount = SkippableStream.this.getSubscriptionCount();
-            boolean _equals = (amountDone == _subscriptionCount);
-            if (_equals) {
-              SkippableStream.this.skipToFinish();
-            }
-          }
-        }
-      };
-      final Procedure0 onDone = _function;
-      final Procedure1<Entry<T>> _function_1 = new Procedure1<Entry<T>>() {
-        public void apply(final Entry<T> it) {
-          int _get = timesCalled.get();
-          int _get_1 = SkippableStream.this.timesFinished.get();
-          int _plus = (_get_1 + 1);
-          boolean _lessEqualsThan = (_get <= _plus);
-          if (_lessEqualsThan) {
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof Value) {
-                _matched=true;
-                listener.apply(((Value<T>)it).value, onDone);
-              }
-            }
-          }
-        }
-      };
-      this.onChange(_function_1);
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field subscriptionCount is undefined for the type SkippableStream"
+      + "\nThe method onChange is undefined for the type SkippableStream");
   }
 }

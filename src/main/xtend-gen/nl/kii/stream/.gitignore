@@ -34,3 +34,5 @@
 /.BasicStream.java._trace
 /.ShortableStream.java._trace
 /.SkippableStream.java._trace
+/.Subscription.java._trace
+/.Connection.java._trace

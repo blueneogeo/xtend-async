@@ -50,14 +50,14 @@ class SkippableStream<T> extends Stream<T> {
 	override apply(Entry<T> entry) {
 		switch entry {
 			case null: throw new NullPointerException('cannot stream a null entry')
-			Value<T>: if(!skippingToFinish.get) stream.apply(entry)
+			Value<T>: if(!skippingToFinish.get) publisher.apply(entry)
 			Finish<T>:  { 
 				timesFinished.incrementAndGet
 				skippingToFinish.set(false)
 				doneListenerCount.set(0)
-				stream.apply(entry)
+				publisher.apply(entry)
 			}
-			Error<T>: stream.apply(entry)
+			Error<T>: publisher.apply(entry)
 		}
 	}
 	

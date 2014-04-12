@@ -1,8 +1,8 @@
 package nl.kii.stream
 
-import java.io.Closeable
+import java.util.Queue
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import nl.kii.stream.impl.ThreadSafePublisher
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 /**
@@ -58,119 +58,89 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * <p>
  * Or creating your own extensions.
  */
-class Stream<T> implements Closeable, Publisher<Entry<T>> {
-	
-	/** Set these to set how all streams are set by default */
-	public static var CATCH_ERRORS_DEFAULT = false
-	
-	/** 
-	 * If true, errors will be caught and propagated as error entries. You can then
-	 * listen for errors at the end of the stream (but for the start/each call). 
-	 * If left false, exceptions will throw inside of the stream like a normal throw.
-	 */
-	public var catchErrors = CATCH_ERRORS_DEFAULT
+class Stream<T> implements Procedure1<Entry<T>> {
 
 	/** 
-	 * The publisher registers listeners and calls the listeners when
-	 * there are new entries for them. You register a listener by
-	 * calling stream.each(...)
-	 */
-	protected val Publisher<Entry<T>> stream
-	
-	/** Basic streams start open */
-	protected val isOpen = new AtomicBoolean(true)
-	
-	/** Optional handler to call when the stream is openend */
-	protected (Void)=>void onOpen
-	
-	/** Optional handler to call when the stream is closed */
-	protected (Void)=>void onClose
-	
+	 * The queue is lazily constructed using this function.
+	 */	
+	val =>Queue<Entry<T>> queueFn
 
+	/** 
+	 * The queue gets filled when there are entries entering the stream
+	 * even though there are no listeners yet. The queue will only grow
+	 * upto the maxQueueSize. If more entries enter than the size, the
+	 * queue will overflow and discard these later entries.
+	 */
+	var Queue<Entry<T>> queue
+	
+	/** If true, the value listener is ready for a next value */
+	val _ready = new AtomicBoolean(false)
+	
+	/** If true, all values will be discarded upto the next incoming finish */
+	val _skipping = new AtomicBoolean(false)
+	
+	/** Lets others listen when the stream starts skipping */
+	var (Void)=>void onSkip
+	
+	/** Lets others listen for values in the stream */
+	var (T)=>void onValue
+	
+	/** Lets others listen for errors occurring in the onValue listener */
+	var (Throwable)=>void onError
+
+	/** Lets others listen for the stream finishing a batch */
+	var (Void)=>void onFinish
+	
 	// NEW /////////////////////////////////////////////////////////////////////
 
 	/** Creates a new Stream. */
-	new() {	this(new ThreadSafePublisher) }
-	
-	/** Most detailed constructor, where you can specify your own publisher. */
-	new(Publisher<Entry<T>> publisher) { this.stream = publisher }
-	
-	
-	// PUBLISHER ///////////////////////////////////////////////////////////////
-	
-	/**
-	 * Push an entry into the stream. An entry can be a Value, a Finish or an Error.
-	 */
-	override apply(Entry<T> entry) {
-		// only allow if we have a value and we are not skipping
-		if(entry == null) throw new NullPointerException('cannot stream a null entry')
-		if(isOpen.get) stream.apply(entry)
+	new() {
+		this(null)
 	}
 
-	/**
-	 * Listen to entries (value/finish/error) coming from the stream. For each new entry, 
-	 * the passed listerer will be called with the value.
-	 */
-	override onChange(Procedure1<Entry<T>> listener) {
-		// start listening
-		stream.onChange [
-			try {
-				listener.apply(it)
-			} catch(Throwable t) {
-				if(catchErrors) stream.apply(new Error(t))
-				else throw new StreamException(t)
-			}
-		]
+	/** Creates a new Stream that is connected to a parentStream. */
+	new(Stream<?> parentStream) {
+		this(parentStream) [| new ConcurrentLinkedQueue ]
 	}
 	
-	override getSubscriptionCount() {
-		stream.subscriptionCount
+	/** Most detailed constructor, where you can specify your own queue factory. */
+	new(Stream<?> parentStream, =>Queue<Entry<T>> queueFn) { 
+		this.queueFn = queueFn
+		// set up some default parent child relationships
+		if(parentStream != null) {
+			// default messaging up the chain
+			onSkip [ parentStream.skip ]
+			// default messaging down the chain
+			parentStream.onFinish [ finish ]
+			parentStream.onError [ error(it) ]
+		}
 	}
+	
 	
 	
 	// GETTERS & SETTERS ///////////////////////////////////////////////////////
 
-	/** 
-	 * If true, the stream will catch listener handler errors. You can listen for these errors
-	 * using the method .onError(handler).
-	 */
-	def setCatchErrors(boolean catchErrors) {
-		this.catchErrors = catchErrors
+	def isReady() {
+		_ready.get
 	}
 	
-	
-	// CONTROL ////////////////////////////////////////////////////////////////
-
-	/** 
-	 * Start a stream. A basic stream like this is auto-started, so start does nothing.
-	 */
-	def open() {
-		isOpen.set(true)
-		if(onOpen != null) onOpen.apply(null)
-		this
+	def isSkipping() {
+		_skipping.get
 	}
 	
-	/**
-	 * Close a the stream, and disconnects it from any parent.
-	 */
-	override close() {
-		if(!isOpen.get) throw new StreamException('cannot close a closed stream.')
-		isOpen.set(false)
-		if(onClose != null) onClose.apply(null)
+	def getQueue() {
+		queue
 	}
 	
-
 	// PUSH ///////////////////////////////////////////////////////////////////
 
-	/**
-	 * Push a value into the stream.
-	 */
+	/** Push a value into the stream. */
 	def push(T value) {
 		if(value == null) throw new NullPointerException('cannot stream a null value')
 		apply(new Value(value))
 		this
 	}
-	
+
 	/**
 	 * Report an error to the stream. It is also pushed down substreams as a message,
 	 * so you can listen for errors at any point below where the error is generated
@@ -184,57 +154,147 @@ class Stream<T> implements Closeable, Publisher<Entry<T>> {
 	 * Finish a batch of data that was pushed into the stream. Note that a finish may be called
 	 * more than once, indicating that multiple batches were passed.
 	 */	
-	def Stream<T> finish() {
+	def finish() {
 		apply(new Finish)
 		this
 	}
+		
+	/** Add an entry to the stream. If there is no ready listener, it will queue the value. */
+	override apply(Entry<T> entry) {
+		if(entry == null) throw new NullPointerException('cannot stream a null value')
+		if((queue == null || queue.empty) && ready) {
+			// if possible, skip the queue and publish the entry directly
+			publish(entry)
+		} else {
+			// otherwise, queue it
+			queue(entry)
+			publishFromQueue
+		}
+	}
+	
+	
+		
+	// CONTROL ////////////////////////////////////////////////////////////////
+
+	/** 
+	 * Skip incoming values until the stream receives a Finish. Then unskip and
+	 * resume normal operation.
+	 */	
+	def skip() {
+		if(!skipping) {
+			_skipping.set(true)
+			// clearQueueUntil [ it instanceof Finish<?> ]
+			if(onSkip != null) onSkip.apply(null)
+			publishFromQueue
+		}
+	}
+
+	/** Indicate that the listener is ready for the next value */	
+	def next() {
+		_ready.set(true)
+		publishFromQueue
+	}
+	
 	
 
 	// LISTEN /////////////////////////////////////////////////////////////////
-
-		
-	/**
-	 * Listen to values coming from the stream. For each new value, the passed
-	 * listerer will be called with the value.
-	 */
-	def each((T)=>void listener) {
-		onChange [ switch it { Value<T>: listener.apply(value) } ]
-		this
-	}
 	
+	/** Listen for values on the stream. Will accept incoming values directly. */
+	def void forEach((T)=>void onValue) {
+		this.onValue = [ onValue.apply(it); next ]
+		next
+	}
+
+	/** 
+	 * Listen for values from the stream, but call next and skip to control the stream.
+	 * <p>
+	 * Use the passed stream to control the flow:
+	 * <li>call stream.next() to tell the stream to send the next message when available,
+	 * <li>call stream.skip() to tell the stream to stop sending until the next finish.
+	 */
+	def void forNext((T, Stream<T>)=>void onValue) {
+		this.onValue = [ onValue.apply(it, this) ] 
+	}
+		
 	/**
 	 * Listen for a finish call being done on the stream. For each finish call,
 	 * the passed listener will be called with this stream.
 	 */	
 	def onFinish(Procedure1<Void> listener) {
-		onChange [ switch it { Finish<T>: listener.apply(null) } ]
+		this.onFinish = listener
 		this
 	}
+	
 	/**
 	 * Listen for errors in the stream or parent streams. 
 	 * The stream only catches errors if catchErrors is set to true.
 	 */
 	def onError(Procedure1<Throwable> listener) {
-		stream.onChange [ switch it { Error<T>: listener.apply(error) } ]
+		this.onError = listener
 		this
 	}
 	
-	/** Let a parent stream listen when this stream opens */
-	def onOpen(Procedure1<Void> listener) {
-		this.onOpen = listener
+	/** 
+	 * Let a parent stream listen when this stream skips to the finish. 
+	 * Only supports a single listener.
+	 */
+	def onSkip(Procedure1<Void> listener) {
+		this.onSkip = listener
 		this
 	}
-	
-	/** Let a parent stream listen when this stream closes */
-	def onClose(Procedure1<Void> listener) {
-		this.onClose = listener
-		this
-	}
-	
 	
 	// OTHER //////////////////////////////////////////////////////////////////
+
+	/** Put a value on the queue. Creates the queue if necessary */
+	protected def queue(Entry<T> value) {
+		if(queue == null) queue = queueFn.apply
+		queue.add(value)	
+	}
 	
-	override toString() '''«this.class.name»'''
+	/** If there is anything on the queue, and while the listener is ready, push it out */
+	protected def boolean publishFromQueue() {
+		if(queue != null && !queue.empty) {
+			while(ready) publish(queue.poll)
+			true
+		} else false
+	}
+	
+	/** Send an entry directly (no queue) to the listeners (onValue, onError, onFinish) */
+	protected def boolean publish(Entry<T> it) {
+		switch it {
+			Value<T>: {
+				var applied = false
+				if(onValue != null && ready && !isSkipping) {
+					_ready.set(false)
+					if(onError == null) { 
+						onValue.apply(value)
+						applied = true
+					} else try {
+						onValue.apply(value)
+						applied = true
+					} catch(Exception e) {
+						error(e)
+					}
+				}
+				if(ready) next
+				applied
+			}
+			Finish<T>: {
+				if(isSkipping) _skipping.set(false)
+				if(onFinish != null) onFinish.apply(null)
+				false
+			}
+			Error<T>: {
+				if(onError != null) onError.apply(error)
+				false
+			}
+		}
+	}
+	
+	override toString() '''«this.class.name» { 
+			queue: «IF(queue != null) » «queue.length» «ELSE» none «ENDIF»
+		}
+	'''
 	
 }
 

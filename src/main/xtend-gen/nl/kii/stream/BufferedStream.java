@@ -5,15 +5,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Publisher;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamException;
-import nl.kii.stream.impl.ThreadSafePublisher;
-import org.eclipse.xtend2.lib.StringConcatenation;
-import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 /**
@@ -137,14 +130,16 @@ public class BufferedStream<T extends Object> extends Stream<T> {
    * Creates a new Stream.
    */
   public BufferedStream() {
-    this(new ThreadSafePublisher<Entry<T>>());
+    throw new Error("Unresolved compilation problems:"
+      + "\nType mismatch: cannot convert from ThreadSafePublisher<Entry<?>> to Stream<?>");
   }
   
   /**
-   * Most detailed constructor, where you can specify your own publisher.
+   * Define the Queue implementation to use
    */
-  public BufferedStream(final Publisher<Entry<T>> publisher) {
-    super(publisher);
+  public BufferedStream(final Queue<Entry<T>> queue) {
+    super();
+    this.buffer = queue;
   }
   
   /**
@@ -168,42 +163,22 @@ public class BufferedStream<T extends Object> extends Stream<T> {
    * We are ready to process if the stream is started and ALL listeners have requested a next value
    */
   public boolean isReady() {
-    boolean _and = false;
-    boolean _get = this.isOpen.get();
-    if (!_get) {
-      _and = false;
-    } else {
-      int _get_1 = this.readyListenerCount.get();
-      int _subscriptionCount = this.getSubscriptionCount();
-      boolean _equals = (_get_1 == _subscriptionCount);
-      _and = _equals;
-    }
-    return _and;
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field isOpen is undefined for the type BufferedStream"
+      + "\nThe method or field subscriptionCount is undefined for the type BufferedStream"
+      + "\nget cannot be resolved"
+      + "\n&& cannot be resolved");
   }
   
   /**
    * Start streaming. If anything was buffered and the listeners are ready,
    * it will also start processing.
    */
-  public Stream<T> open() {
-    try {
-      BufferedStream<T> _xblockexpression = null;
-      {
-        boolean _get = this.isOpen.get();
-        if (_get) {
-          throw new StreamException("cannot start an already started stream.");
-        }
-        super.open();
-        boolean _isReady = this.isReady();
-        if (_isReady) {
-          this.processNext();
-        }
-        _xblockexpression = this;
-      }
-      return _xblockexpression;
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
+  public BufferedStream<T> open() {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field isOpen is undefined for the type BufferedStream"
+      + "\nThe method open is undefined for the type BufferedStream"
+      + "\nget cannot be resolved");
   }
   
   /**
@@ -219,7 +194,7 @@ public class BufferedStream<T extends Object> extends Stream<T> {
     _buffer.add(value);
     boolean _isReady = this.isReady();
     if (_isReady) {
-      this.processNext();
+      this.processNextFromQueue();
     }
   }
   
@@ -227,92 +202,23 @@ public class BufferedStream<T extends Object> extends Stream<T> {
    * Takes a value from the buffer/queue and pushes it to the listeners for processing.
    * @return true if a value was processed from the buffer.
    */
-  public boolean processNext() {
-    boolean _xifexpression = false;
-    boolean _and = false;
-    boolean _notEquals = (!Objects.equal(this.buffer, null));
-    if (!_notEquals) {
-      _and = false;
-    } else {
-      boolean _isEmpty = this.buffer.isEmpty();
-      boolean _not = (!_isEmpty);
-      _and = _not;
-    }
-    if (_and) {
-      boolean _xblockexpression = false;
-      {
-        Entry<T> _poll = this.buffer.poll();
-        this.stream.apply(_poll);
-        _xblockexpression = true;
-      }
-      _xifexpression = _xblockexpression;
-    } else {
-      _xifexpression = false;
-    }
-    return _xifexpression;
+  public boolean processNextFromQueue() {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field publisher is undefined for the type BufferedStream"
+      + "\napply cannot be resolved");
   }
   
-  public BufferedStream<T> each(final boolean startStream, final Procedure2<? super T, ? super Procedure0> listener) {
-    BufferedStream<T> _xblockexpression = null;
-    {
-      final Procedure0 _function = new Procedure0() {
-        public void apply() {
-          BufferedStream.this.readyListenerCount.incrementAndGet();
-          boolean _isReady = BufferedStream.this.isReady();
-          if (_isReady) {
-            BufferedStream.this.processNext();
-          }
-        }
-      };
-      final Procedure0 nextFn = _function;
-      final Procedure1<T> _function_1 = new Procedure1<T>() {
-        public void apply(final T it) {
-          listener.apply(it, nextFn);
-        }
-      };
-      this.each(_function_1);
-      boolean _and = false;
-      if (!startStream) {
-        _and = false;
-      } else {
-        boolean _get = this.isOpen.get();
-        boolean _not = (!_get);
-        _and = _not;
-      }
-      if (_and) {
-        this.open();
-      }
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
+  public Object each(final boolean startStream, final Procedure2<? super T, ? super Procedure0> listener) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field isOpen is undefined for the type BufferedStream"
+      + "\nType mismatch: cannot convert from (T)=>void to (T, ()=>void)=>void"
+      + "\nType mismatch: cannot convert implicit first argument from BufferedStream<T> to boolean"
+      + "\nget cannot be resolved"
+      + "\n! cannot be resolved");
   }
   
   public String toString() {
-    StringConcatenation _builder = new StringConcatenation();
-    Class<? extends BufferedStream> _class = this.getClass();
-    String _name = _class.getName();
-    _builder.append(_name, "");
-    _builder.append(" { ");
-    _builder.newLineIfNotEmpty();
-    _builder.append("\t\t\t");
-    _builder.append("open: ");
-    _builder.append(this.isOpen, "\t\t\t");
-    _builder.append(", buffer: ");
-    {
-      boolean _notEquals = (!Objects.equal(this.buffer, null));
-      if (_notEquals) {
-        _builder.append(" ");
-        int _length = ((Object[])Conversions.unwrapArray(this.buffer, Object.class)).length;
-        _builder.append(_length, "\t\t\t");
-        _builder.append(" ");
-      } else {
-        _builder.append(" none ");
-      }
-    }
-    _builder.newLineIfNotEmpty();
-    _builder.append("\t\t");
-    _builder.append("}");
-    _builder.newLine();
-    return _builder.toString();
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field isOpen is undefined for the type BufferedStream");
   }
 }
