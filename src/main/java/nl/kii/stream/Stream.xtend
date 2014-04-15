@@ -12,13 +12,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * to its listeners. To push a value into a stream, use .push().
  * To listen to values, call .each().
  * 
- * <h1>non-buffered</h1>
- * 
- * This basic stream implementation has no buffering. This means that
- * when you create it and push messages in, and then add a listener,
- * those first messages will have been missed by the listener. To
- * add flow control and buffering, @see(BufferedStream)
- * 
  * <h1>what a stream passes</h1>
  * 
  * A Stream is a publisher of three kinds of entries:
@@ -201,7 +194,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	
 	/** Listen for values on the stream. Will accept incoming values directly. */
 	def void forEach((T)=>void onValue) {
-		this.onValue = [ onValue.apply(it); next ]
+		this.onValue = [ try { onValue.apply(it) } finally { next } ]
 		next
 	}
 
@@ -212,8 +205,9 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * <li>call stream.next() to tell the stream to send the next message when available,
 	 * <li>call stream.skip() to tell the stream to stop sending until the next finish.
 	 */
-	def void forNext((T, Stream<T>)=>void onValue) {
-		this.onValue = [ onValue.apply(it, this) ] 
+	def void forEach((T, Stream<T>)=>void onValue) {
+		this.onValue = [ onValue.apply(it, this) ]
+		next
 	}
 		
 	/**
@@ -252,14 +246,17 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	}
 	
 	/** If there is anything on the queue, and while the listener is ready, push it out */
-	protected def boolean publishFromQueue() {
-		if(queue != null && !queue.empty) {
-			while(ready) publish(queue.poll)
-			true
-		} else false
+	protected def publishFromQueue() {
+		while(ready && queue != null && !queue.empty) {
+			publish(queue.poll)
+		}
 	}
 	
-	/** Send an entry directly (no queue) to the listeners (onValue, onError, onFinish) */
+	/** 
+	 * Send an entry directly (no queue) to the listeners
+	 * (onValue, onError, onFinish). If a value was processed,
+	 * ready is set to false again, since the value was published.
+	 */
 	protected def boolean publish(Entry<T> it) {
 		switch it {
 			Value<T>: {

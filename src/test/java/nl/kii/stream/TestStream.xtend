@@ -31,10 +31,8 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.forNext [ it, stream | counter.addAndGet(it) ]
-		assertEquals(0, counter.get) // controlled stream, nothing happened yet
-		s.next
-		assertEquals(1, counter.get) // pushed 1 on the stream
+		s.forEach [ it, stream | counter.addAndGet(it) ]
+		assertEquals(1, counter.get) // you always get the first, which is 1
 		s.skip
 		assertEquals(1, counter.get) // skipped to the finish
 		s.next
@@ -58,7 +56,8 @@ class TestStream {
 		// no onerror set, should throw it
 		e.set(null)
 		try {
-			s << 1 << 0
+			s << 0
+			fail('should never reach this')
 		} catch(Throwable t) {
 			e.set(t)
 		}
@@ -67,20 +66,28 @@ class TestStream {
 		// should work again
 		e.set(null)
 		try {
-			s << 1 << 0
+			s << 0
+			fail('should never reach this either')
 		} catch(Throwable t) {
 			e.set(t)
 		}
 		assertNotNull(e.get)
 		
 		// now try to catch the error
-//		val e2 = new AtomicReference<Throwable>
-//		e.set(null)
-//		//s.onError [ e2.set(it) ]
-//		s << 0
-//		// now e should still be null, and e2 should be set
-//		assertNull(e.get)
-//		//assertNotNull(e2.get)
+		val e2 = new AtomicReference<Throwable>
+		e.set(null)
+		s.onError [ e2.set(it) ] // this prevents an error being thrown
+		s << 0
+		// now e should still be null, and e2 should be set with the thrown error
+		assertNull(e.get)
+		assertNotNull(e2.get)
 	}
 
+
+
+
+
 }
+
+
+

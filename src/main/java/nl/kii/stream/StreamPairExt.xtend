@@ -50,7 +50,7 @@ class StreamPairExt {
 	 */
 	def static <T, R, P> Stream<R> async(Stream<Pair<P, T>> stream, (P, T)=>Promise<R> promiseFn) {
 		val newStream = new Stream<R>(stream)
-		stream.each(false) [ it, done, s | promiseFn.apply(key, value).then [ newStream.push(it) ] ]
+		stream.forEach [ promiseFn.apply(key, value).then [ newStream.push(it) ] ]
 		stream.onError [ newStream.error(it) ]
 		stream.onFinish [ newStream.finish ]
 		newStream
@@ -75,7 +75,7 @@ class StreamPairExt {
 	 */
 	def static <T, R, P> Stream<Pair<P, R>> async2(Stream<T> stream, (T)=>Pair<P, Promise<R>> promiseFn) {
 		val newStream = new Stream<Pair<P, R>>(stream)
-		stream.each(false) [ it, done, s |
+		stream.forEach [
 			val pair = promiseFn.apply(it)
 			pair.value.then [ newStream.push(pair.key -> it) ]
 		]
@@ -94,7 +94,7 @@ class StreamPairExt {
 	 */	
 	def static <T, R, P1, P2> Stream<Pair<P2, R>> async2(Stream<Pair<P1,T>> stream, (P1, T)=>Pair<P2, Promise<R>> promiseFn) {
 		val newStream = new Stream<Pair<P2, R>>(stream)
-		stream.each(false) [ it, done, s |
+		stream.forEach [
 			val pair = promiseFn.apply(key, value)
 			pair.value.then [ newStream.push(pair.key -> it) ]
 		]
@@ -110,16 +110,17 @@ class StreamPairExt {
 	 * See async2() for example of how to use.
 	 */
 	def static <T, P> void each(Stream<Pair<T, P>> stream, (T, P)=>void listener) {
-		stream.each(true) [ it, done, s | listener.apply(key, value) ]
+		stream.forEach [ listener.apply(key, value) ]
 	}
 
 	/**
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-	 * See async2() for example of how to use. This version also gives you access to the done function
-	 * so you can shortcut the stream, and the stream itself, so you can check it for statistics.
+	 * See async2() for example of how to use. This version is controlled: the listener gets passed
+	 * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
+	 * the next finish.
 	 */
-	def static <T, P> void each(Stream<Pair<T, P>> stream, (T, P, =>void, Stream<Pair<T, P>>)=>void listener) {
-		stream.each(true) [ it, done, s | listener.apply(key, value, done, s) ]
+	def static <T, P> void each(Stream<Pair<T, P>> stream, (T, P, Stream<Pair<T, P>>)=>void listener) {
+		stream.forEach [ it, s | listener.apply(key, value, s) ]
 	}	
 	
 

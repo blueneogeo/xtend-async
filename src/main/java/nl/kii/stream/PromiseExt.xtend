@@ -8,7 +8,7 @@ class PromiseExt {
 	}
 	
 	def static <T> promise(T value) {
-		new Promise<T> => [ apply(value) ]
+		new Promise<T>(value)
 	}
 	
 	// OPERATORS //////////////////////////////////////////////////////////////
@@ -28,15 +28,6 @@ class PromiseExt {
 	def static <T, R> map(Promise<T> promise, (T)=>R mappingFn) {
 		val newPromise = new Promise<R>
 		promise.then [ newPromise.apply(mappingFn.apply(it)) ]
-		newPromise
-	}
-	
-	def static <T> filter(Promise<T> promise, (T)=>boolean filterFn) {
-		val newPromise = new Promise<T>
-		promise.then [
-			val allowed = filterFn.apply(it)
-			if(allowed) newPromise.apply(it)
-		]
 		newPromise
 	}
 	

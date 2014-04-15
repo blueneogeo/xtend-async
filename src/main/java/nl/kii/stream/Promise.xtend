@@ -1,66 +1,55 @@
 package nl.kii.stream
 
-import nl.kii.stream.impl.ThreadSafePublisher
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * A Promise is a publisher of a value. The value may arrive later.
  */
-class 
-Promise<T> implements Publisher<T> {
+class Promise<T> implements Procedure1<T> {
 	
-	var Publisher<T> onNext
+	val _onValue = new AtomicReference<Procedure1<T>>
+	val _value = new AtomicReference<T>
+	var _finished = new AtomicBoolean(false)
 	
-	var T buffer
-
-	var boolean isStarted = false
-	var boolean isFinished = false
+	new() { }
 	
-	new() {
-		this.onNext = new ThreadSafePublisher<T>
+	new(T value) { apply(value) }
+	
+	// GETTERS AND SETTERS ////////////////////////////////////////////////////
+	
+	def isStarted() {
+		_onValue.get != null
 	}
 	
-	new(Publisher<T> onNext, Publisher<Throwable> onError) {
-		this.onNext = onNext
+	def isFinished() {
+		_finished.get
+	}
+	
+	/** only has a value when finished, otherwise null */
+	def get() {
+		_value.get
 	}
 	
 	// PUSH ///////////////////////////////////////////////////////////////////
 	
 	override apply(T value) {
-		if(isFinished) throw new PromiseException('cannot apply value to a finished promise. value was: ' + value)
+		if(finished) throw new PromiseException('cannot apply value to a finished promise. value was: ' + value)
 		if(value == null) throw new NullPointerException('cannot promise a null value')
-		if(isStarted) {
-			onNext.apply(value)
-			isFinished = true
-		} else buffer = value
-	}
-	
-	def isStarted() {
-		isStarted
-	}
-	
-	def isFinished() {
-		isFinished
+		_finished.set(true)
+		if(started) 
+			_onValue.get.apply(value) 
+		else 
+			_value.set(value)
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def =>void then(Procedure1<T> listener) {
-		val unsubscribeFn = onNext.onChange(listener)
-		if(!isStarted) {
-			isStarted = true
-			if(buffer != null)
-				apply(buffer)
-		}
-		unsubscribeFn
-	}
-	
-	override =>void onChange(Procedure1<T> listener) {
-		then(listener)
-	}
-	
-	override getSubscriptionCount() {
-		onNext.subscriptionCount
+	def void then(Procedure1<T> listener) {
+		if(started) throw new PromiseException('cannot listen to a promise more than once')
+		val value = _value.get
+		if(value != null) listener.apply(value) else _onValue.set(listener)
 	}
 	
 }

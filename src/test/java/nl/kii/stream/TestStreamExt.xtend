@@ -1,144 +1,161 @@
 package nl.kii.stream
 
-import java.util.List
-import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
+import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamExt.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.atomic.AtomicInteger
+import static extension nl.kii.stream.StreamAssert.*
 
-class TestStream {
+class TestStreamExt {
 
-	@Test
-	def void testUnbufferedStream() {
-		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer>
-		s.forEach [ counter.addAndGet(it) ]
-		s << 1 << 2 << 3
-		assertEquals(6, counter.get)
-	}
-
-	@Test
-	def void testBufferedStream() {
-		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer> << 1 << 2 << 3
-		s.forEach [ counter.addAndGet(it) ]
-		assertEquals(6, counter.get)
-	}
-
-	@Test
-	def void testControlledStream() {
-		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.forEach [ it, stream | counter.addAndGet(it) ]
-		assertEquals(0, counter.get) // controlled stream, nothing happened yet
-		s.next
-		assertEquals(1, counter.get) // pushed 1 on the stream
-		s.skip
-		assertEquals(1, counter.get) // skipped to the finish
-		s.next
-		assertEquals(5, counter.get) // after finish is 4, added to 1
-		s.next
-		assertEquals(10, counter.get) // 5 added
-		s.next
-		assertEquals(10, counter.get) // we were at the end of the stream so nothing changed
-		s << 1 << 4
-		assertEquals(11, counter.get) // we called next once before, and now that the value arrived, it's added
-		s.next
-		assertEquals(15, counter.get) // 4 added to 11
-	}
+	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	@Test
-	def void testStreamErrors() {
-		val s = new Stream<Integer>
-		val e = new AtomicReference<Throwable>
-		// s.onError [ e.set(it) ]
-		
-		// no onerror set, should throw it
-		try {
-			s.forEach [ val x = 1 / it ]
-			s << 0
-		} catch(Throwable t) {
-			e.set(t)
-		}
-		assertNotNull(e.get)
-		
-		// now try to catch the error
-		val e2 = new AtomicReference<Throwable>
-		e.set(null)
-		s.onError [ e2.set(it) ]
-		s << 0
-		// now e should still be null, and e2 should be set
-		assertNull(e.get)
-		assertNotNull(e2.get)
+	def void testMap() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val mapped = s.map [ it + 1 ]
+		#[2.value, 3.value, 4.value, finish, 5.value, 6.value].assertStream(mapped)
 	}
-
+	
 	@Test
 	def void testFilter() {
-		val s = new Stream<Integer>
-		s.filter [ it % 2 == 0 ].each [ println(it) ]
-		s << 1 << 2 << 3 << 4 << 5 << finish
-	}
-	
-	@Test
-	def void testBasicCollect() {
-		val s = new Stream<Integer>
-		s.collect.then [ println(it) ]
-		s << 1 << 2 << 3 << finish
-	}
-	
-	@Test
-	def void testSubstream() {
-		val s = new Stream<Integer>
-		s
-			.split[ it % 3 == 0 ]
-			.substream
-//			.each [ substream | 
-//				substream.collect.then [ println(it) ]
-//			]
-		s << 1 << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9 << 10
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val filtered = s.filter [ it % 2 == 0]
+		#[2.value, finish, 4.value].assertStream(filtered)
 	}
 	
 	@Test
 	def void testSplit() {
-		val s = new Stream<Integer>
-		s.split [ it % 2 == 0 ].onChange[ print(it + ' ') ]
-		s << 1 << 2 << 3 << 4 << 5 << finish
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val split = s.split [ it % 2 == 0]
+		#[1.value, 2.value, finish, 3.value, finish, 4.value, finish, 5.value].assertStream(split)
 	}
 	
-	// STREAM ASSERT TOOLS ////////////////////////////////////////////////////
-	
-	def private <T> assertStream(List<? extends Entry<T>> entries, Stream<T> stream) {
-		val List<Entry<T>> found = newLinkedList
-		stream.onChange [ found.add(it)	]
-		stream.open
-		println(found)
-		assertArrayEquals(found, entries)
-	}
-	
-	def private assertPromiseFinished(Promise<Boolean> promise) {
-		promise.then[] // force start
-		promise.finished.assertTrue
+	@Test
+	def void testSubstream() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
+		val subbed = s.substream
+		subbed.queue.length.assertEquals(2) // no finish at end means 6 is not converted
+		val s1 = subbed.queue.get(0) as Value<Stream<Integer>>
+		val s2 = subbed.queue.get(1) as Value<Stream<Integer>>
+		#[1.value, 2.value, 3.value].assertStream(s1.value)
+		#[4.value, 5.value].assertStream(s2.value)
 	}
 
-	def private <T> assertPromiseEquals(Promise<T> promise, T value) {
-		val ref = new AtomicReference<T>
-		promise.then[ ref.set(it) ]
-		promise.finished.assertTrue
-		ref.get.assertEquals(value)
-	}
+	// REDUCTIONS /////////////////////////////////////////////////////////////
 
-	def private <T> void assertPromiseEquals(Promise<List<T>> promise, List<T> value) {
-		val ref = new AtomicReference<List<T>>
-		promise.then[ ref.set(it) ]
-		promise.finished.assertTrue
-		ref.get.assertArrayEquals(value)
+	@Test
+	def void testCollect() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val collected = s.split [ it % 2 == 0].collect
+		// 5 is missing below because there is no finish to collect 5
+		#[#[1, 2].value, #[3].value, #[4].value].assertStream(collected)
 	}
 	
-	def private <T> value(T value) {
-		new Value<T>(value)
+	@Test
+	def void testSum() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val summed = s.sum
+		#[6D.value, 9D.value].assertStream(summed)
 	}
 
+	@Test
+	def void testAvg() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val avg = s.avg
+		#[2D.value, 4.5D.value].assertStream(avg)
+	}
+	
+	@Test
+	def void testCount() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val counted = s.count
+		#[3L.value, 2L.value].assertStream(counted)
+	}
+	
+	@Test
+	def void testReduce() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val summed = s.reduce(1) [ a, b | a + b ] // starting at 1!
+		#[7.value, 10.value].assertStream(summed)
+	}
+
+	@Test
+	def void testReduceWithCounter() {
+		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
+		val summed = s.reduce(0L) [ a, b, c | a + c ]
+		// #[0 + 1 + 2 , 0 + 1]
+		#[3L.value, 1L.value].assertStream(summed)
+	}
+	
+	@Test
+	def void testLimit() {
+		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
+		val limited = s.limit(1)
+		#[1L.value, finish, 4L.value, finish].assertStream(limited)		
+	}
+	
+	@Test
+	def void testLimitBeforeCollect() {
+		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
+		val limited = s.limit(1).collect
+		#[#[1L].value, #[4L].value].assertStream(limited)		
+	}
+	
+	@Test
+	def void testUntil() {
+		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
+		val untilled = s.until [ it == 2L ]
+		#[1L.value, finish, 4L.value, 5L.value, finish].assertStream(untilled)
+	}
+	
+	@Test
+	def void testAnyMatchNoFinish() {
+		val s = Boolean.stream << false << false << true << false
+		val matches = s.anyMatch[it].first
+		matches.assertPromiseEquals(true)
+	}
+
+	@Test
+	def void testAnyMatchWithFinish() {
+		val s = Boolean.stream << false << false << false << finish
+		val matches = s.anyMatch[it].first
+		matches.assertPromiseEquals(false)
+	}
+
+	// ASYNC //////////////////////////////////////////////////////////////////
+
+	// TODO: needs better test that uses multithreading
+	@Test
+	def void testAsync() {
+		val s = Integer.stream << 2 << 3
+		val asynced = s.async [ power2(it) ]
+		#[4.value, 9.value].assertStream(asynced)
+	}
+
+	// TODO: needs better test that uses multithreading
+	@Test
+	def void testAsync3() {
+		val s = Integer.stream << 2 << 3 << 4 << 5 << 6 << 7
+		val asynced = s.async(3) [ power2(it) ]
+		#[4.value, 9.value, 16.value, 25.value, 36.value, 49.value].assertStream(asynced)
+	}
+	
+	private def power2(int i) { (i*i).promise }
+	
+	// ENDPOINTS //////////////////////////////////////////////////////////////
+	
+	@Test
+	def void testFirst() {
+		val s = Integer.stream << 2 << 3 << 4
+		s.first.assertPromiseEquals(2)
+	}
+	
+	@Test
+	def void testFirstAfterCollect() {
+		val s = Integer.stream << 1 << 2 << finish << 3 << 4 << finish
+		s.collect.first.assertPromiseEquals(#[1, 2])
+	}
 	
 }
