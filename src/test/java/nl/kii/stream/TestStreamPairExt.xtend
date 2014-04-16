@@ -21,7 +21,7 @@ class TestPromisePairExt {
 	def void testAsyncWithPairParams() {
 		val p = stream(1->2)
 		val asynced = p.async [ a, b | power2(a + b) ]
-		#[9.value].assertStreamEquals(asynced)
+		#[9.value, finish].assertStreamEquals(asynced)
 	}
 	
 	@Test
@@ -39,7 +39,7 @@ class TestPromisePairExt {
 		val asynced = p
 			.asyncToPair [ it -> promise(it) ]
 			.asyncToPair [ key, value | key -> power2(value) ] // returns stream(2->4)
-		#[value(2->36)].assertStreamEquals(asynced)
+		#[value(2->4), finish].assertStreamEquals(asynced)
 	}
 
 	private def power2(int i) { (i*i).promise }

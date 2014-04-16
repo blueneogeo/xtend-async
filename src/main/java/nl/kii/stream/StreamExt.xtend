@@ -19,7 +19,7 @@ class StreamExt {
 		new Stream<T>
 	}
 	
-	/** create a stream of a set of data */
+	/** create a stream of a set of data and finish it */
 	def static <T> stream(T... data) {
 		new Stream<T> => [
 			for(i : data) push(i)

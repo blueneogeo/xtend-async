@@ -2,6 +2,8 @@ package nl.kii.stream;
 
 import com.google.common.collect.Lists;
 import java.util.Collections;
+import nl.kii.stream.Entry;
+import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseExt;
 import nl.kii.stream.Stream;
@@ -43,7 +45,8 @@ public class TestPromisePairExt {
     };
     final Stream<Integer> asynced = StreamPairExt.<Integer, Integer, Integer>async(p, _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Value<Integer>>unmodifiableList(Lists.<Value<Integer>>newArrayList(_value)), asynced);
+    Finish<Integer> _finish = StreamExt.<Integer>finish();
+    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _finish)), asynced);
   }
   
   @Test
@@ -83,9 +86,10 @@ public class TestPromisePairExt {
       }
     };
     final Stream<Pair<Integer, Integer>> asynced = StreamPairExt.<Integer, Integer, Integer, Integer>asyncToPair(_asyncToPair, _function_1);
-    Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
+    Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    StreamAssert.<Pair<Integer, Integer>>assertStreamEquals(Collections.<Value<Pair<Integer, Integer>>>unmodifiableList(Lists.<Value<Pair<Integer, Integer>>>newArrayList(_value)), asynced);
+    Finish<Pair<Integer, Integer>> _finish = StreamExt.<Pair<Integer, Integer>>finish();
+    StreamAssert.<Pair<Integer, Integer>>assertStreamEquals(Collections.<Entry<Pair<Integer, Integer>>>unmodifiableList(Lists.<Entry<Pair<Integer, Integer>>>newArrayList(_value, _finish)), asynced);
   }
   
   private Promise<Integer> power2(final int i) {
