@@ -117,6 +117,54 @@ class StreamExt {
 		newStream
 	}
 	
+	/**
+	 * Only let pass a certain amount of items through the stream
+	 */
+	def static <T> Stream<T> limit(Stream<T> stream, int amount) {
+		stream.until [ it, c | c > amount ]
+	}
+	
+	/**
+	 * Stream until the until condition Fn returns true. 
+	 * It is exclusive, meaning that if the value from the
+	 * stream matches the untilFn, that value will not be passed.
+	 */
+	def static <T> Stream<T> until(Stream<T> stream, (T)=>boolean untilFn) {
+		val newStream = new Stream<T>(stream)
+		stream.forEach [ it, s |
+			if(untilFn.apply(it)) {
+				s.skip
+			} else {
+				newStream.push(it)
+			}
+			s.next
+		]
+		newStream		
+	}
+
+	/**
+	 * Stream until the until condition Fn returns true. 
+	 * Passes a counter as second parameter to the untilFn, starting at 1.
+	 */
+	def static <T> Stream<T> until(Stream<T> stream, (T, Long)=>boolean untilFn) {
+		val count = new AtomicLong(0)
+		val newStream = new Stream<T>(stream)
+		stream
+			.onFinish [ 
+				count.set(0)
+				newStream.finish
+			]
+			.forEach [ it, s |
+				if(untilFn.apply(it, count.incrementAndGet)) {
+					s.skip
+				} else {
+					newStream.push(it)
+				}
+				s.next
+			]
+		newStream
+	}
+	
 	// PROMISE CHAINING ///////////////////////////////////////////////////////	
 	
 	/**
@@ -208,7 +256,7 @@ class StreamExt {
 	 	stream.first.then(listener)
 	 }
 	
-	// REDUCTIONS /////////////////////////////////////////////////////////////
+	// AGGREGATIONS ///////////////////////////////////////////////////////////
 
 	/**
 	 * Collect all items from a stream, separated by finishes
@@ -291,54 +339,6 @@ class StreamExt {
 		stream
 			.onFinish [ newStream.push(reduced.getAndSet(initial)); count.set(0) ]
 			.forEach [ reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement)) ]
-		newStream
-	}
-
-	/**
-	 * Only let pass a certain amount of items through the stream
-	 */
-	def static <T> Stream<T> limit(Stream<T> stream, int amount) {
-		stream.until [ it, c | c > amount ]
-	}
-	
-	/**
-	 * Stream until the until condition Fn returns true. 
-	 * It is exclusive, meaning that if the value from the
-	 * stream matches the untilFn, that value will not be passed.
-	 */
-	def static <T> Stream<T> until(Stream<T> stream, (T)=>boolean untilFn) {
-		val newStream = new Stream<T>(stream)
-		stream.forEach [ it, s |
-			if(untilFn.apply(it)) {
-				s.skip
-			} else {
-				newStream.push(it)
-			}
-			s.next
-		]
-		newStream		
-	}
-
-	/**
-	 * Stream until the until condition Fn returns true. 
-	 * Passes a counter as second parameter to the untilFn, starting at 1.
-	 */
-	def static <T> Stream<T> until(Stream<T> stream, (T, Long)=>boolean untilFn) {
-		val count = new AtomicLong(0)
-		val newStream = new Stream<T>(stream)
-		stream
-			.onFinish [ 
-				count.set(0)
-				newStream.finish
-			]
-			.forEach [ it, s |
-				if(untilFn.apply(it, count.incrementAndGet)) {
-					s.skip
-				} else {
-					newStream.push(it)
-				}
-				s.next
-			]
 		newStream
 	}
 
