@@ -58,9 +58,9 @@ class PromisePairExt {
 	def static <K1, V1, V2> Promise<V2> async(Promise<Pair<K1, V1>> promise, (K1, V1)=>Promise<V2> promiseFn) {
 		val newPromise = new Promise<V2>(promise)
 		promise.then [
-			promiseFn.apply(key, value).then [
-				newPromise.set(it)
-			]
+			promiseFn.apply(key, value)
+				.onError [ newPromise.error(it) ]
+				.then [ newPromise.set(it) ]
 		]
 		newPromise
 	}
@@ -95,9 +95,9 @@ class PromisePairExt {
 		val newPromise = new Promise<Pair<K2, V2>>(promise)
 		promise.then [
 			val pair = promiseFn.apply(it)
-			pair.value.then [
-				newPromise.set(pair.key -> it)
-			]
+			pair.value
+				.onError [ newPromise.error(it) ]
+				.then [ newPromise.set(pair.key -> it) ]
 		]
 		newPromise
 	}
@@ -114,9 +114,9 @@ class PromisePairExt {
 		val newPromise = new Promise<Pair<K2, V2>>(promise)
 		promise.then [
 			val pair = promiseFn.apply(key, value)
-			pair.value.then [
-				newPromise.set(pair.key -> it)
-			]
+			pair.value
+				.onError [ newPromise.error(it) ]
+				.then [ newPromise.set(pair.key -> it) ]
 		]
 		newPromise
 	}
@@ -128,9 +128,7 @@ class PromisePairExt {
 	 * See chain2() for example of how to use.
 	 */
 	def static <K, V> then(Promise<Pair<K, V>> promise, (K, V)=>void listener) {
-		promise.then [
-			listener.apply(key, value)
-		]
+		promise.then [ listener.apply(key, value) ]
 	}
 	
 }

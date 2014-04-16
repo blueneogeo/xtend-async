@@ -47,10 +47,12 @@ class StreamPairExt {
 	 */
 	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<V1> stream, (V1)=>Pair<K2, V2> mappingFn) {
 		val newStream = new Stream<Pair<K2, V2>>
-		stream.forEach [
-			val pair = mappingFn.apply(it)
-			newStream.push(pair)
-		]
+		stream
+			.onError [ newStream.error(it) ]
+			.forEach [
+				val pair = mappingFn.apply(it)
+				newStream.push(pair)
+			]
 		newStream	
 	}
 	
@@ -83,7 +85,11 @@ class StreamPairExt {
 	 */
 	def static <K1, V1, V2> Stream<V2> async(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
 		val newStream = new Stream<V2>(stream)
-		stream.forEach [ promiseFn.apply(key, value).then [ newStream.push(it) ] ]
+		stream.forEach [ 
+			promiseFn.apply(key, value)
+				.onError [ newStream.error(it) ]
+				.then [ newStream.push(it) ]
+		]
 		stream.onError [ newStream.error(it) ]
 		stream.onFinish [ newStream.finish ]
 		newStream
@@ -110,7 +116,9 @@ class StreamPairExt {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.forEach [
 			val pair = promiseFn.apply(it)
-			pair.value.then [ newStream.push(pair.key -> it) ]
+			pair.value
+				.onError [ newStream.error(it) ]
+				.then [ newStream.push(pair.key -> it) ]
 		]
 		stream.onError [ newStream.error(it) ]
 		stream.onFinish [ newStream.finish ]
@@ -129,7 +137,9 @@ class StreamPairExt {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.forEach [
 			val pair = promiseFn.apply(key, value)
-			pair.value.then [ newStream.push(pair.key -> it) ]
+			pair.value
+				.onError [ newStream.error(it) ]
+				.then [ newStream.push(pair.key -> it) ]
 		]
 		stream.onError [ newStream.error(it) ]
 		stream.onFinish [ newStream.finish ]

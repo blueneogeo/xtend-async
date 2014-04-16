@@ -38,7 +38,10 @@ class PromiseExt {
 	
 	def static <T> flatten(Promise<Promise<T>> promise) {
 		val newPromise = new Promise<T>(promise)
-		promise.then [ then [ newPromise.set(it) ]]
+		promise.then [
+			onError [ newPromise.error(it) ] 
+			.then [ newPromise.set(it) ]
+		]
 		newPromise
 	}
 	
@@ -63,9 +66,9 @@ class PromiseExt {
 	def static <T, R> Promise<R> async(Promise<T> promise, (T)=>Promise<R> promiseFn) {
 		val newPromise = new Promise<R>(promise)
 		promise.then [
-			promiseFn.apply(it).then [
-				newPromise.set(it)
-			]
+			promiseFn.apply(it)
+				.onError [ newPromise.error(it) ]
+				.then [ newPromise.set(it) ]
 		]
 		newPromise
 	}
