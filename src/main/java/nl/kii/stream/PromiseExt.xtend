@@ -73,4 +73,11 @@ class PromiseExt {
 		newPromise
 	}
 	
+	/** 
+	 * Create a new promise that listenes to this promise
+	 */
+	def static <T> fork(Promise<T> promise) {
+		promise.map[it]
+	}	
+	
 }

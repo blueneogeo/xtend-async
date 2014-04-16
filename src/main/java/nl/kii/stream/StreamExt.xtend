@@ -175,11 +175,21 @@ class StreamExt {
 		stream.forEach(listener)
 	}
 
+	/** 
+	 * Create a new stream that listenes to this stream
+	 */
+	def static <T> fork(Stream<T> stream) {
+		stream.map[it]
+	}
+
 	/**
 	 * Forward the results of the stream to another stream and start that stream. 
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
-		stream.forEach [ otherStream.push(it) ]
+		stream
+			.onError [ otherStream.error(it) ]
+			.onFinish [ otherStream.finish ]
+			.forEach [ otherStream.push(it) ]
 	}
 	
 	 /**
