@@ -7,3 +7,5 @@
 /.TestPromise.java._trace
 /.TestPromiseExt.java._trace
 /.StreamAssert.java._trace
+/.TestStreamPairExt.java._trace
+/.TestPromisePairExt.java._trace
