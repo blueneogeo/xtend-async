@@ -4,15 +4,14 @@ import static extension nl.kii.stream.PromiseExt.*
 
 class PromisePairExt {
 	
-	/**
-	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
-	 * See chain2() for example of how to use.
-	 */
-	def static <K, V> then(Promise<Pair<K, V>> promise, (K, V)=>void listener) {
-		promise.then [
-			listener.apply(key, value)
-		]
-	}	
+	// CREATION ///////////////////////////////////////////////////////////////
+	
+	/** create a promise of a pair */
+	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
+		new Promise<Pair<K, V>>
+	}
+	
+	// TRANSFORMATIONS /////////////////////////////////////////////////////////
 	
 	/**
 	 * Maps a promise of a pair to a new promise, passing the key and value of the incoming
@@ -28,6 +27,19 @@ class PromisePairExt {
 	 * Maps a promise of a pair to a new promise, passing the key and value of the incoming
 	 * promise as listener parameters.
 	 */
+	def static <V1, K2, V2> Promise<Pair<K2, V2>> mapToPair(Promise<V1> promise, (V1)=>Pair<K2, V2> mappingFn) {
+		val newPromise = new Promise<Pair<K2, V2>>
+		promise.then [
+			val pair = mappingFn.apply(it)
+			newPromise.apply(pair)
+		]
+		newPromise	
+	}
+	
+	/**
+	 * Maps a promise of a pair to a new promise, passing the key and value of the incoming
+	 * promise as listener parameters.
+	 */
 	def static <K1, V1, K2, V2> Promise<Pair<K2, V2>> mapToPair(Promise<Pair<K1,V1>> promise, (K1, V1)=>Pair<K2, V2> mappingFn) {
 		val newPromise = new Promise<Pair<K2, V2>>
 		promise.then [
@@ -36,6 +48,8 @@ class PromisePairExt {
 		]
 		newPromise	
 	}
+
+	// ASYNC //////////////////////////////////////////////////////////////////
 		
 	/**
 	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
@@ -77,8 +91,8 @@ class PromisePairExt {
 	 *    .chain2 [ user | user -> uploadUser ] // pass the user in the result as a pair with the promise 
 	 *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
 	 */
-	def static <T, R, P> Promise<Pair<P, R>> asyncToPair(Promise<T> promise, (T)=>Pair<P, Promise<R>> promiseFn) {
-		val newPromise = new Promise<Pair<P, R>>
+	def static <V1, K2, V2> Promise<Pair<K2, V2>> asyncToPair(Promise<V1> promise, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
+		val newPromise = new Promise<Pair<K2, V2>>
 		promise.then [
 			val pair = promiseFn.apply(it)
 			pair.value.then [
@@ -107,4 +121,16 @@ class PromisePairExt {
 		newPromise
 	}
 
+	// ENDPOINTS //////////////////////////////////////////////////////////////
+	
+	/**
+	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
+	 * See chain2() for example of how to use.
+	 */
+	def static <K, V> then(Promise<Pair<K, V>> promise, (K, V)=>void listener) {
+		promise.then [
+			listener.apply(key, value)
+		]
+	}
+	
 }

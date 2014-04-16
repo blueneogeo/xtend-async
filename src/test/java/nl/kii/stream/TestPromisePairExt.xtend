@@ -10,7 +10,7 @@ class TestPromisePairExt {
 
 	@Test
 	def void testThenWithPairParams() {
-		val p = promise(1->2)
+		val p = (int->int).promisePair << (1->2)
 		val p2 = Integer.promise
 		p.then [ k, v | p2 << k + v ]
 		p2.assertPromiseEquals(3)
@@ -18,7 +18,7 @@ class TestPromisePairExt {
 	
 	@Test
 	def void testAsyncWithPairParams() {
-		val p = promise(1->2)
+		val p = (int->int).promisePair << (1->2)
 		val asynced = p.async [ a, b | power2(a + b) ]
 		asynced.assertPromiseEquals(9)
 	}

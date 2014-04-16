@@ -13,7 +13,7 @@ import org.junit.Assert;
 
 @SuppressWarnings("all")
 public class StreamAssert {
-  public static <T extends Object> void assertStream(final List<? extends Entry<T>> entries, final Stream<T> stream) {
+  public static <T extends Object> void assertStreamEquals(final List<? extends Entry<T>> entries, final Stream<T> stream) {
     Queue<Entry<T>> _queue = stream.getQueue();
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_queue, Object.class)), ((Object[])Conversions.unwrapArray(entries, Object.class)));
   }

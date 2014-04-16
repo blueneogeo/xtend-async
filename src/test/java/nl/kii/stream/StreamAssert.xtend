@@ -7,7 +7,7 @@ import static extension org.junit.Assert.*
 
 class StreamAssert {
 	
-	def static <T> assertStream(List<? extends Entry<T>> entries, Stream<T> stream) {
+	def static <T> assertStreamEquals(List<? extends Entry<T>> entries, Stream<T> stream) {
 		assertArrayEquals(stream.queue, entries)
 	}
 	

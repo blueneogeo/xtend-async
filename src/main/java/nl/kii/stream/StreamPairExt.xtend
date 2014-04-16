@@ -24,21 +24,54 @@ import static extension nl.kii.stream.StreamExt.*
  */
 class StreamPairExt {
 
+	// CREATION ///////////////////////////////////////////////////////////////
+	
+	/** create a stream of pairs */
+	def static <K, V> streamPair(Pair<Class<K>, Class<V>> type) {
+		new Stream<Pair<K, V>>
+	}
+	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	/**
 	 * Perform mapping of a pair stream using a function that exposes the key and value of
 	 * the incoming value.
 	 */
-	def static <T, P, R> Stream<R> map2(Stream<Pair<T, P>> stream, (T, P)=>R mappingFn) {
+	def static <K1, V1, V2> Stream<V2> map(Stream<Pair<K1, V1>> stream, (K1, V1)=>V2 mappingFn) {
 		stream.map [ mappingFn.apply(key, value) ]
+	}
+
+	/**
+	 * Maps a stream of pairs to a new stream, passing the key and value of the incoming
+	 * stream as listener parameters.
+	 */
+	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<V1> stream, (V1)=>Pair<K2, V2> mappingFn) {
+		val newStream = new Stream<Pair<K2, V2>>
+		stream.forEach [
+			val pair = mappingFn.apply(it)
+			newStream.push(pair)
+		]
+		newStream	
+	}
+	
+	/**
+	 * Maps a stream of pairs to a new stream, passing the key and value of the incoming
+	 * stream as listener parameters.
+	 */
+	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<Pair<K1,V1>> stream, (K1, V1)=>Pair<K2, V2> mappingFn) {
+		val newStream = new Stream<Pair<K2, V2>>
+		stream.then [
+			val pair = mappingFn.apply(key, value)
+			newStream.push(pair)
+		]
+		newStream
 	}
 
 	/**
 	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for.
 	 */
-	def static <T, P> filter(Stream<Pair<T, P>> stream, (T, P)=>boolean filterFn) {
+	def static <K, V> Stream<Pair<K, V>> filter(Stream<Pair<K, V>> stream, (K, V)=>boolean filterFn) {
 		stream.filter [ filterFn.apply(key, value) ]
 	}
 	
@@ -48,8 +81,8 @@ class StreamPairExt {
 	 * Responds to a stream pair with a listener that takes the key and value of the promise result pair.
 	 * See async2() for example of how to use.
 	 */
-	def static <T, R, P> Stream<R> async(Stream<Pair<P, T>> stream, (P, T)=>Promise<R> promiseFn) {
-		val newStream = new Stream<R>(stream)
+	def static <K1, V1, V2> Stream<V2> async(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
+		val newStream = new Stream<V2>(stream)
 		stream.forEach [ promiseFn.apply(key, value).then [ newStream.push(it) ] ]
 		stream.onError [ newStream.error(it) ]
 		stream.onFinish [ newStream.finish ]
@@ -73,8 +106,8 @@ class StreamPairExt {
 	 *    .async2 [ user | user -> uploadUser ] // pass the user in the result as a pair with the promise 
 	 *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
 	 */
-	def static <T, R, P> Stream<Pair<P, R>> async2(Stream<T> stream, (T)=>Pair<P, Promise<R>> promiseFn) {
-		val newStream = new Stream<Pair<P, R>>(stream)
+	def static <V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
+		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.forEach [
 			val pair = promiseFn.apply(it)
 			pair.value.then [ newStream.push(pair.key -> it) ]
@@ -92,8 +125,8 @@ class StreamPairExt {
 	 *    .async2 [ user, result | user -> showUploadResult(result, user) ] // you get back the user
 	 *    .each [ user, result | println(result) ]
 	 */	
-	def static <T, R, P1, P2> Stream<Pair<P2, R>> async2(Stream<Pair<P1,T>> stream, (P1, T)=>Pair<P2, Promise<R>> promiseFn) {
-		val newStream = new Stream<Pair<P2, R>>(stream)
+	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
+		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.forEach [
 			val pair = promiseFn.apply(key, value)
 			pair.value.then [ newStream.push(pair.key -> it) ]
@@ -107,9 +140,8 @@ class StreamPairExt {
 	
 	/**
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-	 * See async2() for example of how to use.
 	 */
-	def static <T, P> void each(Stream<Pair<T, P>> stream, (T, P)=>void listener) {
+	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
 		stream.forEach [ listener.apply(key, value) ]
 	}
 
@@ -119,7 +151,7 @@ class StreamPairExt {
 	 * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
 	 * the next finish.
 	 */
-	def static <T, P> void each(Stream<Pair<T, P>> stream, (T, P, Stream<Pair<T, P>>)=>void listener) {
+	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
 		stream.forEach [ it, s | listener.apply(key, value, s) ]
 	}	
 	
