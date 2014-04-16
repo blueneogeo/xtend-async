@@ -18,14 +18,14 @@ public class StreamAssert {
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_queue, Object.class)), ((Object[])Conversions.unwrapArray(entries, Object.class)));
   }
   
-  public static void assertPromiseFinished(final Promise<Boolean> promise) {
+  public static void assertFulfilled(final Promise<Boolean> promise) {
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
       }
     };
     promise.then(_function);
-    boolean _isFinished = promise.isFinished();
-    Assert.assertTrue(_isFinished);
+    boolean _isFulfilled = promise.isFulfilled();
+    Assert.assertTrue(_isFulfilled);
   }
   
   public static <T extends Object> void assertPromiseEquals(final Promise<T> promise, final T value) {
@@ -36,8 +36,8 @@ public class StreamAssert {
       }
     };
     promise.then(_function);
-    boolean _isFinished = promise.isFinished();
-    Assert.assertTrue(_isFinished);
+    boolean _isFulfilled = promise.isFulfilled();
+    Assert.assertTrue(_isFulfilled);
     T _get = ref.get();
     Assert.assertEquals(_get, value);
   }
@@ -50,8 +50,8 @@ public class StreamAssert {
       }
     };
     promise.then(_function);
-    boolean _isFinished = promise.isFinished();
-    Assert.assertTrue(_isFinished);
+    boolean _isFulfilled = promise.isFulfilled();
+    Assert.assertTrue(_isFulfilled);
     List<T> _get = ref.get();
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_get, Object.class)), ((Object[])Conversions.unwrapArray(value, Object.class)));
   }

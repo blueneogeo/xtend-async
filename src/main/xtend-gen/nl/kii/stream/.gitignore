@@ -36,3 +36,5 @@
 /.SkippableStream.java._trace
 /.Subscription.java._trace
 /.Connection.java._trace
+/.PromiseFuture.java._trace
+/.Deferred.java._trace

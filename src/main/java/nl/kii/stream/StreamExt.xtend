@@ -198,7 +198,7 @@ class StreamExt {
 	  */
 	def static <T> Promise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
-	 	stream.forEach [ if(!promise.finished) promise.apply(it) ]
+	 	stream.forEach [ if(!promise.fulfilled) promise.set(it) ]
 		promise
 	}
 

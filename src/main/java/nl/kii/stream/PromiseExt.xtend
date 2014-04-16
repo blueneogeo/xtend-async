@@ -1,8 +1,9 @@
 package nl.kii.stream
 
+import java.util.concurrent.Future
+
 class PromiseExt {
 	
-	/** create a stream of the given type */
 	def static <T> promise(Class<T> type) {
 		new Promise<T>
 	}
@@ -10,30 +11,34 @@ class PromiseExt {
 	def static <T> promise(T value) {
 		new Promise<T>(value)
 	}
+
+	def static <T> Future<T> future(Promise<T> promise) {
+		new PromiseFuture(promise)
+	}
 	
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	def static <T> operator_doubleGreaterThan(T value, Promise<T> promise) {
-		promise.apply(value)
+		promise.set(value)
 		promise
 	}
 	
 	def static <T> operator_doubleLessThan(Promise<T> promise, T value) {
-		promise.apply(value)
+		promise.set(value)
 		promise
 	}
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	def static <T, R> map(Promise<T> promise, (T)=>R mappingFn) {
-		val newPromise = new Promise<R>
-		promise.then [ newPromise.apply(mappingFn.apply(it)) ]
+		val newPromise = new Promise<R>(promise)
+		promise.then [ newPromise.set(mappingFn.apply(it)) ]
 		newPromise
 	}
 	
 	def static <T> flatten(Promise<Promise<T>> promise) {
-		val newPromise = new Promise<T>
-		promise.then [ then [ newPromise.apply(it) ]]
+		val newPromise = new Promise<T>(promise)
+		promise.then [ then [ newPromise.set(it) ]]
 		newPromise
 	}
 	
@@ -56,10 +61,10 @@ class PromiseExt {
 	 * </pre>
 	 */
 	def static <T, R> Promise<R> async(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-		val newPromise = new Promise<R>
+		val newPromise = new Promise<R>(promise)
 		promise.then [
 			promiseFn.apply(it).then [
-				newPromise.apply(it)
+				newPromise.set(it)
 			]
 		]
 		newPromise
