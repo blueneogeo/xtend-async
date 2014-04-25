@@ -14,7 +14,11 @@ class TestStream {
 	def void testUnbufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer>
-		s.forEach [ counter.addAndGet(it) ]
+		s.onValue [ 
+			counter.addAndGet(it)
+			s.next
+		]
+		s.next
 		s << 1 << 2 << 3
 		assertEquals(6, counter.get)
 	}
@@ -23,7 +27,11 @@ class TestStream {
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3
-		s.forEach [ counter.addAndGet(it) ]
+		s.onValue [ 
+			counter.addAndGet(it)
+			s.next
+		]
+		s.next
 		assertEquals(6, counter.get)
 	}
 
@@ -31,8 +39,11 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.forEach [ it, stream | counter.addAndGet(it) ]
-		assertEquals(1, counter.get) // you always get the first, which is 1
+		s.onValue [
+			counter.addAndGet(it)
+		]
+		s.next
+		assertEquals(1, counter.get) // next pushes the first number onto the stream
 		s.skip
 		assertEquals(1, counter.get) // skipped to the finish
 		s.next
@@ -51,7 +62,10 @@ class TestStream {
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
-		s.forEach [ println(1 / it) ] // handler will throw /0 exception
+		s.onValue [ 
+			println(1 / it)
+			s.next
+		] // handler will throw /0 exception
 		
 		// no onerror set, should throw it
 		e.set(null)

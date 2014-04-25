@@ -239,7 +239,7 @@ You can also indicate that you want asynchronous concurrency by passing how many
 
 	(1..10000).stream.async(3) [ emailUser	].then [ ... ]
 
-## Using Stream.skip
+## Using Stream.skip   
 
 Sometimes a stream can be very large, but you might only need a few items from a batch. You can call stream.skip to tell the stream that it can skip processing the rest of the batch. (it will start again when the next batch arrives).
 

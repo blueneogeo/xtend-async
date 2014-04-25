@@ -4,11 +4,34 @@ import java.util.List
 import java.util.concurrent.atomic.AtomicReference
 
 import static extension org.junit.Assert.*
+import java.util.LinkedList
 
 class StreamAssert {
 	
+	def static <T> List<Entry<T>> gather(Stream<T> stream) {
+		// pull in all data and put in a list, and show any errors
+		val data = new LinkedList<Entry<T>>
+		stream
+			.onFinish [| 
+				data.add(new Finish<T>)
+				stream.next
+			]
+			.onError [ 
+				printStackTrace
+				stream.next
+			]
+			.onValue [ 
+				data.add(value)
+				stream.next
+			]
+		stream.next
+		data
+	}
+	
 	def static <T> assertStreamEquals(List<? extends Entry<T>> entries, Stream<T> stream) {
-		assertArrayEquals(stream.queue, entries)
+		val data = stream.gather
+		println(data)
+		assertArrayEquals(entries, data)
 	}
 	
 	def static assertFulfilled(Promise<Boolean> promise) {

@@ -38,3 +38,6 @@
 /.Connection.java._trace
 /.PromiseFuture.java._trace
 /.Deferred.java._trace
+/.Command.java._trace
+/.Next.java._trace
+/.Skip.java._trace

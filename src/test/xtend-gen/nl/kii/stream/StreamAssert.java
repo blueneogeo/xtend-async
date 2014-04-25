@@ -1,21 +1,58 @@
 package nl.kii.stream;
 
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.stream.Entry;
+import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.InputOutput;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 
 @SuppressWarnings("all")
 public class StreamAssert {
+  public static <T extends Object> List<Entry<T>> gather(final Stream<T> stream) {
+    LinkedList<Entry<T>> _xblockexpression = null;
+    {
+      final LinkedList<Entry<T>> data = new LinkedList<Entry<T>>();
+      final Procedure0 _function = new Procedure0() {
+        public void apply() {
+          Finish<T> _finish = new Finish<T>();
+          data.add(_finish);
+          stream.next();
+        }
+      };
+      Stream<T> _onFinish = stream.onFinish(_function);
+      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          it.printStackTrace();
+          stream.next();
+        }
+      };
+      Stream<T> _onError = _onFinish.onError(_function_1);
+      final Procedure1<T> _function_2 = new Procedure1<T>() {
+        public void apply(final T it) {
+          Value<T> _value = StreamAssert.<T>value(it);
+          data.add(_value);
+          stream.next();
+        }
+      };
+      _onError.onValue(_function_2);
+      stream.next();
+      _xblockexpression = data;
+    }
+    return _xblockexpression;
+  }
+  
   public static <T extends Object> void assertStreamEquals(final List<? extends Entry<T>> entries, final Stream<T> stream) {
-    Queue<Entry<T>> _queue = stream.getQueue();
-    Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_queue, Object.class)), ((Object[])Conversions.unwrapArray(entries, Object.class)));
+    final List<Entry<T>> data = StreamAssert.<T>gather(stream);
+    InputOutput.<List<Entry<T>>>println(data);
+    Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(entries, Object.class)), ((Object[])Conversions.unwrapArray(data, Object.class)));
   }
   
   public static void assertFulfilled(final Promise<Boolean> promise) {

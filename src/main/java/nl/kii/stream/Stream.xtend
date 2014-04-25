@@ -1,9 +1,11 @@
 package nl.kii.stream
 
+
 import java.util.Queue
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import static extension nl.kii.util.SynchronizeExt.*
 
 /**
  * <h1>what is a stream</h1>
@@ -66,14 +68,20 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 */
 	var Queue<Entry<T>> queue
 	
+	/** If true, when an entry is applied/pushed, it is automatically pushed to the listeners. */
+	val _autoPublish = new AtomicBoolean(true)
+	
 	/** If true, the value listener is ready for a next value */
 	val _ready = new AtomicBoolean(false)
 	
 	/** If true, all values will be discarded upto the next incoming finish */
 	val _skipping = new AtomicBoolean(false)
 	
-	/** Lets others listen when the stream starts skipping */
-	var (Void)=>void onSkip
+	/** Lets others listen when the stream is asked skip to the finish */
+	var =>void onSkip
+
+	/** Lets others listen when the stream is asked to provide the next value */
+	var =>void onNext
 	
 	/** Lets others listen for values in the stream */
 	var (T)=>void onValue
@@ -82,7 +90,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	var (Throwable)=>void onError
 
 	/** Lets others listen for the stream finishing a batch */
-	var (Void)=>void onFinish
+	var =>void onFinish
 	
 	// NEW /////////////////////////////////////////////////////////////////////
 
@@ -102,27 +110,34 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		// set up some default parent child relationships
 		if(parentStream != null) {
 			// default messaging up the chain
-			onSkip [ parentStream.skip ]
+			this.onNext [| parentStream.next ]
+			this.onSkip [| parentStream.skip ]
 			// default messaging down the chain
-			parentStream.onFinish [ finish ]
+			parentStream.onFinish [| finish ]
 			parentStream.onError [ error(it) ]
 		}
 	}
 	
-	
-	
 	// GETTERS & SETTERS ///////////////////////////////////////////////////////
 
-	def isReady() {
+	package def isReady() {
 		_ready.get
 	}
 	
-	def isSkipping() {
+	package def isSkipping() {
 		_skipping.get
 	}
 	
-	def getQueue() {
+	package def getQueue() {
 		queue
+	}
+	
+	package def setAutoPublish(boolean autoPublish) {
+		_autoPublish.set(autoPublish)
+	}
+	
+	package def getAutoPublish() {
+		_autoPublish.get
 	}
 	
 	// PUSH ///////////////////////////////////////////////////////////////////
@@ -135,15 +150,6 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	}
 
 	/**
-	 * Report an error to the stream. It is also pushed down substreams as a message,
-	 * so you can listen for errors at any point below where the error is generated
-	 * in a stream chain.
-	 */
-	def error(Throwable t) {
-		apply(new Error(t))
-	}
-
-	/**
 	 * Finish a batch of data that was pushed into the stream. Note that a finish may be called
 	 * more than once, indicating that multiple batches were passed.
 	 */	
@@ -151,145 +157,179 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		apply(new Finish)
 		this
 	}
+
+	/**
+	 * Report an error to the stream. It is also pushed down substreams as a message,
+	 * so you can listen for errors at any point below where the error is generated
+	 * in a stream chain.
+	 */
+	def error(Throwable t) {
+		apply(new Error(t))
+	}
 		
 	/** Add an entry to the stream. If there is no ready listener, it will queue the value. */
 	override apply(Entry<T> entry) {
-		if(entry == null) throw new NullPointerException('cannot stream a null value')
-		if((queue == null || queue.empty) && ready) {
-			// if possible, skip the queue and publish the entry directly
-			publish(entry)
-		} else {
-			// otherwise, queue it
-			queue(entry)
-			publishFromQueue
-		}
+		synchronize(entry) [
+			if(entry == null) throw new NullPointerException('cannot stream a null value')
+			if((queue == null || queue.empty) && ready && autoPublish) {
+				// if possible, skip the queue and publish the entry directly
+				publish(entry)
+			} else {
+				// otherwise, queue it
+				queue(entry)
+				if(autoPublish) 
+					publishFromQueue
+			}
+		]
 	}
-	
-	
 		
 	// CONTROL ////////////////////////////////////////////////////////////////
 
 	/** 
 	 * Skip incoming values until the stream receives a Finish. Then unskip and
 	 * resume normal operation.
-	 */	
-	def skip() {
+	 */
+	 // TODO : Skip has to work across streams too!	
+	package def skip() {
 		if(!skipping) {
 			_skipping.set(true)
-			// clearQueueUntil [ it instanceof Finish<?> ]
-			if(onSkip != null) onSkip.apply(null)
 			publishFromQueue
+			if(onSkip != null) 
+				onSkip.apply
 		}
 	}
 
 	/** Indicate that the listener is ready for the next value */	
-	def next() {
+	package def next() {
 		_ready.set(true)
-		publishFromQueue
+		val publishCount = publishFromQueue
+		if(publishCount == 0 && onNext != null) 
+			onNext.apply
 	}
-	
-	
 
 	// LISTEN /////////////////////////////////////////////////////////////////
 	
-	/** Listen for values on the stream. Will accept incoming values directly. */
-	def void forEach((T)=>void onValue) {
-		this.onValue = [ try { onValue.apply(it) } finally { next } ]
-		next
-	}
-
 	/** 
-	 * Listen for values from the stream, but call next and skip to control the stream.
-	 * <p>
-	 * Use the passed stream to control the flow:
-	 * <li>call stream.next() to tell the stream to send the next message when available,
-	 * <li>call stream.skip() to tell the stream to stop sending until the next finish.
+	 * Listen for values coming down the stream.
+	 * Requires next to be called to get a value. 
 	 */
-	def void forEach((T, Stream<T>)=>void onValue) {
-		this.onValue = [ onValue.apply(it, this) ]
-		next
+	package def void onValue((T)=>void listener) {
+		this.onValue = [ 
+			try { 
+				listener.apply(it)
+			} catch(Throwable t) {
+				error(t)
+			}
+		]
 	}
-		
+	
 	/**
 	 * Listen for a finish call being done on the stream. For each finish call,
 	 * the passed listener will be called with this stream.
 	 */	
-	def onFinish(Procedure1<Void> listener) {
-		this.onFinish = listener
+	package def onFinish(=>void listener) {
+		this.onFinish = [|
+			try {
+				listener.apply
+			} catch(Throwable t) {
+				error(t)
+			}
+		]
 		this
 	}
 	
 	/**
 	 * Listen for errors in the stream or parent streams. 
 	 * The stream only catches errors if catchErrors is set to true.
+	 * Automatically moves the stream forward.
 	 */
-	def onError(Procedure1<Throwable> listener) {
-		this.onError = listener
+	package def onError((Throwable)=>void listener) {
+		this.onError = [
+			listener.apply(it)
+		]
 		this
 	}
-	
+
 	/** 
 	 * Let a parent stream listen when this stream skips to the finish. 
 	 * Only supports a single listener.
 	 */
-	def onSkip(Procedure1<Void> listener) {
+	package def onSkip(=>void listener) {
 		this.onSkip = listener
+		this
+	}
+	
+	/** 
+	 * Let a parent stream listen when this stream is asked for the next value. 
+	 * Only supports a single listener.
+	 */
+	package def onNext(=>void listener) {
+		this.onNext = listener
 		this
 	}
 	
 	// OTHER //////////////////////////////////////////////////////////////////
 
 	/** Put a value on the queue. Creates the queue if necessary */
-	protected def queue(Entry<T> value) {
+	package def queue(Entry<T> value) {
 		if(queue == null) queue = queueFn.apply
 		queue.add(value)	
 	}
 	
-	/** If there is anything on the queue, and while the listener is ready, push it out */
-	protected def publishFromQueue() {
+	/** 
+	 * If there is anything on the queue, and while the listener is ready, push it out.
+	 * @return the amount of items that were published
+	 */
+	package def int publishFromQueue() {
+		var count = 0
 		while(ready && queue != null && !queue.empty) {
-			publish(queue.poll)
+			val published = publish(queue.poll)
+			if(published) count = count + 1
 		}
+		count
 	}
 	
 	/** 
 	 * Send an entry directly (no queue) to the listeners
 	 * (onValue, onError, onFinish). If a value was processed,
 	 * ready is set to false again, since the value was published.
+	 * @return true if something was published
 	 */
-	protected def boolean publish(Entry<T> it) {
-		switch it {
-			Value<T>: {
-				var applied = false
-				if(onValue != null && ready && !isSkipping) {
-					_ready.set(false)
-					if(onError == null) { 
-						onValue.apply(value)
-						applied = true
-					} else try {
-						onValue.apply(value)
-						applied = true
-					} catch(Exception e) {
-						error(e)
+	package def boolean publish(Entry<T> entry) {
+		synchronize(entry) [
+			switch it {
+				Value<T>: {
+					var applied = false
+					if(onValue != null && ready && !isSkipping) {
+						_ready.set(false)
+						if(onError == null) { 
+							onValue.apply(value)
+							applied = true
+						} else try {
+							onValue.apply(value)
+							applied = true
+						} catch(Exception e) {
+							error(e)
+						}
 					}
+					if(ready) next
+					applied
 				}
-				if(ready) next
-				applied
+				Finish<T>: {
+					if(isSkipping) _skipping.set(false)
+					if(onFinish != null) onFinish.apply
+					false
+				}
+				Error<T>: {
+					if(onError != null) onError.apply(error)
+					false
+				}
 			}
-			Finish<T>: {
-				if(isSkipping) _skipping.set(false)
-				if(onFinish != null) onFinish.apply(null)
-				false
-			}
-			Error<T>: {
-				if(onError != null) onError.apply(error)
-				false
-			}
-		}
+		]
 	}
 	
 	override toString() '''«this.class.name» { 
-			queue: «IF(queue != null) » «queue.length» «ELSE» none «ENDIF»
+			queue size: «IF(queue != null) » «queue.length» «ELSE» none «ENDIF»
 		}
 	'''
 	
