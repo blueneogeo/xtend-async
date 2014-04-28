@@ -16,6 +16,9 @@ import org.junit.Assert;
 
 @SuppressWarnings("all")
 public class StreamAssert {
+  /**
+   * pull all queued data from a stream put it in a list, and print any error
+   */
   public static <T extends Object> List<Entry<T>> gather(final Stream<T> stream) {
     LinkedList<Entry<T>> _xblockexpression = null;
     {

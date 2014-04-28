@@ -45,7 +45,9 @@ class TestStream {
 		s.next
 		assertEquals(1, counter.get) // next pushes the first number onto the stream
 		s.skip
-		assertEquals(1, counter.get) // skipped to the finish
+		assertEquals(1, counter.get) // skipped to the finish, nothing added
+		s.next
+		assertEquals(1, counter.get) // got the finish, nothing added
 		s.next
 		assertEquals(5, counter.get) // after finish is 4, added to 1
 		s.next
@@ -62,14 +64,14 @@ class TestStream {
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
-		s.onValue [ 
+		s.onValue [
 			println(1 / it)
-			s.next
 		] // handler will throw /0 exception
 		
 		// no onerror set, should throw it
 		e.set(null)
 		try {
+			s.next
 			s << 0
 			fail('should never reach this')
 		} catch(Throwable t) {
@@ -80,6 +82,7 @@ class TestStream {
 		// should work again
 		e.set(null)
 		try {
+			s.next
 			s << 0
 			fail('should never reach this either')
 		} catch(Throwable t) {
@@ -90,18 +93,14 @@ class TestStream {
 		// now try to catch the error
 		val e2 = new AtomicReference<Throwable>
 		e.set(null)
-		s.onError [ e2.set(it) ] // this prevents an error being thrown
+		s.onError [ 
+			e2.set(it)
+		] // this prevents an error being thrown
+		s.next
 		s << 0
 		// now e should still be null, and e2 should be set with the thrown error
 		assertNull(e.get)
 		assertNotNull(e2.get)
 	}
 
-
-
-
-
 }
-
-
-

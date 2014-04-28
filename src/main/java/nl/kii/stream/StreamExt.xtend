@@ -122,9 +122,8 @@ class StreamExt {
 		val newStream = new Stream<T>(stream)
 		stream.onValue [
 			if(splitConditionFn.apply(it)) {
-				newStream.queue(new Value(it))
-				newStream.queue(new Finish)
-				newStream.publishFromQueue
+				newStream << new Value(it) << finish
+				newStream.publish
 			} else {
 				newStream.push(it)
 			}
@@ -184,6 +183,7 @@ class StreamExt {
 			.onFinish [|
 				count.set(0)
 				newStream.finish
+				stream.next
 			]
 			.onValue [
 				if(untilFn.apply(it, count.incrementAndGet)) {
@@ -191,7 +191,6 @@ class StreamExt {
 				} else {
 					newStream.push(it)
 				}
-				// s.next
 			]
 		newStream
 	}
@@ -315,6 +314,7 @@ class StreamExt {
 	def static <T> Promise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
 	 	stream.onValue [ if(!promise.fulfilled) promise.set(it) ]
+	 	stream.next
 		promise
 	}
 
@@ -335,9 +335,9 @@ class StreamExt {
 		val newStream = new Stream<List<T>>(stream)
 		stream
 			.onFinish [|
-				newStream.push(list.get)
+				val collected = list.get
 				list.set(new LinkedList<T>)
-				stream.next
+				newStream.push(collected)
 			]
 			.onValue [ 
 				list.get.add(it)
@@ -353,10 +353,10 @@ class StreamExt {
 		val sum = new AtomicDouble(0)
 		val newStream = new Stream<Double>(stream)
 		stream
-			.onFinish [| 
-				newStream.push(sum.doubleValue)
+			.onFinish [|
+				val collected = sum.doubleValue
 				sum.set(0)
-				stream.next
+				newStream.push(collected)
 			]
 			.onValue [ 
 				sum.addAndGet(doubleValue)
@@ -369,17 +369,17 @@ class StreamExt {
 	 * Average the items in the stream until a finish
 	 */
 	def static <T extends Number> avg(Stream<T> stream) {
-		val sum = new AtomicDouble
+		val avg = new AtomicDouble
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Double>(stream)
 		stream
 			.onFinish [|
-				newStream.push(sum.doubleValue / count.getAndSet(0))
-				sum.set(0)
-				stream.next
+				val collected = avg.doubleValue / count.getAndSet(0) 
+				avg.set(0)
+				newStream.push(collected)
 			]
 			.onValue [ 
-				sum.addAndGet(doubleValue)
+				avg.addAndGet(doubleValue)
 				count.incrementAndGet
 				stream.next
 			]
@@ -395,7 +395,6 @@ class StreamExt {
 		stream
 			.onFinish [| 
 				newStream.push(count.getAndSet(0))
-				stream.next
 			]
 			.onValue [ 
 				count.incrementAndGet
@@ -413,7 +412,6 @@ class StreamExt {
 		stream
 			.onFinish [|
 				newStream.push(reduced.getAndSet(initial))
-				stream.next
 			]
 			.onValue [
 				reduced.set(reducerFn.apply(reduced.get, it))
@@ -432,9 +430,9 @@ class StreamExt {
 		val newStream = new Stream<T>(stream)
 		stream
 			.onFinish [|
-				newStream.push(reduced.getAndSet(initial))
+				val result = reduced.getAndSet(initial)
 				count.set(0)
-				stream.next
+				newStream.push(result)
 			]
 			.onValue [ 
 				reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement))
@@ -450,12 +448,12 @@ class StreamExt {
 	 	val anyMatch = new AtomicBoolean(false)
 	 	val newStream = new Stream<Boolean>(stream)
 	 	stream.onFinish [|
-	 		if(!anyMatch.get) newStream.push(false)
+	 		val matched = anyMatch.get
 	 		anyMatch.set(false)
+	 		if(!matched) newStream.push(false)
 	 	]
 	 	stream.onValue [
-		 	// if we get a match, we communicate directly
-		 	// and tell the stream we are done
+		 	// if we get a match, we communicate directly and tell the stream we are done
 	 		if(testFn.apply(it)) {	
 	 			anyMatch.set(true)
 	 			newStream.push(true)

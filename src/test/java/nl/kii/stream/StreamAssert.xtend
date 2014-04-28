@@ -8,8 +8,8 @@ import java.util.LinkedList
 
 class StreamAssert {
 	
+	/** pull all queued data from a stream put it in a list, and print any error */
 	def static <T> List<Entry<T>> gather(Stream<T> stream) {
-		// pull in all data and put in a list, and show any errors
 		val data = new LinkedList<Entry<T>>
 		stream
 			.onFinish [| 

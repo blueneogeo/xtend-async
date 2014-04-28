@@ -166,18 +166,14 @@ public class TestStreamExt {
     Finish<Integer> _finish = StreamExt.<Integer>finish();
     Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
-    final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 2) == 0));
-      }
-    };
-    Stream<Integer> _split = StreamExt.<Integer>split(s, _function);
-    final Stream<List<Integer>> collected = StreamExt.<Integer>collect(_split);
-    Value<List<Integer>> _value = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(1, 2)));
-    Value<List<Integer>> _value_1 = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(3)));
-    Value<List<Integer>> _value_2 = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(4)));
-    StreamAssert.<List<Integer>>assertStreamEquals(Collections.<Value<List<Integer>>>unmodifiableList(Lists.<Value<List<Integer>>>newArrayList(_value, _value_1, _value_2)), collected);
+    Stream<Integer> _doubleLessThan_5 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    Finish<Integer> _finish_1 = StreamExt.<Integer>finish();
+    Stream<Integer> _doubleLessThan_6 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
+    final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(6));
+    final Stream<List<Integer>> collected = StreamExt.<Integer>collect(s);
+    Value<List<Integer>> _value = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(1, 2, 3)));
+    Value<List<Integer>> _value_1 = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(4, 5)));
+    StreamAssert.<List<Integer>>assertStreamEquals(Collections.<Value<List<Integer>>>unmodifiableList(Lists.<Value<List<Integer>>>newArrayList(_value, _value_1)), collected);
   }
   
   @Test

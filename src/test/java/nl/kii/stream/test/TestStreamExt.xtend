@@ -69,10 +69,10 @@ class TestStreamExt {
 
 	@Test
 	def void testCollect() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
-		val collected = s.split [ it % 2 == 0].collect
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
+		val collected = s.collect
 		// 5 is missing below because there is no finish to collect 5
-		#[#[1, 2].value, #[3].value, #[4].value].assertStreamEquals(collected)
+		#[#[1, 2, 3].value, #[4, 5].value].assertStreamEquals(collected)
 	}
 	
 	@Test
