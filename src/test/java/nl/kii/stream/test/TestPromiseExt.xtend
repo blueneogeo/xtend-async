@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.test
 
 import org.junit.Test
 
@@ -45,7 +45,7 @@ class TestPromiseExt {
 	@Test
 	def void testFlatten() {
 		val p1 = 3.promise
-		val p2 = new Promise<Promise<Integer>> << p1
+		val p2 = new nl.kii.stream.Promise<nl.kii.stream.Promise<Integer>> << p1
 		val flattened = p2.flatten
 		flattened.assertPromiseEquals(3)
 	}
