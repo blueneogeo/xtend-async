@@ -164,8 +164,6 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * more than once, indicating that multiple batches were passed. Ends any skipping.
 	 */	
 	def finish() {
-		if(skipping) 
-			skipping = false
 		apply(new Finish)
 		publish
 		this
@@ -183,11 +181,12 @@ class Stream<T> implements Procedure1<Entry<T>> {
 
 	/** Queue a stream entry */
 	override apply(Entry<T> entry) {
-		synchronize(entry) [
-			if(entry == null) throw new NullPointerException('cannot stream a null entry')
-			if(queue == null) queue = queueFn.apply
-			queue.add(entry)	
-		]
+		if(entry == null) throw new NullPointerException('cannot stream a null entry')
+		if(queue == null) queue = queueFn.apply
+		switch entry {
+			Finish<T>: if(skipping) skipping = false
+		}
+		queue.add(entry)
 	}
 		
 	// CONTROL ////////////////////////////////////////////////////////////////
@@ -197,11 +196,17 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * resume normal operation.
 	 */
 	package def skip() {
-		if(skipping) return;
-		skipping = true
-		
+		if(skipping) return else skipping = true		
 		// discard everything up to finish from the queue
-		while(skipping && !(queue.peek instanceof Finish<?>)) {
+		while (
+			skipping &&
+			switch queue.peek {
+				Value<T>: true
+				Error<T>: true
+				Finish<T>: false
+				case null: false
+			}
+		) {
 			queue.poll
 		}
 		// if we ended with a finish, we done skipping
@@ -218,22 +223,6 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		publish
 	}
 	
-	/** Try to publish the next value from the queue or the parent stream */
-	package def void publish() {
-		if(!readyForNext) return;
-		if(queue != null && !queue.empty) {
-			// TODO: correct?
-			val entry = queue.poll
-			if(skipping && entry instanceof Finish<?>) {
-				skipping = false
-			}
-			publish(entry)
-		} else if(onReadyForNext != null) {
-			// otherwise, ask the parent stream for the next value
-			onReadyForNext.apply
-		}
-	}
-
 	// LISTEN /////////////////////////////////////////////////////////////////
 	
 	/** 
@@ -283,6 +272,21 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	
 	// OTHER //////////////////////////////////////////////////////////////////
 
+	/** Try to publish the next value from the queue or the parent stream */
+	package def void publish() {
+		if(!readyForNext) return;
+		if(queue != null && !queue.empty) {
+			// TODO: correct?
+			val entry = queue.poll
+			if(skipping && entry instanceof Finish<?>)
+				skipping = false
+			publish(entry)
+		} else if(onReadyForNext != null) {
+			// otherwise, ask the parent stream for the next value
+			onReadyForNext.apply
+		}
+	}
+
 	/** 
 	 * Send an entry directly (no queue) to the listeners
 	 * (onValue, onError, onFinish). If a value was processed,
@@ -293,18 +297,17 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		synchronize(entry) [
 			switch it {
 				Value<T>: {
+					if(onValue == null || !readyForNext || skipping)
+						return false
 					var applied = false
-					if(onValue != null && readyForNext && !skipping) {
+					try {
 						readyForNext = false
-						if(onError == null) { 
-							onValue.apply(value)
-							applied = true
-						} else try {
-							onValue.apply(value)
-							applied = true
-						} catch(Exception e) {
-							error(e)
-						}
+						onValue.apply(value)
+						applied = true
+					} catch(Exception e) {
+						if(onError != null) 
+							onError.apply(e)
+						else throw(e)
 					}
 					applied
 				}

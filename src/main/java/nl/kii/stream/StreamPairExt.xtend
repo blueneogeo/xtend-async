@@ -85,13 +85,25 @@ class StreamPairExt {
 	 */
 	def static <K1, V1, V2> Stream<V2> async(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
 		val newStream = new Stream<V2>(stream)
-		stream.forEach [ 
+		stream.onValue [ 
 			promiseFn.apply(key, value)
-				.onError [ newStream.error(it) ]
-				.then [ newStream.push(it) ]
+				.onError [ 
+					newStream.error(it)
+					stream.next
+				]
+				.then [ 
+					newStream.push(it)
+					stream.next
+				]
 		]
-		stream.onError [ newStream.error(it) ]
-		stream.onFinish [ newStream.finish ]
+		stream.onError [ 
+			newStream.error(it)
+			stream.next
+		]
+		stream.onFinish [| 
+			newStream.finish
+			stream.next
+		]
 		newStream
 	}
 	
@@ -114,14 +126,26 @@ class StreamPairExt {
 	 */
 	def static <V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
-		stream.forEach [
+		stream.onValue [
 			val pair = promiseFn.apply(it)
 			pair.value
-				.onError [ newStream.error(it) ]
-				.then [ newStream.push(pair.key -> it) ]
+				.onError [ 
+					newStream.error(it)
+					stream.next
+				]
+				.then [ 
+					newStream.push(pair.key -> it)
+					stream.next
+				]
 		]
-		stream.onError [ newStream.error(it) ]
-		stream.onFinish [ newStream.finish ]
+		stream.onError [ 
+			newStream.error(it)
+			stream.next
+		]
+		stream.onFinish [| 
+			newStream.finish
+			stream.next
+		]
 		newStream
 	}
 
@@ -135,14 +159,26 @@ class StreamPairExt {
 	 */	
 	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
-		stream.forEach [
+		stream.onValue [
 			val pair = promiseFn.apply(key, value)
 			pair.value
-				.onError [ newStream.error(it) ]
-				.then [ newStream.push(pair.key -> it) ]
+				.onError [ 
+					newStream.error(it)
+					stream.next
+				]
+				.then [ 
+					newStream.push(pair.key -> it)
+					stream.next
+				]
 		]
-		stream.onError [ newStream.error(it) ]
-		stream.onFinish [ newStream.finish ]
+		stream.onError [ 
+			newStream.error(it)
+			stream.next
+		]
+		stream.onFinish [| 
+			newStream.finish
+			stream.next
+		]
 		newStream
 	}
 	
@@ -152,7 +188,7 @@ class StreamPairExt {
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
 	 */
 	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
-		stream.forEach [ listener.apply(key, value) ]
+		stream.each [ listener.apply(key, value) ]
 	}
 
 	/**
@@ -162,7 +198,7 @@ class StreamPairExt {
 	 * the next finish.
 	 */
 	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
-		stream.forEach [ it, s | listener.apply(key, value, s) ]
+		stream.each [ it | listener.apply(key, value, stream) ]
 	}	
 	
 

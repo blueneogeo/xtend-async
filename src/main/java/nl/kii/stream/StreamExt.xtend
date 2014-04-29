@@ -122,7 +122,8 @@ class StreamExt {
 		val newStream = new Stream<T>(stream)
 		stream.onValue [
 			if(splitConditionFn.apply(it)) {
-				newStream << new Value(it) << finish
+				// manually publishing, so the publish is 'atomic'
+				newStream << new Value(it) << new Finish
 				newStream.publish
 			} else {
 				newStream.push(it)
@@ -165,6 +166,7 @@ class StreamExt {
 		stream.onValue [
 			if(untilFn.apply(it)) {
 				stream.skip
+				stream.next
 			} else {
 				newStream.push(it)
 			}
@@ -183,11 +185,12 @@ class StreamExt {
 			.onFinish [|
 				count.set(0)
 				newStream.finish
-				stream.next
+				//stream.next
 			]
 			.onValue [
 				if(untilFn.apply(it, count.incrementAndGet)) {
 					stream.skip
+					stream.next
 				} else {
 					newStream.push(it)
 				}
@@ -216,7 +219,6 @@ class StreamExt {
 				.onError [ newStream.error(it) ]
 				.then [ 
 					newStream.push(it)
-					// s.next
 				]
 		]
 		newStream
@@ -246,6 +248,9 @@ class StreamExt {
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
+	/** 
+	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
+	 */
 	def static <T> each(Stream<T> stream, (T)=>void listener) {
 		try {
 			stream.onValue(listener)
@@ -254,15 +259,36 @@ class StreamExt {
 		}
 	}
 	
-	def static <T> each(Stream<T> stream, (T)=>Promise<?> asyncProcessor) {
+	/** 
+	 * Synchronous listener to the stream for values. Automatically requests the next entry.
+	 * Alias for StreamExt.each()
+	 */
+	def static <T> forEach(Stream<T> stream, (T)=>void listener) {
+		stream.each(listener)
+	}
+
+	/** 
+	 * Synchronous listener to the stream for values. Automatically requests the next entry.
+	 */
+	def static <T, R> each(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
 		stream.onValue [
 			asyncProcessor.apply(it)
 				.onError [ stream.error(it) ]
-				.then [	stream.next	]
+				.then [ stream.next ]
 		]
 	}
 	
+	/** 
+	 * Asynchronous listener to the stream for values. Automatically requests the next entry.
+	 * Alias for StreamExt.each()
+	 */
+	def static <T, R> forEach(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
+		stream.each(asyncProcessor)
+	}
 	
+	/** 
+	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
+	 */
 	def static <T> finish(Stream<T> stream, (Void)=>void listener) {
 		stream.onFinish [| 
 			try {
@@ -273,6 +299,9 @@ class StreamExt {
 		]
 	}
 	
+	/** 
+	 * Synchronous listener to the stream for errors. Automatically requests the next entry.
+	 */
 	def static <T> error(Stream<T> stream, (Throwable)=>void listener) {
 		try {
 			stream.onError(listener)
@@ -313,7 +342,9 @@ class StreamExt {
 	  */
 	def static <T> Promise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
-	 	stream.onValue [ if(!promise.fulfilled) promise.set(it) ]
+	 	stream.onValue [
+	 		if(!promise.fulfilled) promise.set(it)
+	 	]
 	 	stream.next
 		promise
 	}
@@ -443,6 +474,7 @@ class StreamExt {
 
 	/**
 	 * True if any of the values match the passed testFn
+	 * FIX: currently .first gives recursive loop?
 	 */
 	 def static <T> Stream<Boolean> anyMatch(Stream<T> stream, (T)=>boolean testFn) {
 	 	val anyMatch = new AtomicBoolean(false)

@@ -48,7 +48,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 
 	/** report an error to the listener of the promise. */
 	def error(Throwable t) {
-		apply(new Error(t))
+		apply(new Error<T>(t))
 	}
 		
 	override apply(Entry<T> it) {

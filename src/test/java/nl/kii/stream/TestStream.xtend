@@ -34,7 +34,7 @@ class TestStream {
 		s.next
 		assertEquals(6, counter.get)
 	}
-
+	
 	@Test
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
@@ -61,6 +61,28 @@ class TestStream {
 	}
 	
 	@Test
+	def void testControlledChainedBufferedStream() {
+		val result = new AtomicInteger(0)
+		val s1 = int.stream << 1 << 2 << 3
+		val s2 = s1.map[it] << 4 << 5 << 6
+		s2.onValue [
+			result.set(it)
+		]
+		s2.next
+		assertEquals(4, result.get)
+		s2.next
+		assertEquals(5, result.get)
+		s2.next
+		assertEquals(6, result.get)
+		s2.next
+		assertEquals(1, result.get)
+		s2.next
+		assertEquals(2, result.get)
+		s2.next
+		assertEquals(3, result.get)
+	}
+
+	@Test
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
@@ -74,7 +96,7 @@ class TestStream {
 			s.next
 			s << 0
 			fail('should never reach this')
-		} catch(Throwable t) {
+		} catch(ArithmeticException t) {
 			e.set(t)
 		}
 		assertNotNull(e.get)
@@ -85,7 +107,7 @@ class TestStream {
 			s.next
 			s << 0
 			fail('should never reach this either')
-		} catch(Throwable t) {
+		} catch(ArithmeticException t) {
 			e.set(t)
 		}
 		assertNotNull(e.get)
@@ -93,7 +115,7 @@ class TestStream {
 		// now try to catch the error
 		val e2 = new AtomicReference<Throwable>
 		e.set(null)
-		s.onError [ 
+		s.onError [
 			e2.set(it)
 		] // this prevents an error being thrown
 		s.next
@@ -102,5 +124,28 @@ class TestStream {
 		assertNull(e.get)
 		assertNotNull(e2.get)
 	}
+
+	@Test
+	def void testChainedBufferedSkippingStream() {
+		val result = new AtomicInteger(0)
+		// parent stream, has already something buffered
+		val s1 = int.stream << 1 << 2 << finish << 3
+		// substream, also has some stuff buffered, which needs to come out first
+		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
+		s2.onValue [
+			result.set(it)
+		]
+		s2.next // ask the next from the substream
+		assertEquals(4, result.get) // which should be the first buffered value
+		s2.skip // skip to the finish
+		s2.next // results in the finish
+		s2.next // process the value after the finish
+		assertEquals(6, result.get) // which is 6
+		s2.skip // skip, which should first discard 7, then go to the parent stream and discard 1 and 2
+		s2.next // results in the finish
+		s2.next // results in the 3 after the finish
+		assertEquals(3, result.get)
+	}
+
 
 }
