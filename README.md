@@ -9,7 +9,7 @@ So why was this library built, even though Java8 already has stream support?
 - tailor-built for Xtend and leveraging the features of the language
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
 - support for RX-like batches, which is useful for aggregation
-- source code is made to be simple and Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. Java 8 streams are not made to be extended. This lets you add your own operators easily, as well as easily debug code
+- source code is made to be simple and Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code
 - streams and promises can be hard to debug because they encapsulate errors. Xtend-streams lets you choose: throw errors as they occur, or catch them at the end
 - flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream.
 
@@ -43,14 +43,14 @@ You can transform a promise into another promise using a mapping:
 
 	val p = 4.promise
 	val p2 = p.map [ it+1 ]
-	p2.then[println(it)] // prints 5
+	p2.then [println(it)] // prints 5
 
 ## Handling Errors
 
 If the handler has an error, you can catch it using .onError:
 
 	val p = 0.promise
-	p.onError [ println('got exception ' + it) ]
+	p.error [ println('got exception ' + it) ]
 	p.then [ println(1/it) ] // throws /0 exception
   
 A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
@@ -58,7 +58,7 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 	val p = 0.promise
 	val p2 = p.map[1/it] // throws the exception
 	val p3 = p2.map[it + 1]
-	p3.onError[ println('got error: ' + message) ]
+	p3.error [ println('got error: ' + message) ]
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
@@ -87,7 +87,7 @@ The same, but using the extensions for nicer syntax:
 
 	val s = int.stream
 	s << 1 << 2 << 3
-	s.forEach [ println('got value ' + it ]
+	s.each [ println('got value ' + it ]
 
 The syntax for handling incoming items is the same as iterating through Lists. The difference is that with streams, the list never has to end. At any time you can push a new item in, and the handler will be called again.
 
@@ -97,7 +97,7 @@ You can transform a stream into another stream using a mapping, just like you wo
 
 	val s = #[1, 2, 3].stream
 	val s2 = s.map [ it+1 ]
-	s2.forEach [ print(it) ] // prints 123
+	s2.each [ print(it) ] // prints 123
 
 ## Filtering
 
@@ -105,22 +105,22 @@ Sometimes you only want items to pass that match some criterium.  You can use fi
 
 	val s = #[1, 2, 3].stream
 	val s2 = s.filter [ it < 3 ]
-	s2.forEach [ print(it) ] // prints 12
+	s2.each [ print(it) ] // prints 12
 
 ## Handling Errors
 
 If the handler has an error, you can catch it using .onError:
 
 	val s = #[1, 0, 2].stream
-	s.onError [ println('got exception ' + it) ]
-	s.forEach [ println(1/it) ] // throws /0 exception
+	s.error [ println('got exception ' + it) ]
+	s.each [ println(1/it) ] // throws /0 exception
   
 A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
 
 	val p = 0.promise
 	val p2 = p.map[1/it] // throws the exception
 	val p3 = p2.map[it + 1]
-	p3.onError[ println('got error: ' + message) ]
+	p3.error [ println('got error: ' + message) ]
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
@@ -165,8 +165,8 @@ The async method you see above lets you map an incoming value to a promise, and 
 Streams and promises actually do not process and pass just values, they process Entry<T>'s. An entry can be:
 
 - a Value<T>, listen to by using .forEach [ ]
-- a Finish<T>, listen to by using .onFinish [ ]
-- or an Error<T>, listen to by using .onError [ ]
+- a Finish<T>, listen to by using .finish [ ]
+- or an Error<T>, listen to by using .error [ ]
 
 Values and errors you've seen, finish is new. You use a finish to indicate the end of the values that have been passed so far (much like RXJava's complete). This is necessary if you want to pass batches of data through a stream. Consider finish the separator between these batches.
 
@@ -189,7 +189,7 @@ So when does count know that it is finished? Here the finish command comes in. T
 Note that count returns a new Stream<Integer>, and .then on a stream produces a Promise of the first value from that stream. The reason for this is that actually, count counts each batch. You could also do this:
 
 	val s = char.stream
-	s.count.forEach [ println('counted ' + it + ' chars') ]
+	s.count.each [ println('counted ' + it + ' chars') ]
 	s << 'a' << 'x' << 'c' << finish << 'v' << 't' << finish
 
 This will produce:
@@ -223,7 +223,7 @@ The second line would call emailUser, which is an asynchronous functions which r
 
 In order to tell a stream that you want to control it, you can use a different forEach version:
 
-	(1..10000).stream.forEach [ it, stream |
+	(1..10000).stream.each [ it, stream |
 		emailUser.then [ stream.next ]
 	]
 
@@ -231,7 +231,7 @@ Here, only a single user will be emailed at the same time. This is because the t
 
 ## Using Stream.async
 
-A nice feature of the Stream.async function discussed earlier is, that it does this for you. So instead of the code above, you could also write:
+A nice feature of the Stream.async function discussed earlier is, that it calls next for you. So instead of the code above, you could also write:
 
 	(1..10000).stream.async [ emailUser	].then [ ... ]
 
@@ -246,7 +246,7 @@ Sometimes a stream can be very large, but you might only need a few items from a
 For example:
 
 	val s = int.stream << 1 << 2 << 3 << finish << 1 << 5 << finish
-	s.forEach [ it, stream |
+	s.each [ it, stream |
 		if(it > 2) stream.skip else print(it)
 		stream.next
 	]
