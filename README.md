@@ -4,14 +4,20 @@ Xtend-streams give streams and promises to Xtend. It is inspired by the Java Str
 
 So why was this library built, even though Java8 already has stream support?
 
-- made to be very simple and easy to use
-- completely non-blocking (required for Vert.x)
+- completely non blocking
+- optimized for asynchronous programming
+- integrated promises and streams
+
+Other features are:
+
+- lightweight, with no dependencies besides Xtend
+- made to be easy to use
 - tailor-built for Xtend and leveraging the features of the language
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
 - support for RX-like batches, which is useful for aggregation
-- source code is made to be simple and Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code
-- streams and promises can be hard to debug because they encapsulate errors. Xtend-streams lets you choose: throw errors as they occur, or catch them at the end
-- flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream.
+- clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
+- flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream
+- streams and promises can be hard to debug because they encapsulate errors. xtend-streams lets you choose: throw errors as they occur, or catch them at the end
 
 # PROMISE USAGE
 
