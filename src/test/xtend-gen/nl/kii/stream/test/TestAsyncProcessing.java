@@ -29,7 +29,7 @@ public class TestAsyncProcessing {
       _power2.then(_function);
       int _get = result.get();
       Assert.assertEquals(0, _get);
-      Thread.sleep(2100);
+      Thread.sleep(210);
       int _get_1 = result.get();
       Assert.assertEquals(4, _get_1);
     } catch (Throwable _e) {
@@ -62,7 +62,7 @@ public class TestAsyncProcessing {
       _async_1.then(_function_2);
       int _get = result.get();
       Assert.assertEquals(0, _get);
-      Thread.sleep(5000);
+      Thread.sleep(500);
       int _get_1 = result.get();
       Assert.assertEquals(256, _get_1);
     } catch (Throwable _e) {
@@ -107,7 +107,7 @@ public class TestAsyncProcessing {
       LinkedList<Integer> _get = result.get();
       int _size = _get.size();
       Assert.assertEquals(0, _size);
-      Thread.sleep(7000);
+      Thread.sleep(700);
       LinkedList<Integer> _get_1 = result.get();
       int _size_1 = _get_1.size();
       Assert.assertEquals(3, _size_1);
@@ -163,7 +163,7 @@ public class TestAsyncProcessing {
         }
       };
       StreamExt.<Integer>each(_error, _function_4);
-      Thread.sleep(7000);
+      Thread.sleep(700);
       int _get = result.get();
       Assert.assertEquals(3, _get);
     } catch (Throwable _e) {
@@ -175,7 +175,7 @@ public class TestAsyncProcessing {
     final Function0<Integer> _function = new Function0<Integer>() {
       public Integer apply() {
         try {
-          Thread.sleep(1000);
+          Thread.sleep(100);
           return Integer.valueOf((i * i));
         } catch (Throwable _e) {
           throw Exceptions.sneakyThrow(_e);
@@ -189,7 +189,7 @@ public class TestAsyncProcessing {
     final Function0<Integer> _function = new Function0<Integer>() {
       public Integer apply() {
         try {
-          Thread.sleep(1000);
+          Thread.sleep(100);
           if (true) {
             throw new Exception("something went wrong");
           }

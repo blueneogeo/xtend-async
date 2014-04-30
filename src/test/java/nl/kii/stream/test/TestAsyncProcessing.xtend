@@ -16,7 +16,7 @@ class TestAsyncProcessing {
 		val result = new AtomicInteger
 		power2(2).then [ result.set(it)	]
 		0.assertEquals(result.get)
-		Thread.sleep(2100)
+		Thread.sleep(210)
 		4.assertEquals(result.get)
 	}
 
@@ -28,7 +28,7 @@ class TestAsyncProcessing {
 			.async [ power2 ]
 			.then [	result.set(it) ]
 		0.assertEquals(result.get)
-		Thread.sleep(5000)
+		Thread.sleep(500)
 		256.assertEquals(result.get)
 	}
 	
@@ -42,7 +42,7 @@ class TestAsyncProcessing {
 			.async [ power2 ]
 			.each [	result.get.add(it) ]
 		0.assertEquals(result.get.size)
-		Thread.sleep(7000) 
+		Thread.sleep(700) 
 		3.assertEquals(result.get.size)
 		4.assertEquals(result.get.get(0))
 		25.assertEquals(result.get.get(1))
@@ -59,20 +59,20 @@ class TestAsyncProcessing {
 			.async [ power2 ]
 			.error [ result.incrementAndGet ]
 			.each [	fail('we should not end up here, since an error should be caught instead') ]
-		Thread.sleep(7000) 
+		Thread.sleep(700) 
 		3.assertEquals(result.get)
 	}
 	
 	def power2(int i) {
 		promise [|
-			Thread.sleep(1000)
+			Thread.sleep(100)
 			return i * i
 		]
 	}
 
 	def throwsError(int i) {
 		promise [|
-			Thread.sleep(1000)
+			Thread.sleep(100)
 			if(true) throw new Exception('something went wrong')
 			return i * i
 		]
