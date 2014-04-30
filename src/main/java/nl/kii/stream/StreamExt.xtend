@@ -65,7 +65,19 @@ class StreamExt {
 		stream.push(value)
 		stream
 	}
+
+	/** Add a list of values to a stream */
+	def static <T> operator_doubleGreaterThan(List<T> value, Stream<T> stream) {
+		value.forEach [ stream.push(it) ]
+		stream
+	}
 	
+	/** Add a list of values to a stream */
+	def static <T> operator_doubleLessThan(Stream<T> stream, List<T> value) {
+		value.forEach [ stream.push(it) ]
+		stream
+	}
+
 	/** Add an entry to a stream (such as error or finish) */
 	def static <T> operator_doubleLessThan(Stream<T> stream, Entry<T> entry) {
 		stream.apply(entry)

@@ -1,6 +1,6 @@
 # XTEND-STREAMS
 
-Xtend-streams give streams and promises to Xtend. It is inspired by the Java Streams and RXJava, but is specifically built to work well with the Xtend language and Vert.x. It has no runtime dependencies apart from Xtend.
+Xtend-streams give streams and promises to Xtend. It is inspired by the Java 8 Streams and RXJava, but is specifically built to work well with the Xtend language and Vert.x. It has no runtime dependencies apart from Xtend.
 
 So why was this library built, even though Java8 already has stream support?
 
@@ -8,11 +8,10 @@ So why was this library built, even though Java8 already has stream support?
 - optimized for asynchronous programming
 - integrated promises and streams
 
-Other features are:
+Some features are:
 
+- made to be easy to use, simple syntax
 - lightweight, with no dependencies besides Xtend
-- made to be easy to use
-- tailor-built for Xtend and leveraging the features of the language
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
 - support for RX-like batches, which is useful for aggregation
 - clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
@@ -31,17 +30,17 @@ Importing the promise extensions:
 
 ## Creating a Promise
 
-Creating a promise, passing it a value, and then responding to it:
+Creating a promise, telling what to do when it is fulfilled, and then fulfilling the promise:
 
 	val p = new Promise<Integer>
-	p.set(10)
 	p.then [ println('got value ' + it) ]
+	p.set(10)
 
 The same, but using the extensions for nicer syntax:
 
 	val p = int.promise
-	p << 10
 	p.then [ println('got value ' + it ]
+	p << 10
 
 ## Mapping
 
@@ -49,7 +48,7 @@ You can transform a promise into another promise using a mapping:
 
 	val p = 4.promise
 	val p2 = p.map [ it+1 ]
-	p2.then [println(it)] // prints 5
+	p2.then [ println(it) ] // prints 5
 
 ## Handling Errors
 
@@ -81,19 +80,25 @@ Importing the stream extensions:
 
 ## Creating a Stream
 
-Creating a stream, passing it some values, and then responding to them:
+Creating a stream, telling how to respond to it, and passing some values to it:
 
 	val s = new Stream<Integer>
+	p.forEach [ println('got value ' + it) ]
 	s.push(1)
 	s.push(2)
 	s.push(3)
-	p.forEach [ println('got value ' + it) ]
+
+This will print:
+
+	got value 1
+	got value 2
+	got value 3
 
 The same, but using the extensions for nicer syntax:
 
 	val s = int.stream
-	s << 1 << 2 << 3
 	s.each [ println('got value ' + it ]
+	s << 1 << 2 << 3
 
 The syntax for handling incoming items is the same as iterating through Lists. The difference is that with streams, the list never has to end. At any time you can push a new item in, and the handler will be called again.
 
@@ -130,6 +135,17 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
+
+## Compact Syntax
+
+Most of the methods and extensions of streams and promises allow you to chain the methods. This allows for a more compact syntax. You can also write the above code like this:
+
+	0.promise
+		.map [1/it]
+		.map [it+1]
+		.error [ println('got error: ' + message) ]
+		.then [ println('this will not get printed') ]
+
 
 # COMBINING STREAMS AND PROMISES
 
