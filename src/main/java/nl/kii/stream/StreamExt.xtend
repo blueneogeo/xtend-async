@@ -215,8 +215,11 @@ class StreamExt {
 		// same as stream.async(1, promiseFn), here just for performance reasons
 		val newStream = new Stream<R>(stream)
 		stream.onValue [
+			println(it)
 			promiseFn.apply(it)
-				.onError [ newStream.error(it) ]
+				.onError [ 
+					newStream.error(it)
+				]
 				.then [ 
 					newStream.push(it)
 				]

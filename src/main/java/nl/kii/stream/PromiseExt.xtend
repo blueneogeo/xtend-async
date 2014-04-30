@@ -1,28 +1,34 @@
 package nl.kii.stream
 
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+
+import static java.util.concurrent.Executors.*
 
 class PromiseExt {
 	
+	// CREATING PROMISES //////////////////////////////////////////////////////
+	
+	/** Create a promise of the given type */
 	def static <T> promise(Class<T> type) {
 		new Promise<T>
 	}
 	
+	/** Create a promise that immediately resolves to the passed value */
 	def static <T> promise(T value) {
 		new Promise<T>(value)
 	}
 
-	def static <T> Future<T> future(Promise<T> promise) {
-		new PromiseFuture(promise)
-	}
-	
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
+	/** Fulfill a promise */
 	def static <T> operator_doubleGreaterThan(T value, Promise<T> promise) {
 		promise.set(value)
 		promise
 	}
 	
+	/** Fulfill a promise */
 	def static <T> operator_doubleLessThan(Promise<T> promise, T value) {
 		promise.set(value)
 		promise
@@ -30,12 +36,18 @@ class PromiseExt {
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
+	/** 
+	 * Create a new promise from an existing promise, 
+	 * that transforms the value of the promise
+	 * once the existing promise is resolved.
+	 */
 	def static <T, R> map(Promise<T> promise, (T)=>R mappingFn) {
 		val newPromise = new Promise<R>(promise)
 		promise.then [ newPromise.set(mappingFn.apply(it)) ]
 		newPromise
 	}
 	
+	/** Flattens a promise of a promise to directly a promise. */
 	def static <T> flatten(Promise<Promise<T>> promise) {
 		val newPromise = new Promise<T>(promise)
 		promise.then [
@@ -59,7 +71,7 @@ class PromiseExt {
 	 * def void showUploadResult(Result result)
 	 * 
 	 * loadUser(12)
-	 *    .chain [ uploadUser ] 
+	 *    .async [ uploadUser ] 
 	 *    .then [ showUploadResult ]
 	 * </pre>
 	 */
@@ -73,11 +85,76 @@ class PromiseExt {
 		newPromise
 	}
 	
-	/** 
-	 * Create a new promise that listenes to this promise
-	 */
+	/** Create a new promise that listenes to this promise */
 	def static <T> fork(Promise<T> promise) {
 		promise.map[it]
+	}	
+	
+	// THREADED PROMISES //////////////////////////////////////////////////////
+	
+	/** Convert a promise into a Future */
+	def static <T> Future<T> future(Promise<T> promise) {
+		new PromiseFuture(promise)
+	}
+
+	/** 
+	 * Execute the callable in the background and return as a promise
+	 * <pre>
+	 * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
+	 */
+	def static <T> Promise<T> promise(Callable<T> callable) {
+		promise(newSingleThreadExecutor, callable)
+	}
+
+	/** 
+	 * Execute the runnable in the background and return as a promise
+	 * <pre>
+	 * promise [| doSomeHeavyLifting ].then [ println('done!') ]
+	 */
+	def static Promise<Void> promise(Runnable runnable) {
+		promise(newSingleThreadExecutor, runnable)
+	}
+
+	/** 
+	 * Execute the callable in the background and return as a promise.
+	 * Lets you specify the executorservice to run on.
+	 * <pre>
+	 * val service = Executors.newSingleThreadExecutor
+	 * promise(service) [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
+	 */
+	def static <T> Promise<T> promise(ExecutorService service, Callable<T> callable) {
+		val promise = new Promise<T>
+		val Runnable processor = [|
+			try {
+				val result = callable.call
+				promise.set(result)
+			} catch(Throwable t) {
+				promise.error(t)
+			}
+		]
+		service.submit(processor)
+		promise
+	}	
+
+	/** 
+	 * Execute the runnable in the background and return as a promise.
+	 * Lets you specify the executorservice to run on.
+	 * <pre>
+	 * val service = Executors.newSingleThreadExecutor
+	 * promise(service) [| doSomeHeavyLifting ].then [ println('done!') ]
+	 */
+	def static Promise<Void> promise(ExecutorService service, Runnable runnable) {
+		val promise = new Promise<Void>
+		val Runnable processor = [|
+			try {
+				runnable.run
+				promise.set(null)
+			} catch(Throwable t) {
+				promise.error(t)
+			}
+		]
+		service.submit(processor)
+		promise
 	}	
 	
 }
