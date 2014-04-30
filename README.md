@@ -196,7 +196,7 @@ Values and errors you've seen, finish is new. You use a finish to indicate the e
 
 Quite often, you will want to take a stream of values, and do some aggregation on them, such as counting them.
 
-The stream extensions have many such reductions built-in, and you can easily add your own as well. For example, to count the amount of values coming down the stream:
+The stream extensions have some of these reductions built-in, and you can easily add your own as well. For example, to count the amount of values coming down the stream:
 
 	val s = char.stream
 	s.count.then [ println('counted ' + it + ' chars') ]
@@ -230,7 +230,15 @@ Similar functions are:
 - allMatch: true only when all entries match a criterium
 - reduce: custom aggregation
 
-# FLOW CONTROL
+# EXTENDING XTEND-STREAM
+
+The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.
+
+In order not to clutter the namespace, extensions that use the stream flow control functions must be packaged in package nl.kii.stream.
+
+I recommend you have a look at PromiseExt and StreamExt as an example.
+
+## FLOW CONTROL
 
 Xtend streams let you control how fast listeners get new data. This is useful when you have heavy asynchronous processes. If you had no way to queue the data coming in, these would be overwhelmed.
 
@@ -241,7 +249,7 @@ Consider the following situation:
 
 The second line would call emailUser, which is an asynchronous functions which returns immediately. So, if a thread pool is being used by the async function, 10000 thread processes are started in parallel!
 
-## Using Stream.next
+### Using Stream.next
 
 In order to tell a stream that you want to control it, you can use a different forEach version:
 
@@ -251,7 +259,7 @@ In order to tell a stream that you want to control it, you can use a different f
 
 Here, only a single user will be emailed at the same time. This is because the two-parameter version of forEach does not automatically start streaming everything. Instead, it passes you the stream as well, and only passes you the first entry from the stream. It then stops, until you call stream.next.
 
-## Using Stream.async
+### Using Stream.async
 
 A nice feature of the Stream.async function discussed earlier is, that it calls next for you. So instead of the code above, you could also write:
 
@@ -261,7 +269,7 @@ You can also indicate that you want asynchronous concurrency by passing how many
 
 	(1..10000).stream.async(3) [ emailUser	].then [ ... ]
 
-## Using Stream.skip   
+### Using Stream.skip   
 
 Sometimes a stream can be very large, but you might only need a few items from a batch. You can call stream.skip to tell the stream that it can skip processing the rest of the batch. (it will start again when the next batch arrives).
 
@@ -274,5 +282,3 @@ For example:
 	]
 
 The above code will print 121. It will first stream 1 and 2, then skip to the finish at 3, then print 1 and skip again at 5.
-
-think about next when using ranges. next should travel upwards as well, so the range can do +1...
