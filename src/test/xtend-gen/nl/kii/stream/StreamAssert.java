@@ -52,7 +52,7 @@ public class StreamAssert {
     return _xblockexpression;
   }
   
-  public static <T extends Object> void assertStreamEquals(final List<? extends Entry<T>> entries, final Stream<T> stream) {
+  public static <T extends Object> void assertStreamEquals(final Stream<T> stream, final List<? extends Entry<T>> entries) {
     final List<Entry<T>> data = StreamAssert.<T>gather(stream);
     InputOutput.<List<Entry<T>>>println(data);
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(entries, Object.class)), ((Object[])Conversions.unwrapArray(data, Object.class)));

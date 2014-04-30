@@ -97,6 +97,16 @@ class PromiseExt {
 		new PromiseFuture(promise)
 	}
 
+	/** Run a procedure in the background and return a promise */
+	def static promise(=>void procedure) {
+		promise([| procedure.apply ] as Runnable)
+	}
+
+	/** Run a function in the background and return a promise */
+	def static <T> promise(=>T function) {
+		promise([| function.apply ] as Callable<T>)
+	}
+
 	/** 
 	 * Execute the callable in the background and return as a promise
 	 * <pre>

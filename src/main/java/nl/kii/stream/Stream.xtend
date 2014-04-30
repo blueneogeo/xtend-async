@@ -276,11 +276,8 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	package def void publish() {
 		if(!readyForNext) return;
 		if(queue != null && !queue.empty) {
-			// TODO: correct?
-			val entry = queue.poll
-			if(skipping && entry instanceof Finish<?>)
-				skipping = false
-			publish(entry)
+			// if there is something in the queue, publish it
+			publish(queue.poll)
 		} else if(onReadyForNext != null) {
 			// otherwise, ask the parent stream for the next value
 			onReadyForNext.apply

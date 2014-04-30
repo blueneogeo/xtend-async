@@ -2,7 +2,6 @@ package nl.kii.stream.test
 
 import org.junit.Test
 
-import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExt.*
 
@@ -12,14 +11,14 @@ class TestStreamExt {
 	def void testRangeStream() {
 		val s = (5..7).stream
 		val s2 = s.map[it]
-		#[5.value, 6.value, 7.value, finish].assertStreamEquals(s2)
+		s2.assertStreamEquals(#[5.value, 6.value, 7.value, finish])
 	}
 
 	@Test
 	def void testListStream() {
 		val s = #[1, 2, 3].stream
 		val s2 = s.map[it+1]
-		#[2.value, 3.value, 4.value, finish].assertStreamEquals(s2)		
+		s2.assertStreamEquals(#[2.value, 3.value, 4.value, finish])		
 	}
 	
 	@Test
@@ -27,7 +26,7 @@ class TestStreamExt {
 		val map = #{1->'a', 2->'b'}
 		val s = map.stream
 		val s2 = s.map[key+1->value]
-		#[value(2->'a'), value(3->'b'), finish].assertStreamEquals(s2)
+		s2.assertStreamEquals(#[value(2->'a'), value(3->'b'), finish])
 	}
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
@@ -36,14 +35,14 @@ class TestStreamExt {
 	def void testMap() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		val mapped = s.map [ it + 1 ]
-		#[2.value, 3.value, 4.value, finish, 5.value, 6.value].assertStreamEquals(mapped)
+		mapped.assertStreamEquals(#[2.value, 3.value, 4.value, finish, 5.value, 6.value])
 	}
 	
 	@Test
 	def void testFilter() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		val filtered = s.filter [ it % 2 == 0]
-		#[2.value, finish, 4.value].assertStreamEquals(filtered)
+		filtered.assertStreamEquals(#[2.value, finish, 4.value])
 	}
 	
 	@Test
@@ -51,7 +50,7 @@ class TestStreamExt {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		// #[1.value, 2.value, 3.value, finish, 4.value, 5.value].assertStreamEquals(s)
 		val split = s.split [ it % 2 == 0]
-		#[1.value, 2.value, finish, 3.value, finish, 4.value, finish, 5.value].assertStreamEquals(split)
+		split.assertStreamEquals(#[1.value, 2.value, finish, 3.value, finish, 4.value, finish, 5.value])
 	}
 	
 //	@Test
@@ -72,35 +71,35 @@ class TestStreamExt {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
 		val collected = s.collect
 		// 5 is missing below because there is no finish to collect 5
-		#[#[1, 2, 3].value, #[4, 5].value].assertStreamEquals(collected)
+		collected.assertStreamEquals(#[#[1, 2, 3].value, #[4, 5].value])
 	}
 	
 	@Test
 	def void testSum() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val summed = s.sum
-		#[6D.value, 9D.value].assertStreamEquals(summed)
+		summed.assertStreamEquals(#[6D.value, 9D.value])
 	}
 
 	@Test
 	def void testAvg() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val avg = s.avg
-		#[2D.value, 4.5D.value].assertStreamEquals(avg)
+		avg.assertStreamEquals(#[2D.value, 4.5D.value])
 	}
 	
 	@Test
 	def void testCount() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val counted = s.count
-		#[3L.value, 2L.value].assertStreamEquals(counted)
+		counted.assertStreamEquals(#[3L.value, 2L.value])
 	}
 	
 	@Test
 	def void testReduce() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val summed = s.reduce(1) [ a, b | a + b ] // starting at 1!
-		#[7.value, 10.value].assertStreamEquals(summed)
+		summed.assertStreamEquals(#[7.value, 10.value])
 	}
 
 	@Test
@@ -108,28 +107,28 @@ class TestStreamExt {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val summed = s.reduce(0L) [ a, b, c | a + c ]
 		// #[0 + 1 + 2 , 0 + 1]
-		#[3L.value, 1L.value].assertStreamEquals(summed)
+		summed.assertStreamEquals(#[3L.value, 1L.value])
 	}
 	
 	@Test
 	def void testLimit() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val limited = s.limit(1)
-		#[1L.value, finish, 4L.value, finish].assertStreamEquals(limited)		
+		limited.assertStreamEquals(#[1L.value, finish, 4L.value, finish])		
 	}
 	
 	@Test
 	def void testLimitBeforeCollect() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val limited = s.limit(1).collect
-		#[#[1L].value, #[4L].value].assertStreamEquals(limited)		
+		limited.assertStreamEquals(#[#[1L].value, #[4L].value])		
 	}
 	
 	@Test
 	def void testUntil() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val untilled = s.until [ it == 2L ]
-		#[1L.value, finish, 4L.value, 5L.value, finish].assertStreamEquals(untilled)
+		untilled.assertStreamEquals(#[1L.value, finish, 4L.value, 5L.value, finish])
 	}
 	
 	@Test
@@ -146,27 +145,6 @@ class TestStreamExt {
 		matches.assertPromiseEquals(false)
 	}
 
-	// ASYNC //////////////////////////////////////////////////////////////////
-
-	// TODO: needs better test that uses multithreading
-	@Test
-	def void testAsync() {
-		val s = Integer.stream << 2 << finish << 3 << 4 << finish
-//		val asynced = 
-		s.async [ power2(it) ].collect.then [ println(it) ]
-		// #[4.value, 9.value].assertStreamEquals(asynced)
-	}
-
-	// TODO: needs better test that uses multithreading
-	@Test
-	def void testAsync3() {
-		val s = Integer.stream << 2 << 3 << 4 << 5 << 6 << 7
-		val asynced = s.async(3) [ power2(it) ]
-		#[4.value, 9.value, 16.value, 25.value, 36.value, 49.value].assertStreamEquals(asynced)
-	}
-	
-	private def power2(int i) { (i*i).promise }
-	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	@Test

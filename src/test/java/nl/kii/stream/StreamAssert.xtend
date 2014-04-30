@@ -28,7 +28,7 @@ class StreamAssert {
 		data
 	}
 	
-	def static <T> assertStreamEquals(List<? extends Entry<T>> entries, Stream<T> stream) {
+	def static <T> assertStreamEquals(Stream<T> stream, List<? extends Entry<T>> entries) {
 		val data = stream.gather
 		println(data)
 		assertArrayEquals(entries, data)

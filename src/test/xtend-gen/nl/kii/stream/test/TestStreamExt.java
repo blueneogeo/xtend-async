@@ -8,7 +8,6 @@ import java.util.Map;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseExt;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExt;
@@ -16,10 +15,8 @@ import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Test;
 
 @SuppressWarnings("all")
@@ -38,7 +35,7 @@ public class TestStreamExt {
     Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(6));
     Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(7));
     Finish<Integer> _finish = StreamExt.<Integer>finish();
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish)), s2);
+    StreamAssert.<Integer>assertStreamEquals(s2, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish)));
   }
   
   @Test
@@ -54,7 +51,7 @@ public class TestStreamExt {
     Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(3));
     Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(4));
     Finish<Integer> _finish = StreamExt.<Integer>finish();
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish)), s2);
+    StreamAssert.<Integer>assertStreamEquals(s2, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish)));
   }
   
   @Test
@@ -80,7 +77,7 @@ public class TestStreamExt {
     Pair<Integer, String> _mappedTo_1 = Pair.<Integer, String>of(Integer.valueOf(3), "b");
     Value<Pair<Integer, String>> _value_1 = StreamAssert.<Pair<Integer, String>>value(_mappedTo_1);
     Finish<Pair<Integer, String>> _finish = StreamExt.<Pair<Integer, String>>finish();
-    StreamAssert.<Pair<Integer, String>>assertStreamEquals(Collections.<Entry<Pair<Integer, String>>>unmodifiableList(Lists.<Entry<Pair<Integer, String>>>newArrayList(_value, _value_1, _finish)), s2);
+    StreamAssert.<Pair<Integer, String>>assertStreamEquals(s2, Collections.<Entry<Pair<Integer, String>>>unmodifiableList(Lists.<Entry<Pair<Integer, String>>>newArrayList(_value, _value_1, _finish)));
   }
   
   @Test
@@ -105,7 +102,7 @@ public class TestStreamExt {
     Finish<Integer> _finish_1 = StreamExt.<Integer>finish();
     Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(5));
     Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(6));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish_1, _value_3, _value_4)), mapped);
+    StreamAssert.<Integer>assertStreamEquals(mapped, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish_1, _value_3, _value_4)));
   }
   
   @Test
@@ -127,7 +124,7 @@ public class TestStreamExt {
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(2));
     Finish<Integer> _finish_1 = StreamExt.<Integer>finish();
     Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(4));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _finish_1, _value_1)), filtered);
+    StreamAssert.<Integer>assertStreamEquals(filtered, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _finish_1, _value_1)));
   }
   
   @Test
@@ -154,7 +151,7 @@ public class TestStreamExt {
     Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(4));
     Finish<Integer> _finish_3 = StreamExt.<Integer>finish();
     Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(5));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _finish_1, _value_2, _finish_2, _value_3, _finish_3, _value_4)), split);
+    StreamAssert.<Integer>assertStreamEquals(split, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _finish_1, _value_2, _finish_2, _value_3, _finish_3, _value_4)));
   }
   
   @Test
@@ -173,7 +170,7 @@ public class TestStreamExt {
     final Stream<List<Integer>> collected = StreamExt.<Integer>collect(s);
     Value<List<Integer>> _value = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(1, 2, 3)));
     Value<List<Integer>> _value_1 = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(4, 5)));
-    StreamAssert.<List<Integer>>assertStreamEquals(Collections.<Value<List<Integer>>>unmodifiableList(Lists.<Value<List<Integer>>>newArrayList(_value, _value_1)), collected);
+    StreamAssert.<List<Integer>>assertStreamEquals(collected, Collections.<Value<List<Integer>>>unmodifiableList(Lists.<Value<List<Integer>>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -191,7 +188,7 @@ public class TestStreamExt {
     final Stream<Double> summed = StreamExt.<Integer>sum(s);
     Value<Double> _value = StreamAssert.<Double>value(Double.valueOf(6D));
     Value<Double> _value_1 = StreamAssert.<Double>value(Double.valueOf(9D));
-    StreamAssert.<Double>assertStreamEquals(Collections.<Value<Double>>unmodifiableList(Lists.<Value<Double>>newArrayList(_value, _value_1)), summed);
+    StreamAssert.<Double>assertStreamEquals(summed, Collections.<Value<Double>>unmodifiableList(Lists.<Value<Double>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -209,7 +206,7 @@ public class TestStreamExt {
     final Stream<Double> avg = StreamExt.<Integer>avg(s);
     Value<Double> _value = StreamAssert.<Double>value(Double.valueOf(2D));
     Value<Double> _value_1 = StreamAssert.<Double>value(Double.valueOf(4.5D));
-    StreamAssert.<Double>assertStreamEquals(Collections.<Value<Double>>unmodifiableList(Lists.<Value<Double>>newArrayList(_value, _value_1)), avg);
+    StreamAssert.<Double>assertStreamEquals(avg, Collections.<Value<Double>>unmodifiableList(Lists.<Value<Double>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -227,7 +224,7 @@ public class TestStreamExt {
     final Stream<Long> counted = StreamExt.<Integer>count(s);
     Value<Long> _value = StreamAssert.<Long>value(Long.valueOf(3L));
     Value<Long> _value_1 = StreamAssert.<Long>value(Long.valueOf(2L));
-    StreamAssert.<Long>assertStreamEquals(Collections.<Value<Long>>unmodifiableList(Lists.<Value<Long>>newArrayList(_value, _value_1)), counted);
+    StreamAssert.<Long>assertStreamEquals(counted, Collections.<Value<Long>>unmodifiableList(Lists.<Value<Long>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -250,7 +247,7 @@ public class TestStreamExt {
     final Stream<Integer> summed = StreamExt.<Integer>reduce(s, Integer.valueOf(1), _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(7));
     Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(10));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Value<Integer>>unmodifiableList(Lists.<Value<Integer>>newArrayList(_value, _value_1)), summed);
+    StreamAssert.<Integer>assertStreamEquals(summed, Collections.<Value<Integer>>unmodifiableList(Lists.<Value<Integer>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -273,7 +270,7 @@ public class TestStreamExt {
     final Stream<Long> summed = StreamExt.<Long>reduce(s, Long.valueOf(0L), _function);
     Value<Long> _value = StreamAssert.<Long>value(Long.valueOf(3L));
     Value<Long> _value_1 = StreamAssert.<Long>value(Long.valueOf(1L));
-    StreamAssert.<Long>assertStreamEquals(Collections.<Value<Long>>unmodifiableList(Lists.<Value<Long>>newArrayList(_value, _value_1)), summed);
+    StreamAssert.<Long>assertStreamEquals(summed, Collections.<Value<Long>>unmodifiableList(Lists.<Value<Long>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -293,7 +290,7 @@ public class TestStreamExt {
     Finish<Long> _finish_2 = StreamExt.<Long>finish();
     Value<Long> _value_1 = StreamAssert.<Long>value(Long.valueOf(4L));
     Finish<Long> _finish_3 = StreamExt.<Long>finish();
-    StreamAssert.<Long>assertStreamEquals(Collections.<Entry<Long>>unmodifiableList(Lists.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _finish_3)), limited);
+    StreamAssert.<Long>assertStreamEquals(limited, Collections.<Entry<Long>>unmodifiableList(Lists.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _finish_3)));
   }
   
   @Test
@@ -312,7 +309,7 @@ public class TestStreamExt {
     final Stream<List<Long>> limited = StreamExt.<Long>collect(_limit);
     Value<List<Long>> _value = StreamAssert.<List<Long>>value(Collections.<Long>unmodifiableList(Lists.<Long>newArrayList(1L)));
     Value<List<Long>> _value_1 = StreamAssert.<List<Long>>value(Collections.<Long>unmodifiableList(Lists.<Long>newArrayList(4L)));
-    StreamAssert.<List<Long>>assertStreamEquals(Collections.<Value<List<Long>>>unmodifiableList(Lists.<Value<List<Long>>>newArrayList(_value, _value_1)), limited);
+    StreamAssert.<List<Long>>assertStreamEquals(limited, Collections.<Value<List<Long>>>unmodifiableList(Lists.<Value<List<Long>>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -338,7 +335,7 @@ public class TestStreamExt {
     Value<Long> _value_1 = StreamAssert.<Long>value(Long.valueOf(4L));
     Value<Long> _value_2 = StreamAssert.<Long>value(Long.valueOf(5L));
     Finish<Long> _finish_3 = StreamExt.<Long>finish();
-    StreamAssert.<Long>assertStreamEquals(Collections.<Entry<Long>>unmodifiableList(Lists.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _value_2, _finish_3)), untilled);
+    StreamAssert.<Long>assertStreamEquals(untilled, Collections.<Entry<Long>>unmodifiableList(Lists.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _value_2, _finish_3)));
   }
   
   @Test
@@ -374,59 +371,6 @@ public class TestStreamExt {
     Stream<Boolean> _anyMatch = StreamExt.<Boolean>anyMatch(s, _function);
     final Promise<Boolean> matches = StreamExt.<Boolean>first(_anyMatch);
     StreamAssert.<Boolean>assertPromiseEquals(matches, Boolean.valueOf(false));
-  }
-  
-  @Test
-  public void testAsync() {
-    Stream<Integer> _stream = StreamExt.<Integer>stream(Integer.class);
-    Stream<Integer> _doubleLessThan = StreamExt.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(2));
-    Finish<Integer> _finish = StreamExt.<Integer>finish();
-    Stream<Integer> _doubleLessThan_1 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan, _finish);
-    Stream<Integer> _doubleLessThan_2 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(4));
-    Finish<Integer> _finish_1 = StreamExt.<Integer>finish();
-    final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, _finish_1);
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestStreamExt.this.power2((it).intValue());
-      }
-    };
-    Stream<Integer> _async = StreamExt.<Integer, Integer>async(s, _function);
-    Stream<List<Integer>> _collect = StreamExt.<Integer>collect(_async);
-    final Procedure1<List<Integer>> _function_1 = new Procedure1<List<Integer>>() {
-      public void apply(final List<Integer> it) {
-        InputOutput.<List<Integer>>println(it);
-      }
-    };
-    StreamExt.<List<Integer>>then(_collect, _function_1);
-  }
-  
-  @Test
-  public void testAsync3() {
-    Stream<Integer> _stream = StreamExt.<Integer>stream(Integer.class);
-    Stream<Integer> _doubleLessThan = StreamExt.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(2));
-    Stream<Integer> _doubleLessThan_1 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(3));
-    Stream<Integer> _doubleLessThan_2 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(4));
-    Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
-    Stream<Integer> _doubleLessThan_4 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(6));
-    final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(7));
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestStreamExt.this.power2((it).intValue());
-      }
-    };
-    final Stream<Integer> asynced = StreamExt.<Integer, Integer>async(s, 3, _function);
-    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(4));
-    Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(9));
-    Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(16));
-    Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(25));
-    Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(36));
-    Value<Integer> _value_5 = StreamAssert.<Integer>value(Integer.valueOf(49));
-    StreamAssert.<Integer>assertStreamEquals(Collections.<Value<Integer>>unmodifiableList(Lists.<Value<Integer>>newArrayList(_value, _value_1, _value_2, _value_3, _value_4, _value_5)), asynced);
-  }
-  
-  private Promise<Integer> power2(final int i) {
-    return PromiseExt.<Integer>promise(Integer.valueOf((i * i)));
   }
   
   @Test
