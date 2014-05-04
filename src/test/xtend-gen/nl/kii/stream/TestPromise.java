@@ -83,19 +83,19 @@ public class TestPromise {
   public void testPromiseErrorChaining() {
     final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.valueOf(1));
     final Promise<Boolean> p2 = PromiseExt.<Boolean>promise(boolean.class);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() - 1));
       }
     };
     Promise<Integer> _map = PromiseExt.<Integer, Integer>map(p, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function_1 = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf((1 / (it).intValue()));
       }
     };
     Promise<Integer> _map_1 = PromiseExt.<Integer, Integer>map(_map, _function_1);
-    final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function_2 = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }

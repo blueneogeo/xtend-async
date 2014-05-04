@@ -25,7 +25,7 @@ public class TestStreamExt {
   public void testRangeStream() {
     IntegerRange _upTo = new IntegerRange(5, 7);
     final Stream<Integer> s = StreamExt.<Integer>stream(_upTo);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return it;
       }
@@ -41,7 +41,7 @@ public class TestStreamExt {
   @Test
   public void testListStream() {
     final Stream<Integer> s = StreamExt.<Integer>stream(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(1, 2, 3)));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
@@ -56,28 +56,28 @@ public class TestStreamExt {
   
   @Test
   public void testMapStream() {
-    Map<Integer, String> _xsetliteral = null;
-    Map<Integer, String> _tempMap = Maps.<Integer, String>newHashMap();
+    Map<Integer,String> _xsetliteral = null;
+    Map<Integer,String> _tempMap = Maps.<Integer, String>newHashMap();
     _tempMap.put(Integer.valueOf(1), "a");
     _tempMap.put(Integer.valueOf(2), "b");
     _xsetliteral = Collections.<Integer, String>unmodifiableMap(_tempMap);
-    final Map<Integer, String> map = _xsetliteral;
-    final Stream<Pair<Integer, String>> s = StreamExt.<Integer, String>stream(map);
-    final Function1<Pair<Integer, String>, Pair<Integer, String>> _function = new Function1<Pair<Integer, String>, Pair<Integer, String>>() {
-      public Pair<Integer, String> apply(final Pair<Integer, String> it) {
+    final Map<Integer,String> map = _xsetliteral;
+    final Stream<Pair<Integer,String>> s = StreamExt.<Integer, String>stream(map);
+    final Function1<Pair<Integer,String>,Pair<Integer,String>> _function = new Function1<Pair<Integer,String>,Pair<Integer,String>>() {
+      public Pair<Integer,String> apply(final Pair<Integer,String> it) {
         Integer _key = it.getKey();
         int _plus = ((_key).intValue() + 1);
         String _value = it.getValue();
         return Pair.<Integer, String>of(Integer.valueOf(_plus), _value);
       }
     };
-    final Stream<Pair<Integer, String>> s2 = StreamExt.<Pair<Integer, String>, Pair<Integer, String>>map(s, _function);
-    Pair<Integer, String> _mappedTo = Pair.<Integer, String>of(Integer.valueOf(2), "a");
-    Value<Pair<Integer, String>> _value = StreamAssert.<Pair<Integer, String>>value(_mappedTo);
-    Pair<Integer, String> _mappedTo_1 = Pair.<Integer, String>of(Integer.valueOf(3), "b");
-    Value<Pair<Integer, String>> _value_1 = StreamAssert.<Pair<Integer, String>>value(_mappedTo_1);
-    Finish<Pair<Integer, String>> _finish = StreamExt.<Pair<Integer, String>>finish();
-    StreamAssert.<Pair<Integer, String>>assertStreamEquals(s2, Collections.<Entry<Pair<Integer, String>>>unmodifiableList(Lists.<Entry<Pair<Integer, String>>>newArrayList(_value, _value_1, _finish)));
+    final Stream<Pair<Integer,String>> s2 = StreamExt.<Pair<Integer,String>, Pair<Integer,String>>map(s, _function);
+    Pair<Integer,String> _mappedTo = Pair.<Integer, String>of(Integer.valueOf(2), "a");
+    Value<Pair<Integer,String>> _value = StreamAssert.<Pair<Integer,String>>value(_mappedTo);
+    Pair<Integer,String> _mappedTo_1 = Pair.<Integer, String>of(Integer.valueOf(3), "b");
+    Value<Pair<Integer,String>> _value_1 = StreamAssert.<Pair<Integer,String>>value(_mappedTo_1);
+    Finish<Pair<Integer,String>> _finish = StreamExt.<Pair<Integer,String>>finish();
+    StreamAssert.<Pair<Integer,String>>assertStreamEquals(s2, Collections.<Entry<Pair<Integer, String>>>unmodifiableList(Lists.<Entry<Pair<Integer, String>>>newArrayList(_value, _value_1, _finish)));
   }
   
   @Test
@@ -90,7 +90,7 @@ public class TestStreamExt {
     Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
@@ -115,7 +115,7 @@ public class TestStreamExt {
     Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+    final Function1<Integer,Boolean> _function = new Function1<Integer,Boolean>() {
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -137,7 +137,7 @@ public class TestStreamExt {
     Stream<Integer> _doubleLessThan_3 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+    final Function1<Integer,Boolean> _function = new Function1<Integer,Boolean>() {
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -239,7 +239,7 @@ public class TestStreamExt {
     Stream<Integer> _doubleLessThan_5 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
     Finish<Integer> _finish_1 = StreamExt.<Integer>finish();
     final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
-    final Function2<Integer, Integer, Integer> _function = new Function2<Integer, Integer, Integer>() {
+    final Function2<Integer,Integer,Integer> _function = new Function2<Integer,Integer,Integer>() {
       public Integer apply(final Integer a, final Integer b) {
         return Integer.valueOf(((a).intValue() + (b).intValue()));
       }
@@ -262,7 +262,7 @@ public class TestStreamExt {
     Stream<Long> _doubleLessThan_5 = StreamExt.<Long>operator_doubleLessThan(_doubleLessThan_4, Long.valueOf(5L));
     Finish<Long> _finish_1 = StreamExt.<Long>finish();
     final Stream<Long> s = StreamExt.<Long>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
-    final Function3<Long, Long, Long, Long> _function = new Function3<Long, Long, Long, Long>() {
+    final Function3<Long,Long,Long,Long> _function = new Function3<Long,Long,Long,Long>() {
       public Long apply(final Long a, final Long b, final Long c) {
         return Long.valueOf(((a).longValue() + (c).longValue()));
       }
@@ -324,7 +324,7 @@ public class TestStreamExt {
     Stream<Long> _doubleLessThan_5 = StreamExt.<Long>operator_doubleLessThan(_doubleLessThan_4, Long.valueOf(5L));
     Finish<Long> _finish_1 = StreamExt.<Long>finish();
     final Stream<Long> s = StreamExt.<Long>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
-    final Function1<Long, Boolean> _function = new Function1<Long, Boolean>() {
+    final Function1<Long,Boolean> _function = new Function1<Long,Boolean>() {
       public Boolean apply(final Long it) {
         return Boolean.valueOf(((it).longValue() == 2L));
       }
@@ -345,7 +345,7 @@ public class TestStreamExt {
     Stream<Boolean> _doubleLessThan_1 = StreamExt.<Boolean>operator_doubleLessThan(_doubleLessThan, Boolean.valueOf(false));
     Stream<Boolean> _doubleLessThan_2 = StreamExt.<Boolean>operator_doubleLessThan(_doubleLessThan_1, Boolean.valueOf(true));
     final Stream<Boolean> s = StreamExt.<Boolean>operator_doubleLessThan(_doubleLessThan_2, Boolean.valueOf(false));
-    final Function1<Boolean, Boolean> _function = new Function1<Boolean, Boolean>() {
+    final Function1<Boolean,Boolean> _function = new Function1<Boolean,Boolean>() {
       public Boolean apply(final Boolean it) {
         return it;
       }
@@ -363,7 +363,7 @@ public class TestStreamExt {
     Stream<Boolean> _doubleLessThan_2 = StreamExt.<Boolean>operator_doubleLessThan(_doubleLessThan_1, Boolean.valueOf(false));
     Finish<Boolean> _finish = StreamExt.<Boolean>finish();
     final Stream<Boolean> s = StreamExt.<Boolean>operator_doubleLessThan(_doubleLessThan_2, _finish);
-    final Function1<Boolean, Boolean> _function = new Function1<Boolean, Boolean>() {
+    final Function1<Boolean,Boolean> _function = new Function1<Boolean,Boolean>() {
       public Boolean apply(final Boolean it) {
         return it;
       }

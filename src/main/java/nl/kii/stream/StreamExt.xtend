@@ -196,7 +196,6 @@ class StreamExt {
 			.onFinish [|
 				count.set(0)
 				newStream.finish
-				//stream.next
 			]
 			.onValue [
 				if(untilFn.apply(it, count.incrementAndGet)) {
@@ -209,55 +208,56 @@ class StreamExt {
 		newStream
 	}
 	
-	// PROMISE CHAINING ///////////////////////////////////////////////////////	
-	
 	/**
-	 * Perform an async operation which returns a promise.
-	 * This allows you to chain multiple async methods, as
-	 * long as you let your methods return a Promise.
-	 * <p>
-	 * It will only perform one async operation at a time, asking for the
-	 * next value from the stream only after it has performed each promise.
-	 * <p>
-	 * Use stream.async(concurrent) [ ] to have more than one async operation
-	 * performing simulaniously.
+	 * Map using a promise. 
+	 * Waits until each promise is resolved before calling the promiseFn again.
 	 */
-	def static <T, R> Stream<R> async(Stream<T> stream, (T)=>Promise<R> promiseFn) {
-		// same as stream.async(1, promiseFn), here just for performance reasons
-		val newStream = new Stream<R>(stream)
-		stream.onValue [
-			promiseFn.apply(it)
-				.onError [ 
-					newStream.error(it)
-				]
-				.then [ 
-					newStream.push(it)
-				]
-		]
-		newStream
-	}	
+	def static <T, R> Stream<R> mapAsync(Stream<T> stream, (T)=>Promise<R> promiseFn) {
+		stream.map(promiseFn).resolve
+	}
 
 	/**
-	 * Perform an async operation which returns a promise.
-	 * This allows you to chain multiple async methods, as
-	 * long as you let your methods return a Promise.
-	 * <p>
-	 * It will only perform at max 'concurrency' async operations at the same time.
+	 * Map using a promise. 
+	 * Allows for up to concurreny promises to be open at once.
 	 */
-	def static <T, R> Stream<R> async(Stream<T> stream, int concurrency, (T)=>Promise<R> promiseFn) {
+	def static <T, R> Stream<R> mapAsync(Stream<T> stream, int concurrency, (T)=>Promise<R> promiseFn) {
+		stream.map(promiseFn).resolve(concurrency)		
+	}	
+
+	
+	/** 
+	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
+	 * values, and builds a stream of that.
+	 * It only asks the next promise from the stream when the previous promise has been resolved.  
+	 */
+	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream) {
+		stream.resolve(1)
+	}
+
+	/** 
+	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
+	 * values, and builds a stream of that.
+	 * Allows concurrency promises to be resolved in parallel.  
+	 */
+	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream, int concurrency) {
 		val processes = new AtomicInteger(0)
-		val newStream = new Stream<R>(stream)
-		stream.onValue [
+		val newStream = new Stream<T>(stream)
+		stream.onValue [ promise |
 			processes.incrementAndGet 
-			promiseFn.apply(it)
-				.onError [ newStream.error(it) ]
+			promise
+				.onError [ 
+					newStream.error(it)
+					if(processes.decrementAndGet < concurrency) 
+						stream.next
+				]
 				.then [ 
 					newStream.push(it)
-					if(processes.decrementAndGet < concurrency) stream.next
+					if(processes.decrementAndGet < concurrency) 
+						stream.next
 				]
 		]
 		newStream
-	}	
+	}
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
@@ -287,7 +287,7 @@ class StreamExt {
 	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
 	 * asks the next value from the stream every time the processor finishes.
 	 */
-	def static <T, R> each(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
+	def static <T, R> eachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
 		stream.onValue [
 			asyncProcessor.apply(it)
 				.onError [ stream.error(it) ]
@@ -300,8 +300,8 @@ class StreamExt {
 	 * asks the next value from the stream every time the processor finishes.
 	 * Alias for StreamExt.each()
 	 */
-	def static <T, R> forEach(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
-		stream.each(asyncProcessor)
+	def static <T, R> forEachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
+		stream.eachAsync(asyncProcessor)
 	}
 	
 	/** 

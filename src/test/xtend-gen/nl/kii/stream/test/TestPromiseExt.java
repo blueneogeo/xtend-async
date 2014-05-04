@@ -52,7 +52,7 @@ public class TestPromiseExt {
   @Test
   public void testMap() {
     final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.valueOf(4));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+    final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 10));
       }
@@ -73,7 +73,7 @@ public class TestPromiseExt {
   @Test
   public void testAsync() {
     final Promise<Integer> s = PromiseExt.<Integer>promise(Integer.valueOf(2));
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+    final Function1<Integer,Promise<Integer>> _function = new Function1<Integer,Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromiseExt.this.power2((it).intValue());
       }

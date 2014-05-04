@@ -1,13 +1,13 @@
 package nl.kii.stream.test
 
-import static extension org.junit.Assert.*
+import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
 import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamExt.*
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
-import java.util.LinkedList
+import static extension org.junit.Assert.*
 
 class TestAsyncProcessing {
 
@@ -37,9 +37,9 @@ class TestAsyncProcessing {
 		val result = new AtomicReference(new LinkedList<Integer>)
 		val s = int.stream << 1 << 2 << 3
 		s
-			.async [ power2 ]
+			.mapAsync [ power2 ]
 			.map [ it + 1 ]
-			.async [ power2 ]
+			.mapAsync [ power2 ]
 			.each [	result.get.add(it) ]
 		0.assertEquals(result.get.size)
 		Thread.sleep(700) 
@@ -54,9 +54,9 @@ class TestAsyncProcessing {
 		val result = new AtomicInteger
 		val s = int.stream << 1 << 2 << 3
 		s
-			.async [ throwsError ] // this error should propagate down the chain to the .error handler
+			.mapAsync [ throwsError ] // this error should propagate down the chain to the .error handler
 			.map [ it + 1 ]
-			.async [ power2 ]
+			.mapAsync [ power2 ]
 			.error [ result.incrementAndGet ]
 			.each [	fail('we should not end up here, since an error should be caught instead') ]
 		Thread.sleep(700) 

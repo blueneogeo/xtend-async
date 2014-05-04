@@ -42,13 +42,13 @@ public class TestAsyncProcessing {
     try {
       final AtomicInteger result = new AtomicInteger();
       Promise<Integer> _power2 = this.power2(2);
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      final Function1<Integer,Promise<Integer>> _function = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
       Promise<Integer> _async = PromiseExt.<Integer, Integer>async(_power2, _function);
-      final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
+      final Function1<Integer,Promise<Integer>> _function_1 = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
@@ -79,31 +79,31 @@ public class TestAsyncProcessing {
       Stream<Integer> _doubleLessThan = StreamExt.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
       final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      final Function1<Integer,Promise<Integer>> _function = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Integer> _async = StreamExt.<Integer, Integer>async(s, _function);
-      final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      Stream<Integer> _mapAsync = StreamExt.<Integer, Integer>mapAsync(s, _function);
+      final Function1<Integer,Integer> _function_1 = new Function1<Integer,Integer>() {
         public Integer apply(final Integer it) {
           return Integer.valueOf(((it).intValue() + 1));
         }
       };
-      Stream<Integer> _map = StreamExt.<Integer, Integer>map(_async, _function_1);
-      final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
+      Stream<Integer> _map = StreamExt.<Integer, Integer>map(_mapAsync, _function_1);
+      final Function1<Integer,Promise<Integer>> _function_2 = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Integer> _async_1 = StreamExt.<Integer, Integer>async(_map, _function_2);
+      Stream<Integer> _mapAsync_1 = StreamExt.<Integer, Integer>mapAsync(_map, _function_2);
       final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           LinkedList<Integer> _get = result.get();
           _get.add(it);
         }
       };
-      StreamExt.<Integer>each(_async_1, _function_3);
+      StreamExt.<Integer>each(_mapAsync_1, _function_3);
       LinkedList<Integer> _get = result.get();
       int _size = _get.size();
       Assert.assertEquals(0, _size);
@@ -133,30 +133,30 @@ public class TestAsyncProcessing {
       Stream<Integer> _doubleLessThan = StreamExt.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
       final Stream<Integer> s = StreamExt.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      final Function1<Integer,Promise<Integer>> _function = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.throwsError((it).intValue());
         }
       };
-      Stream<Integer> _async = StreamExt.<Integer, Integer>async(s, _function);
-      final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      Stream<Integer> _mapAsync = StreamExt.<Integer, Integer>mapAsync(s, _function);
+      final Function1<Integer,Integer> _function_1 = new Function1<Integer,Integer>() {
         public Integer apply(final Integer it) {
           return Integer.valueOf(((it).intValue() + 1));
         }
       };
-      Stream<Integer> _map = StreamExt.<Integer, Integer>map(_async, _function_1);
-      final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
+      Stream<Integer> _map = StreamExt.<Integer, Integer>map(_mapAsync, _function_1);
+      final Function1<Integer,Promise<Integer>> _function_2 = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Integer> _async_1 = StreamExt.<Integer, Integer>async(_map, _function_2);
+      Stream<Integer> _mapAsync_1 = StreamExt.<Integer, Integer>mapAsync(_map, _function_2);
       final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
           result.incrementAndGet();
         }
       };
-      Stream<Integer> _error = StreamExt.<Integer>error(_async_1, _function_3);
+      Stream<Integer> _error = StreamExt.<Integer>error(_mapAsync_1, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           Assert.fail("we should not end up here, since an error should be caught instead");
