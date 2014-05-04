@@ -55,7 +55,7 @@ class PromisePairExt {
 	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
 	 * See chain2() for example of how to use.
 	 */
-	def static <K1, V1, V2> Promise<V2> async(Promise<Pair<K1, V1>> promise, (K1, V1)=>Promise<V2> promiseFn) {
+	def static <K1, V1, V2> Promise<V2> mapAsync(Promise<Pair<K1, V1>> promise, (K1, V1)=>Promise<V2> promiseFn) {
 		val newPromise = new Promise<V2>(promise)
 		promise.then [
 			promiseFn.apply(key, value)

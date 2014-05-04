@@ -47,19 +47,19 @@ public class TestAsyncProcessing {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Integer> _async = PromiseExt.<Integer, Integer>async(_power2, _function);
+      Promise<Integer> _mapAsync = PromiseExt.<Integer, Integer>mapAsync(_power2, _function);
       final Function1<Integer,Promise<Integer>> _function_1 = new Function1<Integer,Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Integer> _async_1 = PromiseExt.<Integer, Integer>async(_async, _function_1);
+      Promise<Integer> _mapAsync_1 = PromiseExt.<Integer, Integer>mapAsync(_mapAsync, _function_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
         }
       };
-      _async_1.then(_function_2);
+      _mapAsync_1.then(_function_2);
       int _get = result.get();
       Assert.assertEquals(0, _get);
       Thread.sleep(500);

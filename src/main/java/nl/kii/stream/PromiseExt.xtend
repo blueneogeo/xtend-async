@@ -75,52 +75,62 @@ class PromiseExt {
 	 *    .then [ showUploadResult ]
 	 * </pre>
 	 */
-	def static <T, R> Promise<R> async(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-		val newPromise = new Promise<R>(promise)
-		promise.then [
-			promiseFn.apply(it)
-				.onError [ newPromise.error(it) ]
-				.then [ newPromise.set(it) ]
-		]
-		newPromise
+	def static <T, R> Promise<R> mapAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
+		promise.map(promiseFn).flatten
+//		
+//		
+//		val newPromise = new Promise<R>(promise)
+//		promise.then [
+//			promiseFn.apply(it)
+//				.onError [ newPromise.error(it) ]
+//				.then [ newPromise.set(it) ]
+//		]
+//		newPromise
 	}
 	
 	/** Create a new promise that listenes to this promise */
 	def static <T> fork(Promise<T> promise) {
 		promise.map[it]
 	}	
+
+	// BLOCKING ///////////////////////////////////////////////////////////////	
 	
-	// THREADED PROMISES //////////////////////////////////////////////////////
-	
-	/** Convert a promise into a Future */
+	/** 
+	 * Convert a promise into a Future.
+	 * Promises are non-blocking. However you can convert to a Future 
+	 * if you must block and wait for a promise to resolve.
+	 * <pre>
+	 * val result = promise.future.get // blocks code until the promise is fulfilled
+	 */
 	def static <T> Future<T> future(Promise<T> promise) {
 		new PromiseFuture(promise)
 	}
 
-	/** Run a procedure in the background and return a promise */
+	// THREADED PROMISES //////////////////////////////////////////////////////
+
+	/** 
+	 * Easily run a procedure in the background and return a promise
+	 * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
+	 */
 	def static promise(=>void procedure) {
 		promise([| procedure.apply ] as Runnable)
 	}
 
-	/** Run a function in the background and return a promise */
+	/** 
+	 * Easily run a function in the background and return a promise
+	 * <pre>
+	 * promise [| doSomeHeavyLifting ].then [ println('done!') ]
+	 */
 	def static <T> promise(=>T function) {
 		promise([| function.apply ] as Callable<T>)
 	}
 
-	/** 
-	 * Execute the callable in the background and return as a promise
-	 * <pre>
-	 * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
-	 */
+	/** Execute the callable in the background and return as a promise */
 	def static <T> Promise<T> promise(Callable<T> callable) {
 		promise(newSingleThreadExecutor, callable)
 	}
 
-	/** 
-	 * Execute the runnable in the background and return as a promise
-	 * <pre>
-	 * promise [| doSomeHeavyLifting ].then [ println('done!') ]
-	 */
+	/** Execute the runnable in the background and return as a promise */
 	def static Promise<Void> promise(Runnable runnable) {
 		promise(newSingleThreadExecutor, runnable)
 	}
@@ -130,7 +140,7 @@ class PromiseExt {
 	 * Lets you specify the executorservice to run on.
 	 * <pre>
 	 * val service = Executors.newSingleThreadExecutor
-	 * promise(service) [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
+	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
 	def static <T> Promise<T> promise(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
@@ -151,7 +161,7 @@ class PromiseExt {
 	 * Lets you specify the executorservice to run on.
 	 * <pre>
 	 * val service = Executors.newSingleThreadExecutor
-	 * promise(service) [| doSomeHeavyLifting ].then [ println('done!') ]
+	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
 	def static Promise<Void> promise(ExecutorService service, Runnable runnable) {
 		val promise = new Promise<Void>

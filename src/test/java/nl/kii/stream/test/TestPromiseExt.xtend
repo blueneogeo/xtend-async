@@ -2,10 +2,10 @@ package nl.kii.stream.test
 
 import org.junit.Test
 
-import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension org.junit.Assert.*
 import java.util.concurrent.ExecutionException
+import static extension nl.kii.stream.PromiseExt.*
 
 class TestPromiseExt {
 	
@@ -56,7 +56,7 @@ class TestPromiseExt {
 	@Test
 	def void testAsync() {
 		val s = 2.promise
-		val asynced = s.async [ power2(it) ]
+		val asynced = s.mapAsync [ power2(it) ]
 		asynced.assertPromiseEquals(4)
 	}
 	

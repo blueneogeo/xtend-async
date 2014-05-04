@@ -78,7 +78,7 @@ public class TestPromiseExt {
         return TestPromiseExt.this.power2((it).intValue());
       }
     };
-    final Promise<Integer> asynced = PromiseExt.<Integer, Integer>async(s, _function);
+    final Promise<Integer> asynced = PromiseExt.<Integer, Integer>mapAsync(s, _function);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   

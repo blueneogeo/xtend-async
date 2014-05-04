@@ -3,8 +3,8 @@ package nl.kii.stream.test
 import org.junit.Test
 
 import static extension nl.kii.stream.PromiseExt.*
-import static extension nl.kii.stream.PromisePairExt.*
 import static extension nl.kii.stream.StreamAssert.*
+import static extension nl.kii.stream.PromisePairExt.*
 
 class TestPromisePairExt {
 
@@ -19,7 +19,7 @@ class TestPromisePairExt {
 	@Test
 	def void testAsyncWithPairParams() {
 		val p = (int->int).promisePair << (1->2)
-		val asynced = p.async [ a, b | power2(a + b) ]
+		val asynced = p.mapAsync [ a, b | power2(a + b) ]
 		asynced.assertPromiseEquals(9)
 	}
 	
