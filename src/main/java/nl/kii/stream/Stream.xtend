@@ -73,6 +73,9 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	
 	/** If true, all values will be discarded upto the next incoming finish */
 	val _skipping = new AtomicBoolean(false)
+
+	/** If true, all values will be discarded upto the next incoming finish */
+	val _open = new AtomicBoolean(false)
 	
 	/** Lets others listen when the stream is asked skip to the finish */
 	var =>void onSkip
@@ -80,6 +83,9 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	/** Called when this stream is out of data */
 	var =>void onReadyForNext
 	
+	/** Lets others listen when the stream is closed */
+	var =>void onClose
+
 	/** Lets others listen for values in the stream */
 	var (T)=>void onValue
 	
@@ -88,7 +94,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 
 	/** Lets others listen for the stream finishing a batch */
 	var =>void onFinish
-	
+
 	// NEW /////////////////////////////////////////////////////////////////////
 
 	/** Creates a new Stream. */
@@ -115,6 +121,9 @@ class Stream<T> implements Procedure1<Entry<T>> {
 			this.onSkip [| 
 				parentStream.skip
 			]
+			this.onClose [|
+				parentStream.close
+			]
 			// default messaging down the chain
 			parentStream.onFinish [| 
 				finish
@@ -125,6 +134,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 				parentStream.next
 			]
 		}
+		this._open.set(true) // auto opens
 	}
 	
 	// GETTERS & SETTERS ///////////////////////////////////////////////////////
@@ -147,6 +157,10 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	
 	package def getQueue() {
 		queue
+	}
+	
+	package def isOpen() {
+		_open.get
 	}
 	
 	// PUSH ///////////////////////////////////////////////////////////////////
@@ -182,6 +196,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	/** Queue a stream entry */
 	override apply(Entry<T> entry) {
 		if(entry == null) throw new NullPointerException('cannot stream a null entry')
+		if(!_open.get) throw new StreamException('cannot apply an entry to a closed stream')
 		if(queue == null) queue = queueFn.apply
 		switch entry {
 			Finish<T>: if(skipping) skipping = false
@@ -221,6 +236,17 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	package def next() {
 		readyForNext = true
 		publish
+	}
+	
+	/**
+	 * Closes a stream and stops it being possible to push new entries to the stream or have 
+	 * the stream have any output. In most cases it is unnecessary to close a stream. However
+	 * some 
+	 */
+	def close() {
+		_open.set(false)
+		if(onClose != null)
+			onClose.apply
 	}
 	
 	// LISTEN /////////////////////////////////////////////////////////////////
@@ -269,12 +295,21 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		this.onReadyForNext = listener
 		this
 	}
+
+	/** 
+	 * Let a parent stream listen when this stream is asked for the next value. 
+	 * Only supports a single listener.
+	 */
+	package def onClose(=>void listener) {
+		this.onClose = listener
+		this
+	}
 	
 	// OTHER //////////////////////////////////////////////////////////////////
 
 	/** Try to publish the next value from the queue or the parent stream */
 	package def void publish() {
-		if(!readyForNext) return;
+		if(!readyForNext || !open) return;
 		if(queue != null && !queue.empty) {
 			// if there is something in the queue, publish it
 			publish(queue.poll)
@@ -326,6 +361,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	
 	override toString() '''«this.class.name» { 
 			queue size: «IF(queue != null) » «queue.length» «ELSE» none «ENDIF»
+			open: «isOpen»
 		}
 	'''
 	
