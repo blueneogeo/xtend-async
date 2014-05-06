@@ -41,3 +41,7 @@
 /.Command.java._trace
 /.Next.java._trace
 /.Skip.java._trace
+/.Collector.java._trace
+/.Countdown.java._trace
+/.Gatherer.java._trace
+/.Streamable.java._trace

@@ -4,12 +4,12 @@ import com.google.common.util.concurrent.AtomicDouble
 import java.util.Iterator
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-import java.util.Map
 
 class StreamExt {
 	
@@ -47,7 +47,7 @@ class StreamExt {
 				stream.finish
 			}
 		]
-		stream.onNext(pushNext)
+		stream.onReadyForNext(pushNext)
 		pushNext.apply
 		stream
 	}
@@ -108,7 +108,7 @@ class StreamExt {
 	 */
 	def static <T, R> map(Stream<T> stream, (T)=>R mappingFn) {
 		val newStream = new Stream<R>(stream)
-		stream.onValue [ 
+		stream.onNextValue [ 
 			newStream.push(mappingFn.apply(it))
 		]
 		newStream
@@ -120,7 +120,7 @@ class StreamExt {
 	 */
 	def static <T> filter(Stream<T> stream, (T)=>boolean filterFn) {
 		val newStream = new Stream<T>(stream)
-		stream.onValue [ 
+		stream.onNextValue [ 
 			if(filterFn.apply(it)) {
 				newStream.push(it)
 			} else {
@@ -132,7 +132,7 @@ class StreamExt {
 
 	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
 		val newStream = new Stream<T>(stream)
-		stream.onValue [
+		stream.onNextValue [
 			if(splitConditionFn.apply(it)) {
 				// manually publishing, so the publish is 'atomic'
 				newStream << new Value(it) << new Finish
@@ -150,11 +150,11 @@ class StreamExt {
 	def static <T> Stream<Stream<T>> substream(Stream<T> stream) {
 		val newStream = new Stream<Stream<T>>(stream)
 		val substream = new AtomicReference(new Stream<T>)
-		stream.onFinish [| 
+		stream.onNextFinish [| 
 			newStream.push(substream.get)
 			substream.set(new Stream<T>)
 		]
-		stream.onValue [
+		stream.onNextValue [
 			substream.get.push(it)
 		]
 		newStream
@@ -174,7 +174,7 @@ class StreamExt {
 	 */
 	def static <T> Stream<T> until(Stream<T> stream, (T)=>boolean untilFn) {
 		val newStream = new Stream<T>(stream)
-		stream.onValue [
+		stream.onNextValue [
 			if(untilFn.apply(it)) {
 				stream.skip
 				stream.next
@@ -193,11 +193,11 @@ class StreamExt {
 		val count = new AtomicLong(0)
 		val newStream = new Stream<T>(stream)
 		stream
-			.onFinish [|
+			.onNextFinish [|
 				count.set(0)
 				newStream.finish
 			]
-			.onValue [
+			.onNextValue [
 				if(untilFn.apply(it, count.incrementAndGet)) {
 					stream.skip
 					stream.next
@@ -242,7 +242,7 @@ class StreamExt {
 	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream, int concurrency) {
 		val processes = new AtomicInteger(0)
 		val newStream = new Stream<T>(stream)
-		stream.onValue [ promise |
+		stream.onNextValue [ promise |
 			processes.incrementAndGet 
 			promise
 				.onError [ 
@@ -264,8 +264,8 @@ class StreamExt {
 	/** 
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 */
-	def static <T> each(Stream<T> stream, (T)=>void listener) {
-		stream.onValue [
+	def static <T> onEach(Stream<T> stream, (T)=>void listener) {
+		stream.onNextValue [
 			try {
 				listener.apply(it)
 			} finally {
@@ -274,41 +274,28 @@ class StreamExt {
 		]
 		stream.next
 	}
-	
-	/** 
-	 * Synchronous listener to the stream for values. Automatically requests the next entry.
-	 * Alias for StreamExt.each()
-	 */
-	def static <T> forEach(Stream<T> stream, (T)=>void listener) {
-		stream.each(listener)
-	}
 
 	/** 
 	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
 	 * asks the next value from the stream every time the processor finishes.
 	 */
-	def static <T, R> eachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
-		stream.onValue [
-			asyncProcessor.apply(it)
-				.onError [ stream.error(it) ]
-				.then [ stream.next ]
-		]
+	def static <T, R> onEachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
+		stream.mapAsync(asyncProcessor)
+			.onEach [
+				// do nothing, just request the next
+			]
+//		stream.onNextValue [
+//			asyncProcessor.apply(it)
+//				.onError [ stream.error(it) ]
+//				.then [ stream.next ]
+//		]
 	}
-	
-	/** 
-	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
-	 * asks the next value from the stream every time the processor finishes.
-	 * Alias for StreamExt.each()
-	 */
-	def static <T, R> forEachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
-		stream.eachAsync(asyncProcessor)
-	}
-	
+
 	/** 
 	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
 	 */
-	def static <T> finish(Stream<T> stream, (Void)=>void listener) {
-		stream.onFinish [| 
+	def static <T> onFinish(Stream<T> stream, (Void)=>void listener) {
+		stream.onNextFinish [| 
 			try {
 				listener.apply(null)
 			} finally {
@@ -316,12 +303,32 @@ class StreamExt {
 			}
 		]
 	}
-	
+
+	/** 
+	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
+	 */
+	def static <T, R> onFinishAsync(Stream<T> stream, (Void)=>Promise<R> listener) {
+		stream.onNextFinish [|
+			try {
+				listener.apply(null)
+					.onError [
+						stream.error(it)
+						stream.next
+					]
+					.then [
+						stream.next
+					]
+			} finally {
+				stream.next
+			}
+		]
+	}
+		
 	/** 
 	 * Synchronous listener to the stream for errors. Automatically requests the next entry.
 	 */
-	def static <T> error(Stream<T> stream, (Throwable)=>void listener) {
-		stream.onError [
+	def static <T> onError(Stream<T> stream, (Throwable)=>void listener) {
+		stream.onNextError [
 			try {
 				listener.apply(null)
 			} finally {
@@ -342,15 +349,15 @@ class StreamExt {
 	 * Forward the results of the stream to another stream and start that stream. 
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
-		stream.onError [ 
+		stream.onNextError [ 
 			otherStream.error(it)
 			stream.next
 		]
-		stream.onFinish [| 
+		stream.onNextFinish [| 
 			otherStream.finish
 			stream.next
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			otherStream.push(it)
 			stream.next
 		]
@@ -361,7 +368,7 @@ class StreamExt {
 	  */
 	def static <T> Promise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
-	 	stream.onValue [
+	 	stream.onNextValue [
 	 		if(!promise.fulfilled) promise.set(it)
 	 	]
 	 	stream.next
@@ -383,12 +390,12 @@ class StreamExt {
 	def static <T> Stream<List<T>> collect(Stream<T> stream) {
 		val list = new AtomicReference(new LinkedList<T>)
 		val newStream = new Stream<List<T>>(stream)
-		stream.onFinish [|
+		stream.onNextFinish [|
 			val collected = list.get
 			list.set(new LinkedList<T>)
 			newStream.push(collected)
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			list.get.add(it)
 			stream.next
 		]
@@ -401,12 +408,12 @@ class StreamExt {
 	def static <T extends Number> sum(Stream<T> stream) {
 		val sum = new AtomicDouble(0)
 		val newStream = new Stream<Double>(stream)
-		stream.onFinish [|
+		stream.onNextFinish [|
 			val collected = sum.doubleValue
 			sum.set(0)
 			newStream.push(collected)
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			sum.addAndGet(doubleValue)
 			stream.next
 		]
@@ -420,12 +427,12 @@ class StreamExt {
 		val avg = new AtomicDouble
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Double>(stream)
-		stream.onFinish [|
+		stream.onNextFinish [|
 			val collected = avg.doubleValue / count.getAndSet(0) 
 			avg.set(0)
 			newStream.push(collected)
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			avg.addAndGet(doubleValue)
 			count.incrementAndGet
 			stream.next
@@ -439,10 +446,10 @@ class StreamExt {
 	def static <T> count(Stream<T> stream) {
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Long>(stream)
-		stream.onFinish [| 
+		stream.onNextFinish [| 
 			newStream.push(count.getAndSet(0))
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			count.incrementAndGet
 			stream.next
 		]
@@ -455,10 +462,10 @@ class StreamExt {
 	def static <T> Stream<T> reduce(Stream<T> stream, T initial, (T, T)=>T reducerFn) {
 		val reduced = new AtomicReference<T>(initial)
 		val newStream = new Stream<T>(stream)
-		stream.onFinish [|
+		stream.onNextFinish [|
 			newStream.push(reduced.getAndSet(initial))
 		]
-		stream.onValue [
+		stream.onNextValue [
 			reduced.set(reducerFn.apply(reduced.get, it))
 			stream.next
 		]
@@ -473,12 +480,12 @@ class StreamExt {
 		val reduced = new AtomicReference<T>(initial)
 		val count = new AtomicLong(0)
 		val newStream = new Stream<T>(stream)
-		stream.onFinish [|
+		stream.onNextFinish [|
 			val result = reduced.getAndSet(initial)
 			count.set(0)
 			newStream.push(result)
 		]
-		stream.onValue [ 
+		stream.onNextValue [ 
 			reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement))
 			stream.next
 		]
@@ -492,12 +499,12 @@ class StreamExt {
 	 def static <T> Stream<Boolean> anyMatch(Stream<T> stream, (T)=>boolean testFn) {
 	 	val anyMatch = new AtomicBoolean(false)
 	 	val newStream = new Stream<Boolean>(stream)
-	 	stream.onFinish [|
+	 	stream.onNextFinish [|
 	 		val matched = anyMatch.get
 	 		anyMatch.set(false)
 	 		if(!matched) newStream.push(false)
 	 	]
-	 	stream.onValue [
+	 	stream.onNextValue [
 		 	// if we get a match, we communicate directly and tell the stream we are done
 	 		if(testFn.apply(it)) {	
 	 			anyMatch.set(true)

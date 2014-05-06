@@ -12,15 +12,15 @@ class StreamAssert {
 	def static <T> List<Entry<T>> gather(Stream<T> stream) {
 		val data = new LinkedList<Entry<T>>
 		stream
-			.onFinish [| 
+			.onNextFinish [| 
 				data.add(new Finish<T>)
 				stream.next
 			]
-			.onError [ 
+			.onNextError [ 
 				printStackTrace
 				stream.next
 			]
-			.onValue [ 
+			.onNextValue [ 
 				data.add(value)
 				stream.next
 			]

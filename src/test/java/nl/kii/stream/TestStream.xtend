@@ -14,7 +14,7 @@ class TestStream {
 	def void testUnbufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer>
-		s.onValue [ 
+		s.onNextValue [ 
 			counter.addAndGet(it)
 			s.next
 		]
@@ -27,7 +27,7 @@ class TestStream {
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3
-		s.onValue [ 
+		s.onNextValue [ 
 			counter.addAndGet(it)
 			s.next
 		]
@@ -39,7 +39,7 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.onValue [
+		s.onNextValue [
 			counter.addAndGet(it)
 		]
 		s.next
@@ -65,7 +65,7 @@ class TestStream {
 		val result = new AtomicInteger(0)
 		val s1 = int.stream << 1 << 2 << 3
 		val s2 = s1.map[it] << 4 << 5 << 6
-		s2.onValue [
+		s2.onNextValue [
 			result.set(it)
 		]
 		s2.next
@@ -86,7 +86,7 @@ class TestStream {
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
-		s.onValue [
+		s.onNextValue [
 			println(1 / it)
 		] // handler will throw /0 exception
 		
@@ -115,7 +115,7 @@ class TestStream {
 		// now try to catch the error
 		val e2 = new AtomicReference<Throwable>
 		e.set(null)
-		s.onError [
+		s.onNextError [
 			e2.set(it)
 		] // this prevents an error being thrown
 		s.next
@@ -132,7 +132,7 @@ class TestStream {
 		val s1 = int.stream << 1 << 2 << finish << 3
 		// substream, also has some stuff buffered, which needs to come out first
 		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
-		s2.onValue [
+		s2.onNextValue [
 			result.set(it)
 		]
 		s2.next // ask the next from the substream

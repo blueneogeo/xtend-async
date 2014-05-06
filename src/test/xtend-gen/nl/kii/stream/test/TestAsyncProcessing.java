@@ -103,7 +103,7 @@ public class TestAsyncProcessing {
           _get.add(it);
         }
       };
-      StreamExt.<Integer>each(_mapAsync_1, _function_3);
+      StreamExt.<Integer>onEach(_mapAsync_1, _function_3);
       LinkedList<Integer> _get = result.get();
       int _size = _get.size();
       Assert.assertEquals(0, _size);
@@ -156,13 +156,13 @@ public class TestAsyncProcessing {
           result.incrementAndGet();
         }
       };
-      Stream<Integer> _error = StreamExt.<Integer>error(_mapAsync_1, _function_3);
+      Stream<Integer> _onError = StreamExt.<Integer>onError(_mapAsync_1, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           Assert.fail("we should not end up here, since an error should be caught instead");
         }
       };
-      StreamExt.<Integer>each(_error, _function_4);
+      StreamExt.<Integer>onEach(_onError, _function_4);
       Thread.sleep(700);
       int _get = result.get();
       Assert.assertEquals(3, _get);

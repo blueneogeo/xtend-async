@@ -40,7 +40,7 @@ class TestAsyncProcessing {
 			.mapAsync [ power2 ]
 			.map [ it + 1 ]
 			.mapAsync [ power2 ]
-			.each [	result.get.add(it) ]
+			.onEach [	result.get.add(it) ]
 		0.assertEquals(result.get.size)
 		Thread.sleep(700) 
 		3.assertEquals(result.get.size)
@@ -57,8 +57,8 @@ class TestAsyncProcessing {
 			.mapAsync [ throwsError ] // this error should propagate down the chain to the .error handler
 			.map [ it + 1 ]
 			.mapAsync [ power2 ]
-			.error [ result.incrementAndGet ]
-			.each [	fail('we should not end up here, since an error should be caught instead') ]
+			.onError [ result.incrementAndGet ]
+			.onEach [	fail('we should not end up here, since an error should be caught instead') ]
 		Thread.sleep(700) 
 		3.assertEquals(result.get)
 	}

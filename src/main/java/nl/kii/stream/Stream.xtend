@@ -115,7 +115,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 		// set up some default parent child relationships
 		if(parentStream != null) {
 			// default messaging up the chain
-			this.onNext [| 
+			this.onReadyForNext [| 
 				parentStream.next
 			]
 			this.onSkip [| 
@@ -125,11 +125,11 @@ class Stream<T> implements Procedure1<Entry<T>> {
 				parentStream.close
 			]
 			// default messaging down the chain
-			parentStream.onFinish [| 
+			parentStream.onNextFinish [| 
 				finish
 				parentStream.next
 			]
-			parentStream.onError [ 
+			parentStream.onNextError [ 
 				error(it)
 				parentStream.next
 			]
@@ -255,7 +255,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * Listen for values coming down the stream.
 	 * Requires next to be called to get a value. 
 	 */
-	package def void onValue((T)=>void listener) {
+	package def void onNextValue((T)=>void listener) {
 		this.onValue = listener
 	}
 	
@@ -263,7 +263,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * Listen for a finish call being done on the stream. For each finish call,
 	 * the passed listener will be called with this stream.
 	 */	
-	package def onFinish(=>void listener) {
+	package def onNextFinish(=>void listener) {
 		this.onFinish = listener
 		this
 	}
@@ -273,7 +273,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * The stream only catches errors if catchErrors is set to true.
 	 * Automatically moves the stream forward.
 	 */
-	package def onError((Throwable)=>void listener) {
+	package def onNextError((Throwable)=>void listener) {
 		this.onError = listener
 		this
 	}
@@ -291,7 +291,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * Let a parent stream listen when this stream is asked for the next value. 
 	 * Only supports a single listener.
 	 */
-	package def onNext(=>void listener) {
+	package def onReadyForNext(=>void listener) {
 		this.onReadyForNext = listener
 		this
 	}

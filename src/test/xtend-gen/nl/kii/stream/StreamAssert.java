@@ -30,14 +30,14 @@ public class StreamAssert {
           stream.next();
         }
       };
-      Stream<T> _onFinish = stream.onFinish(_function);
+      Stream<T> _onNextFinish = stream.onNextFinish(_function);
       final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
           it.printStackTrace();
           stream.next();
         }
       };
-      Stream<T> _onError = _onFinish.onError(_function_1);
+      Stream<T> _onNextError = _onNextFinish.onNextError(_function_1);
       final Procedure1<T> _function_2 = new Procedure1<T>() {
         public void apply(final T it) {
           Value<T> _value = StreamAssert.<T>value(it);
@@ -45,7 +45,7 @@ public class StreamAssert {
           stream.next();
         }
       };
-      _onError.onValue(_function_2);
+      _onNextError.onNextValue(_function_2);
       stream.next();
       _xblockexpression = data;
     }
