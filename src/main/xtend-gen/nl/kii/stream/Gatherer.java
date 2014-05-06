@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamExt;
+import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.Streamable;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -62,7 +62,7 @@ public class Gatherer<T extends Object> implements Streamable<Pair<String,T>> {
         Gatherer.this.data.put(_key, _value);
       }
     };
-    StreamExt.<Pair<String,T>>onEach(this.stream, _function);
+    StreamExtensions.<Pair<String,T>>onEach(this.stream, _function);
   }
   
   public Procedure1<? super T> await(final String name) {
@@ -108,6 +108,6 @@ public class Gatherer<T extends Object> implements Streamable<Pair<String,T>> {
         closure.apply(_result);
       }
     };
-    return StreamExt.<Pair<String,T>>onFinish(this.stream, _function);
+    return StreamExtensions.<Pair<String,T>>onFinish(this.stream, _function);
   }
 }

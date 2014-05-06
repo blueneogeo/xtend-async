@@ -1,7 +1,7 @@
 package nl.kii.stream;
 
 import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseExt;
+import nl.kii.stream.PromiseExtensions;
 import nl.kii.stream.StreamAssert;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -14,11 +14,11 @@ import org.junit.Test;
 public class TestPromise {
   @Test
   public void testPromisedAfter() {
-    final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.class);
-    final Promise<Integer> p2 = PromiseExt.<Integer>promise(Integer.class);
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.class);
+    final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
-        PromiseExt.<Integer>operator_doubleGreaterThan(it, p2);
+        PromiseExtensions.<Integer>operator_doubleGreaterThan(it, p2);
       }
     };
     p.then(_function);
@@ -28,12 +28,12 @@ public class TestPromise {
   
   @Test
   public void testPromisedBefore() {
-    final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.class);
-    final Promise<Integer> p2 = PromiseExt.<Integer>promise(Integer.class);
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.class);
+    final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
     p.set(Integer.valueOf(10));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
-        PromiseExt.<Integer>operator_doubleGreaterThan(it, p2);
+        PromiseExtensions.<Integer>operator_doubleGreaterThan(it, p2);
       }
     };
     p.then(_function);
@@ -42,11 +42,11 @@ public class TestPromise {
   
   @Test
   public void testPromiseErrorHandling() {
-    final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.valueOf(0));
-    final Promise<Boolean> p2 = PromiseExt.<Boolean>promise(boolean.class);
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(0));
+    final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
-        PromiseExt.<Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
+        PromiseExtensions.<Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
     p.onError(_function);
@@ -61,7 +61,7 @@ public class TestPromise {
   
   @Test
   public void testPromiseNoHandling() {
-    final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.valueOf(0));
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(0));
     try {
       final Procedure1<Integer> _function = new Procedure1<Integer>() {
         public void apply(final Integer it) {
@@ -81,29 +81,29 @@ public class TestPromise {
   
   @Test
   public void testPromiseErrorChaining() {
-    final Promise<Integer> p = PromiseExt.<Integer>promise(Integer.valueOf(1));
-    final Promise<Boolean> p2 = PromiseExt.<Boolean>promise(boolean.class);
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(1));
+    final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);
     final Function1<Integer,Integer> _function = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() - 1));
       }
     };
-    Promise<Integer> _map = PromiseExt.<Integer, Integer>map(p, _function);
+    Promise<Integer> _map = PromiseExtensions.<Integer, Integer>map(p, _function);
     final Function1<Integer,Integer> _function_1 = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf((1 / (it).intValue()));
       }
     };
-    Promise<Integer> _map_1 = PromiseExt.<Integer, Integer>map(_map, _function_1);
+    Promise<Integer> _map_1 = PromiseExtensions.<Integer, Integer>map(_map, _function_1);
     final Function1<Integer,Integer> _function_2 = new Function1<Integer,Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
-    Promise<Integer> _map_2 = PromiseExt.<Integer, Integer>map(_map_1, _function_2);
+    Promise<Integer> _map_2 = PromiseExtensions.<Integer, Integer>map(_map_1, _function_2);
     final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
-        PromiseExt.<Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
+        PromiseExtensions.<Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
     Promise<Integer> _onError = _map_2.onError(_function_3);

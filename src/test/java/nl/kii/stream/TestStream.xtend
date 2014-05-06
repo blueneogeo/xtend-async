@@ -6,7 +6,10 @@ import org.junit.Test
 
 import static org.junit.Assert.*
 
-import static extension nl.kii.stream.StreamExt.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStream {
 

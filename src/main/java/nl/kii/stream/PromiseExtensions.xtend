@@ -5,8 +5,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 
 import static java.util.concurrent.Executors.*
+import static extension nl.kii.stream.PromiseExtensions.*
 
-class PromiseExt {
+class PromiseExtensions {
 	
 	// CREATING PROMISES //////////////////////////////////////////////////////
 	

@@ -45,3 +45,7 @@
 /.Countdown.java._trace
 /.Gatherer.java._trace
 /.Streamable.java._trace
+/.StreamExtensions.java._trace
+/.StreamPairExtensions.java._trace
+/.PromiseExtensions.java._trace
+/.PromisePairExtensions.java._trace

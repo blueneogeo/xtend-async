@@ -1,8 +1,8 @@
 package nl.kii.stream
 
-import static extension nl.kii.stream.PromiseExt.*
+import static extension nl.kii.stream.PromiseExtensions.*
 
-class PromisePairExt {
+class PromisePairExtensions {
 	
 	// CREATION ///////////////////////////////////////////////////////////////
 	

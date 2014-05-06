@@ -2,9 +2,17 @@ package nl.kii.stream.test
 
 import org.junit.Test
 
-import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamAssert.*
-import static extension nl.kii.stream.PromisePairExt.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
+import static extension nl.kii.stream.PromisePairExtensions.*
 
 class TestPromisePairExt {
 

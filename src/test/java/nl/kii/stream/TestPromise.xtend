@@ -4,8 +4,19 @@ import org.junit.Test
 
 import static org.junit.Assert.*
 
-import static extension nl.kii.stream.PromiseExt.*
 import static extension nl.kii.stream.StreamAssert.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
 
 class TestPromise {
 	

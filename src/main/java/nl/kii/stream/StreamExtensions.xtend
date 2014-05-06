@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-class StreamExt {
+class StreamExtensions {
 	
 	// CREATION ///////////////////////////////////////////////////////////////
 	

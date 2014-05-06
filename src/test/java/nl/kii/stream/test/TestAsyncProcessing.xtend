@@ -5,9 +5,20 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
-import static extension nl.kii.stream.PromiseExt.*
-import static extension nl.kii.stream.StreamExt.*
 import static extension org.junit.Assert.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.stream.PromiseExtensions.*
 
 class TestAsyncProcessing {
 

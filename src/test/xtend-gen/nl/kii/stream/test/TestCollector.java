@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import nl.kii.stream.Countdown;
 import nl.kii.stream.Gatherer;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamExt;
+import nl.kii.stream.StreamExtensions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -26,13 +26,13 @@ public class TestCollector {
         InputOutput.<String>println(_plus);
       }
     };
-    Stream<Pair<String,Boolean>> _onFinish = StreamExt.<Pair<String,Boolean>>onFinish(_stream, _function);
+    Stream<Pair<String,Boolean>> _onFinish = StreamExtensions.<Pair<String,Boolean>>onFinish(_stream, _function);
     final Procedure1<Pair<String,Boolean>> _function_1 = new Procedure1<Pair<String,Boolean>>() {
       public void apply(final Pair<String,Boolean> it) {
         InputOutput.<String>println("counting...");
       }
     };
-    StreamExt.<Pair<String,Boolean>>onEach(_onFinish, _function_1);
+    StreamExtensions.<Pair<String,Boolean>>onEach(_onFinish, _function_1);
     c2.apply(Boolean.valueOf(true));
     c1.apply(Boolean.valueOf(true));
     c3.apply(Boolean.valueOf(true));
@@ -59,7 +59,7 @@ public class TestCollector {
         InputOutput.<String>println(_plus_2);
       }
     };
-    Stream<Pair<String,String>> _onFinish = StreamExt.<Pair<String,String>>onFinish(_stream, _function);
+    Stream<Pair<String,String>> _onFinish = StreamExtensions.<Pair<String,String>>onFinish(_stream, _function);
     final Procedure1<Pair<String,String>> _function_1 = new Procedure1<Pair<String,String>>() {
       public void apply(final Pair<String,String> it) {
         String _key = it.getKey();
@@ -70,7 +70,7 @@ public class TestCollector {
         InputOutput.<String>println(_plus_2);
       }
     };
-    StreamExt.<Pair<String,String>>onEach(_onFinish, _function_1);
+    StreamExtensions.<Pair<String,String>>onEach(_onFinish, _function_1);
     cage.apply("12");
     cname.apply("John");
     cuser.apply("Christian");

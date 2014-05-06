@@ -1,6 +1,6 @@
 package nl.kii.stream
 
-import static extension nl.kii.stream.StreamExt.*
+import static extension nl.kii.stream.StreamExtensions.*
 
 /**
  * These extensions let you pass state with a stream more easily. 
@@ -22,7 +22,7 @@ import static extension nl.kii.stream.StreamExt.*
  * stream.async [ it -> processMessageAsync(it) ].each [ msg, it | msg.reply(it) ]
  * </pre>
  */
-class StreamPairExt {
+class StreamPairExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////
 	

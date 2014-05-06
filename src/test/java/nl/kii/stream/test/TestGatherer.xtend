@@ -4,7 +4,10 @@ import nl.kii.stream.Countdown
 import nl.kii.stream.Gatherer
 import org.junit.Test
 
-import static extension nl.kii.stream.StreamExt.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestCollector {
 	

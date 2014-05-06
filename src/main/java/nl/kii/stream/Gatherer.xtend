@@ -4,7 +4,8 @@ import java.util.Map
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-import static extension nl.kii.stream.StreamExt.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
 
 /**
  * Gatherer can collect data from various asynchronous sources.
