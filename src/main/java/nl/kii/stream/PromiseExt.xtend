@@ -57,8 +57,6 @@ class PromiseExt {
 		newPromise
 	}
 	
-	// ENDPOINTS //////////////////////////////////////////////////////////////
-	
 	/**
 	 * Perform an async operation which returns a promise.
 	 * This allows you to chain multiple async methods, as
@@ -77,6 +75,16 @@ class PromiseExt {
 	 */
 	def static <T, R> Promise<R> mapAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
 		promise.map(promiseFn).flatten
+	}
+	
+	// ENDPOINTS //////////////////////////////////////////////////////////////
+
+	def static <T, R> void thenAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
+		promise.mapAsync(promiseFn).then[
+			// do nothing, we're already done
+		]
+	}
+	
 //		
 //		
 //		val newPromise = new Promise<R>(promise)
@@ -86,7 +94,7 @@ class PromiseExt {
 //				.then [ newPromise.set(it) ]
 //		]
 //		newPromise
-	}
+	
 	
 	/** Create a new promise that listenes to this promise */
 	def static <T> fork(Promise<T> promise) {

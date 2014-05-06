@@ -300,7 +300,7 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	 * Let a parent stream listen when this stream is asked for the next value. 
 	 * Only supports a single listener.
 	 */
-	package def onClose(=>void listener) {
+	def onClose(=>void listener) {
 		this.onClose = listener
 		this
 	}
