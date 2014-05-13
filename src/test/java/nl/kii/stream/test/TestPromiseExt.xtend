@@ -1,21 +1,12 @@
 package nl.kii.stream.test
 
+import java.util.concurrent.ExecutionException
+import nl.kii.stream.Promise
 import org.junit.Test
 
+import static extension nl.kii.stream.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.ExecutionException
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
 
 class TestPromiseExt {
 	
@@ -55,7 +46,7 @@ class TestPromiseExt {
 	@Test
 	def void testFlatten() {
 		val p1 = 3.promise
-		val p2 = new nl.kii.stream.Promise<nl.kii.stream.Promise<Integer>> << p1
+		val p2 = new Promise<Promise<Integer>> << p1
 		val flattened = p2.flatten
 		flattened.assertPromiseEquals(3)
 	}
@@ -66,7 +57,7 @@ class TestPromiseExt {
 	@Test
 	def void testAsync() {
 		val s = 2.promise
-		val asynced = s.mapAsync [ power2(it) ]
+		val asynced = s.map [ power2(it) ].resolve
 		asynced.assertPromiseEquals(4)
 	}
 	

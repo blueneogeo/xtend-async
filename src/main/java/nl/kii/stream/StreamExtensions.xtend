@@ -216,23 +216,6 @@ class StreamExtensions {
 		newStream
 	}
 	
-	/**
-	 * Map using a promise. 
-	 * Waits until each promise is resolved before calling the promiseFn again.
-	 */
-	def static <T, R> Stream<R> mapAsync(Stream<T> stream, (T)=>Promise<R> promiseFn) {
-		stream.map(promiseFn).resolve
-	}
-
-	/**
-	 * Map using a promise. 
-	 * Allows for up to concurreny promises to be open at once.
-	 */
-	def static <T, R> Stream<R> mapAsync(Stream<T> stream, int concurrency, (T)=>Promise<R> promiseFn) {
-		stream.map(promiseFn).resolve(concurrency)		
-	}	
-
-	
 	/** 
 	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
 	 * values, and builds a stream of that.
@@ -287,18 +270,74 @@ class StreamExtensions {
 	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
 	 * asks the next value from the stream every time the processor finishes.
 	 */
-	def static <T, R> onEachAsync(Stream<T> stream, (T)=>Promise<R> asyncProcessor) {
-		stream.mapAsync(asyncProcessor)
-			.onEach [
-				// do nothing, just request the next
-			]
+//	def static <T, R> onEachAsync(Stream<T> stream, (T)=>Promise<T> asyncProcessor) {
+//		stream
+//			.map(asyncProcessor)
+//			.resolve
+//			.onEach [
+//				// do nothing, just request the next
+//			]
 //		stream.onNextValue [
 //			asyncProcessor.apply(it)
 //				.onError [ stream.error(it) ]
 //				.then [ stream.next ]
 //		]
+//	}
+
+	/** 
+	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
+	 * and that pushes thr number of tasks that were performed when the source stream of tasks
+	 * finishes.
+	 * <pre>
+	 * def Task doSomeTask(int userId) {
+	 * 		task [ doSomeTask |
+	 * 			..do some asynchronous work here..
+	 * 		]
+	 * }
+	 * 
+	 * val userIds = #[5, 6, 2, 67]
+	 * userIds.stream
+	 * 		.map [ doSomeTask ]
+	 * 		.process(3) // 3 parallel processes max
+	 * </pre>
+	 */
+	def static <T, R> process(Stream<Task> stream, int concurrency) {
+		val processes = new AtomicInteger(0)
+		val count = new AtomicLong(0)
+		val newStream = new Stream<Long>(stream)
+		stream.onNextValue [ promise |
+			processes.incrementAndGet 
+			promise
+				.onError [ 
+					newStream.error(it)
+					if(processes.decrementAndGet < concurrency) 
+						stream.next
+				]
+				.then [
+					count.incrementAndGet
+					if(processes.decrementAndGet < concurrency) 
+						stream.next
+				]
+		]
+		stream.onNextFinish[|
+			newStream.push(count.get)
+			count.set(0)
+			stream.next
+		]
+		newStream
 	}
 
+	/**
+	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
+	 * and that pushes the number of tasks that were performed when the source stream of tasks
+	 * finishes. Performs at most one task at a time.
+	 * 
+	 * @see StreamExtensions.process(Stream<Task> stream, int concurrency)
+	 */
+	def static <T, R> process(Stream<Task> stream) {
+		stream.process(1)
+	}
+	
 	/** 
 	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
 	 */
@@ -331,7 +370,7 @@ class StreamExtensions {
 			}
 		]
 	}
-		
+
 	/** 
 	 * Synchronous listener to the stream for errors. Automatically requests the next entry.
 	 */
@@ -378,6 +417,9 @@ class StreamExtensions {
 		val promise = new Promise<T>
 	 	stream.onNextValue [
 	 		if(!promise.fulfilled) promise.set(it)
+	 	]
+	 	stream.onError [
+	 		if(!promise.fulfilled) promise.error(it)
 	 	]
 	 	stream.next
 		promise

@@ -201,34 +201,8 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
-  /**
-   * Perform an async operation which returns a promise.
-   * This allows you to chain multiple async methods, as
-   * long as you let your closures return a Promise
-   * <p>
-   * Example:
-   * <pre>
-   * def Promise<User> loadUser(int userId)
-   * def Promise<Result> uploadUser(User user)
-   * def void showUploadResult(Result result)
-   * 
-   * loadUser(12)
-   *    .async [ uploadUser ]
-   *    .then [ showUploadResult ]
-   * </pre>
-   */
-  public static <T extends Object, R extends Object> Promise<R> mapAsync(final Promise<T> promise, final Function1<? super T,? extends Promise<R>> promiseFn) {
-    Promise<Promise<R>> _map = PromiseExtensions.<T, Promise<R>>map(promise, promiseFn);
-    return PromiseExtensions.<R>flatten(_map);
-  }
-  
-  public static <T extends Object, R extends Object> void thenAsync(final Promise<T> promise, final Function1<? super T,? extends Promise<R>> promiseFn) {
-    Promise<R> _mapAsync = PromiseExtensions.<T, R>mapAsync(promise, promiseFn);
-    final Procedure1<R> _function = new Procedure1<R>() {
-      public void apply(final R it) {
-      }
-    };
-    _mapAsync.then(_function);
+  public static <T extends Object> Promise<T> resolve(final Promise<Promise<T>> promise) {
+    return PromiseExtensions.<T>flatten(promise);
   }
   
   /**

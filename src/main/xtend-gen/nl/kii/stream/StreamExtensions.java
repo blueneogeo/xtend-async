@@ -14,6 +14,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
+import nl.kii.stream.Task;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -378,24 +379,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Map using a promise.
-   * Waits until each promise is resolved before calling the promiseFn again.
-   */
-  public static <T extends Object, R extends Object> Stream<R> mapAsync(final Stream<T> stream, final Function1<? super T,? extends Promise<R>> promiseFn) {
-    Stream<Promise<R>> _map = StreamExtensions.<T, Promise<R>>map(stream, promiseFn);
-    return StreamExtensions.<R, Object>resolve(_map);
-  }
-  
-  /**
-   * Map using a promise.
-   * Allows for up to concurreny promises to be open at once.
-   */
-  public static <T extends Object, R extends Object> Stream<R> mapAsync(final Stream<T> stream, final int concurrency, final Function1<? super T,? extends Promise<R>> promiseFn) {
-    Stream<Promise<R>> _map = StreamExtensions.<T, Promise<R>>map(stream, promiseFn);
-    return StreamExtensions.<R, Object>resolve(_map, concurrency);
-  }
-  
-  /**
    * Resolves a stream of processes, meaning it waits for promises to finish and return their
    * values, and builds a stream of that.
    * It only asks the next promise from the stream when the previous promise has been resolved.
@@ -465,16 +448,79 @@ public class StreamExtensions {
   }
   
   /**
-   * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
-   * asks the next value from the stream every time the processor finishes.
+   * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
+   * and that pushes thr number of tasks that were performed when the source stream of tasks
+   * finishes.
+   * <pre>
+   * def Task doSomeTask(int userId) {
+   * 		task [ doSomeTask |
+   * 			..do some asynchronous work here..
+   * 		]
+   * }
+   * 
+   * val userIds = #[5, 6, 2, 67]
+   * userIds.stream
+   * 		.map [ doSomeTask ]
+   * 		.process(3) // 3 parallel processes max
+   * </pre>
    */
-  public static <T extends Object, R extends Object> void onEachAsync(final Stream<T> stream, final Function1<? super T,? extends Promise<R>> asyncProcessor) {
-    Stream<R> _mapAsync = StreamExtensions.<T, R>mapAsync(stream, asyncProcessor);
-    final Procedure1<R> _function = new Procedure1<R>() {
-      public void apply(final R it) {
-      }
-    };
-    StreamExtensions.<R>onEach(_mapAsync, _function);
+  public static <T extends Object, R extends Object> Stream<Long> process(final Stream<Task> stream, final int concurrency) {
+    Stream<Long> _xblockexpression = null;
+    {
+      final AtomicInteger processes = new AtomicInteger(0);
+      final AtomicLong count = new AtomicLong(0);
+      final Stream<Long> newStream = new Stream<Long>(stream);
+      final Procedure1<Task> _function = new Procedure1<Task>() {
+        public void apply(final Task promise) {
+          processes.incrementAndGet();
+          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+              int _decrementAndGet = processes.decrementAndGet();
+              boolean _lessThan = (_decrementAndGet < concurrency);
+              if (_lessThan) {
+                stream.next();
+              }
+            }
+          };
+          Promise<Boolean> _onError = promise.onError(_function);
+          final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+            public void apply(final Boolean it) {
+              count.incrementAndGet();
+              int _decrementAndGet = processes.decrementAndGet();
+              boolean _lessThan = (_decrementAndGet < concurrency);
+              if (_lessThan) {
+                stream.next();
+              }
+            }
+          };
+          _onError.then(_function_1);
+        }
+      };
+      stream.onNextValue(_function);
+      final Procedure0 _function_1 = new Procedure0() {
+        public void apply() {
+          long _get = count.get();
+          newStream.push(Long.valueOf(_get));
+          count.set(0);
+          stream.next();
+        }
+      };
+      stream.onNextFinish(_function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
+   * and that pushes the number of tasks that were performed when the source stream of tasks
+   * finishes. Performs at most one task at a time.
+   * 
+   * @see StreamExtensions.process(Stream<Task> stream, int concurrency)
+   */
+  public static <T extends Object, R extends Object> Stream<Long> process(final Stream<Task> stream) {
+    return StreamExtensions.<Object, Object>process(stream, 1);
   }
   
   /**
@@ -594,6 +640,16 @@ public class StreamExtensions {
         }
       };
       stream.onNextValue(_function);
+      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          boolean _isFulfilled = promise.isFulfilled();
+          boolean _not = (!_isFulfilled);
+          if (_not) {
+            promise.error(it);
+          }
+        }
+      };
+      StreamExtensions.<T>onError(stream, _function_1);
       stream.next();
       _xblockexpression = promise;
     }

@@ -119,6 +119,10 @@ class PromiseExtensions {
 		newPromise
 	}
 	
+	def static <T> resolve(Promise<Promise<T>> promise) {
+		promise.flatten
+	}
+	
 	/**
 	 * Perform an async operation which returns a promise.
 	 * This allows you to chain multiple async methods, as
@@ -135,17 +139,17 @@ class PromiseExtensions {
 	 *    .then [ showUploadResult ]
 	 * </pre>
 	 */
-	def static <T, R> Promise<R> mapAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-		promise.map(promiseFn).flatten
-	}
+//	def static <T, R> Promise<R> mapAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
+//		promise.map(promiseFn).flatten
+//	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
-	def static <T, R> void thenAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-		promise.mapAsync(promiseFn).then[
-			// do nothing, we're already done
-		]
-	}
+//	def static <T, R> void thenAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
+//		promise.map(promiseFn).resolve.then[
+//			// do nothing, we're already done
+//		]
+//	}
 	
 //		
 //		

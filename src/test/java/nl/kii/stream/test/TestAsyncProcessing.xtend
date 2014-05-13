@@ -24,8 +24,8 @@ class TestAsyncProcessing {
 	def void testTripleAsyncPromise() {
 		val result = new AtomicInteger
 		power2(2)
-			.mapAsync [ power2 ]
-			.mapAsync [ power2 ]
+			.map [ power2 ].resolve
+			.map [ power2 ].resolve
 			.then [	result.set(it) ]
 		0.assertEquals(result.get)
 		Thread.sleep(500)
@@ -37,9 +37,9 @@ class TestAsyncProcessing {
 		val result = new AtomicReference(new LinkedList<Integer>)
 		val s = int.stream << 1 << 2 << 3
 		s
-			.mapAsync [ power2 ]
+			.map [ power2 ].resolve(2)
 			.map [ it + 1 ]
-			.mapAsync [ power2 ]
+			.map[ power2 ].resolve(3)
 			.onEach [	result.get.add(it) ]
 		0.assertEquals(result.get.size)
 		Thread.sleep(700) 
@@ -54,9 +54,11 @@ class TestAsyncProcessing {
 		val result = new AtomicInteger
 		val s = int.stream << 1 << 2 << 3
 		s
-			.mapAsync [ throwsError ] // this error should propagate down the chain to the .error handler
+			.map [ throwsError ] // this error should propagate down the chain to the .error handler
+			.resolve
 			.map [ it + 1 ]
-			.mapAsync [ power2 ]
+			.map [ power2 ]
+			.resolve
 			.onError [ result.incrementAndGet ]
 			.onEach [	fail('we should not end up here, since an error should be caught instead') ]
 		Thread.sleep(700) 
