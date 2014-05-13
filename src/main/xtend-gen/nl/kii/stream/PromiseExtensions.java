@@ -1,14 +1,18 @@
 package nl.kii.stream;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseFuture;
+import nl.kii.stream.Task;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function0;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -21,11 +25,106 @@ public class PromiseExtensions {
     return new Promise<T>();
   }
   
+  public static <T extends Object> Promise<List<T>> promiseList(final Class<T> type) {
+    return new Promise<List<T>>();
+  }
+  
+  public static <K extends Object, V extends Object> Promise<Map<K,V>> promiseMap(final Pair<Class<K>,Class<V>> type) {
+    return new Promise<Map<K, V>>();
+  }
+  
   /**
    * Create a promise that immediately resolves to the passed value
    */
   public static <T extends Object> Promise<T> promise(final T value) {
     return new Promise<T>(value);
+  }
+  
+  public static <T extends Object> Promise<T> promise(final Class<T> type, final Procedure1<? super Promise<T>> blockThatFulfillsPromise) {
+    Promise<T> _xblockexpression = null;
+    {
+      final Promise<T> promise = PromiseExtensions.<T>promise(type);
+      try {
+        blockThatFulfillsPromise.apply(promise);
+      } catch (final Throwable _t) {
+        if (_t instanceof Throwable) {
+          final Throwable t = (Throwable)_t;
+          promise.error(t);
+        } else {
+          throw Exceptions.sneakyThrow(_t);
+        }
+      }
+      _xblockexpression = promise;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> Promise<List<T>> promiseList(final Class<T> type, final Procedure1<? super Promise<List<T>>> blockThatFulfillsPromise) {
+    Promise<List<T>> _xblockexpression = null;
+    {
+      final Promise<List<T>> promise = PromiseExtensions.<T>promiseList(type);
+      try {
+        blockThatFulfillsPromise.apply(promise);
+      } catch (final Throwable _t) {
+        if (_t instanceof Throwable) {
+          final Throwable t = (Throwable)_t;
+          promise.error(t);
+        } else {
+          throw Exceptions.sneakyThrow(_t);
+        }
+      }
+      _xblockexpression = promise;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <K extends Object, V extends Object> Promise<Map<K,V>> promiseMap(final Pair<Class<K>,Class<V>> type, final Procedure1<? super Promise<Map<K,V>>> blockThatFulfillsPromise) {
+    Promise<Map<K,V>> _xblockexpression = null;
+    {
+      final Promise<Map<K,V>> promise = PromiseExtensions.<K, V>promiseMap(type);
+      try {
+        blockThatFulfillsPromise.apply(promise);
+      } catch (final Throwable _t) {
+        if (_t instanceof Throwable) {
+          final Throwable t = (Throwable)_t;
+          promise.error(t);
+        } else {
+          throw Exceptions.sneakyThrow(_t);
+        }
+      }
+      _xblockexpression = promise;
+    }
+    return _xblockexpression;
+  }
+  
+  public static Task task(final Procedure1<? super Task> blockThatPerformsTask) {
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      try {
+        blockThatPerformsTask.apply(task);
+      } catch (final Throwable _t) {
+        if (_t instanceof Throwable) {
+          final Throwable t = (Throwable)_t;
+          task.error(t);
+        } else {
+          throw Exceptions.sneakyThrow(_t);
+        }
+      }
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
+  }
+  
+  public static Task error(final Task task, final String message) {
+    Exception _exception = new Exception(message);
+    Promise<Boolean> _error = task.error(_exception);
+    return ((Task) _error);
+  }
+  
+  public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message) {
+    Exception _exception = new Exception(message);
+    return promise.error(_exception);
   }
   
   /**

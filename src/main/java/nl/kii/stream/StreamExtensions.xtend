@@ -20,6 +20,14 @@ class StreamExtensions {
 		new Stream<T>
 	}
 	
+	def static <T> streamList(Class<T> type) {
+		new Stream<List<T>>
+	}
+
+	def static <K, V> streamMap(Pair<Class<K>, Class<V>> type) {
+		new Stream<Map<K, V>>
+	}
+	
 	/** create a stream of a set of data and finish it */
 	def static <T> stream(T... data) {
 		data.iterator.stream

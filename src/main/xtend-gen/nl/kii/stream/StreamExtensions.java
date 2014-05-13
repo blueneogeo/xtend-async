@@ -33,6 +33,14 @@ public class StreamExtensions {
     return new Stream<T>();
   }
   
+  public static <T extends Object> Stream<List<T>> streamList(final Class<T> type) {
+    return new Stream<List<T>>();
+  }
+  
+  public static <K extends Object, V extends Object> Stream<Map<K,V>> streamMap(final Pair<Class<K>,Class<V>> type) {
+    return new Stream<Map<K, V>>();
+  }
+  
   /**
    * create a stream of a set of data and finish it
    */

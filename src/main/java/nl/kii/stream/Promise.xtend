@@ -49,6 +49,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	/** report an error to the listener of the promise. */
 	def error(Throwable t) {
 		apply(new Error<T>(t))
+		this
 	}
 		
 	override apply(Entry<T> it) {
@@ -60,7 +61,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def void then(Procedure1<T> onValue) {
+	def then(Procedure1<T> onValue) {
 		if(_onValue.get != null) throw new PromiseException('cannot listen to a promise more than once')
 		_onValue.set(onValue)
 		if(fulfilled) publish(_entry.get)
@@ -102,6 +103,21 @@ class Promise<T> implements Procedure1<Entry<T>> {
 		}
 	}
 	
+}
+
+class Task extends Promise<Boolean> {
+	
+	new() { }
+	
+	new(Promise<?> parentPromise) {
+		parentPromise.onError [ error(it) ]
+	}
+	
+	def complete() {
+		set(true)
+		this
+	}
+
 }
 
 class PromiseException extends Exception {

@@ -5,20 +5,81 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 
 import static java.util.concurrent.Executors.*
-import static extension nl.kii.stream.PromiseExtensions.*
+import java.util.List
+import java.util.Map
 
 class PromiseExtensions {
 	
-	// CREATING PROMISES //////////////////////////////////////////////////////
+	// CREATING PROMISES AND TASKS ////////////////////////////////////////////
 	
 	/** Create a promise of the given type */
 	def static <T> promise(Class<T> type) {
 		new Promise<T>
 	}
+
+	def static <T> promiseList(Class<T> type) {
+		new Promise<List<T>>
+	}
+
+	def static <K, V> promiseMap(Pair<Class<K>, Class<V>> type) {
+		new Promise<Map<K, V>>
+	}
 	
 	/** Create a promise that immediately resolves to the passed value */
 	def static <T> promise(T value) {
 		new Promise<T>(value)
+	}
+	
+	// CREATING PROMISE AND TASK FUNCTIONS ////////////////////////////////////
+
+	def static <T> promise(Class<T> type, (Promise<T>)=>void blockThatFulfillsPromise) {
+		val promise = type.promise
+		try {
+			blockThatFulfillsPromise.apply(promise)			
+		} catch(Throwable t) {
+			promise.error(t)
+		}
+		promise
+	}
+
+	def static <T> promiseList(Class<T> type, (Promise<List<T>>)=>void blockThatFulfillsPromise) {
+		val promise = type.promiseList
+		try {
+			blockThatFulfillsPromise.apply(promise)			
+		} catch(Throwable t) {
+			promise.error(t)
+		}
+		promise
+	}
+
+	def static <K, V> promiseMap(Pair<Class<K>, Class<V>> type, (Promise<Map<K, V>>)=>void blockThatFulfillsPromise) {
+		val promise = type.promiseMap
+		try {
+			blockThatFulfillsPromise.apply(promise)			
+		} catch(Throwable t) {
+			promise.error(t)
+		}
+		promise
+	}
+	
+	def static task((Task)=>void blockThatPerformsTask) {
+		val task = new Task
+		try {
+			blockThatPerformsTask.apply(task)			
+		} catch(Throwable t) {
+			task.error(t)
+		}
+		task
+	}
+	
+	// COMPLETING TASKS ///////////////////////////////////////////////////////
+	
+	def static error(Task task, String message) {
+		task.error(new Exception(message)) as Task
+	}
+
+	def static <T> error(Promise<T> promise, String message) {
+		promise.error(new Exception(message))
 	}
 
 	// OPERATORS //////////////////////////////////////////////////////////////

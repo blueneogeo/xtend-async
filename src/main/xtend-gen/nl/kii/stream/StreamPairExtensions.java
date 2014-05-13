@@ -122,7 +122,7 @@ public class StreamPairExtensions {
    * Responds to a stream pair with a listener that takes the key and value of the promise result pair.
    * See async2() for example of how to use.
    */
-  public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> async(final Stream<Pair<K1,V1>> stream, final Function2<? super K1,? super V1,? extends Promise<V2>> promiseFn) {
+  public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> mapAsync(final Stream<Pair<K1,V1>> stream, final Function2<? super K1,? super V1,? extends Promise<V2>> promiseFn) {
     Stream<V2> _xblockexpression = null;
     {
       final Stream<V2> newStream = new Stream<V2>(stream);
@@ -184,7 +184,7 @@ public class StreamPairExtensions {
    *    .async2 [ user | user -> uploadUser ] // pass the user in the result as a pair with the promise
    *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
    */
-  public static <V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2,V2>> asyncToPair(final Stream<V1> stream, final Function1<? super V1,? extends Pair<K2,Promise<V2>>> promiseFn) {
+  public static <V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2,V2>> mapAsyncToPair(final Stream<V1> stream, final Function1<? super V1,? extends Pair<K2,Promise<V2>>> promiseFn) {
     Stream<Pair<K2,V2>> _xblockexpression = null;
     {
       final Stream<Pair<K2,V2>> newStream = new Stream<Pair<K2, V2>>(stream);
@@ -238,7 +238,7 @@ public class StreamPairExtensions {
    *    .async2 [ user, result | user -> showUploadResult(result, user) ] // you get back the user
    *    .each [ user, result | println(result) ]
    */
-  public static <K1 extends Object, V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2,V2>> asyncToPair(final Stream<Pair<K1,V1>> stream, final Function2<? super K1,? super V1,? extends Pair<K2,Promise<V2>>> promiseFn) {
+  public static <K1 extends Object, V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2,V2>> mapAsyncToPair(final Stream<Pair<K1,V1>> stream, final Function2<? super K1,? super V1,? extends Pair<K2,Promise<V2>>> promiseFn) {
     Stream<Pair<K2,V2>> _xblockexpression = null;
     {
       final Stream<Pair<K2,V2>> newStream = new Stream<Pair<K2, V2>>(stream);
@@ -289,7 +289,7 @@ public class StreamPairExtensions {
   /**
    * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
    */
-  public static <K extends Object, V extends Object> void each(final Stream<Pair<K,V>> stream, final Procedure2<? super K,? super V> listener) {
+  public static <K extends Object, V extends Object> void onEach(final Stream<Pair<K,V>> stream, final Procedure2<? super K,? super V> listener) {
     final Procedure1<Pair<K,V>> _function = new Procedure1<Pair<K,V>>() {
       public void apply(final Pair<K,V> it) {
         K _key = it.getKey();
@@ -306,7 +306,7 @@ public class StreamPairExtensions {
    * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
    * the next finish.
    */
-  public static <K extends Object, V extends Object> void each(final Stream<Pair<K,V>> stream, final Procedure3<? super K,? super V,? super Stream<Pair<K,V>>> listener) {
+  public static <K extends Object, V extends Object> void onEach(final Stream<Pair<K,V>> stream, final Procedure3<? super K,? super V,? super Stream<Pair<K,V>>> listener) {
     final Procedure1<Pair<K,V>> _function = new Procedure1<Pair<K,V>>() {
       public void apply(final Pair<K,V> it) {
         K _key = it.getKey();

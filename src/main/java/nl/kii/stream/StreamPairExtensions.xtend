@@ -83,7 +83,7 @@ class StreamPairExtensions {
 	 * Responds to a stream pair with a listener that takes the key and value of the promise result pair.
 	 * See async2() for example of how to use.
 	 */
-	def static <K1, V1, V2> Stream<V2> async(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
+	def static <K1, V1, V2> Stream<V2> mapAsync(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
 		val newStream = new Stream<V2>(stream)
 		stream.onNextValue [ 
 			promiseFn.apply(key, value)
@@ -124,7 +124,7 @@ class StreamPairExtensions {
 	 *    .async2 [ user | user -> uploadUser ] // pass the user in the result as a pair with the promise 
 	 *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
 	 */
-	def static <V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
+	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.onNextValue [
 			val pair = promiseFn.apply(it)
@@ -157,7 +157,7 @@ class StreamPairExtensions {
 	 *    .async2 [ user, result | user -> showUploadResult(result, user) ] // you get back the user
 	 *    .each [ user, result | println(result) ]
 	 */	
-	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> asyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
+	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
 		val newStream = new Stream<Pair<K2, V2>>(stream)
 		stream.onNextValue [
 			val pair = promiseFn.apply(key, value)
@@ -187,7 +187,7 @@ class StreamPairExtensions {
 	/**
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
 	 */
-	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
+	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
 		stream.onEach [ listener.apply(key, value) ]
 	}
 
@@ -197,7 +197,7 @@ class StreamPairExtensions {
 	 * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
 	 * the next finish.
 	 */
-	def static <K, V> void each(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
+	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
 		stream.onEach [ it | listener.apply(key, value, stream) ]
 	}	
 	
