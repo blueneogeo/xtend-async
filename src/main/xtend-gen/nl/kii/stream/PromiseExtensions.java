@@ -10,10 +10,8 @@ import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseFuture;
 import nl.kii.stream.Task;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Functions.Function0;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
@@ -29,7 +27,7 @@ public class PromiseExtensions {
     return new Promise<List<T>>();
   }
   
-  public static <K extends Object, V extends Object> Promise<Map<K,V>> promiseMap(final Pair<Class<K>,Class<V>> type) {
+  public static <K extends Object, V extends Object> Promise<Map<K, V>> promiseMap(final Pair<Class<K>, Class<V>> type) {
     return new Promise<Map<K, V>>();
   }
   
@@ -78,10 +76,10 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
-  public static <K extends Object, V extends Object> Promise<Map<K,V>> promiseMap(final Pair<Class<K>,Class<V>> type, final Procedure1<? super Promise<Map<K,V>>> blockThatFulfillsPromise) {
-    Promise<Map<K,V>> _xblockexpression = null;
+  public static <K extends Object, V extends Object> Promise<Map<K, V>> promiseMap(final Pair<Class<K>, Class<V>> type, final Procedure1<? super Promise<Map<K, V>>> blockThatFulfillsPromise) {
+    Promise<Map<K, V>> _xblockexpression = null;
     {
-      final Promise<Map<K,V>> promise = PromiseExtensions.<K, V>promiseMap(type);
+      final Promise<Map<K, V>> promise = PromiseExtensions.<K, V>promiseMap(type);
       try {
         blockThatFulfillsPromise.apply(promise);
       } catch (final Throwable _t) {
@@ -156,7 +154,7 @@ public class PromiseExtensions {
    * that transforms the value of the promise
    * once the existing promise is resolved.
    */
-  public static <T extends Object, R extends Object> Promise<R> map(final Promise<T> promise, final Function1<? super T,? extends R> mappingFn) {
+  public static <T extends Object, R extends Object> Promise<R> map(final Promise<T> promise, final Function1<? super T, ? extends R> mappingFn) {
     Promise<R> _xblockexpression = null;
     {
       final Promise<R> newPromise = new Promise<R>(promise);
@@ -209,7 +207,7 @@ public class PromiseExtensions {
    * Create a new promise that listenes to this promise
    */
   public static <T extends Object> Promise<T> fork(final Promise<T> promise) {
-    final Function1<T,T> _function = new Function1<T,T>() {
+    final Function1<T, T> _function = new Function1<T, T>() {
       public T apply(final T it) {
         return it;
       }
@@ -229,54 +227,19 @@ public class PromiseExtensions {
   }
   
   /**
-   * Easily run a procedure in the background and return a promise
-   * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
-   */
-  public static Promise<Void> promise(final Procedure0 procedure) {
-    final Procedure0 _function = new Procedure0() {
-      public void apply() {
-        procedure.apply();
-      }
-    };
-    return PromiseExtensions.promise(((Runnable) new Runnable() {
-        public void run() {
-          _function.apply();
-        }
-    }));
-  }
-  
-  /**
-   * Easily run a function in the background and return a promise
-   * <pre>
-   * promise [| doSomeHeavyLifting ].then [ println('done!') ]
-   */
-  public static <T extends Object> Promise<T> promise(final Function0<? extends T> function) {
-    final Function0<T> _function = new Function0<T>() {
-      public T apply() {
-        return function.apply();
-      }
-    };
-    return PromiseExtensions.<T>promise(((Callable<T>) new Callable<T>() {
-        public T call() {
-          return _function.apply();
-        }
-    }));
-  }
-  
-  /**
    * Execute the callable in the background and return as a promise
    */
-  public static <T extends Object> Promise<T> promise(final Callable<T> callable) {
+  public static <T extends Object> Promise<T> resolve(final Callable<T> callable) {
     ExecutorService _newSingleThreadExecutor = Executors.newSingleThreadExecutor();
-    return PromiseExtensions.<T>promise(_newSingleThreadExecutor, callable);
+    return PromiseExtensions.<T>resolve(_newSingleThreadExecutor, callable);
   }
   
   /**
    * Execute the runnable in the background and return as a promise
    */
-  public static Promise<Void> promise(final Runnable runnable) {
+  public static Task process(final Runnable runnable) {
     ExecutorService _newSingleThreadExecutor = Executors.newSingleThreadExecutor();
-    return PromiseExtensions.promise(_newSingleThreadExecutor, runnable);
+    return PromiseExtensions.process(_newSingleThreadExecutor, runnable);
   }
   
   /**
@@ -286,7 +249,7 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
    */
-  public static <T extends Object> Promise<T> promise(final ExecutorService service, final Callable<T> callable) {
+  public static <T extends Object> Promise<T> resolve(final ExecutorService service, final Callable<T> callable) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
@@ -319,29 +282,28 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
    */
-  public static Promise<Void> promise(final ExecutorService service, final Runnable runnable) {
-    Promise<Void> _xblockexpression = null;
-    {
-      final Promise<Void> promise = new Promise<Void>();
-      final Runnable _function = new Runnable() {
-        public void run() {
-          try {
-            runnable.run();
-            promise.set(null);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              promise.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
+  public static Task process(final ExecutorService service, final Runnable runnable) {
+    final Procedure1<Task> _function = new Procedure1<Task>() {
+      public void apply(final Task task) {
+        final Runnable _function = new Runnable() {
+          public void run() {
+            try {
+              runnable.run();
+              task.complete();
+            } catch (final Throwable _t) {
+              if (_t instanceof Throwable) {
+                final Throwable t = (Throwable)_t;
+                task.error(t);
+              } else {
+                throw Exceptions.sneakyThrow(_t);
+              }
             }
           }
-        }
-      };
-      final Runnable processor = _function;
-      service.submit(processor);
-      _xblockexpression = promise;
-    }
-    return _xblockexpression;
+        };
+        final Runnable processor = _function;
+        service.submit(processor);
+      }
+    };
+    return PromiseExtensions.task(_function);
   }
 }

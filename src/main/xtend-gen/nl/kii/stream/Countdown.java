@@ -1,10 +1,6 @@
 package nl.kii.stream;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
 import nl.kii.stream.Gatherer;
-import org.eclipse.xtext.xbase.lib.Functions.Function2;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
@@ -33,25 +29,16 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 @SuppressWarnings("all")
 public class Countdown extends Gatherer<Boolean> {
   public Procedure1<? super Boolean> await() {
-    int _get = this.total.get();
-    String _string = Integer.valueOf(_get).toString();
-    return super.await(_string);
+    throw new Error("Unresolved compilation problems:"
+      + "\nType mismatch: cannot convert from Promise<Boolean> to (Boolean)=>void");
   }
   
-  public Boolean isSuccess() {
-    ConcurrentHashMap<String,Boolean> _result = this.result();
-    Collection<Boolean> _values = _result.values();
-    final Function2<Boolean,Boolean,Boolean> _function = new Function2<Boolean,Boolean,Boolean>() {
-      public Boolean apply(final Boolean a, final Boolean b) {
-        boolean _and = false;
-        if (!(a).booleanValue()) {
-          _and = false;
-        } else {
-          _and = (b).booleanValue();
-        }
-        return Boolean.valueOf(_and);
-      }
-    };
-    return IterableExtensions.<Boolean>reduce(_values, _function);
+  public Object isSuccess() {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field result is undefined for the type Countdown"
+      + "\nType mismatch: cannot convert from Object to boolean"
+      + "\nThere is no context to infer the closure\'s argument types from. Consider typing the arguments or put the closures into a typed context."
+      + "\nvalues cannot be resolved"
+      + "\nreduce cannot be resolved");
   }
 }

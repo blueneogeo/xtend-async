@@ -186,27 +186,27 @@ class PromiseExtensions {
 	 * Easily run a procedure in the background and return a promise
 	 * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static promise(=>void procedure) {
-		promise([| procedure.apply ] as Runnable)
-	}
+//	def static process(=>void procedure) {
+//		process([| procedure.apply ] as Runnable)
+//	}
 
 	/** 
 	 * Easily run a function in the background and return a promise
 	 * <pre>
 	 * promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
-	def static <T> promise(=>T function) {
-		promise([| function.apply ] as Callable<T>)
-	}
+//	def static <T> resolve(=>T function) {
+//		resolve([| function.apply ] as Callable<T>)
+//	}
 
 	/** Execute the callable in the background and return as a promise */
-	def static <T> Promise<T> promise(Callable<T> callable) {
-		promise(newSingleThreadExecutor, callable)
+	def static <T> Promise<T> resolve(Callable<T> callable) {
+		resolve(newSingleThreadExecutor, callable)
 	}
 
 	/** Execute the runnable in the background and return as a promise */
-	def static Promise<Void> promise(Runnable runnable) {
-		promise(newSingleThreadExecutor, runnable)
+	def static Task process(Runnable runnable) {
+		process(newSingleThreadExecutor, runnable)
 	}
 
 	/** 
@@ -216,7 +216,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> Promise<T> promise(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> resolve(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {
@@ -237,18 +237,18 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
-	def static Promise<Void> promise(ExecutorService service, Runnable runnable) {
-		val promise = new Promise<Void>
-		val Runnable processor = [|
-			try {
-				runnable.run
-				promise.set(null)
-			} catch(Throwable t) {
-				promise.error(t)
-			}
+	def static Task process(ExecutorService service, Runnable runnable) {
+		task [ task |
+			val Runnable processor = [|
+				try {
+					runnable.run
+					task.complete
+				} catch(Throwable t) {
+					task.error(t)
+				}
+			]
+			service.submit(processor)
 		]
-		service.submit(processor)
-		promise
 	}	
 	
 }

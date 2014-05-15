@@ -123,6 +123,24 @@ class StreamExtensions {
 	}
 	
 	/**
+	 * Transform each item in the stream using the passed mappingFn.
+	 * Also passes a counter to count the amount of items passed since
+	 * the start or the last finish.
+	 */
+	def static <T, R> map(Stream<T> stream, (T, long)=>R mappingFn) {
+		val newStream = new Stream<R>(stream)
+		val counter = new AtomicLong(0)
+		stream.onNextValue [ 
+			newStream.push(mappingFn.apply(it, counter.incrementAndGet))
+		]
+		stream.onNextFinish [|
+			counter.set(0)
+			newStream.finish
+		]
+		newStream
+	}
+
+	/**
 	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for.
 	 */
@@ -228,25 +246,55 @@ class StreamExtensions {
 	/** 
 	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
 	 * values, and builds a stream of that.
-	 * Allows concurrency promises to be resolved in parallel.  
+	 * <p>
+	 * Allows concurrency promises to be resolved in parallel.
+	 * <p>
+	 * note: resolving breaks flow control. 
 	 */
 	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream, int concurrency) {
 		val processes = new AtomicInteger(0)
-		val newStream = new Stream<T>(stream)
+		val newStream = new Stream<T>
+		val isFinished = new AtomicBoolean(false)
 		stream.onNextValue [ promise |
 			processes.incrementAndGet 
+			println('starting process ' + processes.get)
+			// if more processes are available, request a next value
+			if(concurrency > processes.get) {
+				println('requesting more since we have more concurrency')
+				stream.next
+			}
 			promise
-				.onError [ 
-					newStream.error(it)
-					if(processes.decrementAndGet < concurrency) 
-						stream.next
-				]
-				.then [ 
+				.onError [ newStream.error(it) ]
+				.then [
 					newStream.push(it)
-					if(processes.decrementAndGet < concurrency) 
+					val open = processes.decrementAndGet  
+					println('finished process ' + (processes.get + 1) + ' for ' + it)
+					if(open == 0 && isFinished.get) {
+						println('finishing after all processes completed')
+						isFinished.set(false)
+						newStream.finish
+					} else if(concurrency > open){
+						println('requesting new process')
 						stream.next
+					}
 				]
 		]
+		stream.onNextFinish [|
+			println('process finish')
+			if(processes.get == 0) {
+				newStream.finish
+				println('requesting next after finish')
+				stream.next
+			} else {
+				// we are still processing, so finish when we are done processing instead
+				isFinished.set(true)
+			}
+		]
+		newStream.onClose [|
+			stream.close
+		]
+		// this is not flow controlled, start pushing automatically
+		stream.next
 		newStream
 	}
 

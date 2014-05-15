@@ -5,7 +5,25 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
+
+class Gatherer<T> extends Promise<Map<String, T>> {
+	
+	val data = new ConcurrentHashMap<String, T>
+	val protected count = new AtomicInteger
+	val protected total = new AtomicInteger
+		
+	def Promise<T> await(String name) {
+		val promise = new Promise<T>
+		total.incrementAndGet;
+		return [ 
+			stream.push(name -> it)
+			if(count.incrementAndGet == total.get)
+				stream.finish
+		]		
+	}
+	
+}
+
 
 /**
  * Gatherer can collect data from various asynchronous sources.
@@ -42,7 +60,7 @@ import static extension nl.kii.stream.StreamExtensions.*
  * ]
  * </pre>
  */
-class Gatherer<T> implements Streamable<Pair<String, T>> {
+class Gatherer2<T> implements Streamable<Pair<String, T>> {
 	
 	val stream = new Stream<Pair<String, T>>
 	val protected count = new AtomicInteger
