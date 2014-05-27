@@ -11,16 +11,45 @@ import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Test;
 
 @SuppressWarnings("all")
 public class TestStreamExt {
+  @Test
+  public void testPrint() {
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
+    final Procedure1<SyncSubscription<Integer>> _function = new Procedure1<SyncSubscription<Integer>>() {
+      public void apply(final SyncSubscription<Integer> it) {
+        final Procedure1<Integer> _function = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            InputOutput.<Integer>println(it);
+          }
+        };
+        it.forEach(_function);
+        final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+          public void apply(final Void it) {
+            InputOutput.<String>println("finished!");
+          }
+        };
+        it.onFinish(_function_1);
+      }
+    };
+    StreamExtensions.<Integer>listen(s, _function);
+  }
+  
   @Test
   public void testRangeStream() {
     IntegerRange _upTo = new IntegerRange(5, 7);

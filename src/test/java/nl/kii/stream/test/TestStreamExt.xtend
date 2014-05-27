@@ -4,49 +4,18 @@ import org.junit.Test
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStreamExt {
+
+	@Test
+	def void testPrint() {
+		val s = int.stream
+		s << 1 << 2 << finish
+		s.listen [
+			forEach [ println(it) ]
+			onFinish [ println('finished!') ]
+		]
+	}
 
 	@Test
 	def void testRangeStream() {

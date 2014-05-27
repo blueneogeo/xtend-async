@@ -79,7 +79,7 @@ public class TestPromiseExt {
       }
     };
     Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
-    final Promise<Integer> asynced = PromiseExtensions.<Integer>resolve(_map);
+    final Promise<Integer> asynced = PromiseExtensions.<Integer>async(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   

@@ -1,30 +1,22 @@
 package nl.kii.stream
-
+import static extension nl.kii.stream.StreamExtensions.*
 import java.util.List
 import java.util.concurrent.atomic.AtomicReference
 
 import static extension org.junit.Assert.*
 import java.util.LinkedList
 
+
 class StreamAssert {
 	
 	/** pull all queued data from a stream put it in a list, and print any error */
 	def static <T> List<Entry<T>> gather(Stream<T> stream) {
 		val data = new LinkedList<Entry<T>>
-		stream
-			.onNextFinish [| 
-				data.add(new Finish<T>)
-				stream.next
-			]
-			.onNextError [ 
-				printStackTrace
-				stream.next
-			]
-			.onNextValue [ 
-				data.add(value)
-				stream.next
-			]
-		stream.next
+		stream.listen [
+			forEach [ data.add(value) ]
+			onError [ printStackTrace ]
+			onFinish [ data.add(new Finish<T>) ]
+		]
 		data
 	}
 	

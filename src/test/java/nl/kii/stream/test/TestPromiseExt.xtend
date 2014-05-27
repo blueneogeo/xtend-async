@@ -57,7 +57,7 @@ class TestPromiseExt {
 	@Test
 	def void testAsync() {
 		val s = 2.promise
-		val asynced = s.map [ power2(it) ].resolve
+		val asynced = s.map [ power2(it) ].async
 		asynced.assertPromiseEquals(4)
 	}
 	

@@ -17,11 +17,9 @@ class TestStream {
 	def void testUnbufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer>
-		s.onNextValue [ 
+		s.forEach [
 			counter.addAndGet(it)
-			s.next
 		]
-		s.next
 		s << 1 << 2 << 3
 		assertEquals(6, counter.get)
 	}
@@ -30,11 +28,9 @@ class TestStream {
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3
-		s.onNextValue [ 
+		s.forEach [ 
 			counter.addAndGet(it)
-			s.next
 		]
-		s.next
 		assertEquals(6, counter.get)
 	}
 	
@@ -42,24 +38,24 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.onNextValue [
-			counter.addAndGet(it)
+		val subscription = s.listenAsync [
+			forEach [ counter.addAndGet(it) ]
 		]
-		s.next
+		subscription.next
 		assertEquals(1, counter.get) // next pushes the first number onto the stream
-		s.skip
+		subscription.skip
 		assertEquals(1, counter.get) // skipped to the finish, nothing added
-		s.next
+		subscription.next
 		assertEquals(1, counter.get) // got the finish, nothing added
-		s.next
+		subscription.next
 		assertEquals(5, counter.get) // after finish is 4, added to 1
-		s.next
+		subscription.next
 		assertEquals(10, counter.get) // 5 added
-		s.next
+		subscription.next
 		assertEquals(10, counter.get) // we were at the end of the stream so nothing changed
 		s << 1 << 4
 		assertEquals(11, counter.get) // we called next once before, and now that the value arrived, it's added
-		s.next
+		subscription.next
 		assertEquals(15, counter.get) // 4 added to 11
 	}
 	
@@ -68,20 +64,20 @@ class TestStream {
 		val result = new AtomicInteger(0)
 		val s1 = int.stream << 1 << 2 << 3
 		val s2 = s1.map[it] << 4 << 5 << 6
-		s2.onNextValue [
-			result.set(it)
+		val subscription = s2.listenAsync [
+			forEach [ result.set(it) ]
 		]
-		s2.next
+		subscription.next
 		assertEquals(4, result.get)
-		s2.next
+		subscription.next
 		assertEquals(5, result.get)
-		s2.next
+		subscription.next
 		assertEquals(6, result.get)
-		s2.next
+		subscription.next
 		assertEquals(1, result.get)
-		s2.next
+		subscription.next
 		assertEquals(2, result.get)
-		s2.next
+		subscription.next
 		assertEquals(3, result.get)
 	}
 
@@ -89,14 +85,11 @@ class TestStream {
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
-		s.onNextValue [
-			println(1 / it)
-		] // handler will throw /0 exception
 		
 		// no onerror set, should throw it
 		e.set(null)
 		try {
-			s.next
+			s.forEach [ println(1/it) ] // handler will throw /0 exception
 			s << 0
 			fail('should never reach this')
 		} catch(ArithmeticException t) {
@@ -107,25 +100,26 @@ class TestStream {
 		// should work again
 		e.set(null)
 		try {
-			s.next
 			s << 0
+			println('no error?')
 			fail('should never reach this either')
 		} catch(ArithmeticException t) {
 			e.set(t)
 		}
 		assertNotNull(e.get)
-		
+	}
+	
+	@Test
+	def void testStreamErrors2() {
+		val s = new Stream<Integer>
+		val e = new AtomicReference<Throwable>
 		// now try to catch the error
-		val e2 = new AtomicReference<Throwable>
-		e.set(null)
-		s.onNextError [
-			e2.set(it)
-		] // this prevents an error being thrown
-		s.next
+		s.listen [
+			forEach [ println(1/it)] // handler will throw /0 exception
+			onError [ e.set(it) ]
+		]
 		s << 0
-		// now e should still be null, and e2 should be set with the thrown error
-		assertNull(e.get)
-		assertNotNull(e2.get)
+		assertNotNull(e.get)
 	}
 
 	@Test
@@ -135,20 +129,19 @@ class TestStream {
 		val s1 = int.stream << 1 << 2 << finish << 3
 		// substream, also has some stuff buffered, which needs to come out first
 		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
-		s2.onNextValue [
-			result.set(it)
+		val sub = s2.listenAsync [
+			forEach [ result.set(it) ]
 		]
-		s2.next // ask the next from the substream
+		sub.next // ask the next from the substream
 		assertEquals(4, result.get) // which should be the first buffered value
-		s2.skip // skip to the finish
-		s2.next // results in the finish
-		s2.next // process the value after the finish
+		sub.skip // skip to the finish
+		sub.next // results in the finish
+		sub.next // process the value after the finish
 		assertEquals(6, result.get) // which is 6
-		s2.skip // skip, which should first discard 7, then go to the parent stream and discard 1 and 2
-		s2.next // results in the finish
-		s2.next // results in the 3 after the finish
+		sub.skip // skip, which should first discard 7, then go to the parent stream and discard 1 and 2
+		sub.next // results in the finish
+		sub.next // results in the 3 after the finish
 		assertEquals(3, result.get)
 	}
-
 
 }

@@ -9,7 +9,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 public class SynchronizeExt {
 	
 	/**
-	 * Apply Java synchronized block on an object and apply the procedure on it
+=	 * Apply Java synchronized block on an object and apply the procedure on it
 	 */
 	public static <T> void synchronize(T obj, Procedure0 proc) {
 		synchronized (obj) {
@@ -18,9 +18,18 @@ public class SynchronizeExt {
 	}
 
 	/**
+=	 * Apply Java synchronized block on an object and apply the procedure on it
+	 */
+	public static <T> void synchronize(T obj, Procedure1<T> proc) {
+		synchronized (obj) {
+			proc.apply(obj);
+		}
+	}
+
+	/*
 	 * Apply Java synchronized block on an object and apply the procedure on it
 	 */
-	public static <T, R> R synchronize(T obj, Function0<R> proc) {
+	public static <T, R> R synchronizeFn(T obj, Function0<R> proc) {
 		synchronized (obj) {
 			return proc.apply();
 		}
@@ -30,7 +39,7 @@ public class SynchronizeExt {
 	 * Apply Java synchronized block on an object and apply the procedure on it.
 	 * Passes the object into the function.
 	 */
-	public static <T, R> R synchronize(T obj, Function1<T, R> proc) {
+	public static <T, R> R synchronizeFn(T obj, Function1<T, R> proc) {
 		synchronized (obj) {
 			return proc.apply(obj);
 		}
@@ -57,7 +66,7 @@ public class SynchronizeExt {
 	/**
 	 * Create a new synchronized function out of an existing one
 	 */
-	public static <T, R> Function1<T, R> synchronize(Function1<T, R> fn) {
+	public static <T, R> Function1<T, R> synchronizeFn(Function1<T, R> fn) {
 		final Function1<T, R> fn2 = fn;
 		return new Function1<T, R>() {
 
@@ -74,7 +83,7 @@ public class SynchronizeExt {
 	/**
 	 * Create a new synchronized function out of an existing one
 	 */
-	public static <T1, T2, R> Function2<T1, T2, R> synchronize(Function2<T1, T2, R> fn) {
+	public static <T1, T2, R> Function2<T1, T2, R> synchronizeFn(Function2<T1, T2, R> fn) {
 		final Function2<T1, T2, R> fn2 = fn;
 		return new Function2<T1, T2, R>() {
 

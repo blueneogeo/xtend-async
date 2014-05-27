@@ -7,10 +7,11 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 
@@ -23,30 +24,31 @@ public class StreamAssert {
     LinkedList<Entry<T>> _xblockexpression = null;
     {
       final LinkedList<Entry<T>> data = new LinkedList<Entry<T>>();
-      final Procedure0 _function = new Procedure0() {
-        public void apply() {
-          Finish<T> _finish = new Finish<T>();
-          data.add(_finish);
-          stream.next();
+      final Procedure1<SyncSubscription<T>> _function = new Procedure1<SyncSubscription<T>>() {
+        public void apply(final SyncSubscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              Value<T> _value = StreamAssert.<T>value(it);
+              data.add(_value);
+            }
+          };
+          it.forEach(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              it.printStackTrace();
+            }
+          };
+          it.onError(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              Finish<T> _finish = new Finish<T>();
+              data.add(_finish);
+            }
+          };
+          it.onFinish(_function_2);
         }
       };
-      Stream<T> _onNextFinish = stream.onNextFinish(_function);
-      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          it.printStackTrace();
-          stream.next();
-        }
-      };
-      Stream<T> _onNextError = _onNextFinish.onNextError(_function_1);
-      final Procedure1<T> _function_2 = new Procedure1<T>() {
-        public void apply(final T it) {
-          Value<T> _value = StreamAssert.<T>value(it);
-          data.add(_value);
-          stream.next();
-        }
-      };
-      _onNextError.onNextValue(_function_2);
-      stream.next();
+      StreamExtensions.<T>listen(stream, _function);
       _xblockexpression = data;
     }
     return _xblockexpression;

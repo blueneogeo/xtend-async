@@ -8,6 +8,7 @@ import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SyncSubscription;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -48,20 +49,20 @@ public class TestAsyncProcessing {
         }
       };
       Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(_power2, _function);
-      Promise<Integer> _resolve = PromiseExtensions.<Integer>resolve(_map);
+      Promise<Integer> _async = PromiseExtensions.<Integer>async(_map);
       final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestAsyncProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_resolve, _function_1);
-      Promise<Integer> _resolve_1 = PromiseExtensions.<Integer>resolve(_map_1);
+      Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_async, _function_1);
+      Promise<Integer> _async_1 = PromiseExtensions.<Integer>async(_map_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
         }
       };
-      _resolve_1.then(_function_2);
+      _async_1.then(_function_2);
       int _get = result.get();
       Assert.assertEquals(0, _get);
       Thread.sleep(500);
@@ -107,7 +108,7 @@ public class TestAsyncProcessing {
           _get.add(it);
         }
       };
-      StreamExtensions.<Integer>onEach(_resolve_1, _function_3);
+      StreamExtensions.<Integer>forEach(_resolve_1, _function_3);
       LinkedList<Integer> _get = result.get();
       int _size = _get.size();
       Assert.assertEquals(0, _size);
@@ -157,18 +158,23 @@ public class TestAsyncProcessing {
       };
       Stream<Promise<Integer>> _map_2 = StreamExtensions.<Integer, Promise<Integer>>map(_map_1, _function_2);
       Stream<Integer> _resolve_1 = StreamExtensions.<Integer, Object>resolve(_map_2);
-      final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          result.incrementAndGet();
+      final Procedure1<SyncSubscription<Integer>> _function_3 = new Procedure1<SyncSubscription<Integer>>() {
+        public void apply(final SyncSubscription<Integer> it) {
+          final Procedure1<Integer> _function = new Procedure1<Integer>() {
+            public void apply(final Integer it) {
+              Assert.fail("we should not end up here, since an error should be caught instead");
+            }
+          };
+          it.forEach(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              result.incrementAndGet();
+            }
+          };
+          it.onError(_function_1);
         }
       };
-      Stream<Integer> _onError = StreamExtensions.<Integer>onError(_resolve_1, _function_3);
-      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-        public void apply(final Integer it) {
-          Assert.fail("we should not end up here, since an error should be caught instead");
-        }
-      };
-      StreamExtensions.<Integer>onEach(_onError, _function_4);
+      StreamExtensions.<Integer>listen(_resolve_1, _function_3);
       Thread.sleep(700);
       int _get = result.get();
       Assert.assertEquals(3, _get);
@@ -184,7 +190,7 @@ public class TestAsyncProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>resolve(_function);
+    return PromiseExtensions.<Integer>async(_function);
   }
   
   public Promise<Integer> throwsError(final int i) {
@@ -197,6 +203,6 @@ public class TestAsyncProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>resolve(_function);
+    return PromiseExtensions.<Integer>async(_function);
   }
 }

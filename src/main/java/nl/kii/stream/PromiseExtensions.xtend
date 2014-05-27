@@ -119,7 +119,7 @@ class PromiseExtensions {
 		newPromise
 	}
 	
-	def static <T> resolve(Promise<Promise<T>> promise) {
+	def static <T> async(Promise<Promise<T>> promise) {
 		promise.flatten
 	}
 	
@@ -200,13 +200,13 @@ class PromiseExtensions {
 //	}
 
 	/** Execute the callable in the background and return as a promise */
-	def static <T> Promise<T> resolve(Callable<T> callable) {
-		resolve(newSingleThreadExecutor, callable)
+	def static <T> Promise<T> async(Callable<T> callable) {
+		async(newSingleThreadExecutor, callable)
 	}
 
 	/** Execute the runnable in the background and return as a promise */
-	def static Task process(Runnable runnable) {
-		process(newSingleThreadExecutor, runnable)
+	def static Task run(Runnable runnable) {
+		nl.kii.stream.PromiseExtensions.run(newSingleThreadExecutor, runnable)
 	}
 
 	/** 
@@ -216,7 +216,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> Promise<T> resolve(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> async(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {
@@ -237,7 +237,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
-	def static Task process(ExecutorService service, Runnable runnable) {
+	def static Task run(ExecutorService service, Runnable runnable) {
 		task [ task |
 			val Runnable processor = [|
 				try {
