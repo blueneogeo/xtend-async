@@ -1,12 +1,10 @@
 package nl.kii.stream
 
+import java.util.List
+import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
-
-import static java.util.concurrent.Executors.*
-import java.util.List
-import java.util.Map
 
 class PromiseExtensions {
 	
@@ -198,16 +196,6 @@ class PromiseExtensions {
 //	def static <T> resolve(=>T function) {
 //		resolve([| function.apply ] as Callable<T>)
 //	}
-
-	/** Execute the callable in the background and return as a promise */
-	def static <T> Promise<T> async(Callable<T> callable) {
-		async(newSingleThreadExecutor, callable)
-	}
-
-	/** Execute the runnable in the background and return as a promise */
-	def static Task run(Runnable runnable) {
-		nl.kii.stream.PromiseExtensions.run(newSingleThreadExecutor, runnable)
-	}
 
 	/** 
 	 * Execute the callable in the background and return as a promise.

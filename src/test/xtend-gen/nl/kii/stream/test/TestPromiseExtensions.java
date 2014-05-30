@@ -11,7 +11,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings("all")
-public class TestPromiseExt {
+public class TestPromiseExtensions {
   @Test
   public void testFuture() {
     try {
@@ -75,7 +75,7 @@ public class TestPromiseExt {
     final Promise<Integer> s = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
-        return TestPromiseExt.this.power2((it).intValue());
+        return TestPromiseExtensions.this.power2((it).intValue());
       }
     };
     Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);

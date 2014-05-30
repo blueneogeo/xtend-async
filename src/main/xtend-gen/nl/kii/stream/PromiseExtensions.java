@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseFuture;
@@ -224,22 +223,6 @@ public class PromiseExtensions {
    */
   public static <T extends Object> Future<T> future(final Promise<T> promise) {
     return new PromiseFuture<T>(promise);
-  }
-  
-  /**
-   * Execute the callable in the background and return as a promise
-   */
-  public static <T extends Object> Promise<T> async(final Callable<T> callable) {
-    ExecutorService _newSingleThreadExecutor = Executors.newSingleThreadExecutor();
-    return PromiseExtensions.<T>async(_newSingleThreadExecutor, callable);
-  }
-  
-  /**
-   * Execute the runnable in the background and return as a promise
-   */
-  public static Task run(final Runnable runnable) {
-    ExecutorService _newSingleThreadExecutor = Executors.newSingleThreadExecutor();
-    return PromiseExtensions.run(_newSingleThreadExecutor, runnable);
   }
   
   /**

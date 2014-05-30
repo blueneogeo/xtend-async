@@ -8,7 +8,7 @@ import static extension nl.kii.stream.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension org.junit.Assert.*
 
-class TestPromiseExt {
+class TestPromiseExtensions {
 	
 	// CREATION /////////////////////////////////////////////////////////////
 	

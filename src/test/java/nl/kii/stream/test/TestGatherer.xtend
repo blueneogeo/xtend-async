@@ -3,8 +3,8 @@ package nl.kii.stream.test
 //import nl.kii.stream.Countdown
 //import nl.kii.stream.Gatherer
 
+import static java.util.concurrent.Executors.*
 import java.util.concurrent.atomic.AtomicInteger
-import nl.kii.stream.Next
 import nl.kii.stream.Promise
 import nl.kii.stream.Value
 import org.junit.Test
@@ -12,64 +12,73 @@ import org.junit.Test
 import static nl.kii.stream.PromiseExtensions.*
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.Stream
+import java.util.concurrent.locks.ReentrantLock
+import nl.kii.stream.Error
+import org.junit.Assert
 
 class TestCollector {
+	
+	val threads = newCachedThreadPool
 	
 	@Test
 	def void testStreaming() {
 		val s = Integer.stream
 		val s2 = s.map [ it * 2 ]
-		run [|
+		run(threads) [|
 			for(i : 0..999) {
 				s.apply(new Value(1))
 			}
 		]
-		run [|
+		run(threads) [|
 			for(i : 1000..1999) {
 				s.apply(new Value(2))
 			}
 		]
-		run [|
+		run(threads) [|
 			for(i : 2000..2999) {
 				s.apply(new Value(3))
 			}
 		]
 		val sum = new AtomicInteger
-		s2.listener = [ it, next, skip, close |
-			println('got : ' + it)
+		val lock = new ReentrantLock
+		s2.onEntry = [
+			lock.lock
+			if(it instanceof Error<?>) {
+				println('got : ' + it)
+			}
 			switch it {
 				Value<Integer>: sum.addAndGet(value) 
 			}
-			next.apply
+			lock.unlock
+			s2.next
 		]
-		s2.perform(new Next)
-		Thread.sleep(500)
-		println(sum.get)
-		println(s.queue)
+		s2.next
+		Thread.sleep(6000)
+		Assert.assertEquals(12000, sum.get)
 	}
 	
-	def <T> onEach(Stream<T> stream, (T)=>void handler) {
-		stream.listener = [ it, next, skip, close |
-			switch it {
-				Value<T>: { 
-					handler.apply(value)
-					next.apply
-				}
-			}
-		]
-	}
+//	def <T> onEach(Stream<T> stream, (T)=>void handler) {
+//		stream.listener = [ it, next, skip, close |
+//			switch it {
+//				Value<T>: { 
+//					handler.apply(value)
+//					next.apply
+//				}
+//			}
+//		]
+//	}
 	
 	@Test
 	def void testResolving() {
-		val s = #['a', 'b', 'c', 'd', 'e'].stream
+		val s = #['a', 'b'].stream
+		s << 'c' << finish << 'd' << 'e' << finish << 'f'
 		s
 			.map [
-				println('pushing ' + it)
+				// println('pushing ' + it)
 				it
 			]
 			.map [ doSomethingAsync ]
-			.resolve(2)
+			.resolve(1)
 			.collect
 			.forEach [
 				println('got: ' + it)
@@ -78,14 +87,15 @@ class TestCollector {
 		 s << 'f' << 'g' << finish << 'h' << finish
 		//s << 'd' << 'e'
 //		s << 'a' << 'b' << 'c'
-		Thread.sleep(3000)
+		Thread.sleep(1000)
 	}
 	
 	def Promise<String> doSomethingAsync(String x) {
-		async [|
+		async(threads) [|
 			for(i : 1..5) {
-				// println(x + i)
-				System.out.print('')
+				Thread.sleep(10)
+				//println(x + i)
+				// System.out.print('')
 			}
 			x
 		]

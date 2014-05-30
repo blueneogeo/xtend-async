@@ -23,7 +23,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Test;
 
 @SuppressWarnings("all")
-public class TestStreamExt {
+public class TestStreamExtensions {
   @Test
   public void testPrint() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
@@ -158,29 +158,10 @@ public class TestStreamExt {
   
   @Test
   public void testSplit() {
-    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Integer.class);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
-    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
-    Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
-    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 2) == 0));
-      }
-    };
-    final Stream<Integer> split = StreamExtensions.<Integer>split(s, _function);
-    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(1));
-    Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(2));
-    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish();
-    Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(3));
-    Finish<Integer> _finish_2 = StreamExtensions.<Integer>finish();
-    Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(4));
-    Finish<Integer> _finish_3 = StreamExtensions.<Integer>finish();
-    Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(5));
-    StreamAssert.<Integer>assertStreamEquals(split, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _finish_1, _value_2, _finish_2, _value_3, _finish_3, _value_4)));
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method split is undefined for the type TestStreamExtensions"
+      + "\nType mismatch: cannot convert from Object to byte"
+      + "\nassertStreamEquals cannot be resolved");
   }
   
   @Test

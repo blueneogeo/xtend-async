@@ -8,8 +8,8 @@ import nl.kii.stream.StreamCommand;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public class CommandSubscription<T extends Object> implements Procedure1<StreamCommand> {
-  private final Stream<T> stream;
+public class CommandSubscription implements Procedure1<StreamCommand> {
+  private final Stream<?> stream;
   
   private Procedure1<? super Void> onNextFn;
   
@@ -17,14 +17,14 @@ public class CommandSubscription<T extends Object> implements Procedure1<StreamC
   
   private Procedure1<? super Void> onCloseFn;
   
-  public CommandSubscription(final Stream<T> stream) {
+  public CommandSubscription(final Stream<?> stream) {
     this.stream = stream;
     final Procedure1<StreamCommand> _function = new Procedure1<StreamCommand>() {
       public void apply(final StreamCommand it) {
         CommandSubscription.this.apply(it);
       }
     };
-    stream.setCmdListener(_function);
+    stream.onNotification(_function);
   }
   
   public void apply(final StreamCommand it) {

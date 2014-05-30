@@ -11,7 +11,7 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	new(Stream<T> stream) {
 		this.stream = stream
-		stream.listener = [ it, next, skip, close |	apply ]
+		stream.onEntry [ apply ]
 	}
 
 	override apply(Entry<T> it) {
@@ -35,7 +35,7 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	}
 		
 	def close() {
-		stream.perform(new Close)
+		stream.close
 	}
 	
 }
@@ -50,7 +50,7 @@ class SyncSubscription<T> extends Subscription<T> {
 		try {
 			super.apply(it)
 		} finally {
-			stream.perform(new Next)
+			stream.next
 		}
 	}
 
@@ -63,30 +63,25 @@ class AsyncSubscription<T> extends Subscription<T> {
 	}
 	
 	def next() {
-		stream.perform(new Next)
+		stream.next
 	}
 	
 	def skip() {
-		stream.perform(new Skip)
+		stream.skip
 	}
 	
 }
 
-interface StreamCommand { }
-class Next implements StreamCommand { }
-class Skip implements StreamCommand { }
-class Close implements StreamCommand { }
-
-class CommandSubscription<T> implements Procedure1<StreamCommand> {
+class CommandSubscription implements Procedure1<StreamCommand> {
 	
-	val Stream<T> stream
+	val Stream<?> stream
 	var (Void)=>void onNextFn
 	var (Void)=>void onSkipFn
 	var (Void)=>void onCloseFn
 	
-	new(Stream<T> stream) {
+	new(Stream<?> stream) {
 		this.stream = stream
-		stream.cmdListener = [ apply ]
+		stream.onNotification[ apply ]
 	}
 
 	override apply(StreamCommand it) {

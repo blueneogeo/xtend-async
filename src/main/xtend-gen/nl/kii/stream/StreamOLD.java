@@ -1,408 +1,306 @@
 package nl.kii.stream;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.Queues;
+import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import nl.kii.stream.Close;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Stream;
+import nl.kii.stream.Next;
+import nl.kii.stream.Skip;
+import nl.kii.stream.StreamCommand;
 import nl.kii.stream.StreamException;
-import nl.kii.util.SynchronizeExt;
-import org.eclipse.xtend2.lib.StringConcatenation;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Functions.Function0;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure4;
 
-/**
- * <h1>what is a stream</h1>
- * 
- * A stream can receive values, and then transmit these values
- * to its listeners. To push a value into a stream, use .push().
- * To listen to values, call .each().
- * 
- * <h1>what a stream passes</h1>
- * 
- * A Stream is a publisher of three kinds of entries:
- * <li>a value
- * <li>a finish of a batch
- * <li>an error
- * 
- * <h1>finishing a batch</h1>
- * 
- * After pushing some values, you can finish that batch of values by
- * by calling .finish(). This marks the end of a batch of values that
- * you have inputted and is used as a signal to process the batch.
- * <p>
- * For example, the StreamExt.collect() extension uses it to know when
- * a bunch of values have to be collected and transformed into a list.
- * <p>
- * You can repeat this process multiple times on a stream. In the case
- * of collect(), this results in multiple lists being generated in
- * the resulting stream.
- * <p>
- * To just get the first value from a stream, call .then() or .first().
- * 
- * <h1>catching listener errors</h1>
- * 
- * If you have multiple asynchronous processes happening, it can be
- * practical to catch any errors thrown at the end of a stream chain,
- * and not inside the listeners. If you enable catchErrors, the stream
- * will catch any errors occurring in listeners and will instead pass
- * them to a listener that you can pass by calling onError().
- * 
- * <h1>extensions</h1>
- * 
- * The stream class only supports a basic publishing interface.
- * You can add extra functionality by importing extensions:
- * <li>StreamExt
- * <li>StreamPairExt
- * <p>
- * Or creating your own extensions.
- */
 @SuppressWarnings("all")
 public class StreamOLD<T extends Object> implements Procedure1<Entry<T>> {
-  /**
-   * The queue is lazily constructed using this function.
-   */
-  private final Function0<? extends Queue<Entry<T>>> queueFn;
+  private final Queue<Entry<T>> queue;
   
-  /**
-   * The queue gets filled when there are entries entering the stream
-   * even though there are no listeners yet. The queue will only grow
-   * upto the maxQueueSize. If more entries enter than the size, the
-   * queue will overflow and discard these later entries.
-   */
-  private Queue<Entry<T>> queue;
+  private final AtomicBoolean open = new AtomicBoolean(true);
   
-  /**
-   * If true, the value listener is ready for a next value
-   */
-  private final AtomicBoolean _readyForNext = new AtomicBoolean(false);
+  private final AtomicBoolean skipping = new AtomicBoolean(false);
   
-  /**
-   * If true, all values will be discarded upto the next incoming finish
-   */
-  private final AtomicBoolean _skipping = new AtomicBoolean(false);
+  private final AtomicBoolean listenerReady = new AtomicBoolean(false);
   
-  /**
-   * If true, all values will be discarded upto the next incoming finish
-   */
-  private final AtomicBoolean _open = new AtomicBoolean(false);
+  private Procedure1<? super StreamCommand> commandListener;
   
-  /**
-   * Lets others listen when the stream is asked skip to the finish
-   */
-  private Procedure0 onSkip;
+  private Procedure4<? super Entry<T>, ? super Procedure0, ? super Procedure0, ? super Procedure0> entryListener;
   
-  /**
-   * Called when this stream is out of data
-   */
-  private Procedure0 onReadyForNext;
+  private final Procedure0 nextFn = new Procedure0() {
+    public void apply() {
+      Next _next = new Next();
+      StreamOLD.this.perform(_next);
+    }
+  };
   
-  /**
-   * Lets others listen when the stream is closed
-   */
-  private Procedure0 onClose;
+  private final Procedure0 skipFn = new Procedure0() {
+    public void apply() {
+      Skip _skip = new Skip();
+      StreamOLD.this.perform(_skip);
+    }
+  };
   
-  /**
-   * Lets others listen for values in the stream
-   */
-  private Procedure1<? super T> onValue;
+  private final Procedure0 closeFn = new Procedure0() {
+    public void apply() {
+      Close _close = new Close();
+      StreamOLD.this.perform(_close);
+    }
+  };
   
-  /**
-   * Lets others listen for errors occurring in the onValue listener
-   */
-  private Procedure1<? super Throwable> onError;
+  private final ReentrantLock inputLock = new ReentrantLock();
   
-  /**
-   * Lets others listen for the stream finishing a batch
-   */
-  private Procedure0 onFinish;
+  private final ReentrantLock outputLock = new ReentrantLock();
   
-  /**
-   * Creates a new Stream.
-   */
+  private final ReentrantLock controlLock = new ReentrantLock();
+  
   public StreamOLD() {
-    this(null);
+    LinkedBlockingQueue<Entry<T>> _newLinkedBlockingQueue = Queues.<Entry<T>>newLinkedBlockingQueue();
+    this.queue = _newLinkedBlockingQueue;
   }
   
-  /**
-   * Creates a new Stream that is connected to a parentStream.
-   */
-  public StreamOLD(final Stream<?> parentStream) {
-    this(parentStream, new Function0<ConcurrentLinkedQueue<Entry<T>>>() {
-      public ConcurrentLinkedQueue<Entry<T>> apply() {
-        return new ConcurrentLinkedQueue<Entry<T>>();
-      }
-    });
+  public StreamOLD(final Queue<Entry<T>> queueFn) {
+    this.queue = this.queue;
   }
   
-  /**
-   * Most detailed constructor, where you can specify your own queue factory.
-   */
-  public StreamOLD(final Stream<?> parentStream, final Function0<? extends Queue<Entry<T>>> queueFn) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method next is undefined for the type StreamOLD"
-      + "\nThe method skip is undefined for the type StreamOLD"
-      + "\nThe method close is undefined for the type StreamOLD"
-      + "\nThe method next is undefined for the type StreamOLD"
-      + "\nThe method next is undefined for the type StreamOLD"
-      + "\nInvalid number of arguments. The method onNextFinish(()=>void) is not applicable for the arguments (Stream<?>,()=>Object)"
-      + "\nInvalid number of arguments. The method onNextError((Throwable)=>void) is not applicable for the arguments (Stream<?>,(Throwable)=>Object)"
-      + "\nType mismatch: cannot convert from Stream<?> to (Throwable)=>void"
-      + "\nType mismatch: cannot convert from Stream<?> to ()=>void");
-  }
-  
-  protected void setReadyForNext(final boolean isReady) {
-    this._readyForNext.set(isReady);
-  }
-  
-  boolean isReadyForNext() {
-    return this._readyForNext.get();
-  }
-  
-  protected void setSkipping(final boolean isSkipping) {
-    this._skipping.set(isSkipping);
-  }
-  
-  boolean isSkipping() {
-    return this._skipping.get();
-  }
-  
-  Queue<Entry<T>> getQueue() {
-    return this.queue;
-  }
-  
-  boolean isOpen() {
-    return this._open.get();
-  }
-  
-  /**
-   * Push a value into the stream, and publishes it to the listeners
-   */
-  public void push(final T value) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Finish a batch of data that was pushed into the stream. Note that a finish may be called
-   * more than once, indicating that multiple batches were passed. Ends any skipping.
-   */
-  public void finish() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Report an error to the stream. It is also pushed down substreams as a message,
-   * so you can listen for errors at any point below where the error is generated
-   * in a stream chain.
-   */
-  public void error(final Throwable t) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Queue a stream entry
-   */
   public void apply(final Entry<T> entry) {
-    final Procedure1<StreamOLD<T>> _function = new Procedure1<StreamOLD<T>>() {
-      public void apply(final StreamOLD<T> it) {
-        try {
-          boolean _equals = Objects.equal(entry, null);
-          if (_equals) {
-            throw new NullPointerException("cannot stream a null entry");
-          }
-          boolean _get = it._open.get();
-          boolean _not = (!_get);
-          if (_not) {
-            throw new StreamException("cannot apply an entry to a closed stream");
-          }
-          boolean _equals_1 = Objects.equal(it.queue, null);
-          if (_equals_1) {
-            Queue<Entry<T>> _apply = it.queueFn.apply();
-            it.queue = _apply;
-          }
-          boolean _matched = false;
-          if (!_matched) {
-            if (entry instanceof Finish) {
-              _matched=true;
-              boolean _isSkipping = it.isSkipping();
-              if (_isSkipping) {
-                StreamOLD.this.setSkipping(false);
-              }
-            }
-          }
-          it.queue.add(entry);
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
-        }
+    boolean _get = this.open.get();
+    boolean _not = (!_get);
+    if (_not) {
+      return;
+    }
+    this.inputLock.lock();
+    this.queue.add(entry);
+    this.inputLock.unlock();
+    this.publishNext();
+  }
+  
+  public void apply(final Entry<T>... entries) {
+    boolean _get = this.open.get();
+    boolean _not = (!_get);
+    if (_not) {
+      return;
+    }
+    this.inputLock.lock();
+    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+      public void apply(final Entry<T> it) {
+        StreamOLD.this.queue.add(it);
       }
     };
-    SynchronizeExt.<StreamOLD<T>>synchronize(this, _function);
+    IterableExtensions.<Entry<T>>forEach(((Iterable<Entry<T>>)Conversions.doWrapArray(entries)), _function);
+    this.inputLock.unlock();
+    this.publishNext();
   }
   
-  /**
-   * Discards incoming values until the stream receives a Finish. Then unskip and
-   * resume normal operation.
-   */
-  void skip() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nVoid functions cannot return a value."
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Indicate that the listener is ready for the next value
-   */
-  void next() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Closes a stream and stops it being possible to push new entries to the stream or have
-   * the stream have any output. In most cases it is unnecessary to close a stream. However
-   * some
-   */
-  public void close() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Listen for values coming down the stream.
-   * Requires next to be called to get a value.
-   */
-  void onNextValue(final Procedure1<? super T> listener) {
-    this.onValue = listener;
-  }
-  
-  /**
-   * Listen for a finish call being done on the stream. For each finish call,
-   * the passed listener will be called with this stream.
-   */
-  StreamOLD<T> onNextFinish(final Procedure0 listener) {
-    StreamOLD<T> _xblockexpression = null;
-    {
-      this.onFinish = listener;
-      _xblockexpression = this;
+  public void perform(final StreamCommand cmd) {
+    boolean _get = this.open.get();
+    boolean _not = (!_get);
+    if (_not) {
+      return;
     }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Listen for errors in the stream or parent streams.
-   * The stream only catches errors if catchErrors is set to true.
-   * Automatically moves the stream forward.
-   */
-  StreamOLD<T> onNextError(final Procedure1<? super Throwable> listener) {
-    StreamOLD<T> _xblockexpression = null;
-    {
-      this.onError = listener;
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Let a parent stream listen when this stream skips to the finish.
-   * Only supports a single listener.
-   */
-  StreamOLD<T> onSkip(final Procedure0 listener) {
-    StreamOLD<T> _xblockexpression = null;
-    {
-      this.onSkip = listener;
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Let a parent stream listen when this stream is asked for the next value.
-   * Only supports a single listener.
-   */
-  StreamOLD<T> onReadyForNext(final Procedure0 listener) {
-    StreamOLD<T> _xblockexpression = null;
-    {
-      this.onReadyForNext = listener;
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Let a parent stream listen when this stream is asked for the next value.
-   * Only supports a single listener.
-   */
-  public StreamOLD<T> onClose(final Procedure0 listener) {
-    StreamOLD<T> _xblockexpression = null;
-    {
-      this.onClose = listener;
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Try to publish the next value from the queue or the parent stream
-   */
-  void publish() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nVoid functions cannot return a value."
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  /**
-   * Send an entry directly (no queue) to the listeners
-   * (onValue, onError, onFinish). If a value was processed,
-   * ready is set to false again, since the value was published.
-   * @return true if a value was published
-   */
-  protected boolean publish(final Entry<T> entry) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from (StreamOLD<T>)=>void to Procedure1<StreamOLD<T>>"
-      + "\nType mismatch: cannot convert from void to boolean"
-      + "\nVoid functions cannot return a value."
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects."
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects."
-      + "\nThis expression is not allowed in this context, since it doesn\'t cause any side effects.");
-  }
-  
-  public String toString() {
-    StringConcatenation _builder = new StringConcatenation();
-    Class<? extends StreamOLD> _class = this.getClass();
-    String _name = _class.getName();
-    _builder.append(_name, "");
-    _builder.append(" { ");
-    _builder.newLineIfNotEmpty();
-    _builder.append("\t\t\t");
-    _builder.append("queue size: ");
-    {
-      boolean _notEquals = (!Objects.equal(this.queue, null));
-      if (_notEquals) {
-        _builder.append(" ");
-        int _length = ((Object[])Conversions.unwrapArray(this.queue, Object.class)).length;
-        _builder.append(_length, "\t\t\t");
-        _builder.append(" ");
-      } else {
-        _builder.append(" none ");
+    try {
+      this.controlLock.lock();
+      boolean _matched = false;
+      if (!_matched) {
+        if (cmd instanceof Next) {
+          _matched=true;
+          this.listenerReady.set(true);
+          final boolean published = this.publishNext();
+          if ((!published)) {
+            this.notify(cmd);
+          }
+        }
       }
+      if (!_matched) {
+        if (cmd instanceof Skip) {
+          _matched=true;
+          boolean _get_1 = this.skipping.get();
+          if (_get_1) {
+            return;
+          } else {
+            this.skipping.set(true);
+          }
+          boolean _and = false;
+          boolean _get_2 = this.skipping.get();
+          if (!_get_2) {
+            _and = false;
+          } else {
+            boolean _isEmpty = this.queue.isEmpty();
+            boolean _not_1 = (!_isEmpty);
+            _and = _not_1;
+          }
+          boolean _while = _and;
+          while (_while) {
+            Entry<T> _peek = this.queue.peek();
+            boolean _matched_1 = false;
+            if (!_matched_1) {
+              if (_peek instanceof Finish) {
+                _matched_1=true;
+                this.skipping.set(false);
+              }
+            }
+            if (!_matched_1) {
+              this.queue.poll();
+            }
+            boolean _and_1 = false;
+            boolean _get_3 = this.skipping.get();
+            if (!_get_3) {
+              _and_1 = false;
+            } else {
+              boolean _isEmpty_1 = this.queue.isEmpty();
+              boolean _not_2 = (!_isEmpty_1);
+              _and_1 = _not_2;
+            }
+            _while = _and_1;
+          }
+          boolean _get_3 = this.skipping.get();
+          if (_get_3) {
+            this.notify(cmd);
+          }
+        }
+      }
+      if (!_matched) {
+        if (cmd instanceof Close) {
+          _matched=true;
+          this.open.set(false);
+          this.notify(cmd);
+        }
+      }
+    } finally {
+      this.controlLock.unlock();
     }
-    _builder.newLineIfNotEmpty();
-    _builder.append("\t\t\t");
-    _builder.append("open: ");
-    boolean _isOpen = this.isOpen();
-    _builder.append(_isOpen, "\t\t\t");
-    _builder.newLineIfNotEmpty();
-    _builder.append("\t\t");
-    _builder.append("}");
-    _builder.newLine();
-    return _builder.toString();
+  }
+  
+  /**
+   * take an entry from the queue and pass it to the listener
+   */
+  protected boolean publishNext() {
+    try {
+      boolean _xtrycatchfinallyexpression = false;
+      try {
+        boolean _xblockexpression = false;
+        {
+          this.outputLock.tryLock();
+          boolean _xifexpression = false;
+          boolean _and = false;
+          boolean _and_1 = false;
+          boolean _get = this.listenerReady.get();
+          if (!_get) {
+            _and_1 = false;
+          } else {
+            boolean _notEquals = (!Objects.equal(this.entryListener, null));
+            _and_1 = _notEquals;
+          }
+          if (!_and_1) {
+            _and = false;
+          } else {
+            boolean _isEmpty = this.queue.isEmpty();
+            boolean _not = (!_isEmpty);
+            _and = _not;
+          }
+          if (_and) {
+            boolean _xblockexpression_1 = false;
+            {
+              this.listenerReady.set(false);
+              final Entry<T> entry = this.queue.poll();
+              if ((entry instanceof Finish<?>)) {
+                this.skipping.set(false);
+              }
+              boolean _xtrycatchfinallyexpression_1 = false;
+              try {
+                boolean _xblockexpression_2 = false;
+                {
+                  this.entryListener.apply(entry, this.nextFn, this.skipFn, this.closeFn);
+                  _xblockexpression_2 = true;
+                }
+                _xtrycatchfinallyexpression_1 = _xblockexpression_2;
+              } catch (final Throwable _t) {
+                if (_t instanceof Throwable) {
+                  final Throwable t = (Throwable)_t;
+                  boolean _xblockexpression_3 = false;
+                  {
+                    if ((entry instanceof nl.kii.stream.Error<?>)) {
+                      throw t;
+                    }
+                    this.listenerReady.set(true);
+                    nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
+                    this.apply(_error);
+                    _xblockexpression_3 = false;
+                  }
+                  _xtrycatchfinallyexpression_1 = _xblockexpression_3;
+                } else {
+                  throw Exceptions.sneakyThrow(_t);
+                }
+              }
+              _xblockexpression_1 = _xtrycatchfinallyexpression_1;
+            }
+            _xifexpression = _xblockexpression_1;
+          } else {
+            _xifexpression = false;
+          }
+          _xblockexpression = _xifexpression;
+        }
+        _xtrycatchfinallyexpression = _xblockexpression;
+      } finally {
+        this.outputLock.unlock();
+      }
+      return _xtrycatchfinallyexpression;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  /**
+   * notify the commandlistener that we've performed a command
+   */
+  protected void notify(final StreamCommand cmd) {
+    boolean _notEquals = (!Objects.equal(this.commandListener, null));
+    if (_notEquals) {
+      this.commandListener.apply(cmd);
+    }
+  }
+  
+  public synchronized void setListener(final Procedure4<? super Entry<T>, ? super Procedure0, ? super Procedure0, ? super Procedure0> entryListener) {
+    try {
+      boolean _notEquals = (!Objects.equal(this.entryListener, null));
+      if (_notEquals) {
+        throw new StreamException("a stream can only have a single entry listener, one was already assigned.");
+      }
+      this.entryListener = entryListener;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  public synchronized void setCmdListener(final Procedure1<? super StreamCommand> commandListener) {
+    try {
+      boolean _notEquals = (!Objects.equal(this.commandListener, null));
+      if (_notEquals) {
+        throw new StreamException("a stream can only have a single command listener, one was already assigned.");
+      }
+      this.commandListener = commandListener;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  /**
+   * you're not getting the actual queue, just a list of what is in it
+   */
+  public synchronized List<Queue<Entry<T>>> getQueue() {
+    return CollectionLiterals.<Queue<Entry<T>>>newImmutableList(this.queue);
+  }
+  
+  public synchronized boolean isOpen() {
+    return this.open.get();
   }
 }

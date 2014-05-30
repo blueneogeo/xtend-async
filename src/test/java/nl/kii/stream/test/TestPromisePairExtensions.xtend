@@ -14,7 +14,7 @@ import static extension nl.kii.stream.PromisePairExtensions.*
 import static extension nl.kii.stream.PromisePairExtensions.*
 import static extension nl.kii.stream.PromisePairExtensions.*
 
-class TestPromisePairExt {
+class TestPromisePairExtensions {
 
 	@Test
 	def void testThenWithPairParams() {

@@ -1,13 +1,10 @@
 package nl.kii.stream;
 
-import nl.kii.stream.Close;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.Value;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure4;
 
 @SuppressWarnings("all")
 public abstract class Subscription<T extends Object> implements Procedure1<Entry<T>> {
@@ -21,12 +18,12 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
   
   public Subscription(final Stream<T> stream) {
     this.stream = stream;
-    final Procedure4<Entry<T>, Procedure0, Procedure0, Procedure0> _function = new Procedure4<Entry<T>, Procedure0, Procedure0, Procedure0>() {
-      public void apply(final Entry<T> it, final Procedure0 next, final Procedure0 skip, final Procedure0 close) {
+    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+      public void apply(final Entry<T> it) {
         Subscription.this.apply(it);
       }
     };
-    stream.setListener(_function);
+    stream.onEntry(_function);
   }
   
   public void apply(final Entry<T> it) {
@@ -70,7 +67,6 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
   }
   
   public void close() {
-    Close _close = new Close();
-    this.stream.perform(_close);
+    this.stream.close();
   }
 }

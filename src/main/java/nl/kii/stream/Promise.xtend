@@ -12,7 +12,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	val _entry = new AtomicReference<Entry<T>>
 	var _fulfilled = new AtomicBoolean(false)
 
-	/** Lets others listen for values in the stream */
+	/** Lets others listen for the arrival of a value */
 	val _onValue = new AtomicReference<Procedure1<T>>
 
 	/** Lets others listen for errors occurring in the onValue listener */

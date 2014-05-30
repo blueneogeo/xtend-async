@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import java.util.concurrent.locks.ReentrantLock
 
 class StreamExtensions {
 	
@@ -211,22 +212,23 @@ class StreamExtensions {
 		newStream
 	}
 
-	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
-		val newStream = new Stream<T>
-		val subscription = stream.listenAsync [ s |
-			s.forEach [
-				if(splitConditionFn.apply(it)) {
-					newStream.apply(new Value(it), new Finish)
-				} else {
-					newStream.apply(new Value(it))
-				}
-			]
-			s.onError [ newStream.error(it) ]
-			s.onFinish [ newStream.finish ]
-		]
-		newStream.connectTo(subscription)
-		newStream
-	}
+// TODO: implement
+//	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
+//		val newStream = new Stream<T>
+//		val subscription = stream.listenAsync [ s |
+//			s.forEach [
+//				if(splitConditionFn.apply(it)) {
+//					newStream.apply(new Value(it), new Finish)
+//				} else {
+//					newStream.apply(new Value(it))
+//				}
+//			]
+//			s.onError [ newStream.error(it) ]
+//			s.onFinish [ newStream.finish ]
+//		]
+//		newStream.connectTo(subscription)
+//		newStream
+//	}
 	
 	/** 
 	 * Create from an existing stream a stream of streams, separated by finishes in the start stream.
@@ -327,30 +329,33 @@ class StreamExtensions {
 		val processes = new AtomicInteger(0)
 		val newStream = new Stream<T>
 		val isFinished = new AtomicBoolean(false)
+		val lock = new ReentrantLock
 		val subscription = stream.listenAsync [ s |
-			s.forEach [ promise |
-				processes.incrementAndGet 
-				println('starting process ' + processes.get)
-				// if more processes are available, request a next value
-				if(concurrency > processes.get) {
-					println('requesting more since we have more concurrency')
+			val =>void onProcessComplete = [|
+				lock.lock
+				println('completed process ' + processes.get)
+				val open = processes.decrementAndGet
+				if(concurrency > open) {
+					println('requesting new process ' + (open+1))
 					s.next
 				}
+				lock.unlock
+			]
+			s.forEach [ promise |
+				lock.lock
+				processes.incrementAndGet
+				println('starting process ' + processes.get)
 				promise
-					.onError [ newStream.error(it) ]
-					.then [
-						newStream.push(it)
-						val open = processes.decrementAndGet  
-						println('finished process ' + (processes.get + 1) + ' for ' + it)
-						if(open == 0 && isFinished.get) {
-							println('finishing after all processes completed')
-							isFinished.set(false)
-							newStream.finish
-						} else if(concurrency > open){
-							println('requesting new process')
-							s.next
-						}
+					.onError [
+						onProcessComplete.apply 
+						newStream.error(it)
 					]
+					.then [
+						println('result ' + it)
+						newStream.push(it)
+						onProcessComplete.apply 
+					]
+				lock.unlock
 			]
 			s.onError [ newStream.error(it) ]
 			s.onFinish [ 
@@ -365,7 +370,7 @@ class StreamExtensions {
 				}
 			]
 		]
-		newStream.connectTo(subscription)
+		// newStream.connectTo(subscription)
 		subscription.next
 		newStream
 	}
@@ -428,7 +433,7 @@ class StreamExtensions {
 	def static <T> listen(Stream<T> stream, (SyncSubscription<T>)=>void handlerFn) {
 		val handler = new SyncSubscription<T>(stream)
 		handlerFn.apply(handler)
-		stream.perform(new Next) // automatically start streaming
+		stream.next // automatically start streaming
 		handler
 	}
 
@@ -438,8 +443,8 @@ class StreamExtensions {
 		handler
 	}
 	
-	def static <T> monitor(Stream<T> stream, (CommandSubscription<T>)=>void subscriptionFn) {
-		val handler = new CommandSubscription<T>(stream)
+	def static <T> monitor(Stream<T> stream, (CommandSubscription)=>void subscriptionFn) {
+		val handler = new CommandSubscription(stream)
 		subscriptionFn.apply(handler)
 		handler
 	}	
@@ -454,6 +459,7 @@ class StreamExtensions {
 		]
 	}
 
+	// TODO: implement
 	/** 
 	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
 	 * asks the next value from the stream every time the processor finishes.
@@ -472,6 +478,7 @@ class StreamExtensions {
 //		]
 //	}
 
+	// TODO: implement
 	/** 
 	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
 	 * and that pushes thr number of tasks that were performed when the source stream of tasks
@@ -489,31 +496,31 @@ class StreamExtensions {
 	 * 		.process(3) // 3 parallel processes max
 	 * </pre>
 	 */
-	def static <T, R> process(Stream<Task> stream, int concurrency) {
-		val processes = new AtomicInteger(0)
-		val count = new AtomicLong(0)
-		val newStream = new Stream<Long>(stream)
-		stream.onNextValue [ promise |
-			processes.incrementAndGet 
-			promise
-				.onError [ 
-					newStream.error(it)
-					if(processes.decrementAndGet < concurrency) 
-						stream.next
-				]
-				.then [
-					count.incrementAndGet
-					if(processes.decrementAndGet < concurrency) 
-						stream.next
-				]
-		]
-		stream.onNextFinish[|
-			newStream.push(count.get)
-			count.set(0)
-			stream.next
-		]
-		newStream
-	}
+//	def static <T, R> process(Stream<Task> stream, int concurrency) {
+//		val processes = new AtomicInteger(0)
+//		val count = new AtomicLong(0)
+//		val newStream = new Stream<Long>(stream)
+//		stream.onNextValue [ promise |
+//			processes.incrementAndGet 
+//			promise
+//				.onError [ 
+//					newStream.error(it)
+//					if(processes.decrementAndGet < concurrency) 
+//						stream.next
+//				]
+//				.then [
+//					count.incrementAndGet
+//					if(processes.decrementAndGet < concurrency) 
+//						stream.next
+//				]
+//		]
+//		stream.onNextFinish[|
+//			newStream.push(count.get)
+//			count.set(0)
+//			stream.next
+//		]
+//		newStream
+//	}
 
 	/**
 	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
@@ -522,10 +529,11 @@ class StreamExtensions {
 	 * 
 	 * @see StreamExtensions.process(Stream<Task> stream, int concurrency)
 	 */
-	def static <T, R> process(Stream<Task> stream) {
-		stream.process(1)
-	}
-	
+//	def static <T, R> process(Stream<Task> stream) {
+//		stream.process(1)
+//	}
+
+// TODO: implement	
 //	/** 
 //	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
 //	 */

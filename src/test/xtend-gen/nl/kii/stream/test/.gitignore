@@ -5,3 +5,6 @@
 /.Testing.java._trace
 /.TestGatherer.java._trace
 /.TestCollector.java._trace
+/.TestStreamExtensions.java._trace
+/.TestPromiseExtensions.java._trace
+/.TestPromisePairExtensions.java._trace

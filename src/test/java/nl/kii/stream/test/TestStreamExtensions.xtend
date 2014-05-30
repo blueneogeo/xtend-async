@@ -5,7 +5,7 @@ import org.junit.Test
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 
-class TestStreamExt {
+class TestStreamExtensions {
 
 	@Test
 	def void testPrint() {

@@ -1,7 +1,6 @@
 package nl.kii.stream;
 
 import nl.kii.stream.Entry;
-import nl.kii.stream.Next;
 import nl.kii.stream.Stream;
 import nl.kii.stream.Subscription;
 
@@ -15,8 +14,7 @@ public class SyncSubscription<T extends Object> extends Subscription<T> {
     try {
       super.apply(it);
     } finally {
-      Next _next = new Next();
-      this.stream.perform(_next);
+      this.stream.next();
     }
   }
 }

@@ -69,3 +69,7 @@
 /.AbstractSubscription.java._trace
 /.SyncSubscription.java._trace
 /.CommandSubscription.java._trace
+/.Actor.java._trace
+/.OLDStream.java._trace
+/.StreamOLDEST.java._trace
+/.StreamMessage.java._trace

@@ -10,15 +10,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Next;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.SyncSubscription;
-import nl.kii.stream.Task;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -105,8 +104,8 @@ public class StreamExtensions {
         }
       };
       final Procedure0 pushNext = _function;
-      final Procedure1<CommandSubscription<T>> _function_1 = new Procedure1<CommandSubscription<T>>() {
-        public void apply(final CommandSubscription<T> it) {
+      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
+        public void apply(final CommandSubscription it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               pushNext.apply();
@@ -128,12 +127,12 @@ public class StreamExtensions {
   }
   
   public static <T extends Object> void error(final Stream<T> stream, final Throwable error) {
-    nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(error);
+    nl.kii.stream.Error<Object> _error = new nl.kii.stream.Error<Object>(error);
     stream.apply(_error);
   }
   
   public static <T extends Object> void finish(final Stream<T> stream) {
-    Finish<T> _finish = new Finish<T>();
+    Finish<Object> _finish = new Finish<Object>();
     stream.apply(_finish);
   }
   
@@ -240,9 +239,9 @@ public class StreamExtensions {
     return new Finish<T>();
   }
   
-  static <T extends Object, R extends Object> CommandSubscription<T> connectTo(final Stream<T> newStream, final AsyncSubscription<?> parent) {
-    final Procedure1<CommandSubscription<T>> _function = new Procedure1<CommandSubscription<T>>() {
-      public void apply(final CommandSubscription<T> it) {
+  static <T extends Object, R extends Object> CommandSubscription connectTo(final Stream<T> newStream, final AsyncSubscription<?> parent) {
+    final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
+      public void apply(final CommandSubscription it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             parent.next();
@@ -362,47 +361,6 @@ public class StreamExtensions {
                 StreamExtensions.<T>push(newStream, it);
               } else {
                 s.next();
-              }
-            }
-          };
-          s.forEach(_function);
-          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              StreamExtensions.<T>error(newStream, it);
-            }
-          };
-          s.onError(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              StreamExtensions.<T>finish(newStream);
-            }
-          };
-          s.onFinish(_function_2);
-        }
-      };
-      final AsyncSubscription<T> subscription = StreamExtensions.<T>listenAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> Stream<T> split(final Stream<T> stream, final Function1<? super T, ? extends Boolean> splitConditionFn) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
-        public void apply(final AsyncSubscription<T> s) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              Boolean _apply = splitConditionFn.apply(it);
-              if ((_apply).booleanValue()) {
-                Value<T> _value = new Value<T>(it);
-                Finish<T> _finish = new Finish<T>();
-                newStream.apply(_value, _finish);
-              } else {
-                Value<T> _value_1 = new Value<T>(it);
-                newStream.apply(_value_1);
               }
             }
           };
@@ -595,66 +553,57 @@ public class StreamExtensions {
       final AtomicInteger processes = new AtomicInteger(0);
       final Stream<T> newStream = new Stream<T>();
       final AtomicBoolean isFinished = new AtomicBoolean(false);
+      final ReentrantLock lock = new ReentrantLock();
       final Procedure1<AsyncSubscription<Promise<T>>> _function = new Procedure1<AsyncSubscription<Promise<T>>>() {
         public void apply(final AsyncSubscription<Promise<T>> s) {
-          final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              lock.lock();
+              int _get = processes.get();
+              String _plus = ("completed process " + Integer.valueOf(_get));
+              InputOutput.<String>println(_plus);
+              final int open = processes.decrementAndGet();
+              if ((concurrency > open)) {
+                InputOutput.<String>println(("requesting new process " + Integer.valueOf((open + 1))));
+                s.next();
+              }
+              lock.unlock();
+            }
+          };
+          final Procedure0 onProcessComplete = _function;
+          final Procedure1<Promise<T>> _function_1 = new Procedure1<Promise<T>>() {
             public void apply(final Promise<T> promise) {
+              lock.lock();
               processes.incrementAndGet();
               int _get = processes.get();
               String _plus = ("starting process " + Integer.valueOf(_get));
               InputOutput.<String>println(_plus);
-              int _get_1 = processes.get();
-              boolean _greaterThan = (concurrency > _get_1);
-              if (_greaterThan) {
-                InputOutput.<String>println("requesting more since we have more concurrency");
-                s.next();
-              }
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
+                  onProcessComplete.apply();
                   StreamExtensions.<T>error(newStream, it);
                 }
               };
               Promise<T> _onError = promise.onError(_function);
               final Procedure1<T> _function_1 = new Procedure1<T>() {
                 public void apply(final T it) {
+                  InputOutput.<String>println(("result " + it));
                   StreamExtensions.<T>push(newStream, it);
-                  final int open = processes.decrementAndGet();
-                  int _get = processes.get();
-                  int _plus = (_get + 1);
-                  String _plus_1 = ("finished process " + Integer.valueOf(_plus));
-                  String _plus_2 = (_plus_1 + " for ");
-                  String _plus_3 = (_plus_2 + it);
-                  InputOutput.<String>println(_plus_3);
-                  boolean _and = false;
-                  if (!(open == 0)) {
-                    _and = false;
-                  } else {
-                    boolean _get_1 = isFinished.get();
-                    _and = _get_1;
-                  }
-                  if (_and) {
-                    InputOutput.<String>println("finishing after all processes completed");
-                    isFinished.set(false);
-                    StreamExtensions.<T>finish(newStream);
-                  } else {
-                    if ((concurrency > open)) {
-                      InputOutput.<String>println("requesting new process");
-                      s.next();
-                    }
-                  }
+                  onProcessComplete.apply();
                 }
               };
               _onError.then(_function_1);
+              lock.unlock();
             }
           };
-          s.forEach(_function);
-          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+          s.forEach(_function_1);
+          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               StreamExtensions.<T>error(newStream, it);
             }
           };
-          s.onError(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+          s.onError(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
             public void apply(final Void it) {
               InputOutput.<String>println("process finish");
               int _get = processes.get();
@@ -668,11 +617,10 @@ public class StreamExtensions {
               }
             }
           };
-          s.onFinish(_function_2);
+          s.onFinish(_function_3);
         }
       };
       final AsyncSubscription<Promise<T>> subscription = StreamExtensions.<Promise<T>>listenAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
       subscription.next();
       _xblockexpression = newStream;
     }
@@ -684,8 +632,7 @@ public class StreamExtensions {
     {
       final SyncSubscription<T> handler = new SyncSubscription<T>(stream);
       handlerFn.apply(handler);
-      Next _next = new Next();
-      stream.perform(_next);
+      stream.next();
       _xblockexpression = handler;
     }
     return _xblockexpression;
@@ -701,10 +648,10 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> CommandSubscription<T> monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription<T>> subscriptionFn) {
-    CommandSubscription<T> _xblockexpression = null;
+  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
+    CommandSubscription _xblockexpression = null;
     {
-      final CommandSubscription<T> handler = new CommandSubscription<T>(stream);
+      final CommandSubscription handler = new CommandSubscription(stream);
       subscriptionFn.apply(handler);
       _xblockexpression = handler;
     }
@@ -731,47 +678,6 @@ public class StreamExtensions {
       }
     };
     return StreamExtensions.<T>listen(stream, _function);
-  }
-  
-  /**
-   * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
-   * and that pushes thr number of tasks that were performed when the source stream of tasks
-   * finishes.
-   * <pre>
-   * def Task doSomeTask(int userId) {
-   * 		task [ doSomeTask |
-   * 			..do some asynchronous work here..
-   * 		]
-   * }
-   * 
-   * val userIds = #[5, 6, 2, 67]
-   * userIds.stream
-   * 		.map [ doSomeTask ]
-   * 		.process(3) // 3 parallel processes max
-   * </pre>
-   */
-  public static <T extends Object, R extends Object> Stream<Long> process(final Stream<Task> stream, final int concurrency) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextValue is undefined for the type StreamExtensions"
-      + "\nThe method onError is undefined for the type StreamExtensions"
-      + "\nThe method next is undefined for the type StreamExtensions"
-      + "\nThe method next is undefined for the type StreamExtensions"
-      + "\nThe method onNextFinish is undefined for the type StreamExtensions"
-      + "\nThe method next is undefined for the type StreamExtensions"
-      + "\nType mismatch: cannot convert from Stream<Task> to Queue<Entry<Long>>"
-      + "\nThere is no context to infer the closure\'s argument types from. Consider typing the arguments or put the closures into a typed context."
-      + "\nthen cannot be resolved");
-  }
-  
-  /**
-   * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
-   * and that pushes the number of tasks that were performed when the source stream of tasks
-   * finishes. Performs at most one task at a time.
-   * 
-   * @see StreamExtensions.process(Stream<Task> stream, int concurrency)
-   */
-  public static <T extends Object, R extends Object> Stream<Long> process(final Stream<Task> stream) {
-    return StreamExtensions.<Object, Object>process(stream, 1);
   }
   
   /**

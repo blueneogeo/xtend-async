@@ -110,12 +110,8 @@ public class StreamPairExtensions {
       + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
       + "\nThe method or field key is undefined for the type StreamPairExtensions"
       + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nType mismatch: cannot convert from Stream<Pair<K1, V1>> to Queue<Entry<V2>>");
   }
   
@@ -139,12 +135,8 @@ public class StreamPairExtensions {
   public static <V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2, V2>> mapAsyncToPair(final Stream<V1> stream, final Function1<? super V1, ? extends Pair<K2, Promise<V2>>> promiseFn) {
     throw new Error("Unresolved compilation problems:"
       + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nType mismatch: cannot convert from Stream<V1> to Queue<Entry<Pair<K2, V2>>>");
   }
   
@@ -161,12 +153,8 @@ public class StreamPairExtensions {
       + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
       + "\nThe method or field key is undefined for the type StreamPairExtensions"
       + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nThe method next is undefined for the type StreamPairExtensions"
       + "\nType mismatch: cannot convert from Stream<Pair<K1, V1>> to Queue<Entry<Pair<K2, V2>>>");
   }
   

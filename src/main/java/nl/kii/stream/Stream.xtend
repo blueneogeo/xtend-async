@@ -4,13 +4,15 @@ import java.util.Queue
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.atomic.AtomicBoolean
 
-class Stream<T> implements Procedure1<Entry<T>> {
+class StreamOLD<T> implements Procedure1<Entry<T>> {
 
 	val Queue<Entry<T>> queue
-	var open = true
-	var skipping = false
-	var listenerReady = false
+	val open = new AtomicBoolean(true)
+	val skipping = new AtomicBoolean(false)
+	val listenerReady = new AtomicBoolean(false)
 
 	var (StreamCommand)=>void commandListener
 	var (Entry<T>, =>void, =>void, =>void)=>void entryListener
@@ -18,6 +20,10 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	val =>void nextFn = [| perform(new Next) ]
 	val =>void skipFn = [| perform(new Skip) ]
 	val =>void closeFn = [| perform(new Close) ]
+	
+	val inputLock = new ReentrantLock
+	val outputLock = new ReentrantLock
+	val controlLock = new ReentrantLock
 	
 	new() {
 		this.queue = newLinkedBlockingQueue
@@ -28,64 +34,78 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	}
 
 	override apply(Entry<T> entry) {
-		if(!open) return;
+		if(!open.get) return;
+		inputLock.lock
 		queue.add(entry)
+		inputLock.unlock
 		publishNext
 	}
 	
 	def apply(Entry<T>... entries) {
-		if(!open) return;
+		if(!open.get) return;
+		inputLock.lock
 		entries.forEach [ queue.add(it) ]
+		inputLock.unlock
 		publishNext
 	}
 
-	def synchronized perform(StreamCommand cmd) {
-		if(!open) return;
-		switch cmd {
-			Next: {
-				listenerReady = true
-				// try to publish the next from the queue
-				val published = publishNext
-				// if nothing was published, notify there parent stream we need a next entry
-				if(!published) notify(cmd)
-			}
-			Skip: {
-				if(skipping) return 
-				else skipping = true		
-				// discard everything up to finish from the queue
-				while(skipping && !queue.empty) {
-					switch queue.peek {
-						Finish<T>: skipping = false
-						default: queue.poll
-					}
+	def perform(StreamCommand cmd) {
+		if(!open.get) return;
+		try {
+			controlLock.lock
+			switch cmd {
+				Next: {
+					listenerReady.set(true)
+					// try to publish the next from the queue
+					val published = publishNext
+					// if nothing was published, notify there parent stream we need a next entry
+					if(!published) notify(cmd)
 				}
-				// if we are still skipping, notify the parent stream it needs to skip
-				if(skipping) notify(cmd)
+				Skip: {
+					if(skipping.get) return 
+					else skipping.set(true)		
+					// discard everything up to finish from the queue
+					while(skipping.get && !queue.empty) {
+						switch queue.peek {
+							Finish<T>: skipping.set(false)
+							default: queue.poll
+						}
+					}
+					// if we are still skipping, notify the parent stream it needs to skip
+					if(skipping.get) notify(cmd)
+				}
+				Close: {
+					open.set(false)
+					notify(cmd)
+				}
 			}
-			Close: {
-				open = false
-				notify(cmd)
-			}
+		} finally {
+			controlLock.unlock
 		}
 	}
 	
 	/** take an entry from the queue and pass it to the listener */
 	def protected boolean publishNext() {
-		if(listenerReady && entryListener != null && !queue.empty) {
-			listenerReady = false
-			val entry = queue.poll
-			if(entry instanceof Finish<?>)
-				skipping = false
-			try {
-				entryListener.apply(entry, nextFn, skipFn, closeFn)
-				true
-			} catch(Throwable t) {
-				if(entry instanceof Error<?>) throw t
-				listenerReady = true
-				apply(new Error(t))
-				false
-			}
-		} else false
+		try {
+			outputLock.tryLock
+			if(listenerReady.get && entryListener != null && !queue.empty) {
+				listenerReady.set(false)
+				val entry = queue.poll
+				if(entry instanceof Finish<?>)
+					skipping.set(false)
+				try {
+					entryListener.apply(entry, nextFn, skipFn, closeFn)
+					true
+				} catch(Throwable t) {
+					if(entry instanceof Error<?>) throw t
+					listenerReady.set(true)
+					apply(new Error(t))
+					false
+				}
+			} else false
+		} finally {
+			outputLock.unlock
+		}
 	}
 	
 	/** notify the commandlistener that we've performed a command */
@@ -94,27 +114,6 @@ class Stream<T> implements Procedure1<Entry<T>> {
 			commandListener.apply(cmd)
 	}
 	
-	/** 
-	 * Lets you listen to the stream. 
-	 * The listener passes you a value, as well as functions for calling 
-	 * next, skip and close on the stream. For example:
-	 * 
-	 * <pre>
-	 * val s = int.stream
-	 * s.listener = [ it, next, skip, close |
-	 *     switch it {
-	 *         Value<Integer>: {
-	 *              println('got value ' + value)
-	 *              next.apply // we are ready for the next value, request it
-	 *         }
-	 *         Finish<Integer>: {
-	 *              println('we are done, closing the stream')
-	 *              close.apply
-	 *         }
-	 *     }
-	 * ]
-	 * </pre>
-	 */
 	def synchronized void setListener((Entry<T>, =>void, =>void, =>void)=>void entryListener) {
 		if(this.entryListener != null)
 			throw new StreamException('a stream can only have a single entry listener, one was already assigned.')
@@ -133,7 +132,9 @@ class Stream<T> implements Procedure1<Entry<T>> {
 	}
 	
 	def synchronized isOpen() {
-		open
+		open.get
 	}
 	
 }
+
+
