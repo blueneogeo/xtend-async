@@ -32,23 +32,23 @@ public class StreamAssert {
               data.add(_value);
             }
           };
-          it.forEach(_function);
+          it.each(_function);
           final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               it.printStackTrace();
             }
           };
-          it.onError(_function_1);
+          it.error(_function_1);
           final Procedure1<Void> _function_2 = new Procedure1<Void>() {
             public void apply(final Void it) {
               Finish<T> _finish = new Finish<T>();
               data.add(_finish);
             }
           };
-          it.onFinish(_function_2);
+          it.finish(_function_2);
         }
       };
-      StreamExtensions.<T>listen(stream, _function);
+      StreamExtensions.<T>on(stream, _function);
       _xblockexpression = data;
     }
     return _xblockexpression;

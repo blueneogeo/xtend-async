@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamBalancer;
+import nl.kii.stream.StreamExtensions;
+import nl.kii.util.SynchronizeExt;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -32,16 +35,50 @@ public class ControlledBalancer<T extends Object> implements StreamBalancer<T> {
   }
   
   public StreamBalancer<T> register(final Stream<T> stream, final Function1<? super T, ? extends Boolean> criterium) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onClose is undefined for the type ControlledBalancer"
-      + "\nThe method onReadyForNext is undefined for the type ControlledBalancer"
-      + "\nThe method onSkip is undefined for the type ControlledBalancer");
+    ControlledBalancer<T> _xblockexpression = null;
+    {
+      this.streams.put(stream, criterium);
+      this.ready.put(stream, Boolean.valueOf(false));
+      final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
+        public void apply(final CommandSubscription it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              ControlledBalancer.this.ready.put(stream, Boolean.valueOf(true));
+            }
+          };
+          it.onNext(_function);
+          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+            }
+          };
+          it.onSkip(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              ControlledBalancer.this.unregister(stream);
+            }
+          };
+          it.onClose(_function_2);
+        }
+      };
+      StreamExtensions.<T>monitor(stream, _function);
+      _xblockexpression = this;
+    }
+    return _xblockexpression;
   }
   
   public StreamBalancer<T> unregister(final Stream<T> stream) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onClose is undefined for the type ControlledBalancer"
-      + "\nThe method onReadyForNext is undefined for the type ControlledBalancer");
+    ControlledBalancer<T> _xblockexpression = null;
+    {
+      this.streams.remove(stream);
+      this.ready.remove(stream);
+      final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
+        public void apply(final CommandSubscription it) {
+        }
+      };
+      StreamExtensions.<T>monitor(stream, _function);
+      _xblockexpression = this;
+    }
+    return _xblockexpression;
   }
   
   public void close() throws IOException {
@@ -59,11 +96,24 @@ public class ControlledBalancer<T extends Object> implements StreamBalancer<T> {
   }
   
   public void start() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextValue is undefined for the type ControlledBalancer"
-      + "\nThe method push is undefined for the type ControlledBalancer"
-      + "\nThere is no context to infer the closure\'s argument types from. Consider typing the arguments or put the closures into a typed context."
-      + "\nVoid functions cannot return a value.");
+    final Procedure1<T> _function = new Procedure1<T>() {
+      public void apply(final T it) {
+        final Procedure1<T> _function = new Procedure1<T>() {
+          public void apply(final T it) {
+            Set<Stream<T>> _keySet = ControlledBalancer.this.ready.keySet();
+            for (final Stream<T> stream : _keySet) {
+              Boolean _get = ControlledBalancer.this.ready.get(stream);
+              if ((_get).booleanValue()) {
+                stream.push(it);
+                ControlledBalancer.this.ready.put(stream, Boolean.valueOf(false));
+              }
+            }
+          }
+        };
+        SynchronizeExt.<T>synchronize(it, _function);
+      }
+    };
+    StreamExtensions.<T>onEach(this.source, _function);
   }
   
   public void stop() {

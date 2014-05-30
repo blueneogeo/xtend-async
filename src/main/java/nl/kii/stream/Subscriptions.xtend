@@ -22,15 +22,15 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 		}
 	}
 
-	def forEach((T)=>void onValueFn) {
+	def each((T)=>void onValueFn) {
 		this.onValueFn = onValueFn
 	}
 	
-	def onFinish((Void)=>void onFinishFn) {
+	def finish((Void)=>void onFinishFn) {
 		this.onFinishFn = onFinishFn
 	}
 
-	def onError((Throwable)=>void onErrorFn) {
+	def error((Throwable)=>void onErrorFn) {
 		this.onErrorFn = onErrorFn
 	}
 		

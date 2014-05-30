@@ -4,19 +4,8 @@ import org.junit.Test
 
 import static org.junit.Assert.*
 
+import static extension nl.kii.stream.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
-import static extension nl.kii.stream.PromiseExtensions.*
 
 class TestPromise {
 	
@@ -64,9 +53,9 @@ class TestPromise {
 		val p = 1.promise
 		val p2 = boolean.promise
 		p
-			.map[it - 1]
-			.map [ 1 / it ]
-			.map[ it + 1]
+			.map [it - 1]
+			.map [ 1 / it ] // creates /0 exception
+			.map [ it + 1]
 			.onError [ true >> p2 ]
 			.then [ println(it) ]
 		p2.assertPromiseEquals(true)

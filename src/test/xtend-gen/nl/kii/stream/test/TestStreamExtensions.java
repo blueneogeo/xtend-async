@@ -2,17 +2,23 @@ package nl.kii.stream.test;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
+import nl.kii.stream.PromiseExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
@@ -24,6 +30,8 @@ import org.junit.Test;
 
 @SuppressWarnings("all")
 public class TestStreamExtensions {
+  private final ExecutorService threads = Executors.newCachedThreadPool();
+  
   @Test
   public void testPrint() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
@@ -38,16 +46,16 @@ public class TestStreamExtensions {
             InputOutput.<Integer>println(it);
           }
         };
-        it.forEach(_function);
+        it.each(_function);
         final Procedure1<Void> _function_1 = new Procedure1<Void>() {
           public void apply(final Void it) {
             InputOutput.<String>println("finished!");
           }
         };
-        it.onFinish(_function_1);
+        it.finish(_function_1);
       }
     };
-    StreamExtensions.<Integer>listen(s, _function);
+    StreamExtensions.<Integer>on(s, _function);
   }
   
   @Test
@@ -158,10 +166,29 @@ public class TestStreamExtensions {
   
   @Test
   public void testSplit() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method split is undefined for the type TestStreamExtensions"
-      + "\nType mismatch: cannot convert from Object to byte"
-      + "\nassertStreamEquals cannot be resolved");
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Integer.class);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
+    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 2) == 0));
+      }
+    };
+    final Stream<Integer> split = StreamExtensions.<Integer>split(s, _function);
+    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(1));
+    Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(2));
+    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish();
+    Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(3));
+    Finish<Integer> _finish_2 = StreamExtensions.<Integer>finish();
+    Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(4));
+    Finish<Integer> _finish_3 = StreamExtensions.<Integer>finish();
+    Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(5));
+    StreamAssert.<Integer>assertStreamEquals(split, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _finish_1, _value_2, _finish_2, _value_3, _finish_3, _value_4)));
   }
   
   @Test
@@ -381,6 +408,45 @@ public class TestStreamExtensions {
     Stream<Boolean> _anyMatch = StreamExtensions.<Boolean>anyMatch(s, _function);
     final Promise<Boolean> matches = StreamExtensions.<Boolean>first(_anyMatch);
     StreamAssert.<Boolean>assertPromiseEquals(matches, Boolean.valueOf(false));
+  }
+  
+  @Test
+  public void testResolving() {
+    try {
+      final Function1<String, Promise<String>> _function = new Function1<String, Promise<String>>() {
+        public Promise<String> apply(final String x) {
+          final Callable<String> _function = new Callable<String>() {
+            public String call() throws Exception {
+              String _xblockexpression = null;
+              {
+                IntegerRange _upTo = new IntegerRange(1, 5);
+                for (final Integer i : _upTo) {
+                  Thread.sleep(10);
+                }
+                _xblockexpression = x;
+              }
+              return _xblockexpression;
+            }
+          };
+          return PromiseExtensions.<String>asyncFn(TestStreamExtensions.this.threads, _function);
+        }
+      };
+      final Function1<String, Promise<String>> doSomethingAsync = _function;
+      final Stream<String> s = StreamExtensions.<String>stream(Collections.<String>unmodifiableList(Lists.<String>newArrayList("a", "b")));
+      Collection<Entry<String>> _queue = s.getQueue();
+      InputOutput.<Collection<Entry<String>>>println(_queue);
+      Stream<String> _doubleLessThan = StreamExtensions.<String>operator_doubleLessThan(s, "c");
+      Finish<String> _finish = StreamExtensions.<String>finish();
+      Stream<String> _doubleLessThan_1 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan, _finish);
+      Stream<String> _doubleLessThan_2 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_1, "d");
+      Stream<String> _doubleLessThan_3 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_2, "e");
+      Finish<String> _finish_1 = StreamExtensions.<String>finish();
+      Stream<String> _doubleLessThan_4 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_3, _finish_1);
+      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_4, "f");
+      Thread.sleep(1000);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   @Test

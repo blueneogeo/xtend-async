@@ -2,22 +2,24 @@ package nl.kii.stream
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import org.junit.Assert
 import org.junit.Test
 
+import static java.util.concurrent.Executors.*
+import static nl.kii.stream.PromiseExtensions.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStream {
+
+	val threads = newCachedThreadPool
 
 	@Test
 	def void testUnbufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer>
-		s.forEach [
+		s.onEach [
 			counter.addAndGet(it)
 		]
 		s << 1 << 2 << 3
@@ -28,7 +30,7 @@ class TestStream {
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3
-		s.forEach [ 
+		s.onEach [ 
 			counter.addAndGet(it)
 		]
 		assertEquals(6, counter.get)
@@ -38,8 +40,8 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.listenAsync [
-			forEach [ counter.addAndGet(it) ]
+		s.onAsync [
+			each [ counter.addAndGet(it) ]
 		]
 		s.next
 		assertEquals(1, counter.get) // next pushes the first number onto the stream
@@ -64,8 +66,8 @@ class TestStream {
 		val result = new AtomicInteger(0)
 		val s1 = int.stream << 1 << 2 << 3
 		val s2 = s1.map[it] << 4 << 5 << 6
-		s2.listenAsync [
-			forEach [ result.set(it) ]
+		s2.onAsync [
+			each [ result.set(it) ]
 		]
 		s2.next
 		assertEquals(4, result.get)
@@ -89,7 +91,7 @@ class TestStream {
 		// no onerror set, should throw it
 		e.set(null)
 		try {
-			s.forEach [ println(1/it) ] // handler will throw /0 exception
+			s.onEach [ println(1/it) ] // handler will throw /0 exception
 			s << 0
 			fail('should never reach this')
 		} catch(ArithmeticException t) {
@@ -114,9 +116,9 @@ class TestStream {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
 		// now try to catch the error
-		s.listen [
-			forEach [ println(1/it)] // handler will throw /0 exception
-			onError [ e.set(it) ]
+		s.on [
+			each [ println(1/it)] // handler will throw /0 exception
+			error [ e.set(it) ]
 		]
 		s << 0
 		assertNotNull(e.get)
@@ -129,8 +131,8 @@ class TestStream {
 		val s1 = int.stream << 1 << 2 << finish << 3
 		// substream, also has some stuff buffered, which needs to come out first
 		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
-		s2.listenAsync [
-			forEach [ result.set(it) ]
+		s2.onAsync [
+			each [ result.set(it) ]
 		]
 		s2.next // ask the next from the substream
 		assertEquals(4, result.get) // which should be the first buffered value
@@ -143,5 +145,38 @@ class TestStream {
 		s2.next // results in the 3 after the finish
 		assertEquals(3, result.get)
 	}
+	
+	@Test
+	def void testParallelHighThroughputStreaming() {
+		val s = Integer.stream
+		val s2 = s.map [ it * 2 ]
+		async(threads) [|
+			for(i : 0..999) {
+				s.apply(new Value(1))
+			}
+		]
+		async(threads) [|
+			for(i : 1000..1999) {
+				s.apply(new Value(2))
+			}
+		]
+		async(threads) [|
+			for(i : 2000..2999) {
+				s.apply(new Value(3))
+			}
+		]
+		val sum = new AtomicInteger
+		s2.onEntry = [
+			switch it {
+				Error<?>: println(it)
+				Value<Integer>: sum.addAndGet(value) 
+			}
+			s2.next
+		]
+		s2.next
+		Thread.sleep(200)
+		Assert.assertEquals(12000, sum.get)
+	}
+	
 
 }

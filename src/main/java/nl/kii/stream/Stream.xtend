@@ -1,140 +1,123 @@
 package nl.kii.stream
 
 import java.util.Queue
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import nl.kii.act.Actor
 
 import static com.google.common.collect.Queues.*
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.atomic.AtomicBoolean
 
-class StreamOLD<T> implements Procedure1<Entry<T>> {
+class Stream<T> extends Actor<StreamMessage> {
+
+	var open = true
+	var listenerReady = false
+	var skipping = false
 
 	val Queue<Entry<T>> queue
-	val open = new AtomicBoolean(true)
-	val skipping = new AtomicBoolean(false)
-	val listenerReady = new AtomicBoolean(false)
+	var (Entry<T>)=>void entryListener
+	var (StreamCommand)=>void notifyListener
 
-	var (StreamCommand)=>void commandListener
-	var (Entry<T>, =>void, =>void, =>void)=>void entryListener
-	
-	val =>void nextFn = [| perform(new Next) ]
-	val =>void skipFn = [| perform(new Skip) ]
-	val =>void closeFn = [| perform(new Close) ]
-	
-	val inputLock = new ReentrantLock
-	val outputLock = new ReentrantLock
-	val controlLock = new ReentrantLock
-	
-	new() {
-		this.queue = newLinkedBlockingQueue
-	}
-	
-	new(Queue<Entry<T>> queueFn) { 
+	new() { this(newConcurrentLinkedQueue) }
+
+	new(Queue<Entry<T>> queue) {
 		this.queue = queue
 	}
+	
+	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
-	override apply(Entry<T> entry) {
-		if(!open.get) return;
-		inputLock.lock
-		queue.add(entry)
-		inputLock.unlock
-		publishNext
-	}
+	def next() { apply(new Next) }
 	
-	def apply(Entry<T>... entries) {
-		if(!open.get) return;
-		inputLock.lock
-		entries.forEach [ queue.add(it) ]
-		inputLock.unlock
-		publishNext
-	}
+	def skip() { apply(new Skip) }
+	
+	def close() { apply(new Close) }
+	
+	def push(T value) { apply(new Value(value)) }
+	
+	def error(Throwable error) { apply(new Error(error)) }
+	
+	def finish() { apply(new Finish) }	
+	
+	def getQueue() { queue.unmodifiableView	}
 
-	def perform(StreamCommand cmd) {
-		if(!open.get) return;
-		try {
-			controlLock.lock
-			switch cmd {
-				Next: {
-					listenerReady.set(true)
-					// try to publish the next from the queue
-					val published = publishNext
-					// if nothing was published, notify there parent stream we need a next entry
-					if(!published) notify(cmd)
-				}
-				Skip: {
-					if(skipping.get) return 
-					else skipping.set(true)		
-					// discard everything up to finish from the queue
-					while(skipping.get && !queue.empty) {
-						switch queue.peek {
-							Finish<T>: skipping.set(false)
-							default: queue.poll
-						}
-					}
-					// if we are still skipping, notify the parent stream it needs to skip
-					if(skipping.get) notify(cmd)
-				}
-				Close: {
-					open.set(false)
-					notify(cmd)
-				}
-			}
-		} finally {
-			controlLock.unlock
-		}
-	}
+	// LISTENERS //////////////////////////////////////////////////////////////
 	
-	/** take an entry from the queue and pass it to the listener */
-	def protected boolean publishNext() {
-		try {
-			outputLock.tryLock
-			if(listenerReady.get && entryListener != null && !queue.empty) {
-				listenerReady.set(false)
-				val entry = queue.poll
-				if(entry instanceof Finish<?>)
-					skipping.set(false)
-				try {
-					entryListener.apply(entry, nextFn, skipFn, closeFn)
-					true
-				} catch(Throwable t) {
-					if(entry instanceof Error<?>) throw t
-					listenerReady.set(true)
-					apply(new Error(t))
-					false
-				}
-			} else false
-		} finally {
-			outputLock.unlock
-		}
-	}
-	
-	/** notify the commandlistener that we've performed a command */
-	def protected notify(StreamCommand cmd) {
-		if(commandListener != null)
-			commandListener.apply(cmd)
-	}
-	
-	def synchronized void setListener((Entry<T>, =>void, =>void, =>void)=>void entryListener) {
-		if(this.entryListener != null)
-			throw new StreamException('a stream can only have a single entry listener, one was already assigned.')
+	synchronized def void onEntry((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener
 	}
 	
-	def synchronized void setCmdListener((StreamCommand)=>void commandListener) {
-		if(this.commandListener!= null)
-			throw new StreamException('a stream can only have a single command listener, one was already assigned.')
-		this.commandListener = commandListener
+	synchronized def void onNotification((StreamCommand)=>void notifyListener) {
+		this.notifyListener = notifyListener
+	}
+
+	// STREAM INPUT PROCESSING ////////////////////////////////////////////////
+
+	/**
+	 * Process next incoming entry.
+	 * Since the stream extends Actor, there is no more than one thread active.
+	 */
+	override protected act(StreamMessage entry, =>void done) {
+		switch entry {
+			Value<T>, Finish<T>, Error<T>: {
+				queue.add(entry)
+				publishNext
+			}
+			Entries<T>: {
+				entry.entries.forEach [
+					queue.add(it)
+				]
+				publishNext
+			}
+			Next: {
+				listenerReady = true
+				// try to publish the next from the queue
+				val published = publishNext
+				// if nothing was published, notify there parent stream we need a next entry
+				if(!published) notify(entry)			
+			}
+			Skip: {
+				if(skipping) return 
+				else skipping = true		
+				// discard everything up to finish from the queue
+				while(skipping && !queue.empty) {
+					switch queue.peek {
+						Finish<T>: skipping = false
+						default: queue.poll
+					}
+				}
+				// if we are still skipping, notify the parent stream it needs to skip
+				if(skipping) notify(entry)			
+			}
+			Close: {
+				publishNext
+				open = false
+				notify(entry)
+			}
+		}
+		done.apply
 	}
 	
-	/** you're not getting the actual queue, just a list of what is in it */
-	def synchronized getQueue() {
-		newImmutableList(queue)
-	}
+	// STREAM PUBLISHING //////////////////////////////////////////////////////
 	
-	def synchronized isOpen() {
-		open.get
+	/** take an entry from the queue and pass it to the listener */
+	def protected boolean publishNext() {
+		if(listenerReady && entryListener != null && !queue.empty) {
+			listenerReady = false
+			val entry = queue.poll
+			if(entry instanceof Finish<?>)
+				skipping = false
+			try {
+				entryListener.apply(entry)
+				true
+			} catch (Throwable t) {
+				if(entry instanceof Error<?>) throw t
+				listenerReady = true
+				apply(new Error(t))
+				false
+			}
+		} else false
+	}
+
+	def protected notify(StreamCommand notification) {
+		if(notifyListener != null)
+			notifyListener.apply(notification)
 	}
 	
 }
-
-

@@ -117,7 +117,7 @@ class PromiseExtensions {
 		newPromise
 	}
 	
-	def static <T> async(Promise<Promise<T>> promise) {
+	def static <T> resolve(Promise<Promise<T>> promise) {
 		promise.flatten
 	}
 	
@@ -204,7 +204,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> Promise<T> async(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> asyncFn(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {
@@ -225,7 +225,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
-	def static Task run(ExecutorService service, Runnable runnable) {
+	def static Task async(ExecutorService service, Runnable runnable) {
 		task [ task |
 			val Runnable processor = [|
 				try {

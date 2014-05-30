@@ -81,13 +81,13 @@ abstract class Actor<T> implements Procedure1<T> {
 	 * Perform the actor on the next message in the inbox. 
 	 * You must call done.apply when you have completed processing!
 	 */
-	abstract def void act(T message, =>void done)
+	protected abstract def void act(T message, =>void done)
 
 	/** 
 	 * Start the process loop that takes input from the inbox queue one by one and calls the
 	 * act method for each input.
 	 */
-	def void process() {
+	protected def void process() {
 		// Only a single thread may run the process
 		// The try period of the lock is to compensate for the small period in between finishing a process
 		// loop and the unlocking and relocking.
@@ -100,6 +100,7 @@ abstract class Actor<T> implements Procedure1<T> {
 					act(message, onProcessDone) // onProcessDone is run by the thread that called it
 				} catch(Throwable t) {
 					onProcessDone.apply
+					throw t
 				}
 			} else {
 				// nothing more in the inbox, we're done, unlock the process

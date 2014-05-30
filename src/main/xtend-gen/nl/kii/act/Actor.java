@@ -89,13 +89,13 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
    * Perform the actor on the next message in the inbox.
    * You must call done.apply when you have completed processing!
    */
-  public abstract void act(final T message, final Procedure0 done);
+  protected abstract void act(final T message, final Procedure0 done);
   
   /**
    * Start the process loop that takes input from the inbox queue one by one and calls the
    * act method for each input.
    */
-  public void process() {
+  protected void process() {
     try {
       boolean _tryLock = this.processLock.tryLock(1, TimeUnit.MILLISECONDS);
       if (_tryLock) {
@@ -108,6 +108,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
             if (_t instanceof Throwable) {
               final Throwable t = (Throwable)_t;
               this.onProcessDone.apply();
+              throw t;
             } else {
               throw Exceptions.sneakyThrow(_t);
             }

@@ -198,7 +198,7 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> Promise<T> async(final Promise<Promise<T>> promise) {
+  public static <T extends Object> Promise<T> resolve(final Promise<Promise<T>> promise) {
     return PromiseExtensions.<T>flatten(promise);
   }
   
@@ -232,7 +232,7 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
    */
-  public static <T extends Object> Promise<T> async(final ExecutorService service, final Callable<T> callable) {
+  public static <T extends Object> Promise<T> asyncFn(final ExecutorService service, final Callable<T> callable) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
@@ -265,7 +265,7 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
    */
-  public static Task run(final ExecutorService service, final Runnable runnable) {
+  public static Task async(final ExecutorService service, final Runnable runnable) {
     final Procedure1<Task> _function = new Procedure1<Task>() {
       public void apply(final Task task) {
         final Runnable _function = new Runnable() {

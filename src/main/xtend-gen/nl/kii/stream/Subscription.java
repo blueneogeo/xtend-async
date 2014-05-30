@@ -54,15 +54,15 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
     }
   }
   
-  public Procedure1<? super T> forEach(final Procedure1<? super T> onValueFn) {
+  public Procedure1<? super T> each(final Procedure1<? super T> onValueFn) {
     return this.onValueFn = onValueFn;
   }
   
-  public Procedure1<? super Void> onFinish(final Procedure1<? super Void> onFinishFn) {
+  public Procedure1<? super Void> finish(final Procedure1<? super Void> onFinishFn) {
     return this.onFinishFn = onFinishFn;
   }
   
-  public Procedure1<? super Throwable> onError(final Procedure1<? super Throwable> onErrorFn) {
+  public Procedure1<? super Throwable> error(final Procedure1<? super Throwable> onErrorFn) {
     return this.onErrorFn = onErrorFn;
   }
   

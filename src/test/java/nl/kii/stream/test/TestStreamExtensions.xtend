@@ -2,18 +2,23 @@ package nl.kii.stream.test
 
 import org.junit.Test
 
+import static java.util.concurrent.Executors.*
+import static nl.kii.stream.PromiseExtensions.*
+
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStreamExtensions {
 
+	val threads = newCachedThreadPool
+
 	@Test
 	def void testPrint() {
 		val s = int.stream
 		s << 1 << 2 << finish
-		s.listen [
-			forEach [ println(it) ]
-			onFinish [ println('finished!') ]
+		s.on [
+			each [ println(it) ]
+			finish [ println('finished!') ]
 		]
 	}
 
@@ -155,6 +160,41 @@ class TestStreamExtensions {
 		matches.assertPromiseEquals(false)
 	}
 
+	// PARALLEL ///////////////////////////////////////////////////////////////
+	
+	// TODO: fix this one!
+	@Test
+	def void testResolving() {
+		val doSomethingAsync = [ String x |
+			asyncFn(threads) [|
+				for(i : 1..5) {
+					Thread.sleep(10)
+					// println(x + i)
+				}
+				x
+			]
+		]
+		val s = #['a', 'b'].stream
+		println(s.queue)
+		s << 'c' << finish << 'd' << 'e' << finish << 'f'
+//		s
+//			.map [
+//				// println('pushing ' + it)
+//				it
+//			]
+//			.map(doSomethingAsync)
+//			.resolve(1)
+//			.collect
+//			.onEach [
+//				println('got: ' + it)
+//			]
+			//.onEach [ println('got: ' + it)	]
+		 // s << 'f' << 'g' << finish << 'h' << finish
+		//s << 'd' << 'e'
+//		s << 'a' << 'b' << 'c'
+		Thread.sleep(1000)
+	}
+	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	@Test

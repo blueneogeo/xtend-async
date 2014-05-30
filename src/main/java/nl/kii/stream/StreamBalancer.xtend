@@ -1,11 +1,12 @@
 package nl.kii.stream
-
+import static extension nl.kii.stream.StreamExtensions.*
 import java.io.Closeable
 import java.io.IOException
 import java.util.Map
 import java.util.Set
 import java.util.concurrent.ConcurrentHashMap
 import static extension nl.kii.util.SynchronizeExt.*
+
 
 interface StreamBalancer<T> extends Closeable {
 	
@@ -35,13 +36,11 @@ class ControlledBalancer<T> implements StreamBalancer<T> {
 	override register(Stream<T> stream, (T)=>boolean criterium) {
 		streams.put(stream, criterium)
 		ready.put(stream, false)
-		stream.onClose [|
-			unregister(stream)
+		stream.monitor [
+			onNext [ ready.put(stream, true) ]
+			onSkip [ ]
+			onClose [ unregister(stream) ]
 		]
-		stream.onReadyForNext [|
-			ready.put(stream, true)
-		]
-		stream.onSkip [|]
 		this
 		
 	}
@@ -49,8 +48,7 @@ class ControlledBalancer<T> implements StreamBalancer<T> {
 	override unregister(Stream<T> stream) {
 		streams.remove(stream)
 		ready.remove(stream)
-		stream.onClose [|]
-		stream.onReadyForNext [|]
+		stream.monitor [ ]
 		this
 	}
 	
@@ -63,16 +61,16 @@ class ControlledBalancer<T> implements StreamBalancer<T> {
 	}
 	
 	override start() {
-		source.onNextValue [ value |
-			synchronize(value) [
+		source.onEach [
+			synchronize(it) [
 				for(stream : ready.keySet) {
 					if(ready.get(stream)) {
-						stream.push(value)
+						stream.push(it)
 						ready.put(stream, false)
-						return null
 					}
 				}
 			]
+			
 		]
 	}
 	

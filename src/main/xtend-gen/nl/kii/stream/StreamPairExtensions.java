@@ -77,7 +77,7 @@ public class StreamPairExtensions {
           K1 _key = it.getKey();
           V1 _value = it.getValue();
           final Pair<K2, V2> pair = mappingFn.apply(_key, _value);
-          StreamExtensions.<Pair<K2, V2>>push(newStream, pair);
+          newStream.push(pair);
         }
       };
       StreamExtensions.<Pair<K1, V1>>then(stream, _function);
@@ -162,10 +162,14 @@ public class StreamPairExtensions {
    * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
    */
   public static <K extends Object, V extends Object> void onEach(final Stream<Pair<K, V>> stream, final Procedure2<? super K, ? super V> listener) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method or field key is undefined for the type StreamPairExtensions"
-      + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nType mismatch: cannot convert from (Object)=>void to (K, V)=>void");
+    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+      public void apply(final Pair<K, V> it) {
+        K _key = it.getKey();
+        V _value = it.getValue();
+        listener.apply(_key, _value);
+      }
+    };
+    StreamExtensions.<Pair<K, V>>onEach(stream, _function);
   }
   
   /**
@@ -175,9 +179,13 @@ public class StreamPairExtensions {
    * the next finish.
    */
   public static <K extends Object, V extends Object> void onEach(final Stream<Pair<K, V>> stream, final Procedure3<? super K, ? super V, ? super Stream<Pair<K, V>>> listener) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method or field key is undefined for the type StreamPairExtensions"
-      + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nType mismatch: cannot convert from (Object)=>void to (K, V)=>void");
+    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+      public void apply(final Pair<K, V> it) {
+        K _key = it.getKey();
+        V _value = it.getValue();
+        listener.apply(_key, _value, stream);
+      }
+    };
+    StreamExtensions.<Pair<K, V>>onEach(stream, _function);
   }
 }
