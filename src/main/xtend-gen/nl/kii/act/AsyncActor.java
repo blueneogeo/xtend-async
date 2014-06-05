@@ -5,7 +5,6 @@ import com.google.common.collect.Queues;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Queue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -58,22 +57,23 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * </pre>
  */
 @SuppressWarnings("all")
-public abstract class Actor<T extends Object> implements Procedure1<T> {
+public abstract class AsyncActor<T extends Object> implements Procedure1<T> {
   private final Queue<T> inbox;
   
   private final ReentrantLock processLock = new ReentrantLock();
   
-  private final ExecutorService executors;
-  
   /**
    * Create a new actor with a concurrentlinkedqueue as inbox
    */
-  public Actor(final ExecutorService executors) {
-    this(executors, Queues.<T>newConcurrentLinkedQueue());
+  public AsyncActor() {
+    this(Queues.<T>newConcurrentLinkedQueue());
   }
   
-  public Actor(final ExecutorService executors, final Queue<T> queue) {
-    this.executors = executors;
+  /**
+   * Create an actor with the given queue as inbox.
+   * Queue implementation must be threadsafe and non-blocking.
+   */
+  public AsyncActor(final Queue<T> queue) {
     this.inbox = queue;
   }
   
@@ -103,6 +103,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
         boolean _notEquals = (!Objects.equal(message, null));
         if (_notEquals) {
           try {
+            this.act(message, this.onProcessDone);
           } catch (final Throwable _t) {
             if (_t instanceof Throwable) {
               final Throwable t = (Throwable)_t;
@@ -123,11 +124,11 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   
   private final Procedure0 onProcessDone = new Procedure0() {
     public void apply() {
-      Actor.this.processLock.unlock();
-      boolean _isEmpty = Actor.this.inbox.isEmpty();
+      AsyncActor.this.processLock.unlock();
+      boolean _isEmpty = AsyncActor.this.inbox.isEmpty();
       boolean _not = (!_isEmpty);
       if (_not) {
-        Actor.this.process();
+        AsyncActor.this.process();
       }
     }
   };

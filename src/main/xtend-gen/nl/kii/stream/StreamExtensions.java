@@ -222,10 +222,14 @@ public class StreamExtensions {
    * Lets you easily pass a Finish<T> entry using the << or >> operators
    */
   public static <T extends Object> Finish<T> finish() {
-    return new Finish<T>();
+    return new Finish<T>(0);
   }
   
-  static <T extends Object, R extends Object> CommandSubscription connectTo(final Stream<T> newStream, final AsyncSubscription<?> parent) {
+  public static <T extends Object> Finish<T> finish(final int level) {
+    return new Finish<T>(level);
+  }
+  
+  static <T extends Object, R extends Object> CommandSubscription controls(final Stream<T> newStream, final AsyncSubscription<?> parent) {
     final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
       public void apply(final CommandSubscription it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
@@ -273,16 +277,16 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.finish();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              newStream.finish(it.level);
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<R, Object>connectTo(newStream, subscription);
+      StreamExtensions.<R, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -314,17 +318,19 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              counter.set(0);
-              newStream.finish();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level == 0)) {
+                counter.set(0);
+              }
+              newStream.finish(it.level);
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<R, Object>connectTo(newStream, subscription);
+      StreamExtensions.<R, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -357,16 +363,16 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.finish();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              newStream.finish(it.level);
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -376,6 +382,7 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
+      final AtomicBoolean justPostedFinish0 = new AtomicBoolean(false);
       final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
         public void apply(final AsyncSubscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
@@ -383,11 +390,13 @@ public class StreamExtensions {
               Boolean _apply = splitConditionFn.apply(it);
               if ((_apply).booleanValue()) {
                 Value<T> _value = new Value<T>(it);
-                Finish<T> _finish = new Finish<T>();
+                Finish<T> _finish = new Finish<T>(0);
                 final List<? extends Entry<T>> entries = Collections.<Entry<T>>unmodifiableList(Lists.<Entry<T>>newArrayList(_value, _finish));
+                justPostedFinish0.set(true);
                 Entries<T> _entries = new Entries<T>(((Entry<T>[])Conversions.unwrapArray(entries, Entry.class)));
                 newStream.apply(_entries);
               } else {
+                justPostedFinish0.set(false);
                 Value<T> _value_1 = new Value<T>(it);
                 newStream.apply(_value_1);
               }
@@ -400,36 +409,42 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.finish();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              boolean _get = justPostedFinish0.get();
+              if (_get) {
+                Finish<Object> _finish = new Finish<Object>((it.level + 1));
+                newStream.apply(_finish);
+              } else {
+                justPostedFinish0.set(true);
+                Finish<Object> _finish_1 = new Finish<Object>(0);
+                Finish<Object> _finish_2 = new Finish<Object>((it.level + 1));
+                final List<Finish<Object>> entries = Collections.<Finish<Object>>unmodifiableList(Lists.<Finish<Object>>newArrayList(_finish_1, _finish_2));
+                Entries<Object> _entries = new Entries<Object>(((Entry<Object>[])Conversions.unwrapArray(entries, Entry.class)));
+                newStream.apply(_entries);
+              }
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
   }
   
-  /**
-   * Create from an existing stream a stream of streams, separated by finishes in the start stream.
-   */
-  public static <T extends Object> Stream<Stream<T>> substream(final Stream<T> stream) {
-    Stream<Stream<T>> _xblockexpression = null;
+  public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
+    Stream<T> _xblockexpression = null;
     {
-      final Stream<Stream<T>> newStream = new Stream<Stream<T>>();
-      Stream<T> _stream = new Stream<T>();
-      final AtomicReference<Stream<T>> substream = new AtomicReference<Stream<T>>(_stream);
+      final Stream<T> newStream = new Stream<T>();
       final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
         public void apply(final AsyncSubscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
-              Stream<T> _get = substream.get();
-              _get.push(it);
+              Value<T> _value = new Value<T>(it);
+              newStream.apply(_value);
             }
           };
           it.each(_function);
@@ -439,19 +454,20 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              Stream<T> _get = substream.get();
-              newStream.push(_get);
-              Stream<T> _stream = new Stream<T>();
-              substream.set(_stream);
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level > 0)) {
+                newStream.finish((it.level - 1));
+              } else {
+                stream.next();
+              }
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<Stream<T>, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -498,16 +514,16 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.finish();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              newStream.finish(it.level);
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -543,17 +559,17 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               count.set(0);
-              newStream.finish();
+              newStream.finish(it.level);
             }
           };
           it.finish(_function_2);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -585,6 +601,10 @@ public class StreamExtensions {
       final Procedure0 _function = new Procedure0() {
         public void apply() {
           final int open = processes.decrementAndGet();
+          boolean _get = isFinished.get();
+          if (_get) {
+            newStream.finish();
+          }
           if ((concurrency > open)) {
             stream.next();
           }
@@ -596,13 +616,19 @@ public class StreamExtensions {
           final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
             public void apply(final Promise<T> promise) {
               processes.incrementAndGet();
-              final Procedure1<T> _function = new Procedure1<T>() {
+              final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+                public void apply(final Throwable it) {
+                  newStream.error(it);
+                }
+              };
+              Promise<T> _onError = promise.onError(_function);
+              final Procedure1<T> _function_1 = new Procedure1<T>() {
                 public void apply(final T it) {
                   newStream.push(it);
                   onProcessComplete.apply();
                 }
               };
-              promise.then(_function);
+              _onError.then(_function_1);
             }
           };
           it.each(_function);
@@ -612,12 +638,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<Promise<T>>> _function_2 = new Procedure1<Finish<Promise<T>>>() {
+            public void apply(final Finish<Promise<T>> it) {
               int _get = processes.get();
               boolean _equals = (_get == 0);
               if (_equals) {
-                newStream.finish();
+                newStream.finish(it.level);
                 stream.next();
               } else {
                 isFinished.set(true);
@@ -718,8 +744,8 @@ public class StreamExtensions {
           }
         };
         it.error(_function_1);
-        final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-          public void apply(final Void it) {
+        final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+          public void apply(final Finish<T> it) {
             otherStream.finish();
           }
         };
@@ -794,12 +820,16 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              final LinkedList<T> collected = list.get();
-              LinkedList<T> _linkedList = new LinkedList<T>();
-              list.set(_linkedList);
-              newStream.push(collected);
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level == 0)) {
+                final LinkedList<T> collected = list.get();
+                LinkedList<T> _linkedList = new LinkedList<T>();
+                list.set(_linkedList);
+                newStream.push(collected);
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -812,7 +842,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<List<T>, Object>connectTo(newStream, subscription);
+      StreamExtensions.<List<T>, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -836,8 +866,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               final double collected = sum.doubleValue();
               sum.set(0);
               newStream.push(Double.valueOf(collected));
@@ -853,7 +883,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<Double, Object>connectTo(newStream, subscription);
+      StreamExtensions.<Double, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -879,8 +909,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               double _doubleValue = avg.doubleValue();
               long _andSet = count.getAndSet(0);
               final double collected = (_doubleValue / _andSet);
@@ -898,7 +928,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<Double, Object>connectTo(newStream, subscription);
+      StreamExtensions.<Double, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -921,8 +951,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               long _andSet = count.getAndSet(0);
               newStream.push(Long.valueOf(_andSet));
             }
@@ -937,7 +967,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<Long, Object>connectTo(newStream, subscription);
+      StreamExtensions.<Long, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -962,8 +992,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               T _andSet = reduced.getAndSet(initial);
               newStream.push(_andSet);
             }
@@ -978,7 +1008,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1006,8 +1036,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               final T result = reduced.getAndSet(initial);
               count.set(0);
               newStream.push(result);
@@ -1023,7 +1053,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<T, Object>connectTo(newStream, subscription);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1052,8 +1082,8 @@ public class StreamExtensions {
             }
           };
           it.each(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
               final boolean matched = anyMatch.get();
               anyMatch.set(false);
               if ((!matched)) {
@@ -1071,7 +1101,7 @@ public class StreamExtensions {
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<Boolean, Object>connectTo(newStream, subscription);
+      StreamExtensions.<Boolean, Object>controls(newStream, subscription);
       _xblockexpression = newStream;
     }
     return _xblockexpression;

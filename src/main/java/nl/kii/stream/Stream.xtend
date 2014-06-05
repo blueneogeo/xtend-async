@@ -33,7 +33,9 @@ class Stream<T> extends Actor<StreamMessage> {
 	
 	def error(Throwable error) { apply(new Error(error)) }
 	
-	def finish() { apply(new Finish) }	
+	def finish() { apply(new Finish(0)) }	
+
+	def finish(int level) { apply(new Finish(level)) }	
 	
 	def getQueue() { queue.unmodifiableView	}
 
@@ -53,7 +55,7 @@ class Stream<T> extends Actor<StreamMessage> {
 	 * Process next incoming entry.
 	 * Since the stream extends Actor, there is no more than one thread active.
 	 */
-	override protected act(StreamMessage entry, =>void done) {
+	override protected act(StreamMessage entry) {
 		switch entry {
 			Value<T>, Finish<T>, Error<T>: {
 				queue.add(entry)
@@ -77,8 +79,8 @@ class Stream<T> extends Actor<StreamMessage> {
 				else skipping = true		
 				// discard everything up to finish from the queue
 				while(skipping && !queue.empty) {
-					switch queue.peek {
-						Finish<T>: skipping = false
+					switch it: queue.peek {
+						Finish<T> case level==0: skipping = false
 						default: queue.poll
 					}
 				}
@@ -91,7 +93,6 @@ class Stream<T> extends Actor<StreamMessage> {
 				notify(entry)
 			}
 		}
-		done.apply
 	}
 	
 	// STREAM PUBLISHING //////////////////////////////////////////////////////
@@ -102,7 +103,8 @@ class Stream<T> extends Actor<StreamMessage> {
 			listenerReady = false
 			val entry = queue.poll
 			if(entry instanceof Finish<?>)
-				skipping = false
+				if(entry.level == 0)
+					skipping = false
 			try {
 				entryListener.apply(entry)
 				true

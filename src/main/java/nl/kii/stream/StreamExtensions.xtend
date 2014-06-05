@@ -58,7 +58,6 @@ class StreamExtensions {
 		stream.monitor [
 			onNext [ pushNext.apply ]
 		]
-		// stream.onReadyForNext(pushNext)
 		pushNext.apply
 		stream
 	}
@@ -109,10 +108,14 @@ class StreamExtensions {
 
 	/** Lets you easily pass a Finish<T> entry using the << or >> operators */
 	def static <T> finish() {
-		new Finish<T>
+		new Finish<T>(0)
 	}
 
-	def package static <T, R> connectTo(Stream<T> newStream, AsyncSubscription<?> parent) {
+	def static <T> finish(int level ) {
+		new Finish<T>(level)
+	}
+
+	def package static <T, R> controls(Stream<T> newStream, AsyncSubscription<?> parent) {
 		newStream.monitor [
 			onNext [ 
 				parent.next
@@ -142,10 +145,10 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 			finish [ 
-				newStream.finish
+				newStream.finish(level)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
@@ -166,11 +169,12 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 			finish [
-				counter.set(0) 
-				newStream.finish
+				if(level == 0) 
+					counter.set(0) 
+				newStream.finish(level)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -192,55 +196,63 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 			finish [ 
-				newStream.finish
+				newStream.finish(level)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
 	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
 		val newStream = new Stream<T>
+		val justPostedFinish0 = new AtomicBoolean(false)
 		val subscription = stream.onAsync [
 			each [
 				if(splitConditionFn.apply(it)) {
 					// apply multiple entries at once for a single next
-					val entries = #[ new Value<T>(it), new Finish ]
-					newStream.apply(new Entries<T>(entries))
+					val entries = #[ new Value(it), new Finish(0) ]
+					justPostedFinish0.set(true)
+					newStream.apply(new Entries(entries))
 				} else {
+					justPostedFinish0.set(false)
 					newStream.apply(new Value(it))
 				}
 			]
 			error [ 
 				newStream.error(it)
 			]
-			finish [ 
-				newStream.finish
+			finish [
+				// a higher level split also splits up the lower level
+				if(justPostedFinish0.get) {
+					// we don't put finish(0)'s in a row
+					newStream.apply(new Finish(level + 1))
+				} else {
+					justPostedFinish0.set(true)
+					val entries = #[ new Finish(0), new Finish(level+1) ]
+					newStream.apply(new Entries(entries))
+				}
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
-	/** 
-	 * Create from an existing stream a stream of streams, separated by finishes in the start stream.
-	 */
-	def static <T> Stream<Stream<T>> substream(Stream<T> stream) {
-		val newStream = new Stream<Stream<T>>
-		val substream = new AtomicReference(new Stream<T>)
+	def static <T> Stream<T> merge(Stream<T> stream) {
+		val newStream = new Stream<T>
 		val subscription = stream.onAsync [
 			each [
-				substream.get.push(it)
+				newStream.apply(new Value(it))
 			]
-			error [ 
+			error [
 				newStream.error(it)
 			]
 			finish [
-				newStream.push(substream.get)
-				substream.set(new Stream<T>)
+				if(level > 0)
+					newStream.finish(level - 1)
+				else stream.next
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
@@ -271,10 +283,10 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 			finish [ 
-				newStream.finish
+				newStream.finish(level)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -299,10 +311,10 @@ class StreamExtensions {
 			]
 			finish [ 
 				count.set(0)
-				newStream.finish
+				newStream.finish(level)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
@@ -329,6 +341,9 @@ class StreamExtensions {
 		val processes = new AtomicInteger(0)
 		val =>void onProcessComplete = [|
 			val open = processes.decrementAndGet
+			if(isFinished.get) {
+				newStream.finish
+			}
 			if(concurrency > open) {
 				stream.next
 			}
@@ -337,15 +352,20 @@ class StreamExtensions {
 			each [ promise |
 				processes.incrementAndGet
 				promise
+					.onError [ 
+						newStream.error(it)
+					]
 					.then [
 						newStream.push(it)
 						onProcessComplete.apply 
 					]
 			]
-			error [ newStream.error(it) ]
+			error [ 
+				newStream.error(it)
+			]
 			finish [ 
 				if(processes.get == 0) {
-					newStream.finish
+					newStream.finish(level)
 					stream.next
 				} else {
 					// we are still processing, so finish when we are done processing instead
@@ -353,7 +373,6 @@ class StreamExtensions {
 				}
 			]
 		]
-		// newStream.connectTo(subscription)
 		stream.next
 		newStream
 	}
@@ -621,15 +640,19 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				val collected = list.get
-				list.set(new LinkedList)
-				newStream.push(collected)
+				if(level == 0) {
+					val collected = list.get
+					list.set(new LinkedList)
+					newStream.push(collected)
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
@@ -653,7 +676,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -679,7 +702,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 	
@@ -701,7 +724,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -723,7 +746,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -749,7 +772,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	}
 
@@ -779,7 +802,7 @@ class StreamExtensions {
 				newStream.error(it)
 			]
 		]
-		newStream.connectTo(subscription)
+		newStream.controls(subscription)
 		newStream
 	 }
 

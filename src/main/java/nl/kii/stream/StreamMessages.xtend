@@ -36,8 +36,13 @@ class Value<T> implements Entry<T> {
 }
 
 class Finish<T> implements Entry<T> {
-	override toString() { 'finish' }
-	override equals(Object o) { o instanceof Finish<?> }
+	public val int level
+	new() { this(0) }
+	new(int level) { 
+		this.level = level
+	}
+	override toString() { 'finish(' + level + ')' }
+	override equals(Object o) { o instanceof Finish<?> && (o as Finish<?>).level == level }
 }
 
 class Error<T> implements Entry<T> {

@@ -39,9 +39,9 @@ public class StreamAssert {
             }
           };
           it.error(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              Finish<T> _finish = new Finish<T>();
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              Finish<T> _finish = new Finish<T>(it.level);
               data.add(_finish);
             }
           };

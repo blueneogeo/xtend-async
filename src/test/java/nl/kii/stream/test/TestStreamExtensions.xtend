@@ -7,6 +7,7 @@ import static nl.kii.stream.PromiseExtensions.*
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension org.junit.Assert.*
 
 class TestStreamExtensions {
 
@@ -32,6 +33,7 @@ class TestStreamExtensions {
 	@Test
 	def void testListStream() {
 		val s = #[1, 2, 3].stream
+		println(s.queue)
 		val s2 = s.map[it+1]
 		s2.assertStreamEquals(#[2.value, 3.value, 4.value, finish])		
 	}
@@ -65,20 +67,40 @@ class TestStreamExtensions {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		// #[1.value, 2.value, 3.value, finish, 4.value, 5.value].assertStreamEquals(s)
 		val split = s.split [ it % 2 == 0]
-		split.assertStreamEquals(#[1.value, 2.value, finish, 3.value, finish, 4.value, finish, 5.value])
+		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(1), 4.value, finish(0), 5.value])
 	}
 	
-//	@Test
-//	def void testSubstream() {
-//		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
-//		val subbed = s.substream
-//		subbed.queue.length.assertEquals(2) // no finish at end means 6 is not converted
-//		val s1 = subbed.queue.get(0) as Value<Stream<Integer>>
-//		val s2 = subbed.queue.get(1) as Value<Stream<Integer>>
-//		#[1.value, 2.value, 3.value].assertStreamEquals(s1.value)
-//		#[4.value, 5.value].assertStreamEquals(s2.value)
-//	}
-
+	@Test
+	def void testMerge() {
+		val s = Integer.stream << 1 << 2 << finish(0) << 3 << finish(1) << 4 << finish(0) << 5 
+		val merged = s.merge
+		merged.assertStreamEquals(#[1.value, 2.value, 3.value, finish, 4.value, 5.value])
+	}
+	
+	@Test
+	def void testActor() {
+		(1..1000).stream.on [
+			each [ println(it) ]
+			error [ println(it) ]
+		]
+	}
+	
+	@Test
+	def void testSplitThenMerge() {
+		(1..1000).stream
+//			.split [ it % 10 == 0 ]
+//			.split [ it % 3 == 0 ]
+//			.split [ it % 1 == 0 ]
+//			.split [ it % 7 == 0 ]
+//			.on [
+//				entry [ println(it)]
+//			]
+			.on [ 
+				each [ println(it) ]
+				error [ println(it) ]
+			]
+	}
+	
 	// REDUCTIONS /////////////////////////////////////////////////////////////
 
 	@Test
@@ -88,6 +110,70 @@ class TestStreamExtensions {
 		// 5 is missing below because there is no finish to collect 5
 		collected.assertStreamEquals(#[#[1, 2, 3].value, #[4, 5].value])
 	}
+	
+	@Test
+	def void testDoubleCollect() {
+		val s = (1..11).stream
+		val split = s.split [ it % 4 == 0 ] // finish after 4, 8
+		val split2 = split.split [ it % 2 == 0 ] // finish after 2, 4, 6, 8, 10
+		val collect = split2.collect // [1, 2], [3, 4], f0, [5, 6], [7, 8], f0, [9, 10], f1
+		val collect2 = collect.collect // [[1, 2], [3, 4]], [[5, 6], [7, 8]
+		val collect3 = collect2.collect
+		collect3.first.then [
+			assertEquals(
+				#[#[#[1, 2], #[3, 4]], #[#[5, 6], #[7, 8]], #[#[9, 10], #[11]]]
+			)
+		]
+	}
+	
+	@Test
+	def void testGuardDoubleSplits() {
+		val s = (1..11).stream
+		val split = s.split [ it % 4 == 0 ]
+		val split2 = split.split [ it % 3 == 0 ] // should also split at %4
+		val split3 = split2.split [ it % 2 == 0 ] // should also split at %4 and %3
+		val collect = split3.collect
+		val collect2 = collect.collect
+		val collect3 = collect2.collect
+		val collect4 = collect3.collect 
+		collect4.first.then [
+			println(it)
+			assertEquals(#[
+				#[
+					#[
+						#[1, 2], // %2 
+						#[3] // %2
+					], // %3
+					#[
+						#[4] // %2
+					] // %3
+				], // %4 
+				#[
+					#[
+						#[5, 6] // %2
+					], // %3
+					#[
+						#[7, 8] // %2
+					] // %3
+				], // %4
+				#[
+					#[
+						#[9] // %2
+					], // %3 
+					#[
+						#[10],  // %2
+						#[11] // %2
+					] // %3
+				] // end of stream finish
+			])
+		]
+		
+		
+		collect4.on [
+			entry [ println(it)]
+		]
+	}
+	
 	
 	@Test
 	def void testSum() {
@@ -162,36 +248,36 @@ class TestStreamExtensions {
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
-	// TODO: fix this one!
+	// TODO: fix this one! edit: works now?
 	@Test
 	def void testResolving() {
 		val doSomethingAsync = [ String x |
 			asyncFn(threads) [|
 				for(i : 1..5) {
 					Thread.sleep(10)
-					// println(x + i)
+					println(x + i)
 				}
 				x
 			]
 		]
-		val s = #['a', 'b'].stream
+		val s = String.stream
+		s << 'a' << 'b' << 'c' << finish << 'd' << 'e' << finish << 'f' << finish
 		println(s.queue)
-		s << 'c' << finish << 'd' << 'e' << finish << 'f'
-//		s
-//			.map [
-//				// println('pushing ' + it)
-//				it
-//			]
-//			.map(doSomethingAsync)
-//			.resolve(1)
-//			.collect
-//			.onEach [
-//				println('got: ' + it)
-//			]
+		s
+			.map [
+				// println('pushing ' + it)
+				it
+			]
+			.map(doSomethingAsync)
+			.resolve(3)
+			.collect
+			.onEach [
+				println('got: ' + it)
+			]
 			//.onEach [ println('got: ' + it)	]
-		 // s << 'f' << 'g' << finish << 'h' << finish
-		//s << 'd' << 'e'
-//		s << 'a' << 'b' << 'c'
+		s << 'f' << 'g' << finish << 'h' << finish
+		s << 'd' << 'e' << finish
+		s << 'a' << 'b' << 'c' << finish
 		Thread.sleep(1000)
 	}
 	

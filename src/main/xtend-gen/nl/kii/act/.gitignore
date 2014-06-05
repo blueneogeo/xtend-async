@@ -2,3 +2,6 @@
 /.ActorRunner.java._trace
 /.ActExtensions.java._trace
 /.ActorExtensions.java._trace
+/.AsyncActor.java._trace
+/.LoopingActor.java._trace
+/.TestRecursion.java._trace

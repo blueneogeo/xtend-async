@@ -26,6 +26,7 @@ import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings("all")
@@ -47,8 +48,8 @@ public class TestStreamExtensions {
           }
         };
         it.each(_function);
-        final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-          public void apply(final Void it) {
+        final Procedure1<Finish<Integer>> _function_1 = new Procedure1<Finish<Integer>>() {
+          public void apply(final Finish<Integer> it) {
             InputOutput.<String>println("finished!");
           }
         };
@@ -78,6 +79,8 @@ public class TestStreamExtensions {
   @Test
   public void testListStream() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
+    Collection<Entry<Integer>> _queue = s.getQueue();
+    InputOutput.<Collection<Entry<Integer>>>println(_queue);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
@@ -182,13 +185,83 @@ public class TestStreamExtensions {
     final Stream<Integer> split = StreamExtensions.<Integer>split(s, _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(1));
     Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(2));
-    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish();
+    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish(0);
     Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(3));
-    Finish<Integer> _finish_2 = StreamExtensions.<Integer>finish();
+    Finish<Integer> _finish_2 = StreamExtensions.<Integer>finish(1);
     Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(4));
-    Finish<Integer> _finish_3 = StreamExtensions.<Integer>finish();
+    Finish<Integer> _finish_3 = StreamExtensions.<Integer>finish(0);
     Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(5));
     StreamAssert.<Integer>assertStreamEquals(split, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _finish_1, _value_2, _finish_2, _value_3, _finish_3, _value_4)));
+  }
+  
+  @Test
+  public void testMerge() {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Integer.class);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    Finish<Integer> _finish = StreamExtensions.<Integer>finish(0);
+    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
+    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(3));
+    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish(1);
+    Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, _finish_1);
+    Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(4));
+    Finish<Integer> _finish_2 = StreamExtensions.<Integer>finish(0);
+    Stream<Integer> _doubleLessThan_6 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_2);
+    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(5));
+    final Stream<Integer> merged = StreamExtensions.<Integer>merge(s);
+    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(1));
+    Value<Integer> _value_1 = StreamAssert.<Integer>value(Integer.valueOf(2));
+    Value<Integer> _value_2 = StreamAssert.<Integer>value(Integer.valueOf(3));
+    Finish<Integer> _finish_3 = StreamExtensions.<Integer>finish();
+    Value<Integer> _value_3 = StreamAssert.<Integer>value(Integer.valueOf(4));
+    Value<Integer> _value_4 = StreamAssert.<Integer>value(Integer.valueOf(5));
+    StreamAssert.<Integer>assertStreamEquals(merged, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _value_1, _value_2, _finish_3, _value_3, _value_4)));
+  }
+  
+  @Test
+  public void testActor() {
+    IntegerRange _upTo = new IntegerRange(1, 1000);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Procedure1<SyncSubscription<Integer>> _function = new Procedure1<SyncSubscription<Integer>>() {
+      public void apply(final SyncSubscription<Integer> it) {
+        final Procedure1<Integer> _function = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            InputOutput.<Integer>println(it);
+          }
+        };
+        it.each(_function);
+        final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            InputOutput.<Throwable>println(it);
+          }
+        };
+        it.error(_function_1);
+      }
+    };
+    StreamExtensions.<Integer>on(_stream, _function);
+  }
+  
+  @Test
+  public void testSplitThenMerge() {
+    IntegerRange _upTo = new IntegerRange(1, 1000);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Procedure1<SyncSubscription<Integer>> _function = new Procedure1<SyncSubscription<Integer>>() {
+      public void apply(final SyncSubscription<Integer> it) {
+        final Procedure1<Integer> _function = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            InputOutput.<Integer>println(it);
+          }
+        };
+        it.each(_function);
+        final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            InputOutput.<Throwable>println(it);
+          }
+        };
+        it.error(_function_1);
+      }
+    };
+    StreamExtensions.<Integer>on(_stream, _function);
   }
   
   @Test
@@ -208,6 +281,83 @@ public class TestStreamExtensions {
     Value<List<Integer>> _value = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
     Value<List<Integer>> _value_1 = StreamAssert.<List<Integer>>value(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5))));
     StreamAssert.<List<Integer>>assertStreamEquals(collected, Collections.<Value<List<Integer>>>unmodifiableList(Lists.<Value<List<Integer>>>newArrayList(_value, _value_1)));
+  }
+  
+  @Test
+  public void testDoubleCollect() {
+    IntegerRange _upTo = new IntegerRange(1, 11);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 4) == 0));
+      }
+    };
+    final Stream<Integer> split = StreamExtensions.<Integer>split(s, _function);
+    final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 2) == 0));
+      }
+    };
+    final Stream<Integer> split2 = StreamExtensions.<Integer>split(split, _function_1);
+    final Stream<List<Integer>> collect = StreamExtensions.<Integer>collect(split2);
+    final Stream<List<List<Integer>>> collect2 = StreamExtensions.<List<Integer>>collect(collect);
+    final Stream<List<List<List<Integer>>>> collect3 = StreamExtensions.<List<List<Integer>>>collect(collect2);
+    Promise<List<List<List<Integer>>>> _first = StreamExtensions.<List<List<List<Integer>>>>first(collect3);
+    final Procedure1<List<List<List<Integer>>>> _function_2 = new Procedure1<List<List<List<Integer>>>>() {
+      public void apply(final List<List<List<Integer>>> it) {
+        Assert.assertEquals(it, 
+          Collections.<List<List<Integer>>>unmodifiableList(Lists.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))), Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(3), Integer.valueOf(4))))), Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(5), Integer.valueOf(6))), Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(7), Integer.valueOf(8))))), Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(9), Integer.valueOf(10))), Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(11))))))));
+      }
+    };
+    _first.then(_function_2);
+  }
+  
+  @Test
+  public void testGuardDoubleSplits() {
+    IntegerRange _upTo = new IntegerRange(1, 11);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 4) == 0));
+      }
+    };
+    final Stream<Integer> split = StreamExtensions.<Integer>split(s, _function);
+    final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 3) == 0));
+      }
+    };
+    final Stream<Integer> split2 = StreamExtensions.<Integer>split(split, _function_1);
+    final Function1<Integer, Boolean> _function_2 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 2) == 0));
+      }
+    };
+    final Stream<Integer> split3 = StreamExtensions.<Integer>split(split2, _function_2);
+    final Stream<List<Integer>> collect = StreamExtensions.<Integer>collect(split3);
+    final Stream<List<List<Integer>>> collect2 = StreamExtensions.<List<Integer>>collect(collect);
+    final Stream<List<List<List<Integer>>>> collect3 = StreamExtensions.<List<List<Integer>>>collect(collect2);
+    final Stream<List<List<List<List<Integer>>>>> collect4 = StreamExtensions.<List<List<List<Integer>>>>collect(collect3);
+    Promise<List<List<List<List<Integer>>>>> _first = StreamExtensions.<List<List<List<List<Integer>>>>>first(collect4);
+    final Procedure1<List<List<List<List<Integer>>>>> _function_3 = new Procedure1<List<List<List<List<Integer>>>>>() {
+      public void apply(final List<List<List<List<Integer>>>> it) {
+        InputOutput.<List<List<List<List<Integer>>>>>println(it);
+        Assert.assertEquals(it, 
+          Collections.<List<List<List<Integer>>>>unmodifiableList(Lists.<List<List<List<Integer>>>>newArrayList(Collections.<List<List<Integer>>>unmodifiableList(Lists.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))), Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(3))))), Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(4))))))), Collections.<List<List<Integer>>>unmodifiableList(Lists.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(5), Integer.valueOf(6))))), Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(7), Integer.valueOf(8))))))), Collections.<List<List<Integer>>>unmodifiableList(Lists.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(9))))), Collections.<List<Integer>>unmodifiableList(Lists.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(10))), Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(11))))))))));
+      }
+    };
+    _first.then(_function_3);
+    final Procedure1<SyncSubscription<List<List<List<List<Integer>>>>>> _function_4 = new Procedure1<SyncSubscription<List<List<List<List<Integer>>>>>>() {
+      public void apply(final SyncSubscription<List<List<List<List<Integer>>>>> it) {
+        final Procedure1<Entry<List<List<List<List<Integer>>>>>> _function = new Procedure1<Entry<List<List<List<List<Integer>>>>>>() {
+          public void apply(final Entry<List<List<List<List<Integer>>>>> it) {
+            InputOutput.<Entry<List<List<List<List<Integer>>>>>>println(it);
+          }
+        };
+        it.entry(_function);
+      }
+    };
+    StreamExtensions.<List<List<List<List<Integer>>>>>on(collect4, _function_4);
   }
   
   @Test
@@ -421,7 +571,10 @@ public class TestStreamExtensions {
               {
                 IntegerRange _upTo = new IntegerRange(1, 5);
                 for (final Integer i : _upTo) {
-                  Thread.sleep(10);
+                  {
+                    Thread.sleep(10);
+                    InputOutput.<String>println((x + i));
+                  }
                 }
                 _xblockexpression = x;
               }
@@ -432,17 +585,52 @@ public class TestStreamExtensions {
         }
       };
       final Function1<String, Promise<String>> doSomethingAsync = _function;
-      final Stream<String> s = StreamExtensions.<String>stream(Collections.<String>unmodifiableList(Lists.<String>newArrayList("a", "b")));
+      final Stream<String> s = StreamExtensions.<String>stream(String.class);
+      Stream<String> _doubleLessThan = StreamExtensions.<String>operator_doubleLessThan(s, "a");
+      Stream<String> _doubleLessThan_1 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan, "b");
+      Stream<String> _doubleLessThan_2 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_1, "c");
+      Finish<String> _finish = StreamExtensions.<String>finish();
+      Stream<String> _doubleLessThan_3 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_2, _finish);
+      Stream<String> _doubleLessThan_4 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_3, "d");
+      Stream<String> _doubleLessThan_5 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_4, "e");
+      Finish<String> _finish_1 = StreamExtensions.<String>finish();
+      Stream<String> _doubleLessThan_6 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
+      Stream<String> _doubleLessThan_7 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_6, "f");
+      Finish<String> _finish_2 = StreamExtensions.<String>finish();
+      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_7, _finish_2);
       Collection<Entry<String>> _queue = s.getQueue();
       InputOutput.<Collection<Entry<String>>>println(_queue);
-      Stream<String> _doubleLessThan = StreamExtensions.<String>operator_doubleLessThan(s, "c");
-      Finish<String> _finish = StreamExtensions.<String>finish();
-      Stream<String> _doubleLessThan_1 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan, _finish);
-      Stream<String> _doubleLessThan_2 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_1, "d");
-      Stream<String> _doubleLessThan_3 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_2, "e");
-      Finish<String> _finish_1 = StreamExtensions.<String>finish();
-      Stream<String> _doubleLessThan_4 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_3, _finish_1);
-      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_4, "f");
+      final Function1<String, String> _function_1 = new Function1<String, String>() {
+        public String apply(final String it) {
+          return it;
+        }
+      };
+      Stream<String> _map = StreamExtensions.<String, String>map(s, _function_1);
+      Stream<Promise<String>> _map_1 = StreamExtensions.<String, Promise<String>>map(_map, doSomethingAsync);
+      Stream<String> _resolve = StreamExtensions.<String, Object>resolve(_map_1, 3);
+      Stream<List<String>> _collect = StreamExtensions.<String>collect(_resolve);
+      final Procedure1<List<String>> _function_2 = new Procedure1<List<String>>() {
+        public void apply(final List<String> it) {
+          InputOutput.<String>println(("got: " + it));
+        }
+      };
+      StreamExtensions.<List<String>>onEach(_collect, _function_2);
+      Stream<String> _doubleLessThan_8 = StreamExtensions.<String>operator_doubleLessThan(s, "f");
+      Stream<String> _doubleLessThan_9 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_8, "g");
+      Finish<String> _finish_3 = StreamExtensions.<String>finish();
+      Stream<String> _doubleLessThan_10 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_9, _finish_3);
+      Stream<String> _doubleLessThan_11 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_10, "h");
+      Finish<String> _finish_4 = StreamExtensions.<String>finish();
+      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_11, _finish_4);
+      Stream<String> _doubleLessThan_12 = StreamExtensions.<String>operator_doubleLessThan(s, "d");
+      Stream<String> _doubleLessThan_13 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_12, "e");
+      Finish<String> _finish_5 = StreamExtensions.<String>finish();
+      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_13, _finish_5);
+      Stream<String> _doubleLessThan_14 = StreamExtensions.<String>operator_doubleLessThan(s, "a");
+      Stream<String> _doubleLessThan_15 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_14, "b");
+      Stream<String> _doubleLessThan_16 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_15, "c");
+      Finish<String> _finish_6 = StreamExtensions.<String>finish();
+      StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_16, _finish_6);
       Thread.sleep(1000);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);

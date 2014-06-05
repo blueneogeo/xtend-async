@@ -5,9 +5,11 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	val protected Stream<T> stream
+	var (Entry<T>)=>void onEntryFn
 	var (T)=>void onValueFn
 	var (Throwable)=>void onErrorFn
-	var (Void)=>void onFinishFn
+	var =>void onFinish0Fn
+	var (Finish<T>)=>void onFinishFn
 	
 	new(Stream<T> stream) {
 		this.stream = stream
@@ -15,18 +17,33 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	}
 
 	override apply(Entry<T> it) {
+		onEntryFn?.apply(it)
 		switch it {
 			Value<T>: onValueFn?.apply(value)
 			Error<T>: onErrorFn?.apply(error)
-			Finish<T>: onFinishFn?.apply(null)
+			Finish<T>: {
+				onFinishFn?.apply(it)
+				if(level == 0)
+					onFinish0Fn?.apply
+			}
 		}
+	}
+	
+	def entry((Entry<T>)=>void onEntryFn) {
+		this.onEntryFn = onEntryFn
 	}
 
 	def each((T)=>void onValueFn) {
 		this.onValueFn = onValueFn
 	}
 	
-	def finish((Void)=>void onFinishFn) {
+	/** listen for a finish (of level 0) */
+	def finish(=>void onFinish0Fn) {
+		this.onFinish0Fn = onFinish0Fn
+	}
+	
+	/** listen for any finish */
+	def finish((Finish<T>)=>void onFinishFn) {
 		this.onFinishFn = onFinishFn
 	}
 

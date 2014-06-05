@@ -15,11 +15,11 @@ class StreamAssert {
 		stream.on [
 			each [ data.add(value) ]
 			error [ printStackTrace ]
-			finish [ data.add(new Finish<T>) ]
+			finish [ data.add(new Finish<T>(level)) ]
 		]
 		data
 	}
-	
+
 	def static <T> assertStreamEquals(Stream<T> stream, List<? extends Entry<T>> entries) {
 		val data = stream.gather
 		println(data)

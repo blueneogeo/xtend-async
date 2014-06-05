@@ -6,8 +6,6 @@ import java.util.concurrent.locks.ReentrantLock
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 /**
  * An Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
@@ -54,21 +52,23 @@ import java.util.concurrent.Executors
  * 'world' >> greeter
  * </pre>
  */
-abstract class Actor<T> implements Procedure1<T> {
+abstract class AsyncActor<T> implements Procedure1<T> {
 	
 	val Queue<T> inbox
 	val processLock = new ReentrantLock
 	//val processing = new AtomicBoolean(false)
-	val ExecutorService executors
 	
 	/** Create a new actor with a concurrentlinkedqueue as inbox */
-	new(ExecutorService executors) {	
-		this(executors, newConcurrentLinkedQueue)
+	new() {	
+		this(newConcurrentLinkedQueue)
 	}
 
-	new(ExecutorService executors, Queue<T> queue) {
-		this.executors = executors
-		this.inbox = queue
+	/** 
+	 * Create an actor with the given queue as inbox. 
+	 * Queue implementation must be threadsafe and non-blocking.
+	 */
+	new(Queue<T> queue) { 
+		inbox = queue
 	}
 	
 	/** Give the actor something to process */
@@ -97,9 +97,7 @@ abstract class Actor<T> implements Procedure1<T> {
 			if(message != null) {
 				// perform the act on the item, and wait for the asynchronous closure call
 				try {
-					// act(message, onProcessDone) // onProcessDone is run by the thread that called it
-					// instead of acting, put this action on the stack!
-					
+					act(message, onProcessDone) // onProcessDone is run by the thread that called it
 				} catch(Throwable t) {
 					onProcessDone.apply
 					throw t
