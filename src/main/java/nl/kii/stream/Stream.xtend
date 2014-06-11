@@ -41,7 +41,7 @@ class Stream<T> extends Actor<StreamMessage> {
 
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
-	synchronized def void onEntry((Entry<T>)=>void entryListener) {
+	synchronized def void setListener((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener
 	}
 	
@@ -55,7 +55,7 @@ class Stream<T> extends Actor<StreamMessage> {
 	 * Process next incoming entry.
 	 * Since the stream extends Actor, there is no more than one thread active.
 	 */
-	override protected act(StreamMessage entry) {
+	override protected act(StreamMessage entry, =>void done) {
 		switch entry {
 			Value<T>, Finish<T>, Error<T>: {
 				queue.add(entry)
@@ -93,6 +93,7 @@ class Stream<T> extends Actor<StreamMessage> {
 				notify(entry)
 			}
 		}
+		done.apply
 	}
 	
 	// STREAM PUBLISHING //////////////////////////////////////////////////////

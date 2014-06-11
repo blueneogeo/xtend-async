@@ -5,3 +5,10 @@
 /.AsyncActor.java._trace
 /.LoopingActor.java._trace
 /.TestRecursion.java._trace
+/.NextException.java._trace
+/.PerformNext.java._trace
+/.RequestNext.java._trace
+/.OnNextRequest.java._trace
+/.AtMaxProcessDepth.java._trace
+/.Actor2.java._trace
+/.DoneException.java._trace

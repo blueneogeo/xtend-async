@@ -1,12 +1,9 @@
 package nl.kii.act.test;
 
-import com.google.common.collect.Lists;
-import java.util.Collections;
-import java.util.List;
-import org.eclipse.xtext.xbase.lib.Conversions;
+import nl.kii.act.test.Call2;
+import nl.kii.act.test.Result;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Test;
 
 /**
@@ -18,28 +15,52 @@ import org.junit.Test;
  * You can then unwind the "stack" with Java's for-construct.
  * 
  * http://stackoverflow.com/questions/860550/stack-overflows-from-deep-recursion-in-java/861385#861385
+ * 
+ * Other way: throw an Exception!!!
  */
 @SuppressWarnings("all")
 public class TestRecursion {
   @Test
   public void testRecursion() {
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-        InputOutput.println();
-      }
-    };
-    this.perform(((int[])Conversions.unwrapArray(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))), int.class)), _function);
+    Integer _loop = this.loop(1000000);
+    InputOutput.<Integer>println(_loop);
   }
   
-  public void perform(final int[] inbox, final Procedure1<? super Integer> processor) {
-    boolean _isEmpty = IterableExtensions.isEmpty(((Iterable<?>)Conversions.doWrapArray(inbox)));
-    if (_isEmpty) {
-      return;
+  public Integer loop(final int loops) {
+    try {
+      int input = loops;
+      int result = 0;
+      boolean _while = true;
+      while (_while) {
+        try {
+          this.count(input, result);
+        } catch (final Throwable _t) {
+          if (_t instanceof Call2) {
+            final Call2 call = (Call2)_t;
+            input = call.input;
+            result = call.result;
+          } else {
+            throw Exceptions.sneakyThrow(_t);
+          }
+        }
+        _while = true;
+      }
+    } catch (final Throwable _t) {
+      if (_t instanceof Result) {
+        final Result result_1 = (Result)_t;
+        return Integer.valueOf(result_1.result);
+      } else {
+        throw Exceptions.sneakyThrow(_t);
+      }
     }
-    int[] _clone = inbox.clone();
-    int _length = inbox.length;
-    int _minus = (_length - 1);
-    List<Integer> _subList = ((List<Integer>)Conversions.doWrapArray(_clone)).subList(1, _minus);
-    this.perform(((int[])Conversions.unwrapArray(_subList, int.class)), processor);
+    return null;
+  }
+  
+  public void count(final int left, final int sum) throws Call2, Result {
+    if ((left == 0)) {
+      throw new Result(sum);
+    } else {
+      throw new Call2((left - 1), (sum + 1));
+    }
   }
 }

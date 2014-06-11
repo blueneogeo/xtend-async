@@ -3,19 +3,6 @@ package nl.kii.stream.test
 //import nl.kii.stream.Countdown
 //import nl.kii.stream.Gatherer
 
-import static java.util.concurrent.Executors.*
-import java.util.concurrent.atomic.AtomicInteger
-import nl.kii.stream.Promise
-import nl.kii.stream.Value
-import org.junit.Test
-
-import static nl.kii.stream.PromiseExtensions.*
-
-import static extension nl.kii.stream.StreamExtensions.*
-import java.util.concurrent.locks.ReentrantLock
-import nl.kii.stream.Error
-import org.junit.Assert
-
 class TestCollector {
 	
 	

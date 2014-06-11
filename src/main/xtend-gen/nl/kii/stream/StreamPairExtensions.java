@@ -1,5 +1,7 @@
 package nl.kii.stream;
 
+import nl.kii.stream.AsyncSubscription;
+import nl.kii.stream.Finish;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
@@ -59,9 +61,30 @@ public class StreamPairExtensions {
    * stream as listener parameters.
    */
   public static <V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2, V2>> mapToPair(final Stream<V1> stream, final Function1<? super V1, ? extends Pair<K2, V2>> mappingFn) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nonEach cannot be resolved");
+    Stream<Pair<K2, V2>> _xblockexpression = null;
+    {
+      final Stream<Pair<K2, V2>> newStream = new Stream<Pair<K2, V2>>();
+      final Procedure1<AsyncSubscription<V1>> _function = new Procedure1<AsyncSubscription<V1>>() {
+        public void apply(final AsyncSubscription<V1> it) {
+          final Procedure1<V1> _function = new Procedure1<V1>() {
+            public void apply(final V1 it) {
+              final Pair<K2, V2> pair = mappingFn.apply(it);
+              newStream.push(pair);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_1);
+        }
+      };
+      StreamExtensions.<V1>onAsync(stream, _function);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -106,13 +129,53 @@ public class StreamPairExtensions {
    * See async2() for example of how to use.
    */
   public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> mapAsync(final Stream<Pair<K1, V1>> stream, final Function2<? super K1, ? super V1, ? extends Promise<V2>> promiseFn) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
-      + "\nThe method or field key is undefined for the type StreamPairExtensions"
-      + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nType mismatch: cannot convert from Stream<Pair<K1, V1>> to Queue<Entry<V2>>");
+    Stream<V2> _xblockexpression = null;
+    {
+      final Stream<V2> newStream = new Stream<V2>();
+      final Procedure1<AsyncSubscription<Pair<K1, V1>>> _function = new Procedure1<AsyncSubscription<Pair<K1, V1>>>() {
+        public void apply(final AsyncSubscription<Pair<K1, V1>> it) {
+          final Procedure1<Pair<K1, V1>> _function = new Procedure1<Pair<K1, V1>>() {
+            public void apply(final Pair<K1, V1> it) {
+              K1 _key = it.getKey();
+              V1 _value = it.getValue();
+              Promise<V2> _apply = promiseFn.apply(_key, _value);
+              final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+                public void apply(final Throwable it) {
+                  newStream.error(it);
+                  stream.next();
+                }
+              };
+              Promise<V2> _onError = _apply.onError(_function);
+              final Procedure1<V2> _function_1 = new Procedure1<V2>() {
+                public void apply(final V2 it) {
+                  newStream.push(it);
+                  stream.next();
+                }
+              };
+              _onError.then(_function_1);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+              stream.next();
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<Pair<K1, V1>>> _function_2 = new Procedure1<Finish<Pair<K1, V1>>>() {
+            public void apply(final Finish<Pair<K1, V1>> it) {
+              newStream.finish();
+              stream.next();
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      StreamExtensions.<Pair<K1, V1>>onAsync(stream, _function);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -133,11 +196,54 @@ public class StreamPairExtensions {
    *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
    */
   public static <V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2, V2>> mapAsyncToPair(final Stream<V1> stream, final Function1<? super V1, ? extends Pair<K2, Promise<V2>>> promiseFn) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nType mismatch: cannot convert from Stream<V1> to Queue<Entry<Pair<K2, V2>>>");
+    Stream<Pair<K2, V2>> _xblockexpression = null;
+    {
+      final Stream<Pair<K2, V2>> newStream = new Stream<Pair<K2, V2>>();
+      final Procedure1<AsyncSubscription<V1>> _function = new Procedure1<AsyncSubscription<V1>>() {
+        public void apply(final AsyncSubscription<V1> it) {
+          final Procedure1<V1> _function = new Procedure1<V1>() {
+            public void apply(final V1 it) {
+              final Pair<K2, Promise<V2>> pair = promiseFn.apply(it);
+              Promise<V2> _value = pair.getValue();
+              final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+                public void apply(final Throwable it) {
+                  newStream.error(it);
+                  stream.next();
+                }
+              };
+              Promise<V2> _onError = _value.onError(_function);
+              final Procedure1<V2> _function_1 = new Procedure1<V2>() {
+                public void apply(final V2 it) {
+                  K2 _key = pair.getKey();
+                  Pair<K2, V2> _mappedTo = Pair.<K2, V2>of(_key, it);
+                  newStream.push(_mappedTo);
+                  stream.next();
+                }
+              };
+              _onError.then(_function_1);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+              stream.next();
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<V1>> _function_2 = new Procedure1<Finish<V1>>() {
+            public void apply(final Finish<V1> it) {
+              newStream.finish();
+              stream.next();
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      StreamExtensions.<V1>onAsync(stream, _function);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -149,13 +255,56 @@ public class StreamPairExtensions {
    *    .each [ user, result | println(result) ]
    */
   public static <K1 extends Object, V1 extends Object, K2 extends Object, V2 extends Object> Stream<Pair<K2, V2>> mapAsyncToPair(final Stream<Pair<K1, V1>> stream, final Function2<? super K1, ? super V1, ? extends Pair<K2, Promise<V2>>> promiseFn) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method onNextValue is undefined for the type StreamPairExtensions"
-      + "\nThe method or field key is undefined for the type StreamPairExtensions"
-      + "\nThe method or field value is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextError is undefined for the type StreamPairExtensions"
-      + "\nThe method onNextFinish is undefined for the type StreamPairExtensions"
-      + "\nType mismatch: cannot convert from Stream<Pair<K1, V1>> to Queue<Entry<Pair<K2, V2>>>");
+    Stream<Pair<K2, V2>> _xblockexpression = null;
+    {
+      final Stream<Pair<K2, V2>> newStream = new Stream<Pair<K2, V2>>();
+      final Procedure1<AsyncSubscription<Pair<K1, V1>>> _function = new Procedure1<AsyncSubscription<Pair<K1, V1>>>() {
+        public void apply(final AsyncSubscription<Pair<K1, V1>> it) {
+          final Procedure1<Pair<K1, V1>> _function = new Procedure1<Pair<K1, V1>>() {
+            public void apply(final Pair<K1, V1> it) {
+              K1 _key = it.getKey();
+              V1 _value = it.getValue();
+              final Pair<K2, Promise<V2>> pair = promiseFn.apply(_key, _value);
+              Promise<V2> _value_1 = pair.getValue();
+              final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+                public void apply(final Throwable it) {
+                  newStream.error(it);
+                  stream.next();
+                }
+              };
+              Promise<V2> _onError = _value_1.onError(_function);
+              final Procedure1<V2> _function_1 = new Procedure1<V2>() {
+                public void apply(final V2 it) {
+                  K2 _key = pair.getKey();
+                  Pair<K2, V2> _mappedTo = Pair.<K2, V2>of(_key, it);
+                  newStream.push(_mappedTo);
+                  stream.next();
+                }
+              };
+              _onError.then(_function_1);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+              stream.next();
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<Pair<K1, V1>>> _function_2 = new Procedure1<Finish<Pair<K1, V1>>>() {
+            public void apply(final Finish<Pair<K1, V1>> it) {
+              newStream.finish();
+              stream.next();
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      StreamExtensions.<Pair<K1, V1>>onAsync(stream, _function);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**

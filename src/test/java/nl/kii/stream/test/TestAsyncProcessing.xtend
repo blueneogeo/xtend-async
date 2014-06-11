@@ -54,7 +54,7 @@ class TestAsyncProcessing {
 	
 	
 	// TODO: fix, but fix resolve first
-	//@Test
+	@Test
 	def void testAsyncErrorCatching() {
 		val result = new AtomicInteger
 		val s = int.stream << 1 << 2 << 3

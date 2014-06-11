@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
+	<classpathentry kind="con" path="org.eclipse.xtend.XTEND_CONTAINER"/>
 	<classpathentry kind="src" path="src/test/xtend-gen"/>
 	<classpathentry kind="src" path="src/main/xtend-gen"/>
 	<classpathentry kind="src" path="src/main/java"/>
@@ -7,9 +8,9 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER" exported="true"/>
 	<classpathentry kind="output" path="bin"/>
-	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtend/org.eclipse.xtend.lib/2.6.0-SNAPSHOT/ae06a27cffd099ac986baa6966a42e8375dc9825/org.eclipse.xtend.lib-2.6.0-SNAPSHOT-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtend/org.eclipse.xtend.lib/2.6.0-SNAPSHOT/8c50cf21412fa6f6e35b897392f12eb2676697fa/org.eclipse.xtend.lib-2.6.0-SNAPSHOT.jar" exported="true"/>
-	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.6.0-SNAPSHOT/acfee9aad19e7da3462d6093e447cdefe1822515/org.eclipse.xtext.xbase.lib-2.6.0-SNAPSHOT-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.6.0-SNAPSHOT/48fd81a2ff58a4c4ac3d6aa1b26ed7ef3063e967/org.eclipse.xtext.xbase.lib-2.6.0-SNAPSHOT.jar" exported="true"/>
+	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtend/org.eclipse.xtend.lib/2.6.0/82aa321e04e73294cfc4e2d45f31b7d953a2b0c5/org.eclipse.xtend.lib-2.6.0-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtend/org.eclipse.xtend.lib/2.6.0/8f8a6180aa8c834f9682557a9976ad75e6455aa0/org.eclipse.xtend.lib-2.6.0.jar" exported="true"/>
+	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.6.0/6644c99fcf02a7de9971c86a6fc0c63c92283a8/org.eclipse.xtext.xbase.lib-2.6.0-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.6.0/b4d48f14ccf35e032d336af0b5e60f0354b07991/org.eclipse.xtext.xbase.lib-2.6.0.jar" exported="true"/>
 	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/junit/junit/4.11/28e0ad201304e4a4abf999ca0570b7cffc352c3c/junit-4.11-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/junit/junit/4.11/4e031bb61df09069aeb2bffb4019e7a5034a4ee0/junit-4.11.jar" exported="true"/>
-	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/14.0/c4e65085e00a033348b5417106b13e2ad2987ffc/guava-14.0-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/14.0/67b7be4ee7ba48e4828a42d6d5069761186d4a53/guava-14.0.jar" exported="true"/>
+	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/14.0.1/169f11e28e3ed9a64e9fa895eaafb579e6a5aa6c/guava-14.0.1-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/14.0.1/69e12f4c6aeac392555f1ea86fab82b5e5e31ad4/guava-14.0.1.jar" exported="true"/>
 	<classpathentry sourcepath="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/1dc37250fbc78e23a65a67fbbaf71d2e9cbc3c0b/hamcrest-core-1.3-sources.jar" kind="lib" path="/Users/christianvogel/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar" exported="true"/>
 </classpath>

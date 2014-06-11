@@ -166,7 +166,7 @@ class TestStream {
 			}
 		]
 		val sum = new AtomicInteger
-		s2.onEntry = [
+		s2.listener = [
 			switch it {
 				Error<?>: println(it)
 				Value<Integer>: sum.addAndGet(value) 
@@ -174,9 +174,8 @@ class TestStream {
 			s2.next
 		]
 		s2.next
-		Thread.sleep(200)
+		Thread.sleep(100)
 		Assert.assertEquals(12000, sum.get)
 	}
-	
 
 }

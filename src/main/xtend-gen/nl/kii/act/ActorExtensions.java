@@ -26,23 +26,15 @@ public class ActorExtensions {
   }
   
   public static <T extends Object> Actor<T> actor(final Procedure2<? super T, ? super Procedure0> actFn) {
-    return ActorExtensions.<T>actor(ActorExtensions.defaultActorExecutor, actFn);
-  }
-  
-  public static <T extends Object> Actor<T> actor(final Procedure1<? super T> actFn) {
-    return ActorExtensions.<T>actor(ActorExtensions.defaultActorExecutor, actFn);
-  }
-  
-  public static <T extends Object> Actor<T> actor(final ExecutorService executor, final Procedure2<? super T, ? super Procedure0> actFn) {
-    return new Actor<T>(executor) {
+    return new Actor<T>() {
       public void act(final T input, final Procedure0 done) {
         actFn.apply(input, done);
       }
     };
   }
   
-  public static <T extends Object> Actor<T> actor(final ExecutorService executor, final Procedure1<? super T> actFn) {
-    return new Actor<T>(executor) {
+  public static <T extends Object> Actor<T> actor(final Procedure1<? super T> actFn) {
+    return new Actor<T>() {
       public void act(final T input, final Procedure0 done) {
         actFn.apply(input);
         done.apply();

@@ -15,8 +15,9 @@ class TestActor {
 	
 	@Test
 	def void testHelloWorld() {
-		val greeter = actor [
+		val greeter = actor [ it, done |
 			println('hello ' + it)
+			done.apply
 		]
 		'world' >> greeter
 		'Christian!' >> greeter
@@ -49,6 +50,26 @@ class TestActor {
 		checkDone << 200
 		Thread.sleep(2000)
 		assertEquals(3, doneCounter.get)
+	}
+	
+	@Test
+	def void testActorLoad() {
+		val threads = newCachedThreadPool
+		val counter = new AtomicInteger(0)
+		val ref = new AtomicReference<Actor<Integer>> 
+		val a = actor [ int i, done |
+			async(threads) [|
+				Thread.sleep(1)
+				counter.incrementAndGet
+				done.apply
+			]
+		]
+		ref.set(a)
+		for(i : 1..100000) {
+			a << i
+		}
+		Thread.sleep(1000)
+		assertEquals(100000, counter.get)
 	}
 	
 }

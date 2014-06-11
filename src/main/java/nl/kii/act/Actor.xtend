@@ -1,13 +1,10 @@
 package nl.kii.act
 
 import java.util.Queue
-import static java.util.concurrent.TimeUnit.*
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.atomic.AtomicBoolean
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 /**
  * An Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
@@ -19,7 +16,7 @@ import java.util.concurrent.Executors
  * <h3>Asynchronous act method</h3>
  * 
  * The act method of this actor is asynchronous. This means that you have to call done.apply to indicate
- * you are done processing. This allows the actor to signal when asynchronous work has been completed.
+ * you are done processing. This tells the actor that the asynchronous work has been completed.
  * 
  * <h3>Thread borrowing</h3>
  * 
@@ -29,6 +26,11 @@ import java.util.concurrent.Executors
  * to perform its act loop. Once the loop is empty, it releases the thread. If while one thread is being 
  * borrowed and processing, another applies, that other thread is let go. This way, only one thread is ever
  * processing the act loop. This allows you to use the actor as a single-threaded yet threadsafe worker.
+ * 
+ * For this actor to perform well, the code it 'acts' upon should be non-blocking and relatively lightweight.
+ * If you do need to perform heavy work, make an asynchronous call, and call the passed done function when
+ * the processing is complete. The done method is used to tell the actor that the acting is finished and the next
+ * item can be processed from its queue.
  * 
  * <h3>Usage:</h3>
  * 
@@ -55,20 +57,36 @@ import java.util.concurrent.Executors
  * </pre>
  */
 abstract class Actor<T> implements Procedure1<T> {
-	
+
+	/** 
+	 * Since the actor supports asynchronous callbacks, its main loop must be implemented via 
+	 * recursion. However since it has no seperate process loop (as it steals from the threads
+	 * that call it), this can mean that the recursion can go deeper than Java allows. The correct
+	 * way of dealing with this would be via tail optimization, however this is unsupported by
+	 * the JVM. Another good way of dealing with the growing stacktrace is by using continuations.
+	 * That way, you can have a looping continuation instead of recursion. However, this is only
+	 * possible using ASM bytecode enhancement, which I tried to avoid. Because of this, this
+	 * actor uses a dirty trick to escape too long recursion stacktraces: it throws an exception
+	 * when the stack is too deep, breaking out of the call-stack back to the loop. However since
+	 * recursion is more performant than constantly throwing exceptions, it will only do so after
+	 * an X amount of process depth. The MAX_PROCESS_DEPTH setting below sets how many time the
+	 * processNextAsync call can be called recursively before it breaks out through an exception. 
+	 */
+	val static MAX_PROCESS_DEPTH = 50
 	val Queue<T> inbox
-	val processLock = new ReentrantLock
-	//val processing = new AtomicBoolean(false)
-	val ExecutorService executors
+	val processing = new AtomicBoolean(false)
 	
 	/** Create a new actor with a concurrentlinkedqueue as inbox */
-	new(ExecutorService executors) {	
-		this(executors, newConcurrentLinkedQueue)
+	new() {	
+		this(newConcurrentLinkedQueue)
 	}
 
-	new(ExecutorService executors, Queue<T> queue) {
-		this.executors = executors
-		this.inbox = queue
+	/** 
+	 * Create an actor with the given queue as inbox. 
+	 * Queue implementation must be threadsafe and non-blocking.
+	 */
+	new(Queue<T> queue) { 
+		inbox = queue
 	}
 	
 	/** Give the actor something to process */
@@ -83,44 +101,39 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	protected abstract def void act(T message, =>void done)
 
-	/** 
-	 * Start the process loop that takes input from the inbox queue one by one and calls the
-	 * act method for each input.
-	 */
 	protected def void process() {
-		// Only a single thread may run the process
-		// The try period of the lock is to compensate for the small period in between finishing a process
-		// loop and the unlocking and relocking.
-		if(processLock.tryLock(1, MILLISECONDS)) {
-			// get the next item from the inbox
-			val message = inbox.poll
-			if(message != null) {
-				// perform the act on the item, and wait for the asynchronous closure call
-				try {
-					// act(message, onProcessDone) // onProcessDone is run by the thread that called it
-					// instead of acting, put this action on the stack!
-					
-				} catch(Throwable t) {
-					onProcessDone.apply
-					throw t
-				}
-			} else {
-				// nothing more in the inbox, we're done, unlock the process
-				processLock.unlock
+		// this outer loop is for re-entering the process loop after a AtMaxProcessDepth exception is thrown
+		while(!processing.get && !inbox.empty) {
+			try {
+				// processNextAsync will try to recurse through the entire inbox,
+				processNextAsync(MAX_PROCESS_DEPTH)
+				// in which case we are done processing and looping...
+				processing.set(false)
+				return;
+			} catch (AtMaxProcessDepth e) {
+				// ... or we end up at max recursion, in which case we are not finished and the while tries again
+				// println('was at max depth, coming back up!')
+				processing.set(false)
 			}
 		}
 	}
-	
-	// TODO: probably this could be done smarter, currently the process gets unlocked, the inbox checked
-	// and then process called again which locks again. This could be what requires the trylock in process(),
-	// since there is a short time in which things are unlocked, performed and then locked again.
-	// also, it is unnecessary to unlock when we know we will lock again.
-	val private =>void onProcessDone = [|
-		// we're done, unlock the process
-		processLock.unlock
-		// recursively call process again if there is more to do
-		if(!inbox.empty) process
-	]
+
+	protected def void processNextAsync(int depth) {
+		if(depth == 0) throw new AtMaxProcessDepth
+		if(processing.get) return;
+		// try to get the next message
+		val message = inbox.poll
+		if(message == null) return;
+		// ok, we have a message, start processing
+		processing.set(true)
+		act(message) [|
+			// the act is done, stop processing
+			processing.set(false)
+			// if there is more to do, call this method again
+			if(!inbox.empty)
+				processNextAsync(depth - 1)
+		]
+	}
 	
 	def getInbox() {
 		inbox.unmodifiableView
@@ -128,3 +141,8 @@ abstract class Actor<T> implements Procedure1<T> {
 	
 }
 
+/** 
+ * Thrown to indicate that the stack for the recursive calls is at its maximum and that it should
+ * be rewound.
+ */
+class AtMaxProcessDepth extends Throwable { }

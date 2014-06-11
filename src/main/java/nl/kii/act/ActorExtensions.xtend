@@ -13,24 +13,24 @@ class ActorExtensions {
 		defaultActorExecutor
 	}
 
-	def static <T> Actor<T> actor((T, =>void)=>void actFn) {
-		actor(defaultActorExecutor, actFn)
-	}
-
-	def static <T> Actor<T> actor((T)=>void actFn) {
-		actor(defaultActorExecutor, actFn)
-	}
+//	def static <T> Actor<T> actor((T, =>void)=>void actFn) {
+//		actor(defaultActorExecutor, actFn)
+//	}
+//
+//	def static <T> Actor<T> actor((T)=>void actFn) {
+//		actor(defaultActorExecutor, actFn)
+//	}
 	
-	def static <T> Actor<T> actor(ExecutorService executor, (T, =>void)=>void actFn) {
-		new Actor<T>(executor) {
+	def static <T> Actor<T> actor((T, =>void)=>void actFn) {
+		new Actor<T>() {
 			override act(T input, ()=>void done) {
 				actFn.apply(input, done)
 			}
 		}
 	}
 	
-	def static <T> Actor<T> actor(ExecutorService executor, (T)=>void actFn) {
-		new Actor<T>(executor) {
+	def static <T> Actor<T> actor((T)=>void actFn) {
+		new Actor<T>() {
 			override act(T input, ()=>void done) {
 				actFn.apply(input)
 				done.apply

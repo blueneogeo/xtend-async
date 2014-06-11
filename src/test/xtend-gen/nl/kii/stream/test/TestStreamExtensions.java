@@ -245,7 +245,31 @@ public class TestStreamExtensions {
   public void testSplitThenMerge() {
     IntegerRange _upTo = new IntegerRange(1, 1000);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    final Procedure1<SyncSubscription<Integer>> _function = new Procedure1<SyncSubscription<Integer>>() {
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 10) == 0));
+      }
+    };
+    Stream<Integer> _split = StreamExtensions.<Integer>split(_stream, _function);
+    final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 3) == 0));
+      }
+    };
+    Stream<Integer> _split_1 = StreamExtensions.<Integer>split(_split, _function_1);
+    final Function1<Integer, Boolean> _function_2 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 1) == 0));
+      }
+    };
+    Stream<Integer> _split_2 = StreamExtensions.<Integer>split(_split_1, _function_2);
+    final Function1<Integer, Boolean> _function_3 = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 7) == 0));
+      }
+    };
+    Stream<Integer> _split_3 = StreamExtensions.<Integer>split(_split_2, _function_3);
+    final Procedure1<SyncSubscription<Integer>> _function_4 = new Procedure1<SyncSubscription<Integer>>() {
       public void apply(final SyncSubscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
@@ -259,9 +283,15 @@ public class TestStreamExtensions {
           }
         };
         it.error(_function_1);
+        final Procedure1<Finish<Integer>> _function_2 = new Procedure1<Finish<Integer>>() {
+          public void apply(final Finish<Integer> it) {
+            InputOutput.<String>println("fin");
+          }
+        };
+        it.finish(_function_2);
       }
     };
-    StreamExtensions.<Integer>on(_stream, _function);
+    StreamExtensions.<Integer>on(_split_3, _function_4);
   }
   
   @Test

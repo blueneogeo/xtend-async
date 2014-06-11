@@ -28,7 +28,7 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
         Subscription.this.apply(it);
       }
     };
-    stream.onEntry(_function);
+    stream.setListener(_function);
   }
   
   public void apply(final Entry<T> it) {

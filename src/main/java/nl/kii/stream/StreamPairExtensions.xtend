@@ -47,12 +47,15 @@ class StreamPairExtensions {
 	 */
 	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<V1> stream, (V1)=>Pair<K2, V2> mappingFn) {
 		val newStream = new Stream<Pair<K2, V2>>
-		stream
-			.onNextError [ newStream.error(it) ]
-			.onEach [
+		stream.onAsync [
+			each [
 				val pair = mappingFn.apply(it)
 				newStream.push(pair)
 			]
+			error [
+				newStream.error(it)
+			]
+		]
 		newStream	
 	}
 	
@@ -84,25 +87,27 @@ class StreamPairExtensions {
 	 * See async2() for example of how to use.
 	 */
 	def static <K1, V1, V2> Stream<V2> mapAsync(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
-		val newStream = new Stream<V2>(stream)
-		stream.onNextValue [ 
-			promiseFn.apply(key, value)
-				.onError [ 
-					newStream.error(it)
-					stream.next
-				]
-				.then [ 
-					newStream.push(it)
-					stream.next
-				]
-		]
-		stream.onNextError [ 
-			newStream.error(it)
-			stream.next
-		]
-		stream.onNextFinish [| 
-			newStream.finish
-			stream.next
+		val newStream = new Stream<V2>
+		stream.onAsync [
+			each [
+				promiseFn.apply(key, value)
+					.onError [ 
+						newStream.error(it)
+						stream.next
+					]
+					.then [ 
+						newStream.push(it)
+						stream.next
+					]
+			]
+			error [
+				newStream.error(it)
+				stream.next
+			]
+			finish [
+				newStream.finish
+				stream.next
+			]
 		]
 		newStream
 	}
@@ -125,26 +130,28 @@ class StreamPairExtensions {
 	 *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
 	 */
 	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
-		val newStream = new Stream<Pair<K2, V2>>(stream)
-		stream.onNextValue [
-			val pair = promiseFn.apply(it)
-			pair.value
-				.onError [ 
-					newStream.error(it)
-					stream.next
-				]
-				.then [ 
-					newStream.push(pair.key -> it)
-					stream.next
-				]
-		]
-		stream.onNextError [ 
-			newStream.error(it)
-			stream.next
-		]
-		stream.onNextFinish [| 
-			newStream.finish
-			stream.next
+		val newStream = new Stream<Pair<K2, V2>>
+		stream.onAsync [
+			each [
+				val pair = promiseFn.apply(it)
+				pair.value
+					.onError [ 
+						newStream.error(it)
+						stream.next
+					]
+					.then [ 
+						newStream.push(pair.key -> it)
+						stream.next
+					]
+			]
+			error [
+				newStream.error(it)
+				stream.next
+			]
+			finish [
+				newStream.finish
+				stream.next
+			]
 		]
 		newStream
 	}
@@ -158,26 +165,28 @@ class StreamPairExtensions {
 	 *    .each [ user, result | println(result) ]
 	 */	
 	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
-		val newStream = new Stream<Pair<K2, V2>>(stream)
-		stream.onNextValue [
-			val pair = promiseFn.apply(key, value)
-			pair.value
-				.onError [ 
-					newStream.error(it)
-					stream.next
-				]
-				.then [ 
-					newStream.push(pair.key -> it)
-					stream.next
-				]
-		]
-		stream.onNextError [ 
-			newStream.error(it)
-			stream.next
-		]
-		stream.onNextFinish [| 
-			newStream.finish
-			stream.next
+		val newStream = new Stream<Pair<K2, V2>>
+		stream.onAsync [
+			each [
+				val pair = promiseFn.apply(key, value)
+				pair.value
+					.onError [ 
+						newStream.error(it)
+						stream.next
+					]
+					.then [ 
+						newStream.push(pair.key -> it)
+						stream.next
+					]
+			]
+			error [
+				newStream.error(it)
+				stream.next
+			]
+			finish [
+				newStream.finish
+				stream.next
+			]
 		]
 		newStream
 	}
@@ -200,6 +209,5 @@ class StreamPairExtensions {
 	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
 		stream.onEach [ it | listener.apply(key, value, stream) ]
 	}	
-	
 
 }

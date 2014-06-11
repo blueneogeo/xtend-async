@@ -134,6 +134,7 @@ public class TestAsyncProcessing {
     }
   }
   
+  @Test
   public void testAsyncErrorCatching() {
     try {
       final AtomicInteger result = new AtomicInteger();

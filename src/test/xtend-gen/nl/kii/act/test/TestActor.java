@@ -9,7 +9,10 @@ import nl.kii.act.ActorExtensions;
 import nl.kii.stream.PromiseExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
+import org.eclipse.xtext.xbase.lib.IntegerRange;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,9 +20,10 @@ import org.junit.Test;
 public class TestActor {
   @Test
   public void testHelloWorld() {
-    final Procedure1<String> _function = new Procedure1<String>() {
-      public void apply(final String it) {
+    final Procedure2<String, Procedure0> _function = new Procedure2<String, Procedure0>() {
+      public void apply(final String it, final Procedure0 done) {
         InputOutput.<String>println(("hello " + it));
+        done.apply();
       }
     };
     final Actor<String> greeter = ActorExtensions.<String>actor(_function);
@@ -76,6 +80,42 @@ public class TestActor {
       Thread.sleep(2000);
       int _get = doneCounter.get();
       Assert.assertEquals(3, _get);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  @Test
+  public void testActorLoad() {
+    try {
+      final ExecutorService threads = Executors.newCachedThreadPool();
+      final AtomicInteger counter = new AtomicInteger(0);
+      final AtomicReference<Actor<Integer>> ref = new AtomicReference<Actor<Integer>>();
+      final Procedure2<Integer, Procedure0> _function = new Procedure2<Integer, Procedure0>() {
+        public void apply(final Integer i, final Procedure0 done) {
+          final Runnable _function = new Runnable() {
+            public void run() {
+              try {
+                Thread.sleep(1);
+                counter.incrementAndGet();
+                done.apply();
+              } catch (Throwable _e) {
+                throw Exceptions.sneakyThrow(_e);
+              }
+            }
+          };
+          PromiseExtensions.async(threads, _function);
+        }
+      };
+      final Actor<Integer> a = ActorExtensions.<Integer>actor(_function);
+      ref.set(a);
+      IntegerRange _upTo = new IntegerRange(1, 100000);
+      for (final Integer i : _upTo) {
+        ActorExtensions.<Integer>operator_doubleLessThan(a, i);
+      }
+      Thread.sleep(1000);
+      int _get = counter.get();
+      Assert.assertEquals(100000, _get);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }

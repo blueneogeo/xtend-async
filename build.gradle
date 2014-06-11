@@ -10,10 +10,17 @@ repositories {
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
+// configurations {
+//    quasar
+// } 
+
 dependencies {
+	// quasar "co.paralleluniverse:quasar-core:0.5.0"
+	// compile 'co.paralleluniverse:quasar-core:0.5.0'
+
+	// compile 'com.google.code.maven-play-plugin.org.apache.commons:commons-javaflow:1209105'
 
     testCompile 'junit:junit:4.+'
-
 }
 
 tasks.jar.dependsOn javadoc

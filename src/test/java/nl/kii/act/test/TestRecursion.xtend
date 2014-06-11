@@ -1,7 +1,6 @@
 package nl.kii.act.test
 
 import org.junit.Test
-import java.util.Stack
 
 /**
  * There are ways in which you can exchange stack for heap. 
@@ -11,32 +10,61 @@ import java.util.Stack
  * 
  * You can then unwind the "stack" with Java's for-construct.
  * 
- * http://stackoverflow.com/questions/860550/stack-overflows-from-deep-recursion-in-java/861385#861385 
+ * http://stackoverflow.com/questions/860550/stack-overflows-from-deep-recursion-in-java/861385#861385
+ * 
+ * Other way: throw an Exception!!!
+ *  
  */
 
 class TestRecursion {
 	
 	@Test
 	def void testRecursion() {
-		#[1, 2, 3].perform [ println ]
+		println(loop(1000000))
 	}
 	
-	def void perform(int[] inbox, (int)=>void processor) {
-		if(inbox.empty) return;
-		perform(inbox.clone.subList(1, inbox.length-1), processor)
+	def loop(int loops) {
+		try {
+			var input = loops
+			var result = 0
+			while(true) {
+				try {
+					count(input, result)
+				} catch(Call2 call) {
+					input = call.input
+					result = call.result
+				}
+			}
+		} catch(Result result) {
+			return result.result
+		}
+	}
+	
+	def count(int left, int sum) throws Call2, Result {
+		if(left == 0) throw new Result(sum)
+		else throw new Call2(left-1, sum+1)
 	}
 	
 }
 
-class Recursion<T, R> {
+class Call2 extends Exception {
 	
-	static class Operation<T, R> {
-		
-		
-		
+	public val int input
+	public val int result
+	
+	new(int input, int result) {
+		this.input = input
+		this.result = result
 	}
-
-	Stack<Operation<T, R>> ops
 	
 }
 
+class Result extends Exception {
+	
+	public val int result
+	
+	new(int result) {
+		this.result = result
+	}
+	
+}

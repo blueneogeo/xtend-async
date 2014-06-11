@@ -88,16 +88,14 @@ class TestStreamExtensions {
 	@Test
 	def void testSplitThenMerge() {
 		(1..1000).stream
-//			.split [ it % 10 == 0 ]
-//			.split [ it % 3 == 0 ]
-//			.split [ it % 1 == 0 ]
-//			.split [ it % 7 == 0 ]
-//			.on [
-//				entry [ println(it)]
-//			]
+			.split [ it % 10 == 0 ]
+			.split [ it % 3 == 0 ]
+			.split [ it % 1 == 0 ]
+			.split [ it % 7 == 0 ]
 			.on [ 
 				each [ println(it) ]
 				error [ println(it) ]
+				finish [ println('fin') ]
 			]
 	}
 	
@@ -248,7 +246,6 @@ class TestStreamExtensions {
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
-	// TODO: fix this one! edit: works now?
 	@Test
 	def void testResolving() {
 		val doSomethingAsync = [ String x |
