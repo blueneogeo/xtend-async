@@ -458,6 +458,15 @@ class StreamExtensions {
 		]
 	}
 
+	def static <T> void onEach(Stream<T> stream, (T, AsyncSubscription<T>)=>void listener) {
+		stream.onAsync [ sub |
+			sub.each [
+				listener.apply(it, sub)
+			]
+			sub.error [ throw it ]
+		]
+	}
+
 	/** 
 	 * Create a new stream that listenes to this stream
 	 */
@@ -561,6 +570,13 @@ class StreamExtensions {
 		subscription.each [
 			listener.apply(it)
 			subscription.next
+		]
+		subscription.next
+	}
+
+	def static <T> void onEach(AsyncSubscription<T> subscription, (T, AsyncSubscription<T>)=>void listener) {
+		subscription.each [
+			listener.apply(it, subscription)
 		]
 		subscription.next
 	}

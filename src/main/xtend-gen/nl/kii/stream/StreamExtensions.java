@@ -30,6 +30,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class StreamExtensions {
@@ -751,6 +752,30 @@ public class StreamExtensions {
     StreamExtensions.<T>on(stream, _function);
   }
   
+  public static <T extends Object> void onEach(final Stream<T> stream, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
+    final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
+      public void apply(final AsyncSubscription<T> sub) {
+        final Procedure1<T> _function = new Procedure1<T>() {
+          public void apply(final T it) {
+            listener.apply(it, sub);
+          }
+        };
+        sub.each(_function);
+        final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            try {
+              throw it;
+            } catch (Throwable _e) {
+              throw Exceptions.sneakyThrow(_e);
+            }
+          }
+        };
+        sub.error(_function_1);
+      }
+    };
+    StreamExtensions.<T>onAsync(stream, _function);
+  }
+  
   /**
    * Create a new stream that listenes to this stream
    */
@@ -934,6 +959,16 @@ public class StreamExtensions {
       public void apply(final T it) {
         listener.apply(it);
         subscription.next();
+      }
+    };
+    subscription.each(_function);
+    subscription.next();
+  }
+  
+  public static <T extends Object> void onEach(final AsyncSubscription<T> subscription, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
+    final Procedure1<T> _function = new Procedure1<T>() {
+      public void apply(final T it) {
+        listener.apply(it, subscription);
       }
     };
     subscription.each(_function);

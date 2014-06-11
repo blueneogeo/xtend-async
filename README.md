@@ -149,6 +149,18 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
 
+## Alternative Syntax
+
+You can also listen to a stream like this:
+
+	(1..10).stream.on [
+		each [ println(it) ]
+		error [ println('got error: ' + it) ]
+		finish [ println('we are done!') ]
+	]
+
+The result of .on[] is a subscription, which allows you to close the stream.
+
 # COMBINING STREAMS AND PROMISES
 
 ## Promise Functions
@@ -266,10 +278,10 @@ The second line would call emailUser, which is an asynchronous functions which r
 
 ### Using Stream.next
 
-In order to tell a stream that you want to control it, you can use a different forEach version:
+In order to tell a stream that you want to control it, you can use a different handler version:
 
-	(1..10000).stream.each [ it, stream |
-		emailUser.then [ stream.next ]
+	(1..10000).stream.onEach [ it, subscription |
+		emailUser.then [ subscription.next ]
 	]
 
 Here, only a single user will be emailed at the same time. This is because the two-parameter version of forEach does not automatically start streaming everything. Instead, it passes you the stream as well, and only passes you the first entry from the stream. It then stops, until you call stream.next.
@@ -291,9 +303,26 @@ Sometimes a stream can be very large, but you might only need a few items from a
 For example:
 
 	val s = int.stream << 1 << 2 << 3 << finish << 1 << 5 << finish
-	s.each [ it, stream |
-		if(it > 2) stream.skip else print(it)
+	s.onEach [ it, subscription |
+		if(it > 2) subscription.skip else print(it)
 		stream.next
 	]
 
 The above code will print 121. It will first stream 1 and 2, then skip to the finish at 3, then print 1 and skip again at 5.
+
+StreamExtensions.until [] uses this mechanism and is usually easier than implementing your own:
+
+	// only print the first 10
+	(1..10000).stream.until[it > 10].onEach[println(it)]
+
+### Alternative Syntax
+
+Just like the .on [] syntax earlier, you can do a similar thing for flow control:
+
+	(1..1000).stream.onAsync [ s |
+		s.each [ println(it); s.next ]
+		s.error [ println('got error ' + it); s.next ]
+		s.finish [ println('we are done!'); s.next ]
+	]
+
+As you see here we must call s.next on s (which is an AsyncSubscription) in order to get a next value from the stream.
