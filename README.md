@@ -13,9 +13,10 @@ Some features are:
 - made to be easy to use, simple syntax
 - lightweight, with no dependencies besides Xtend
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
-- support for RX-like batches, which is useful for aggregation
+- support for RX-like batches, which is useful for aggregation.
 - clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
 - flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream
+- internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool 
 - streams and promises can be hard to debug because they encapsulate errors. xtend-streams lets you choose: throw errors as they occur, or catch them at the end
 
 # PROMISE USAGE
@@ -26,7 +27,7 @@ Promises are a bit like Futures, they represent a promise of a value in the futu
 
 Importing the promise extensions:
 
-	import static extension nl.kii.stream.PromiseExt.*
+	import static extension nl.kii.stream.PromiseExtensions.*
 
 ## Creating a Promise
 
@@ -55,7 +56,7 @@ You can transform a promise into another promise using a mapping:
 If the handler has an error, you can catch it using .onError:
 
 	val p = 0.promise
-	p.error [ println('got exception ' + it) ]
+	p.onError [ println('got exception ' + it) ]
 	p.then [ println(1/it) ] // throws /0 exception
   
 A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
@@ -63,7 +64,7 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 	val p = 0.promise
 	val p2 = p.map[1/it] // throws the exception
 	val p3 = p2.map[it + 1]
-	p3.error [ println('got error: ' + message) ]
+	p3.onError [ println('got error: ' + message) ]
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
@@ -76,7 +77,7 @@ Streams are like queues that you can listen to. You can push values in, and list
 
 Importing the stream extensions:
 
-	import static extension nl.kii.stream.StreamExt.*
+	import static extension nl.kii.stream.StreamExtensions.*
 
 ## Creating a Stream
 
@@ -102,50 +103,51 @@ The same, but using the extensions for nicer syntax:
 
 The syntax for handling incoming items is the same as iterating through Lists. The difference is that with streams, the list never has to end. At any time you can push a new item in, and the handler will be called again.
 
+You can also create a stream from a list:
+
+	val s = #[1, 2, 3].stream
+
+Or from any Iterable in fact:
+
+	(1..1_000_000).stream
+		.onFinish [ println('done!') ]
+		.onEach [ println(it) ]
+
+Note that we are actually not dumping a million numbers into the stream and then processing it. What actually happens is that each number goes down the stream once, and then onEach asks for the next number, etc.
+
 ## Mapping
 
 You can transform a stream into another stream using a mapping, just like you would with Lists:
 
-	val s = #[1, 2, 3].stream
-	val s2 = s.map [ it+1 ]
-	s2.each [ print(it) ] // prints 123
+	#[1, 2, 3].stream
+		.map [ it+1 ]
+		.onEach [ println(it) ] // prints 2, 3 and 4
 
 ## Filtering
 
 Sometimes you only want items to pass that match some criterium.  You can use filter for this, just like you would with Lists:
 
-	val s = #[1, 2, 3].stream
-	val s2 = s.filter [ it < 3 ]
-	s2.each [ print(it) ] // prints 12
+	#[1, 2, 3].stream
+		.filter [ it < 3 ]
+		.onEach [ print(it) ] // prints 1 and 2
 
 ## Handling Errors
 
 If the handler has an error, you can catch it using .onError:
 
-	val s = #[1, 0, 2].stream
-	s.error [ println('got exception ' + it) ]
-	s.each [ println(1/it) ] // throws /0 exception
+	#[1, 0, 2].stream
+		.onError [ println('got exception ' + it) ]
+		.onEach [ println(1/it) ] // throws /0 exception
   
-A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
-
-	val p = 0.promise
-	val p2 = p.map[1/it] // throws the exception
-	val p3 = p2.map[it + 1]
-	p3.error [ println('got error: ' + message) ]
-  p3.then [ println('this will not get printed') ]
-
-In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
-
-## Compact Syntax
-
-Most of the methods and extensions of streams and promises allow you to chain the methods. This allows for a more compact syntax. You can also write the above code like this:
+A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them. This works for both streams and promises.
 
 	0.promise
-		.map [1/it]
-		.map [it+1]
-		.error [ println('got error: ' + message) ]
+		.map[1/it] // throws the exception, 1/0
+		.map[it + 1] // some code to demonstrate the exception is propagated
+		.onError [ println('got error: ' + message) ]
 		.then [ println('this will not get printed') ]
 
+In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
 
 # COMBINING STREAMS AND PROMISES
 
@@ -174,11 +176,12 @@ If you want to load a whole bunch of URL's, you can create a stream of URL's, an
 
 	val urls = String.stream
 	urls
-		.async [ loadWebpage ]
-		.then [ println(it) ]
+		.map [ loadWebpage ] // results in a Stream<Promise<String>
+		.resolve // results in a Stream<String>
+		.then [ println(it) ] // so then we can print it
 	urls << 'http://cnn.com' << 'http://yahoo.com'
 
-The async method you see above lets you map an incoming value to a promise, and then unwraps the promise for you so you can process it like a normal mapping.
+The mapping first takes the url and applies it to loadWebpage, which is a function that returns a Promise<String>. We then have a Stream<Promise<String>>. You can then use the resolve function to resolve the promises so you get a Stream<String>, a stream of actual values.
 
 # BATCHES AND AGGREGATION
 
@@ -186,11 +189,11 @@ The async method you see above lets you map an incoming value to a promise, and 
 
 Streams and promises actually do not process and pass just values, they process Entry<T>'s. An entry can be:
 
-- a Value<T>, listen to by using .forEach [ ]
-- a Finish<T>, listen to by using .finish [ ]
-- or an Error<T>, listen to by using .error [ ]
+- a Value<T>, listen to by using .onEach [ ]
+- a Finish<T>, listen to by using .onFinish [ ]
+- or an Error<T>, listen to by using .onError [ ]
 
-Values and errors you've seen, finish is new. You use a finish to indicate the end of the values that have been passed so far (much like RXJava's complete). This is necessary if you want to pass batches of data through a stream. Consider finish the separator between these batches.
+Values and errors you've seen, onFinish is new. You use a finish to indicate the end of the values that have been passed so far (much like RXJava's complete). This is necessary if you want to pass batches of data through a stream. Consider finish the separator between these batches.
 
 ## Counting
 
@@ -230,6 +233,18 @@ Similar functions are:
 - allMatch: true only when all entries match a criterium
 - reduce: custom aggregation
 
+## Substreams
+
+If you think about it, splitting a Stream<T> actually models a Stream<Stream<T>>. You get a stream of smaller streams, separated by the finish separators. However, it is discouraged to use Stream<Stream<T>> with xtend-stream. There are a couple of reasons for this:
+
+- Stream objects are relatively heavy, containing two queues each
+- A Stream<Stream<T>> does not necessarily define that the sub streams all operate serially. The different streams may also operate in parallel
+- Substreams are harder to serialize. In the end, you will need to flatten them.
+
+Because of this, StreamExtensions.split and StreamExtensions.merge work with levels of separation, to simulate substreams. Each time you split a stream, you add a layer of finishes in the stream and upgrade the ones that were already there. Each time you merge a stream, you reverse that process. All the aggregation algorithms (sum, avg, collect etc) use the lowest level for figuring out the blocks to merge, and then downgrade the higher finish layer, so when you aggregate again, it will use that layer.
+
+In short, you can split multiple times and merge and aggregate multiple times, and it will just work, as if you had substreams. 
+
 # EXTENDING XTEND-STREAM
 
 The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.
@@ -245,7 +260,7 @@ Xtend streams let you control how fast listeners get new data. This is useful wh
 Consider the following situation:
 
 	def Promise<Boolean> emailUser(int userId) { ... }
-	(1..10000).stream.forEach [ emailUser ]
+	(1..10000).stream.onEach [ emailUser ]
 
 The second line would call emailUser, which is an asynchronous functions which returns immediately. So, if a thread pool is being used by the async function, 10000 thread processes are started in parallel!
 
@@ -259,15 +274,15 @@ In order to tell a stream that you want to control it, you can use a different f
 
 Here, only a single user will be emailed at the same time. This is because the two-parameter version of forEach does not automatically start streaming everything. Instead, it passes you the stream as well, and only passes you the first entry from the stream. It then stops, until you call stream.next.
 
-### Using Stream.async
+### Using Stream.resolve
 
-A nice feature of the Stream.async function discussed earlier is, that it calls next for you. So instead of the code above, you could also write:
+A nice feature of the Stream.resolve function discussed earlier is, that it calls next for you. So instead of the code above, you could also write:
 
-	(1..10000).stream.async [ emailUser	].then [ ... ]
+	(1..10000).stream.map[emailUser].resolve.then [ ... ]
 
 You can also indicate that you want asynchronous concurrency by passing how many concurrent processes you want to allow:
 
-	(1..10000).stream.async(3) [ emailUser	].then [ ... ]
+	(1..10000).stream.map[emailUser].resolve(3).then [ ... ]
 
 ### Using Stream.skip   
 

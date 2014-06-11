@@ -607,9 +607,13 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				val collected = sum.doubleValue
-				sum.set(0)
-				newStream.push(collected)
+				if(level == 0) {
+					val collected = sum.doubleValue
+					sum.set(0)
+					newStream.push(collected)
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
@@ -633,9 +637,13 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				val collected = avg.doubleValue / count.getAndSet(0) 
-				avg.set(0)
-				newStream.push(collected)
+				if(level == 0) {
+					val collected = avg.doubleValue / count.getAndSet(0) 
+					avg.set(0)
+					newStream.push(collected)
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
@@ -657,7 +665,11 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				newStream.push(count.getAndSet(0))
+				if(level == 0) {
+					newStream.push(count.getAndSet(0))
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
@@ -679,7 +691,11 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				newStream.push(reduced.getAndSet(initial))
+				if(level == 0) {
+					newStream.push(reduced.getAndSet(initial))
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
@@ -703,9 +719,13 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				val result = reduced.getAndSet(initial)
-				count.set(0)
-				newStream.push(result)
+				if(level == 0) {
+					val result = reduced.getAndSet(initial)
+					count.set(0)
+					newStream.push(result)
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)
@@ -733,9 +753,13 @@ class StreamExtensions {
 		 		stream.next
 			]
 			finish [
-		 		val matched = anyMatch.get
-		 		anyMatch.set(false)
-		 		if(!matched) newStream.push(false)
+				if(level == 0) {
+			 		val matched = anyMatch.get
+			 		anyMatch.set(false)
+			 		if(!matched) newStream.push(false)
+				} else {
+					newStream.finish(level - 1)
+				}
 			]
 			error [
 				newStream.error(it)

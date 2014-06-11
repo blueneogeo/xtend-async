@@ -1007,9 +1007,13 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              final double collected = sum.doubleValue();
-              sum.set(0);
-              newStream.push(Double.valueOf(collected));
+              if ((it.level == 0)) {
+                final double collected = sum.doubleValue();
+                sum.set(0);
+                newStream.push(Double.valueOf(collected));
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -1050,11 +1054,15 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              double _doubleValue = avg.doubleValue();
-              long _andSet = count.getAndSet(0);
-              final double collected = (_doubleValue / _andSet);
-              avg.set(0);
-              newStream.push(Double.valueOf(collected));
+              if ((it.level == 0)) {
+                double _doubleValue = avg.doubleValue();
+                long _andSet = count.getAndSet(0);
+                final double collected = (_doubleValue / _andSet);
+                avg.set(0);
+                newStream.push(Double.valueOf(collected));
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -1092,8 +1100,12 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              long _andSet = count.getAndSet(0);
-              newStream.push(Long.valueOf(_andSet));
+              if ((it.level == 0)) {
+                long _andSet = count.getAndSet(0);
+                newStream.push(Long.valueOf(_andSet));
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -1133,8 +1145,12 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              T _andSet = reduced.getAndSet(initial);
-              newStream.push(_andSet);
+              if ((it.level == 0)) {
+                T _andSet = reduced.getAndSet(initial);
+                newStream.push(_andSet);
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -1177,9 +1193,13 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              final T result = reduced.getAndSet(initial);
-              count.set(0);
-              newStream.push(result);
+              if ((it.level == 0)) {
+                final T result = reduced.getAndSet(initial);
+                count.set(0);
+                newStream.push(result);
+              } else {
+                newStream.finish((it.level - 1));
+              }
             }
           };
           it.finish(_function_1);
@@ -1223,10 +1243,14 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
-              final boolean matched = anyMatch.get();
-              anyMatch.set(false);
-              if ((!matched)) {
-                newStream.push(Boolean.valueOf(false));
+              if ((it.level == 0)) {
+                final boolean matched = anyMatch.get();
+                anyMatch.set(false);
+                if ((!matched)) {
+                  newStream.push(Boolean.valueOf(false));
+                }
+              } else {
+                newStream.finish((it.level - 1));
               }
             }
           };
