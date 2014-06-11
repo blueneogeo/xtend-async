@@ -15,10 +15,12 @@ class PromiseExtensions {
 		new Promise<T>
 	}
 
+	/** Create a promise of a list of the given type */
 	def static <T> promiseList(Class<T> type) {
 		new Promise<List<T>>
 	}
 
+	/** Create a promise of a map of the given key and value types */
 	def static <K, V> promiseMap(Pair<Class<K>, Class<V>> type) {
 		new Promise<Map<K, V>>
 	}
@@ -72,10 +74,12 @@ class PromiseExtensions {
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 	
+	/** Tell the task it went wrong */
 	def static error(Task task, String message) {
 		task.error(new Exception(message)) as Task
 	}
 
+	/** Tell the promise it went wrong */
 	def static <T> error(Promise<T> promise, String message) {
 		promise.error(new Exception(message))
 	}
@@ -117,48 +121,12 @@ class PromiseExtensions {
 		newPromise
 	}
 	
+	/** Alias for flatten, turns a promise of a promise into a promise */
 	def static <T> resolve(Promise<Promise<T>> promise) {
 		promise.flatten
 	}
-	
-	/**
-	 * Perform an async operation which returns a promise.
-	 * This allows you to chain multiple async methods, as
-	 * long as you let your closures return a Promise
-	 * <p>
-	 * Example:
-	 * <pre>
-	 * def Promise<User> loadUser(int userId)
-	 * def Promise<Result> uploadUser(User user)
-	 * def void showUploadResult(Result result)
-	 * 
-	 * loadUser(12)
-	 *    .async [ uploadUser ] 
-	 *    .then [ showUploadResult ]
-	 * </pre>
-	 */
-//	def static <T, R> Promise<R> mapAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-//		promise.map(promiseFn).flatten
-//	}
-	
-	// ENDPOINTS //////////////////////////////////////////////////////////////
 
-//	def static <T, R> void thenAsync(Promise<T> promise, (T)=>Promise<R> promiseFn) {
-//		promise.map(promiseFn).resolve.then[
-//			// do nothing, we're already done
-//		]
-//	}
-	
-//		
-//		
-//		val newPromise = new Promise<R>(promise)
-//		promise.then [
-//			promiseFn.apply(it)
-//				.onError [ newPromise.error(it) ]
-//				.then [ newPromise.set(it) ]
-//		]
-//		newPromise
-	
+	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** Create a new promise that listenes to this promise */
 	def static <T> fork(Promise<T> promise) {
@@ -181,30 +149,13 @@ class PromiseExtensions {
 	// THREADED PROMISES //////////////////////////////////////////////////////
 
 	/** 
-	 * Easily run a procedure in the background and return a promise
-	 * promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
-	 */
-//	def static process(=>void procedure) {
-//		process([| procedure.apply ] as Runnable)
-//	}
-
-	/** 
-	 * Easily run a function in the background and return a promise
-	 * <pre>
-	 * promise [| doSomeHeavyLifting ].then [ println('done!') ]
-	 */
-//	def static <T> resolve(=>T function) {
-//		resolve([| function.apply ] as Callable<T>)
-//	}
-
-	/** 
 	 * Execute the callable in the background and return as a promise.
 	 * Lets you specify the executorservice to run on.
 	 * <pre>
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> Promise<T> asyncFn(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> async(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {
@@ -225,7 +176,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
-	def static Task async(ExecutorService service, Runnable runnable) {
+	def static Task run(ExecutorService service, Runnable runnable) {
 		task [ task |
 			val Runnable processor = [|
 				try {

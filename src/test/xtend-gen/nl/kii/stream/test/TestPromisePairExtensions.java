@@ -39,7 +39,8 @@ public class TestPromisePairExtensions {
         return TestPromisePairExtensions.this.power2(((a).intValue() + (b).intValue()));
       }
     };
-    final Promise<Integer> asynced = PromisePairExtensions.<Integer, Integer, Integer>mapAsync(p, _function);
+    Promise<Promise<Integer>> _map = PromisePairExtensions.<Integer, Integer, Promise<Integer>>map(p, _function);
+    final Promise<Integer> asynced = PromiseExtensions.<Integer>resolve(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(9));
   }
   
@@ -57,7 +58,7 @@ public class TestPromisePairExtensions {
         return Pair.<Integer, Integer>of(key, Integer.valueOf((((key).intValue() + (value).intValue()) * ((key).intValue() + (value).intValue()))));
       }
     };
-    final Promise<Pair<Integer, Integer>> asynced = PromisePairExtensions.<Integer, Integer, Integer, Integer>mapToPair(_map, _function_1);
+    final Promise<Pair<Integer, Integer>> asynced = PromisePairExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
     StreamAssert.<Pair<Integer, Integer>>assertPromiseEquals(asynced, _mappedTo);
   }
@@ -71,14 +72,16 @@ public class TestPromisePairExtensions {
         return Pair.<Integer, Promise<Integer>>of(it, _promise);
       }
     };
-    Promise<Pair<Integer, Integer>> _asyncToPair = PromisePairExtensions.<Integer, Integer, Integer>asyncToPair(p, _function);
+    Promise<Pair<Integer, Promise<Integer>>> _map = PromiseExtensions.<Integer, Pair<Integer, Promise<Integer>>>map(p, _function);
+    Promise<Pair<Integer, Integer>> _resolvePair = PromisePairExtensions.<Integer, Integer>resolvePair(_map);
     final Function2<Integer, Integer, Pair<Integer, Promise<Integer>>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer key, final Integer value) {
         Promise<Integer> _power2 = TestPromisePairExtensions.this.power2((value).intValue());
         return Pair.<Integer, Promise<Integer>>of(key, _power2);
       }
     };
-    final Promise<Pair<Integer, Integer>> asynced = PromisePairExtensions.<Integer, Integer, Integer, Integer>asyncToPair(_asyncToPair, _function_1);
+    Promise<Pair<Integer, Promise<Integer>>> _map_1 = PromisePairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolvePair, _function_1);
+    final Promise<Pair<Integer, Integer>> asynced = PromisePairExtensions.<Integer, Integer>resolvePair(_map_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
     StreamAssert.<Pair<Integer, Integer>>assertPromiseEquals(asynced, _mappedTo);
   }

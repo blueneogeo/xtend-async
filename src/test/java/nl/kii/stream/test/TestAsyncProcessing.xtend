@@ -71,14 +71,14 @@ class TestAsyncProcessing {
 	}
 	
 	def power2(int i) {
-		asyncFn(threads) [|
+		async(threads) [|
 			Thread.sleep(100)
 			return i * i
 		]
 	}
 
 	def throwsError(int i) {
-		asyncFn(threads) [|
+		async(threads) [|
 			Thread.sleep(100)
 			if(true) throw new Exception('something went wrong')
 			return i * i

@@ -194,7 +194,7 @@ public class TestAsyncProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>asyncFn(this.threads, _function);
+    return PromiseExtensions.<Integer>async(this.threads, _function);
   }
   
   public Promise<Integer> throwsError(final int i) {
@@ -207,6 +207,6 @@ public class TestAsyncProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>asyncFn(this.threads, _function);
+    return PromiseExtensions.<Integer>async(this.threads, _function);
   }
 }

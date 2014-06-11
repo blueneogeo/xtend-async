@@ -32,7 +32,7 @@ class TestActor {
 		val decrease = new AtomicReference<Actor<Integer>>
 		val threads = newCachedThreadPool
 		val checkDone = actor [ int y |
-			async(threads) [|
+			run(threads) [|
 				Thread.sleep(5)
 				if(y <= 0) doneCounter.incrementAndGet
 				else {
@@ -41,7 +41,7 @@ class TestActor {
 			]
 		]
 		decrease.set(actor [ int value |
-			async(threads) [|
+			run(threads) [|
 				(value - 1) >> checkDone
 			]
 		])
@@ -58,7 +58,7 @@ class TestActor {
 		val counter = new AtomicInteger(0)
 		val ref = new AtomicReference<Actor<Integer>> 
 		val a = actor [ int i, done |
-			async(threads) [|
+			run(threads) [|
 				Thread.sleep(1)
 				counter.incrementAndGet
 				done.apply

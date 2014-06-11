@@ -203,6 +203,69 @@ class StreamExtensions {
 		newStream
 	}
 
+	/**
+	 * Splits a stream into multiple parts. These parts are separated by Finish entries.
+	 * Streams support multiple levels of finishes, to indicate multiple levels of splits.
+	 * This allows you to split a stream, and then split it again.
+	 * <p>
+	 * It follows these rules:
+	 * <ul>
+	 * <li>when a new split is applied, it is always at finish level 0
+	 * <li>all other stream operations that use finish, always use this level
+	 * <li>the existing splits are all upgraded a level. so a level 0 finish becomes a level 1 finish
+	 * <li>splits at a higher level always are carried through to a lower level. so wherever there is a
+	 *     level 1 split for example, there is also a level 0 split
+	 * </ul> 
+	 * <p>
+	 * The reason for these seemingly strange rules is that it allows us to split and merge a stream
+	 * multiple times consistently. For example, consider the following stream, where finish(x) represents 
+	 * a finish of level x:
+	 * <pre>
+	 * val s = (1..10).stream
+	 * // this stream contains:
+	 * 1, 2, 3, 4, 5, 6, 7, finish(0) 
+	 * // the finish(0) is automatically added by the iterator as it ends
+	 * </pre>
+	 * If we split this stream at 4, we get this:
+	 * <pre>
+	 * val s2 = s.split[it==4]
+	 * // s2 now contains:
+	 * 1, 2, 3, 4, finish(0), 5, 6, 7, finish(0), finish(1)
+	 * </pre>
+	 * The split had as condition that it would occur at it==4, so after 4 a finish(0) was added.
+	 * Also, the finish(0) at the end became upgraded to finish(1), and because a splits at
+	 * a higher level always punch through, it also added a finish(0).
+	 * <p>
+	 * In the same manner we can keep splitting the stream and each time we will add another layer
+	 * of finishes.
+	 * <p>
+	 * We can also merge the stream and this will reverse the process, reducing one level:
+	 * <pre>
+	 * val s3 = s2.merge
+	 * // s3 now contains:
+	 * 1, 2, 3, 4, 5, 6, 7, finish(0)
+	 * </pre>
+	 * <p>
+	 * We can also merge by calling collect, which will transform the data between the splits into lists.
+	 * The reason why splits of higher levels cut into the splits of lower levels is that the split levels
+	 * are not independant. The finishes let you model a stream of stream. What essentially is simulated is:
+	 * <pre>
+	 * val s = int.stream
+	 * val Stream<Stream<Integer>> s2 = s.split
+	 * // and merge reverses:
+	 * val Stream<Integer> s3 = s2.merge
+	 * </pre>
+	 * There are several reasons why this library does not use this substream approach:
+	 * <ul>
+	 * <li>Streams of streams are uncertain in their behavior, it is not guaranteed that this stream is serial or parallel.
+	 * <li>Streams are not light objects, having queues, and having streams of streams would be memory and performance expensive
+	 * <li>Streams of streams are not easily serializable and cannot easliy be throught of as a linear stream
+	 * <li>Streams of streams are harder to reason and program with than a single stream
+	 * </ul>
+	 * <p>
+	 * However the split and merge commands are there to simulate having substreams. To think of it more simply like a
+	 * List<List<T>>, you cannot have a separation at the higher list level, which is not represented at the <List<T>> level.
+	 */
 	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
 		val newStream = new Stream<T>
 		val justPostedFinish0 = new AtomicBoolean(false)
@@ -237,6 +300,10 @@ class StreamExtensions {
 		newStream
 	}
 	
+	/**
+	 * Merges one level of finishes.
+	 * @see StreamExtensions.split for more information.
+	 */
 	def static <T> Stream<T> merge(Stream<T> stream) {
 		val newStream = new Stream<T>
 		val subscription = stream.onAsync [
@@ -378,212 +445,19 @@ class StreamExtensions {
 		stream.next
 		newStream
 	}
-
-//	def static <T, R> Stream<T> resolve2(Stream<Promise<T>> stream, int concurrency) {
-//		val processes = new AtomicInteger(0)
-//		val newStream = new Stream<T>
-//		val isFinished = new AtomicBoolean(false)
-//		stream.entryListener = [
-//			switch it {
-//				Value<Promise<T>>: {
-//					processes.incrementAndGet 
-//					println('starting process ' + processes.get)
-//					// if more processes are available, request a next value
-//					if(concurrency > processes.get) {
-//						println('requesting more since we have more concurrency')
-//						stream.next
-//					}
-//					value
-//						.onError [ newStream.error(it) ]
-//						.then [
-//							newStream.push(it)
-//							val open = processes.decrementAndGet  
-//							println('finished process ' + (processes.get + 1) + ' for ' + it)
-//							if(open == 0 && isFinished.get) {
-//								println('finishing after all processes completed')
-//								isFinished.set(false)
-//								newStream.finish
-//							} else if(concurrency > open){
-//								println('requesting new process')
-//								stream.next
-//							}
-//						]
-//				}
-//				Finish<?>: {
-//					println('process finish')
-//					if(processes.get == 0) {
-//						newStream.finish
-//						println('requesting next after finish')
-//						stream.next
-//					} else {
-//						// we are still processing, so finish when we are done processing instead
-//						isFinished.set(true)
-//					}					
-//				}
-//				Error<?>: newStream.error(error)
-//			}
-//		]
-//		newStream.cmdListener = [
-//			switch it {
-//				Close: stream.close
-//			}
-//		]
-//		stream.next
-//		newStream
-//	}
-
-	// ENDPOINTS //////////////////////////////////////////////////////////////
-
-	def static <T> on(Stream<T> stream, (SyncSubscription<T>)=>void handlerFn) {
-		val handler = new SyncSubscription<T>(stream)
-		handlerFn.apply(handler)
-		stream.next // automatically start streaming
-		handler
-	}
-
-	def static <T> onAsync(Stream<T> stream, (AsyncSubscription<T>)=>void handlerFn) {
-		val handler = new AsyncSubscription<T>(stream)
-		handlerFn.apply(handler)
-		handler
-	}
 	
-	def static <T> monitor(Stream<T> stream, (CommandSubscription)=>void subscriptionFn) {
-		val handler = new CommandSubscription(stream)
-		subscriptionFn.apply(handler)
-		handler
-	}	
+	// STREAM ENDPOINTS ////////////////////////////////////////////////////
 
 	/** 
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * note: onEach swallows exceptions in your listener. If you needs error detection/handling, use .on[] instead.
 	 */
-	def static <T> onEach(Stream<T> stream, (T)=>void listener) {
+	def static <T> void onEach(Stream<T> stream, (T)=>void listener) {
 		stream.on [ 
 			each (listener)
+			error [ throw it ]
 		]
 	}
-
-	// TODO: implement
-	/** 
-	 * Asynchronous listener to the stream for values. Calls the processor for each incoming value and
-	 * asks the next value from the stream every time the processor finishes.
-	 */
-//	def static <T, R> onEachAsync(Stream<T> stream, (T)=>Promise<T> asyncProcessor) {
-//		stream
-//			.map(asyncProcessor)
-//			.resolve
-//			.onEach [
-//				// do nothing, just request the next
-//			]
-//		stream.onNextValue [
-//			asyncProcessor.apply(it)
-//				.onError [ stream.error(it) ]
-//				.then [ stream.next ]
-//		]
-//	}
-
-	// TODO: implement
-	/** 
-	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
-	 * and that pushes thr number of tasks that were performed when the source stream of tasks
-	 * finishes.
-	 * <pre>
-	 * def Task doSomeTask(int userId) {
-	 * 		task [ doSomeTask |
-	 * 			..do some asynchronous work here..
-	 * 		]
-	 * }
-	 * 
-	 * val userIds = #[5, 6, 2, 67]
-	 * userIds.stream
-	 * 		.map [ doSomeTask ]
-	 * 		.process(3) // 3 parallel processes max
-	 * </pre>
-	 */
-//	def static <T, R> process(Stream<Task> stream, int concurrency) {
-//		val processes = new AtomicInteger(0)
-//		val count = new AtomicLong(0)
-//		val newStream = new Stream<Long>(stream)
-//		stream.onNextValue [ promise |
-//			processes.incrementAndGet 
-//			promise
-//				.onError [ 
-//					newStream.error(it)
-//					if(processes.decrementAndGet < concurrency) 
-//						stream.next
-//				]
-//				.then [
-//					count.incrementAndGet
-//					if(processes.decrementAndGet < concurrency) 
-//						stream.next
-//				]
-//		]
-//		stream.onNextFinish[|
-//			newStream.push(count.get)
-//			count.set(0)
-//			stream.next
-//		]
-//		newStream
-//	}
-
-	/**
-	 * Processes a stream of tasks. It returns a new stream that allows you to listen for errors,
-	 * and that pushes the number of tasks that were performed when the source stream of tasks
-	 * finishes. Performs at most one task at a time.
-	 * 
-	 * @see StreamExtensions.process(Stream<Task> stream, int concurrency)
-	 */
-//	def static <T, R> process(Stream<Task> stream) {
-//		stream.process(1)
-//	}
-
-// TODO: implement	
-//	/** 
-//	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
-//	 */
-//	def static <T> onFinish(Stream<T> stream, (Void)=>void listener) {
-//		stream.onNextFinish [| 
-//			try {
-//				listener.apply(null)
-//			} finally {
-//				stream.next
-//			}
-//		]
-//	}
-//
-//	/** 
-//	 * Synchronous listener to the stream for finishes. Automatically requests the next entry.
-//	 */
-//	def static <T, R> onFinishAsync(Stream<T> stream, (Void)=>Promise<R> listener) {
-//		stream.onNextFinish [|
-//			try {
-//				listener.apply(null)
-//					.onError [
-//						stream.error(it)
-//						stream.next
-//					]
-//					.then [
-//						stream.next
-//					]
-//			} finally {
-//				stream.next
-//			}
-//		]
-//	}
-
-//	/** 
-//	 * Synchronous listener to the stream for errors. Automatically requests the next entry.
-//	 */
-//	def static <T> onError(Stream<T> stream, (Throwable)=>void listener) {
-//		stream.onNextError [
-//			try {
-//				listener.apply(null)
-//			} finally {
-//				stream.next
-//			}
-//		]
-//	}
-//	
 
 	/** 
 	 * Create a new stream that listenes to this stream
@@ -627,6 +501,71 @@ class StreamExtensions {
 	 	stream.first.then(listener)
 	 }
 	
+	// SUBSCRIPTION BUILDERS //////////////////////////////////////////////////
+
+	def static <T> onError(Stream<T> stream, (Throwable)=>void listener) {
+		stream.onAsync [ subscription | 
+			subscription.error [
+				listener.apply(it)
+				subscription.next
+			]
+		]
+	}
+
+	def static <T> onFinish(Stream<T> stream, (Finish<T>)=>void listener) {
+		stream.onAsync [ subscription | 
+			subscription.finish [
+				listener.apply(it)
+				subscription.next
+			]
+		]
+	}
+	
+	def static <T> onError(AsyncSubscription<T> subscription, (Throwable)=>void listener) {
+		subscription.error [
+			listener.apply(it)
+			subscription.next
+		]
+		subscription
+	}
+
+	def static <T> onFinish(AsyncSubscription<T> subscription, (Finish<T>)=>void listener) {
+		subscription.finish [
+			listener.apply(it)
+			subscription.next
+		]
+		subscription
+	}
+	
+	def static <T> on(Stream<T> stream, (SyncSubscription<T>)=>void subscriptionFn) {
+		val subscription = new SyncSubscription<T>(stream)
+		subscriptionFn.apply(subscription)
+		stream.next // automatically start streaming
+		subscription
+	}
+
+	def static <T> onAsync(Stream<T> stream, (AsyncSubscription<T>)=>void subscriptionFn) {
+		val subscription = new AsyncSubscription<T>(stream)
+		subscriptionFn.apply(subscription)
+		subscription
+	}
+	
+	def static <T> monitor(Stream<T> stream, (CommandSubscription)=>void subscriptionFn) {
+		val handler = new CommandSubscription(stream)
+		subscriptionFn.apply(handler)
+		handler
+	}	
+
+	// SUBSCRIPTION ENDPOINTS /////////////////////////////////////////////////
+
+	def static <T> void onEach(AsyncSubscription<T> subscription, (T)=>void listener) {
+		subscription.each [
+			listener.apply(it)
+			subscription.next
+		]
+		subscription.next
+	}
+
 	// AGGREGATIONS ///////////////////////////////////////////////////////////
 
 	/**

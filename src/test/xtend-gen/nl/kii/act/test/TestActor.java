@@ -58,7 +58,7 @@ public class TestActor {
               }
             }
           };
-          PromiseExtensions.async(threads, _function);
+          PromiseExtensions.run(threads, _function);
         }
       };
       final Actor<Integer> checkDone = ActorExtensions.<Integer>actor(_function);
@@ -69,7 +69,7 @@ public class TestActor {
               ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf((value - 1)), checkDone);
             }
           };
-          PromiseExtensions.async(threads, _function);
+          PromiseExtensions.run(threads, _function);
         }
       };
       Actor<Integer> _actor = ActorExtensions.<Integer>actor(_function_1);
@@ -104,7 +104,7 @@ public class TestActor {
               }
             }
           };
-          PromiseExtensions.async(threads, _function);
+          PromiseExtensions.run(threads, _function);
         }
       };
       final Actor<Integer> a = ActorExtensions.<Integer>actor(_function);

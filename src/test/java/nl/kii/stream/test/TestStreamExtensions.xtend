@@ -8,20 +8,12 @@ import static nl.kii.stream.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 class TestStreamExtensions {
 
 	val threads = newCachedThreadPool
-
-	@Test
-	def void testPrint() {
-		val s = int.stream
-		s << 1 << 2 << finish
-		s.on [
-			each [ println(it) ]
-			finish [ println('finished!') ]
-		]
-	}
 
 	@Test
 	def void testRangeStream() {
@@ -35,7 +27,7 @@ class TestStreamExtensions {
 		val s = #[1, 2, 3].stream
 		println(s.queue)
 		val s2 = s.map[it+1]
-		s2.assertStreamEquals(#[2.value, 3.value, 4.value, finish])		
+		s2.assertStreamEquals(#[2.value, 3.value, 4.value, finish])
 	}
 	
 	@Test
@@ -44,6 +36,27 @@ class TestStreamExtensions {
 		val s = map.stream
 		val s2 = s.map[key+1->value]
 		s2.assertStreamEquals(#[value(2->'a'), value(3->'b'), finish])
+	}
+	
+	// SUBSCRIPTION BUILDING //////////////////////////////////////////////////
+	
+	@Test
+	def void testSubscriptionBuilding() {
+		val finished = new AtomicBoolean
+		val errored = new AtomicBoolean
+		val count = new AtomicInteger
+		
+		val s = (1..10).stream
+		s
+			.map [ it - 10 ]
+			.map [ 100 / it ] // division by 10 for s = 10
+			.onError [ errored.set(true) ]
+			.onFinish [ finished.set(true) ]
+			.onEach [ count.incrementAndGet ]
+			
+		assertEquals(true, finished.get) // end of iteration
+		assertEquals(true, errored.get) // because of the 10
+		assertEquals(9, count.get) // 10 gave the error
 	}
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
@@ -64,9 +77,9 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testSplit() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val split = s.split [ it % 2 == 0]
-		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value])
+		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1)])
 	}
 	
 	@Test
@@ -112,7 +125,6 @@ class TestStreamExtensions {
 		val collect3 = collect2.collect
 		val collect4 = collect3.collect 
 		collect4.first.then [
-			println(it)
 			assertEquals(#[
 				#[
 					#[
@@ -141,11 +153,6 @@ class TestStreamExtensions {
 					] // %3
 				] // end of stream finish
 			])
-		]
-		
-		
-		collect4.on [
-			entry [ println(it)]
 		]
 	}
 	
@@ -223,10 +230,11 @@ class TestStreamExtensions {
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
+	// TODO: use assertions here instead of printing
 	@Test
 	def void testResolving() {
 		val doSomethingAsync = [ String x |
-			asyncFn(threads) [|
+			async(threads) [|
 				for(i : 1..5) {
 					Thread.sleep(10)
 					println(x + i)

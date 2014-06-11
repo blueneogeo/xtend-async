@@ -22,10 +22,16 @@ public class PromiseExtensions {
     return new Promise<T>();
   }
   
+  /**
+   * Create a promise of a list of the given type
+   */
   public static <T extends Object> Promise<List<T>> promiseList(final Class<T> type) {
     return new Promise<List<T>>();
   }
   
+  /**
+   * Create a promise of a map of the given key and value types
+   */
   public static <K extends Object, V extends Object> Promise<Map<K, V>> promiseMap(final Pair<Class<K>, Class<V>> type) {
     return new Promise<Map<K, V>>();
   }
@@ -113,12 +119,18 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
+  /**
+   * Tell the task it went wrong
+   */
   public static Task error(final Task task, final String message) {
     Exception _exception = new Exception(message);
     Promise<Boolean> _error = task.error(_exception);
     return ((Task) _error);
   }
   
+  /**
+   * Tell the promise it went wrong
+   */
   public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message) {
     Exception _exception = new Exception(message);
     return promise.error(_exception);
@@ -198,6 +210,9 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
+  /**
+   * Alias for flatten, turns a promise of a promise into a promise
+   */
   public static <T extends Object> Promise<T> resolve(final Promise<Promise<T>> promise) {
     return PromiseExtensions.<T>flatten(promise);
   }
@@ -232,7 +247,7 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
    */
-  public static <T extends Object> Promise<T> asyncFn(final ExecutorService service, final Callable<T> callable) {
+  public static <T extends Object> Promise<T> async(final ExecutorService service, final Callable<T> callable) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
@@ -265,7 +280,7 @@ public class PromiseExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
    */
-  public static Task async(final ExecutorService service, final Runnable runnable) {
+  public static Task run(final ExecutorService service, final Runnable runnable) {
     final Procedure1<Task> _function = new Procedure1<Task>() {
       public void apply(final Task task) {
         final Runnable _function = new Runnable() {

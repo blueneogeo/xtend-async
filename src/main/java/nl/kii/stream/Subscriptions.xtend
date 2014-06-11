@@ -75,6 +75,15 @@ class SyncSubscription<T> extends Subscription<T> {
 
 class AsyncSubscription<T> extends Subscription<T> {
 	
+	// set defaults to ask for the next, so that if no function is passed, 
+	// we don't block the stream processing
+	val nextFn = [ next ]
+	protected (Entry<T>)=>void onEntryFn = nextFn
+	protected (T)=>void onValueFn = nextFn
+	protected (Throwable)=>void onErrorFn = nextFn
+	protected =>void onFinish0Fn = [| next ]
+	protected (Finish<T>)=>void onFinishFn = nextFn
+	
 	new(Stream<T> stream) {
 		super(stream)
 	}

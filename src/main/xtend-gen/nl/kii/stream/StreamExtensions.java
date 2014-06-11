@@ -22,6 +22,7 @@ import nl.kii.stream.Stream;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
@@ -377,6 +378,69 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
+  /**
+   * Splits a stream into multiple parts. These parts are separated by Finish entries.
+   * Streams support multiple levels of finishes, to indicate multiple levels of splits.
+   * This allows you to split a stream, and then split it again.
+   * <p>
+   * It follows these rules:
+   * <ul>
+   * <li>when a new split is applied, it is always at finish level 0
+   * <li>all other stream operations that use finish, always use this level
+   * <li>the existing splits are all upgraded a level. so a level 0 finish becomes a level 1 finish
+   * <li>splits at a higher level always are carried through to a lower level. so wherever there is a
+   *     level 1 split for example, there is also a level 0 split
+   * </ul>
+   * <p>
+   * The reason for these seemingly strange rules is that it allows us to split and merge a stream
+   * multiple times consistently. For example, consider the following stream, where finish(x) represents
+   * a finish of level x:
+   * <pre>
+   * val s = (1..10).stream
+   * // this stream contains:
+   * 1, 2, 3, 4, 5, 6, 7, finish(0)
+   * // the finish(0) is automatically added by the iterator as it ends
+   * </pre>
+   * If we split this stream at 4, we get this:
+   * <pre>
+   * val s2 = s.split[it==4]
+   * // s2 now contains:
+   * 1, 2, 3, 4, finish(0), 5, 6, 7, finish(0), finish(1)
+   * </pre>
+   * The split had as condition that it would occur at it==4, so after 4 a finish(0) was added.
+   * Also, the finish(0) at the end became upgraded to finish(1), and because a splits at
+   * a higher level always punch through, it also added a finish(0).
+   * <p>
+   * In the same manner we can keep splitting the stream and each time we will add another layer
+   * of finishes.
+   * <p>
+   * We can also merge the stream and this will reverse the process, reducing one level:
+   * <pre>
+   * val s3 = s2.merge
+   * // s3 now contains:
+   * 1, 2, 3, 4, 5, 6, 7, finish(0)
+   * </pre>
+   * <p>
+   * We can also merge by calling collect, which will transform the data between the splits into lists.
+   * The reason why splits of higher levels cut into the splits of lower levels is that the split levels
+   * are not independant. The finishes let you model a stream of stream. What essentially is simulated is:
+   * <pre>
+   * val s = int.stream
+   * val Stream<Stream<Integer>> s2 = s.split
+   * // and merge reverses:
+   * val Stream<Integer> s3 = s2.merge
+   * </pre>
+   * There are several reasons why this library does not use this substream approach:
+   * <ul>
+   * <li>Streams of streams are uncertain in their behavior, it is not guaranteed that this stream is serial or parallel.
+   * <li>Streams are not light objects, having queues, and having streams of streams would be memory and performance expensive
+   * <li>Streams of streams are not easily serializable and cannot easliy be throught of as a linear stream
+   * <li>Streams of streams are harder to reason and program with than a single stream
+   * </ul>
+   * <p>
+   * However the split and merge commands are there to simulate having substreams. To think of it more simply like a
+   * List<List<T>>, you cannot have a separation at the higher list level, which is not represented at the <List<T>> level.
+   */
   public static <T extends Object> Stream<T> split(final Stream<T> stream, final Function1<? super T, ? extends Boolean> splitConditionFn) {
     Stream<T> _xblockexpression = null;
     {
@@ -434,6 +498,10 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
+  /**
+   * Merges one level of finishes.
+   * @see StreamExtensions.split for more information.
+   */
   public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
     Stream<T> _xblockexpression = null;
     {
@@ -661,48 +729,27 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> SyncSubscription<T> on(final Stream<T> stream, final Procedure1<? super SyncSubscription<T>> handlerFn) {
-    SyncSubscription<T> _xblockexpression = null;
-    {
-      final SyncSubscription<T> handler = new SyncSubscription<T>(stream);
-      handlerFn.apply(handler);
-      stream.next();
-      _xblockexpression = handler;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> AsyncSubscription<T> onAsync(final Stream<T> stream, final Procedure1<? super AsyncSubscription<T>> handlerFn) {
-    AsyncSubscription<T> _xblockexpression = null;
-    {
-      final AsyncSubscription<T> handler = new AsyncSubscription<T>(stream);
-      handlerFn.apply(handler);
-      _xblockexpression = handler;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
-    CommandSubscription _xblockexpression = null;
-    {
-      final CommandSubscription handler = new CommandSubscription(stream);
-      subscriptionFn.apply(handler);
-      _xblockexpression = handler;
-    }
-    return _xblockexpression;
-  }
-  
   /**
    * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
    * note: onEach swallows exceptions in your listener. If you needs error detection/handling, use .on[] instead.
    */
-  public static <T extends Object> SyncSubscription<T> onEach(final Stream<T> stream, final Procedure1<? super T> listener) {
+  public static <T extends Object> void onEach(final Stream<T> stream, final Procedure1<? super T> listener) {
     final Procedure1<SyncSubscription<T>> _function = new Procedure1<SyncSubscription<T>>() {
       public void apply(final SyncSubscription<T> it) {
         it.each(listener);
+        final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            try {
+              throw it;
+            } catch (Throwable _e) {
+              throw Exceptions.sneakyThrow(_e);
+            }
+          }
+        };
+        it.error(_function);
       }
     };
-    return StreamExtensions.<T>on(stream, _function);
+    StreamExtensions.<T>on(stream, _function);
   }
   
   /**
@@ -790,6 +837,108 @@ public class StreamExtensions {
   public static <T extends Object> void then(final Stream<T> stream, final Procedure1<T> listener) {
     Promise<T> _first = StreamExtensions.<T>first(stream);
     _first.then(listener);
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onError(final Stream<T> stream, final Procedure1<? super Throwable> listener) {
+    final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
+      public void apply(final AsyncSubscription<T> subscription) {
+        final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            listener.apply(it);
+            subscription.next();
+          }
+        };
+        subscription.error(_function);
+      }
+    };
+    return StreamExtensions.<T>onAsync(stream, _function);
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onFinish(final Stream<T> stream, final Procedure1<? super Finish<T>> listener) {
+    final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
+      public void apply(final AsyncSubscription<T> subscription) {
+        final Procedure1<Finish<T>> _function = new Procedure1<Finish<T>>() {
+          public void apply(final Finish<T> it) {
+            listener.apply(it);
+            subscription.next();
+          }
+        };
+        subscription.finish(_function);
+      }
+    };
+    return StreamExtensions.<T>onAsync(stream, _function);
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onError(final AsyncSubscription<T> subscription, final Procedure1<? super Throwable> listener) {
+    AsyncSubscription<T> _xblockexpression = null;
+    {
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          listener.apply(it);
+          subscription.next();
+        }
+      };
+      subscription.error(_function);
+      _xblockexpression = subscription;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onFinish(final AsyncSubscription<T> subscription, final Procedure1<? super Finish<T>> listener) {
+    AsyncSubscription<T> _xblockexpression = null;
+    {
+      final Procedure1<Finish<T>> _function = new Procedure1<Finish<T>>() {
+        public void apply(final Finish<T> it) {
+          listener.apply(it);
+          subscription.next();
+        }
+      };
+      subscription.finish(_function);
+      _xblockexpression = subscription;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> SyncSubscription<T> on(final Stream<T> stream, final Procedure1<? super SyncSubscription<T>> subscriptionFn) {
+    SyncSubscription<T> _xblockexpression = null;
+    {
+      final SyncSubscription<T> subscription = new SyncSubscription<T>(stream);
+      subscriptionFn.apply(subscription);
+      stream.next();
+      _xblockexpression = subscription;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onAsync(final Stream<T> stream, final Procedure1<? super AsyncSubscription<T>> subscriptionFn) {
+    AsyncSubscription<T> _xblockexpression = null;
+    {
+      final AsyncSubscription<T> subscription = new AsyncSubscription<T>(stream);
+      subscriptionFn.apply(subscription);
+      _xblockexpression = subscription;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
+    CommandSubscription _xblockexpression = null;
+    {
+      final CommandSubscription handler = new CommandSubscription(stream);
+      subscriptionFn.apply(handler);
+      _xblockexpression = handler;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> void onEach(final AsyncSubscription<T> subscription, final Procedure1<? super T> listener) {
+    final Procedure1<T> _function = new Procedure1<T>() {
+      public void apply(final T it) {
+        listener.apply(it);
+        subscription.next();
+      }
+    };
+    subscription.each(_function);
+    subscription.next();
   }
   
   /**
