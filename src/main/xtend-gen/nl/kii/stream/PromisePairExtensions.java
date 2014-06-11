@@ -34,7 +34,6 @@ public class PromisePairExtensions {
   
   /**
    * Same as normal promise resolve, however this time for a pair of a key and a promise.
-   * @see PromiseExtensions.resolve()
    */
   public static <K extends Object, V extends Object> Promise<Pair<K, V>> resolvePair(final Promise<Pair<K, Promise<V>>> promise) {
     Promise<Pair<K, V>> _xblockexpression = null;

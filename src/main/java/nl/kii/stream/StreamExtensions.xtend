@@ -302,7 +302,6 @@ class StreamExtensions {
 	
 	/**
 	 * Merges one level of finishes.
-	 * @see StreamExtensions.split for more information.
 	 */
 	def static <T> Stream<T> merge(Stream<T> stream) {
 		val newStream = new Stream<T>

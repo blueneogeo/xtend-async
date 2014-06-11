@@ -500,7 +500,6 @@ public class StreamExtensions {
   
   /**
    * Merges one level of finishes.
-   * @see StreamExtensions.split for more information.
    */
   public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
     Stream<T> _xblockexpression = null;

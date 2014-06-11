@@ -25,7 +25,6 @@ class PromisePairExtensions {
 
 	/**
 	 * Same as normal promise resolve, however this time for a pair of a key and a promise.
-	 * @see PromiseExtensions.resolve()
 	 */
 	def static <K, V> resolvePair(Promise<Pair<K, Promise<V>>> promise) {
 		val newPromise = new Promise<Pair<K, V>>(promise)
