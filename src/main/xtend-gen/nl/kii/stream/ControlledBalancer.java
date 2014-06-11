@@ -9,7 +9,6 @@ import nl.kii.stream.Stream;
 import nl.kii.stream.StreamBalancer;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SyncSubscription;
-import nl.kii.util.SynchronizeExt;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -101,19 +100,14 @@ public class ControlledBalancer<T extends Object> implements StreamBalancer<T> {
       public void apply(final SyncSubscription<T> it) {
         final Procedure1<T> _function = new Procedure1<T>() {
           public void apply(final T it) {
-            final Procedure1<T> _function = new Procedure1<T>() {
-              public void apply(final T it) {
-                Set<Stream<T>> _keySet = ControlledBalancer.this.ready.keySet();
-                for (final Stream<T> stream : _keySet) {
-                  Boolean _get = ControlledBalancer.this.ready.get(stream);
-                  if ((_get).booleanValue()) {
-                    stream.push(it);
-                    ControlledBalancer.this.ready.put(stream, Boolean.valueOf(false));
-                  }
-                }
+            Set<Stream<T>> _keySet = ControlledBalancer.this.ready.keySet();
+            for (final Stream<T> stream : _keySet) {
+              Boolean _get = ControlledBalancer.this.ready.get(stream);
+              if ((_get).booleanValue()) {
+                stream.push(it);
+                ControlledBalancer.this.ready.put(stream, Boolean.valueOf(false));
               }
-            };
-            SynchronizeExt.<T>synchronize(it, _function);
+            }
           }
         };
         it.each(_function);
