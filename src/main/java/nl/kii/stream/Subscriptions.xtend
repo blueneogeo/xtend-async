@@ -5,11 +5,11 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	val protected Stream<T> stream
-	var (Entry<T>)=>void onEntryFn
-	var (T)=>void onValueFn
-	var (Throwable)=>void onErrorFn
-	var =>void onFinish0Fn
-	var (Finish<T>)=>void onFinishFn
+	protected (Entry<T>)=>void onEntryFn
+	protected (T)=>void onValueFn
+	protected (Throwable)=>void onErrorFn
+	protected =>void onFinish0Fn
+	protected (Finish<T>)=>void onFinishFn
 	
 	new(Stream<T> stream) {
 		this.stream = stream

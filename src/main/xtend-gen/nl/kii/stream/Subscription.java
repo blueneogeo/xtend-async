@@ -11,15 +11,15 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 public abstract class Subscription<T extends Object> implements Procedure1<Entry<T>> {
   protected final Stream<T> stream;
   
-  private Procedure1<? super Entry<T>> onEntryFn;
+  protected Procedure1<? super Entry<T>> onEntryFn;
   
-  private Procedure1<? super T> onValueFn;
+  protected Procedure1<? super T> onValueFn;
   
-  private Procedure1<? super Throwable> onErrorFn;
+  protected Procedure1<? super Throwable> onErrorFn;
   
-  private Procedure0 onFinish0Fn;
+  protected Procedure0 onFinish0Fn;
   
-  private Procedure1<? super Finish<T>> onFinishFn;
+  protected Procedure1<? super Finish<T>> onFinishFn;
   
   public Subscription(final Stream<T> stream) {
     this.stream = stream;

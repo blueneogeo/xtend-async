@@ -179,7 +179,7 @@ public class TestAsyncProcessing {
         }
       };
       StreamExtensions.<Integer>on(_resolve_1, _function_3);
-      Thread.sleep(700);
+      Thread.sleep(500);
       int _get = result.get();
       Assert.assertEquals(3, _get);
     } catch (Throwable _e) {

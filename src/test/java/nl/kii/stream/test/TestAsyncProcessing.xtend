@@ -52,8 +52,6 @@ class TestAsyncProcessing {
 		100.assertEquals(result.get.get(2))
 	}
 	
-	
-	// TODO: fix, but fix resolve first
 	@Test
 	def void testAsyncErrorCatching() {
 		val result = new AtomicInteger
@@ -68,7 +66,7 @@ class TestAsyncProcessing {
 				each [ fail('we should not end up here, since an error should be caught instead') ]
 				error [ result.incrementAndGet ]
 			]
-		Thread.sleep(700) 
+		Thread.sleep(500)
 		3.assertEquals(result.get)
 	}
 	

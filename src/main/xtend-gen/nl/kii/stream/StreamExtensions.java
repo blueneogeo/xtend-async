@@ -22,7 +22,6 @@ import nl.kii.stream.Stream;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
@@ -619,6 +618,7 @@ public class StreamExtensions {
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
                   newStream.error(it);
+                  stream.next();
                 }
               };
               Promise<T> _onError = promise.onError(_function);
@@ -635,6 +635,7 @@ public class StreamExtensions {
           final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               newStream.error(it);
+              stream.next();
             }
           };
           it.error(_function_1);
@@ -699,16 +700,6 @@ public class StreamExtensions {
     final Procedure1<SyncSubscription<T>> _function = new Procedure1<SyncSubscription<T>>() {
       public void apply(final SyncSubscription<T> it) {
         it.each(listener);
-        final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-          public void apply(final Throwable it) {
-            try {
-              throw it;
-            } catch (Throwable _e) {
-              throw Exceptions.sneakyThrow(_e);
-            }
-          }
-        };
-        it.error(_function);
       }
     };
     return StreamExtensions.<T>on(stream, _function);

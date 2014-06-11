@@ -18,7 +18,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Test;
 
 @SuppressWarnings("all")
-public class TestPromisePairExt {
+public class TestStreamPairExt {
   @Test
   public void testEachWithPairParams() {
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(1), Integer.valueOf(2));
@@ -40,10 +40,11 @@ public class TestPromisePairExt {
     final Stream<Pair<Integer, Integer>> p = StreamExtensions.<Pair<Integer, Integer>>stream(_mappedTo);
     final Function2<Integer, Integer, Promise<Integer>> _function = new Function2<Integer, Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer a, final Integer b) {
-        return TestPromisePairExt.this.power2(((a).intValue() + (b).intValue()));
+        return TestStreamPairExt.this.power2(((a).intValue() + (b).intValue()));
       }
     };
-    final Stream<Integer> asynced = StreamPairExtensions.<Integer, Integer, Integer>mapAsync(p, _function);
+    Stream<Promise<Integer>> _map = StreamPairExtensions.<Integer, Integer, Promise<Integer>>map(p, _function);
+    final Stream<Integer> asynced = StreamExtensions.<Integer, Object>resolve(_map);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
     Finish<Integer> _finish = StreamExtensions.<Integer>finish();
     StreamAssert.<Integer>assertStreamEquals(asynced, Collections.<Entry<Integer>>unmodifiableList(Lists.<Entry<Integer>>newArrayList(_value, _finish)));
@@ -63,10 +64,11 @@ public class TestPromisePairExt {
         return Pair.<Integer, Integer>of(key, Integer.valueOf((((key).intValue() + (value).intValue()) * ((key).intValue() + (value).intValue()))));
       }
     };
-    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Integer, Integer>mapToPair(_map, _function_1);
+    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    StreamAssert.<Pair<Integer, Integer>>assertStreamEquals(asynced, Collections.<Value<Pair<Integer, Integer>>>unmodifiableList(Lists.<Value<Pair<Integer, Integer>>>newArrayList(_value)));
+    Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
+    StreamAssert.<Pair<Integer, Integer>>assertStreamEquals(asynced, Collections.<Entry<Pair<Integer, Integer>>>unmodifiableList(Lists.<Entry<Pair<Integer, Integer>>>newArrayList(_value, _finish)));
   }
   
   @Test
@@ -78,14 +80,16 @@ public class TestPromisePairExt {
         return Pair.<Integer, Promise<Integer>>of(it, _promise);
       }
     };
-    Stream<Pair<Integer, Integer>> _mapAsyncToPair = StreamPairExtensions.<Integer, Integer, Integer>mapAsyncToPair(p, _function);
+    Stream<Pair<Integer, Promise<Integer>>> _map = StreamExtensions.<Integer, Pair<Integer, Promise<Integer>>>map(p, _function);
+    Stream<Pair<Integer, Integer>> _resolvePair = StreamPairExtensions.<Integer, Integer>resolvePair(_map);
     final Function2<Integer, Integer, Pair<Integer, Promise<Integer>>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer key, final Integer value) {
-        Promise<Integer> _power2 = TestPromisePairExt.this.power2((value).intValue());
+        Promise<Integer> _power2 = TestStreamPairExt.this.power2((value).intValue());
         return Pair.<Integer, Promise<Integer>>of(key, _power2);
       }
     };
-    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Integer, Integer>mapAsyncToPair(_mapAsyncToPair, _function_1);
+    Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamPairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolvePair, _function_1);
+    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer>resolvePair(_map_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
     Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();

@@ -65,9 +65,8 @@ class TestStreamExtensions {
 	@Test
 	def void testSplit() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
-		// #[1.value, 2.value, 3.value, finish, 4.value, 5.value].assertStreamEquals(s)
 		val split = s.split [ it % 2 == 0]
-		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(1), 4.value, finish(0), 5.value])
+		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value])
 	}
 	
 	@Test
@@ -75,28 +74,6 @@ class TestStreamExtensions {
 		val s = Integer.stream << 1 << 2 << finish(0) << 3 << finish(1) << 4 << finish(0) << 5 
 		val merged = s.merge
 		merged.assertStreamEquals(#[1.value, 2.value, 3.value, finish, 4.value, 5.value])
-	}
-	
-	@Test
-	def void testActor() {
-		(1..1000).stream.on [
-			each [ println(it) ]
-			error [ println(it) ]
-		]
-	}
-	
-	@Test
-	def void testSplitThenMerge() {
-		(1..1000).stream
-			.split [ it % 10 == 0 ]
-			.split [ it % 3 == 0 ]
-			.split [ it % 1 == 0 ]
-			.split [ it % 7 == 0 ]
-			.on [ 
-				each [ println(it) ]
-				error [ println(it) ]
-				finish [ println('fin') ]
-			]
 	}
 	
 	// REDUCTIONS /////////////////////////////////////////////////////////////

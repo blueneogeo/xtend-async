@@ -87,34 +87,6 @@ class TestStream {
 	def void testStreamErrors() {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
-		
-		// no onerror set, should throw it
-		e.set(null)
-		try {
-			s.onEach [ println(1/it) ] // handler will throw /0 exception
-			s << 0
-			fail('should never reach this')
-		} catch(ArithmeticException t) {
-			e.set(t)
-		}
-		assertNotNull(e.get)
-
-		// should work again
-		e.set(null)
-		try {
-			s << 0
-			println('no error?')
-			fail('should never reach this either')
-		} catch(ArithmeticException t) {
-			e.set(t)
-		}
-		assertNotNull(e.get)
-	}
-	
-	@Test
-	def void testStreamErrors2() {
-		val s = new Stream<Integer>
-		val e = new AtomicReference<Throwable>
 		// now try to catch the error
 		s.on [
 			each [ println(1/it)] // handler will throw /0 exception

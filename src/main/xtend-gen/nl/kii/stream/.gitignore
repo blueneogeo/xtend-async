@@ -76,3 +76,6 @@
 /.Values.java._trace
 /.Entries.java._trace
 /.StreamMessages.java._trace
+/.PairSubscription.java._trace
+/.SyncPairSubscription.java._trace
+/.AsyncPairSubscription.java._trace

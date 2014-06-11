@@ -61,16 +61,17 @@ class ControlledBalancer<T> implements StreamBalancer<T> {
 	}
 	
 	override start() {
-		source.onEach [
-			synchronize(it) [
-				for(stream : ready.keySet) {
-					if(ready.get(stream)) {
-						stream.push(it)
-						ready.put(stream, false)
+		source.on [
+			each [
+				synchronize(it) [
+					for(stream : ready.keySet) {
+						if(ready.get(stream)) {
+							stream.push(it)
+							ready.put(stream, false)
+						}
 					}
-				}
+				]
 			]
-			
 		]
 	}
 	

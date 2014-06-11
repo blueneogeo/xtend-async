@@ -1,6 +1,8 @@
 package nl.kii.stream
 
 import static extension nl.kii.stream.StreamExtensions.*
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * These extensions let you pass state with a stream more easily. 
@@ -45,32 +47,32 @@ class StreamPairExtensions {
 	 * Maps a stream of pairs to a new stream, passing the key and value of the incoming
 	 * stream as listener parameters.
 	 */
-	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<V1> stream, (V1)=>Pair<K2, V2> mappingFn) {
-		val newStream = new Stream<Pair<K2, V2>>
-		stream.onAsync [
-			each [
-				val pair = mappingFn.apply(it)
-				newStream.push(pair)
-			]
-			error [
-				newStream.error(it)
-			]
-		]
-		newStream	
-	}
+//	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<V1> stream, (V1)=>Pair<K2, V2> mappingFn) {
+//		val newStream = new Stream<Pair<K2, V2>>
+//		stream.onAsync [
+//			each [
+//				val pair = mappingFn.apply(it)
+//				newStream.push(pair)
+//			]
+//			error [
+//				newStream.error(it)
+//			]
+//		]
+//		newStream	
+//	}
 	
-	/**
-	 * Maps a stream of pairs to a new stream, passing the key and value of the incoming
-	 * stream as listener parameters.
-	 */
-	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<Pair<K1,V1>> stream, (K1, V1)=>Pair<K2, V2> mappingFn) {
-		val newStream = new Stream<Pair<K2, V2>>
-		stream.then [
-			val pair = mappingFn.apply(key, value)
-			newStream.push(pair)
-		]
-		newStream
-	}
+//	/**
+//	 * Maps a stream of pairs to a new stream, passing the key and value of the incoming
+//	 * stream as listener parameters.
+//	 */
+//	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapToPair(Stream<Pair<K1,V1>> stream, (K1, V1)=>Pair<K2, V2> mappingFn) {
+//		val newStream = new Stream<Pair<K2, V2>>
+//		stream.then [
+//			val pair = mappingFn.apply(key, value)
+//			newStream.push(pair)
+//		]
+//		newStream
+//	}
 
 	/**
 	 * Filter items in a stream to only the ones that the filterFn
@@ -80,37 +82,87 @@ class StreamPairExtensions {
 		stream.filter [ filterFn.apply(key, value) ]
 	}
 	
-	// PROMISE CHAINING ///////////////////////////////////////////////////////
+	def static <K, V> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, Promise<V>>> stream) {
+		stream.resolvePair(1)
+	}
 	
-	/**
-	 * Responds to a stream pair with a listener that takes the key and value of the promise result pair.
-	 * See async2() for example of how to use.
-	 */
-	def static <K1, V1, V2> Stream<V2> mapAsync(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
-		val newStream = new Stream<V2>
+	def static <K, V> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, Promise<V>>> stream, int concurrency) {
+		val newStream = new Stream<Pair<K, V>>
+		val isFinished = new AtomicBoolean(false)
+		val processes = new AtomicInteger(0)
+		val =>void onProcessComplete = [|
+			val open = processes.decrementAndGet
+			if(isFinished.get) {
+				newStream.finish
+			}
+			if(concurrency > open) {
+				stream.next
+			}
+		]
 		stream.onAsync [
-			each [
-				promiseFn.apply(key, value)
-					.onError [ 
+			each [ result |
+				val key = result.key
+				val promise = result.value
+				processes.incrementAndGet
+				promise
+					.onError [
 						newStream.error(it)
 						stream.next
 					]
-					.then [ 
-						newStream.push(it)
-						stream.next
+					.then [
+						newStream.push(key -> it)
+						onProcessComplete.apply 
 					]
 			]
 			error [
 				newStream.error(it)
 				stream.next
 			]
-			finish [
-				newStream.finish
-				stream.next
+			finish [ 
+				if(processes.get == 0) {
+					newStream.finish(level)
+					stream.next
+				} else {
+					// we are still processing, so finish when we are done processing instead
+					isFinished.set(true)
+				}
 			]
 		]
+		stream.next
 		newStream
 	}
+	
+	// PROMISE CHAINING ///////////////////////////////////////////////////////
+	
+	/**
+	 * Responds to a stream pair with a listener that takes the key and value of the promise result pair.
+	 * See async2() for example of how to use.
+	 */
+//	def static <K1, V1, V2> Stream<V2> mapAsync(Stream<Pair<K1, V1>> stream, (K1, V1)=>Promise<V2> promiseFn) {
+//		val newStream = new Stream<V2>
+//		stream.onAsync [
+//			each [
+//				promiseFn.apply(key, value)
+//					.onError [ 
+//						newStream.error(it)
+//						stream.next
+//					]
+//					.then [ 
+//						newStream.push(it)
+//						stream.next
+//					]
+//			]
+//			error [
+//				newStream.error(it)
+//				stream.next
+//			]
+//			finish [
+//				newStream.finish
+//				stream.next
+//			]
+//		]
+//		newStream
+//	}
 	
 	/**
 	 * Perform async chaining and allows for passing along a value.
@@ -129,32 +181,32 @@ class StreamPairExtensions {
 	 *    .async2 [ user | user -> uploadUser ] // pass the user in the result as a pair with the promise 
 	 *    .then2 [ user, result | showUploadResult(result, user) ] // you get back the user
 	 */
-	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
-		val newStream = new Stream<Pair<K2, V2>>
-		stream.onAsync [
-			each [
-				val pair = promiseFn.apply(it)
-				pair.value
-					.onError [ 
-						newStream.error(it)
-						stream.next
-					]
-					.then [ 
-						newStream.push(pair.key -> it)
-						stream.next
-					]
-			]
-			error [
-				newStream.error(it)
-				stream.next
-			]
-			finish [
-				newStream.finish
-				stream.next
-			]
-		]
-		newStream
-	}
+//	def static <V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<V1> stream, (V1)=>Pair<K2, Promise<V2>> promiseFn) {
+//		val newStream = new Stream<Pair<K2, V2>>
+//		stream.onAsync [
+//			each [
+//				val pair = promiseFn.apply(it)
+//				pair.value
+//					.onError [ 
+//						newStream.error(it)
+//						stream.next
+//					]
+//					.then [ 
+//						newStream.push(pair.key -> it)
+//						stream.next
+//					]
+//			]
+//			error [
+//				newStream.error(it)
+//				stream.next
+//			]
+//			finish [
+//				newStream.finish
+//				stream.next
+//			]
+//		]
+//		newStream
+//	}
 
 	/**
 	 * Version of async2 that itself receives a pair as input. For multiple chaining:
@@ -164,32 +216,32 @@ class StreamPairExtensions {
 	 *    .async2 [ user, result | user -> showUploadResult(result, user) ] // you get back the user
 	 *    .each [ user, result | println(result) ]
 	 */	
-	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
-		val newStream = new Stream<Pair<K2, V2>>
-		stream.onAsync [
-			each [
-				val pair = promiseFn.apply(key, value)
-				pair.value
-					.onError [ 
-						newStream.error(it)
-						stream.next
-					]
-					.then [ 
-						newStream.push(pair.key -> it)
-						stream.next
-					]
-			]
-			error [
-				newStream.error(it)
-				stream.next
-			]
-			finish [
-				newStream.finish
-				stream.next
-			]
-		]
-		newStream
-	}
+//	def static <K1, V1, K2, V2> Stream<Pair<K2, V2>> mapAsyncToPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>Pair<K2, Promise<V2>> promiseFn) {
+//		val newStream = new Stream<Pair<K2, V2>>
+//		stream.onAsync [
+//			each [
+//				val pair = promiseFn.apply(key, value)
+//				pair.value
+//					.onError [ 
+//						newStream.error(it)
+//						stream.next
+//					]
+//					.then [ 
+//						newStream.push(pair.key -> it)
+//						stream.next
+//					]
+//			]
+//			error [
+//				newStream.error(it)
+//				stream.next
+//			]
+//			finish [
+//				newStream.finish
+//				stream.next
+//			]
+//		]
+//		newStream
+//	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
@@ -197,7 +249,7 @@ class StreamPairExtensions {
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
 	 */
 	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
-		stream.onEach [ listener.apply(key, value) ]
+		stream.on [ each [ listener.apply(key, value) ] ]
 	}
 
 	/**
@@ -207,7 +259,7 @@ class StreamPairExtensions {
 	 * the next finish.
 	 */
 	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
-		stream.onEach [ it | listener.apply(key, value, stream) ]
-	}	
+		stream.on [ each [ it | listener.apply(key, value, stream) ] ]
+	}
 
 }

@@ -352,16 +352,18 @@ class StreamExtensions {
 			each [ promise |
 				processes.incrementAndGet
 				promise
-					.onError [ 
+					.onError [
 						newStream.error(it)
+						stream.next
 					]
 					.then [
 						newStream.push(it)
 						onProcessComplete.apply 
 					]
 			]
-			error [ 
+			error [
 				newStream.error(it)
+				stream.next
 			]
 			finish [ 
 				if(processes.get == 0) {
@@ -458,7 +460,6 @@ class StreamExtensions {
 	def static <T> onEach(Stream<T> stream, (T)=>void listener) {
 		stream.on [ 
 			each (listener)
-			error [ throw it ]
 		]
 	}
 
