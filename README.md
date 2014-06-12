@@ -161,6 +161,22 @@ You can also listen to a stream like this:
 
 The result of .on[] is a subscription, which allows you to close the stream.
 
+## Observing a stream with multiple listeners
+
+A stream can only be listened to by a single listener. This keeps flow control predictable and the streams light. However you can wrap a stream into an Observable<T> by calling stream.observe. You can then listen with multiple listeners:
+
+	val s = int.stream
+	val observable = s.observe
+	observable.onChange [ println('first listener got value ' + it) ]
+	observable.onChange [ println('second listener got value ' + it) ]
+	s << 1 << 2 << 3 // will trigger both listeners above for each value
+
+The Observable.onChange method returns a closure that you can call to stop listening:
+
+	val stop = observable.onChange [ ... ]
+	...
+	stop.apply // stops the listener from responding
+
 # COMBINING STREAMS AND PROMISES
 
 ## Promise Functions
