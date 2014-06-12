@@ -1,4 +1,4 @@
-package nl.kii.stream;
+package nl.kii.stream.test;
 
 import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseExtensions;

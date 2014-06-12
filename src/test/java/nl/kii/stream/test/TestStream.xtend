@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.test
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -18,7 +18,7 @@ class TestStream {
 	@Test
 	def void testUnbufferedStream() {
 		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer>
+		val s = new nl.kii.stream.Stream<Integer>
 		s.onEach [
 			counter.addAndGet(it)
 		]
@@ -29,7 +29,7 @@ class TestStream {
 	@Test
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer> << 1 << 2 << 3
+		val s = new nl.kii.stream.Stream<Integer> << 1 << 2 << 3
 		s.onEach [ 
 			counter.addAndGet(it)
 		]
@@ -39,7 +39,7 @@ class TestStream {
 	@Test
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
+		val s = new nl.kii.stream.Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
 		s.onAsync [
 			each [ counter.addAndGet(it) ]
 		]
@@ -85,7 +85,7 @@ class TestStream {
 
 	@Test
 	def void testStreamErrors() {
-		val s = new Stream<Integer>
+		val s = new nl.kii.stream.Stream<Integer>
 		val e = new AtomicReference<Throwable>
 		// now try to catch the error
 		s.on [
@@ -124,24 +124,24 @@ class TestStream {
 		val s2 = s.map [ it * 2 ]
 		run(threads) [|
 			for(i : 0..999) {
-				s.apply(new Value(1))
+				s.apply(new nl.kii.stream.Value(1))
 			}
 		]
 		run(threads) [|
 			for(i : 1000..1999) {
-				s.apply(new Value(2))
+				s.apply(new nl.kii.stream.Value(2))
 			}
 		]
 		run(threads) [|
 			for(i : 2000..2999) {
-				s.apply(new Value(3))
+				s.apply(new nl.kii.stream.Value(3))
 			}
 		]
 		val sum = new AtomicInteger
 		s2.listener = [
 			switch it {
-				Error<?>: println(it)
-				Value<Integer>: sum.addAndGet(value) 
+				nl.kii.stream.Error<?>: println(it)
+				nl.kii.stream.Value<Integer>: sum.addAndGet(value) 
 			}
 			s2.next
 		]

@@ -17,8 +17,10 @@ import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
+import nl.kii.stream.Observable;
 import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamObserver;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
@@ -121,6 +123,15 @@ public class StreamExtensions {
       _xblockexpression = stream;
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * Observe changes on the observable. This allows you to observe the stream
+   * with multiple listeners. Observables do not support flow control, so every
+   * value coming from the stream will be pushed out immediately.
+   */
+  public static <T extends Object> Observable<T> observe(final Stream<T> stream) {
+    return new StreamObserver<T>(stream);
   }
   
   /**

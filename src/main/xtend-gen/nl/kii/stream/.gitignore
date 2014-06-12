@@ -79,3 +79,6 @@
 /.PairSubscription.java._trace
 /.SyncPairSubscription.java._trace
 /.AsyncPairSubscription.java._trace
+/.Balancer.java._trace
+/.AbstractBalancer.java._trace
+/.StreamObserver.java._trace

@@ -62,6 +62,17 @@ class StreamExtensions {
 		stream
 	}
 	
+	// OBSERVING //////////////////////////////////////////////////////////////
+
+	/** 
+	 * Observe changes on the observable. This allows you to observe the stream
+	 * with multiple listeners. Observables do not support flow control, so every
+	 * value coming from the stream will be pushed out immediately.
+	 */
+	def static <T> Observable<T> observe(Stream<T> stream) {
+		new StreamObserver(stream)
+	}
+	
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Add a value to a stream */

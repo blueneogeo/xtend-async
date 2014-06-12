@@ -59,6 +59,31 @@ class TestStreamExtensions {
 		assertEquals(9, count.get) // 10 gave the error
 	}
 	
+	// OBSERVABLE /////////////////////////////////////////////////////////////
+	
+	@Test
+	def void testObserve() {
+		val count1 = new AtomicInteger(0)
+		val count2 = new AtomicInteger(0)
+		
+		val s = int.stream
+		val observable = s.observe
+		
+		val cancel1 = observable.onChange [ count1.addAndGet(it) ]
+		observable.onChange [ count2.addAndGet(it) ]
+		
+		s << 1 << 2 << 3
+		// both counts are listening, both should increase
+		assertEquals(6, count1.get)
+		assertEquals(6, count2.get)
+		
+		// we cancel the first listener, now the first count should no longer change
+		cancel1.apply
+		s << 4 << 5
+		assertEquals(6, count1.get)
+		assertEquals(15, count2.get)
+	}
+	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	@Test

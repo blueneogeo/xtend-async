@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
+import nl.kii.stream.Observable;
 import nl.kii.stream.Promise;
 import nl.kii.stream.PromiseExtensions;
 import nl.kii.stream.Stream;
@@ -27,6 +28,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function3;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 import org.junit.Test;
@@ -139,6 +141,40 @@ public class TestStreamExtensions {
     Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get_1));
     int _get_2 = count.get();
     Assert.assertEquals(9, _get_2);
+  }
+  
+  @Test
+  public void testObserve() {
+    final AtomicInteger count1 = new AtomicInteger(0);
+    final AtomicInteger count2 = new AtomicInteger(0);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+    final Observable<Integer> observable = StreamExtensions.<Integer>observe(s);
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        count1.addAndGet((it).intValue());
+      }
+    };
+    final Procedure0 cancel1 = observable.onChange(_function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        count2.addAndGet((it).intValue());
+      }
+    };
+    observable.onChange(_function_1);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    int _get = count1.get();
+    Assert.assertEquals(6, _get);
+    int _get_1 = count2.get();
+    Assert.assertEquals(6, _get_1);
+    cancel1.apply();
+    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(4));
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
+    int _get_2 = count1.get();
+    Assert.assertEquals(6, _get_2);
+    int _get_3 = count2.get();
+    Assert.assertEquals(15, _get_3);
   }
   
   @Test
