@@ -198,6 +198,17 @@ To simply print a webpage, you can then do this:
 
 The nice thing about promise functions is that they allow you to  reuse asynchronous code.
 
+Since this is a common pattern, PromiseExtensions has some shortcuts for making the code look nicer. The loadWebpage function above can also be written like this:
+
+	def loadWebpage(String url) {
+		promise(String) [ loadWebPage |
+			... code that loads webpage
+			webpage >> loadWebPage
+		]
+	}
+
+This syntax makes it clear on the first line what happens inside the method, and it makes sure the promise is returned at the end.
+
 ## Using Promise Functions in Streams
 
 If you want to load a whole bunch of URL's, you can create a stream of URL's, and then process these with the same promise function:
