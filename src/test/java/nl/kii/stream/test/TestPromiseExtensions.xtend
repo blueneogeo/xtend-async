@@ -1,10 +1,10 @@
 package nl.kii.stream.test
 
 import java.util.concurrent.ExecutionException
-import nl.kii.stream.Promise
+import nl.kii.promise.Promise
 import org.junit.Test
 
-import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension org.junit.Assert.*
 

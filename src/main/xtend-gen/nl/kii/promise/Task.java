@@ -1,6 +1,6 @@
-package nl.kii.stream;
+package nl.kii.promise;
 
-import nl.kii.stream.Promise;
+import nl.kii.promise.Promise;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")

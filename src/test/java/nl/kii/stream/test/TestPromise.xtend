@@ -4,7 +4,7 @@ import org.junit.Test
 
 import static org.junit.Assert.*
 
-import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 
 class TestPromise {

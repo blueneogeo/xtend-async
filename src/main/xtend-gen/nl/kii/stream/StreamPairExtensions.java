@@ -2,9 +2,9 @@ package nl.kii.stream;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import nl.kii.promise.Promise;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SyncSubscription;

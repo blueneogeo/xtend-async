@@ -3,7 +3,7 @@ package nl.kii.act.test
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
-import static nl.kii.stream.PromiseExtensions.*
+import static nl.kii.promise.PromiseExtensions.*
 
 import static extension nl.kii.act.ActorExtensions.*
 import nl.kii.act.Actor

@@ -12,15 +12,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.observe.Observable;
+import nl.kii.observe.Publisher;
+import nl.kii.promise.Promise;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Observable;
-import nl.kii.stream.Promise;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamObserver;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
@@ -131,7 +131,13 @@ public class StreamExtensions {
    * value coming from the stream will be pushed out immediately.
    */
   public static <T extends Object> Observable<T> observe(final Stream<T> stream) {
-    return new StreamObserver<T>(stream);
+    Publisher<T> _xblockexpression = null;
+    {
+      final Publisher<T> publisher = new Publisher<T>();
+      StreamExtensions.<T>onEach(stream, publisher);
+      _xblockexpression = publisher;
+    }
+    return _xblockexpression;
   }
   
   /**

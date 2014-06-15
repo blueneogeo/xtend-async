@@ -1,7 +1,7 @@
-package nl.kii.stream;
+package nl.kii.promise;
 
-import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseExtensions;
+import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseExtensions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Pair;

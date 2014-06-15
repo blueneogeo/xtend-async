@@ -2,8 +2,8 @@ package nl.kii.stream.test;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseExtensions;
+import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.StreamAssert;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;

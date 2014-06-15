@@ -1,8 +1,10 @@
 package nl.kii.stream
 
-import static extension nl.kii.stream.StreamExtensions.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.promise.Promise
+
+import static extension nl.kii.stream.StreamExtensions.*
 
 /**
  * These extensions let you pass state with a stream more easily. 

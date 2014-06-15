@@ -1,6 +1,6 @@
-package nl.kii.stream
+package nl.kii.promise
 
-import static extension nl.kii.stream.PromiseExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
 
 class PromisePairExtensions {
 	

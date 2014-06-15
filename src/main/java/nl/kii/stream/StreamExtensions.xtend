@@ -9,6 +9,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.observe.Observable
+import nl.kii.observe.Publisher
+import nl.kii.promise.Promise
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 class StreamExtensions {
@@ -70,7 +73,9 @@ class StreamExtensions {
 	 * value coming from the stream will be pushed out immediately.
 	 */
 	def static <T> Observable<T> observe(Stream<T> stream) {
-		new StreamObserver(stream)
+		val publisher = new Publisher<T>
+		stream.onEach(publisher)
+		publisher
 	}
 	
 	// OPERATORS //////////////////////////////////////////////////////////////

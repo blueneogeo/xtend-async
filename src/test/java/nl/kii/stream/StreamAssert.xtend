@@ -1,11 +1,12 @@
 package nl.kii.stream
-import static extension nl.kii.stream.StreamExtensions.*
+
+import java.util.LinkedList
 import java.util.List
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.promise.Promise
 
+import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import java.util.LinkedList
-
 
 class StreamAssert {
 	

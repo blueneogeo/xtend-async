@@ -3,7 +3,7 @@ package nl.kii.stream.test
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
-import static nl.kii.stream.PromiseExtensions.*
+import static nl.kii.promise.PromiseExtensions.*
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*

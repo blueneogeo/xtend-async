@@ -6,7 +6,7 @@ So why was this library built, even though Java8 already has stream support?
 
 - completely non blocking
 - optimized for asynchronous programming
-- integrated promises and streams
+- integration between promises and streams
 
 Some features are:
 
@@ -18,6 +18,51 @@ Some features are:
 - flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream
 - internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool 
 - streams and promises can be hard to debug because they encapsulate errors. xtend-streams lets you choose: throw errors as they occur, or catch them at the end
+
+# QUICK EXAMPLES
+
+## Async Processing
+
+	def loadWebpageInBackground(URL url) {
+		val loaded = new Promise<Webpage>
+		someHttpService.loadAsync(url) [ loaded.apply(webpage) 	]
+		return loaded
+	}
+
+	val stream = new Stream<URL>
+	stream
+		.map [ loadWebpageInBackground ]
+		.resolve
+		.onEach [ webpage | println(webpage.content) ]
+
+	stream << new URL('http://www.cnn.com') << new URL('http://www.theverge.com') << .. etc. << finish
+
+The loadWebpageInBackground method returns a promise of a webpage for a given url. The stream code then uses that method to set up a pipeline that allows you to push in URLs, which get mapped to a stream of webpage promises, which then get resolved into a stream of webpages, which in turn get printed.
+
+## Non-blocking Aggregation
+
+Instead of having aggregation such as stream.count and stream.collect block the thread, these streams use finish markers to indicate the end of a stream of data.
+
+	val stream = int.stream
+	stream.collect.then [ println('got list: ' + it) ]
+
+	stream << 1 << 2 << 3 << finish
+
+This will print: got list [1, 2, 3]
+
+## Stream Segmentation
+
+You can easily split a stream into multiple blocks for aggregation using the .split method:
+
+	#[1, 2, 3, 4, 5].stream
+		.split [ it % 2 == 0 ]
+		.collect
+		.onEach [ println(it) ]
+
+This will print:
+	[1, 2]
+	[3, 4]
+	[5]
 
 # PROMISE USAGE
 

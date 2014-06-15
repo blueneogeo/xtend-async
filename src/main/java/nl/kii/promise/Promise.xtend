@@ -1,8 +1,11 @@
-package nl.kii.stream
+package nl.kii.promise
 
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.stream.Entry
+import nl.kii.stream.Value
+import nl.kii.stream.Error
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 /**
  * A Promise is a publisher of a value. The value may arrive later.

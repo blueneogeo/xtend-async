@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.promise
 
 import com.google.common.util.concurrent.AbstractFuture
 

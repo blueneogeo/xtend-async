@@ -1,13 +1,13 @@
-package nl.kii.stream;
+package nl.kii.promise;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseFuture;
-import nl.kii.stream.Task;
+import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseFuture;
+import nl.kii.promise.Task;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Pair;

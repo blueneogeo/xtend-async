@@ -2,6 +2,7 @@ package nl.kii.stream
 
 import java.util.Queue
 import nl.kii.act.Actor
+import nl.kii.observe.Observable
 
 import static com.google.common.collect.Queues.*
 

@@ -2,10 +2,10 @@ package nl.kii.stream.test;
 
 import com.google.common.collect.Lists;
 import java.util.Collections;
+import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Promise;
-import nl.kii.stream.PromiseExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;

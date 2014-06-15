@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.promise
 
 import java.util.List
 import java.util.Map
