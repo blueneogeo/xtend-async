@@ -763,7 +763,7 @@ public class StreamExtensions {
     StreamExtensions.<T>on(stream, _function);
   }
   
-  public static <T extends Object> void onEach(final Stream<T> stream, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
+  public static <T extends Object> void onEachAsync(final Stream<T> stream, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
     final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
       public void apply(final AsyncSubscription<T> sub) {
         final Procedure1<T> _function = new Procedure1<T>() {
@@ -976,7 +976,7 @@ public class StreamExtensions {
     subscription.next();
   }
   
-  public static <T extends Object> void onEach(final AsyncSubscription<T> subscription, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
+  public static <T extends Object> void onEachAsync(final AsyncSubscription<T> subscription, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
     final Procedure1<T> _function = new Procedure1<T>() {
       public void apply(final T it) {
         listener.apply(it, subscription);

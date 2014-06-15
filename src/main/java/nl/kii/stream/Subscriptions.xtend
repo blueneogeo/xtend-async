@@ -13,7 +13,7 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	new(Stream<T> stream) {
 		this.stream = stream
-		stream.setListener [ apply ]
+		stream.onChange [ apply ]
 	}
 
 	override apply(Entry<T> it) {

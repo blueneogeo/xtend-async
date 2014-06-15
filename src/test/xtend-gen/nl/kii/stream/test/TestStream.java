@@ -1,5 +1,8 @@
 package nl.kii.stream.test;
 
+import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,18 +30,52 @@ public class TestStream {
   @Test
   public void testUnbufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
-    final Stream<Integer> s = new Stream<Integer>();
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf(((it).intValue() != 2));
+      }
+    };
+    Stream<Integer> _filter = StreamExtensions.<Integer>filter(s, _function);
+    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() + 1));
+      }
+    };
+    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_filter, _function_1);
+    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
     };
-    StreamExtensions.<Integer>onEach(s, _function);
+    StreamExtensions.<Integer>onEach(_map, _function_2);
     Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     int _get = counter.get();
     Assert.assertEquals(6, _get);
+    StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    int _get_1 = counter.get();
+    Assert.assertEquals(8, _get_1);
+  }
+  
+  @Test
+  public void testCount() {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Collections.<Integer>unmodifiableList(Lists.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4))));
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 2) == 0));
+      }
+    };
+    Stream<Integer> _split = StreamExtensions.<Integer>split(_stream, _function);
+    Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_split);
+    Stream<List<List<Integer>>> _collect_1 = StreamExtensions.<List<Integer>>collect(_collect);
+    final Procedure1<List<List<Integer>>> _function_1 = new Procedure1<List<List<Integer>>>() {
+      public void apply(final List<List<Integer>> it) {
+        InputOutput.<List<List<Integer>>>println(it);
+      }
+    };
+    StreamExtensions.<List<List<Integer>>>onEach(_collect_1, _function_1);
   }
   
   @Test
@@ -286,7 +323,7 @@ public class TestStream {
           s2.next();
         }
       };
-      s2.setListener(_function_4);
+      s2.onChange(_function_4);
       s2.next();
       Thread.sleep(100);
       int _get = sum.get();

@@ -173,11 +173,11 @@ public class StreamPairExtensions {
   
   /**
    * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-   * See async2() for example of how to use. This version is controlled: the listener gets passed
-   * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
+   * See resolve() for example of how to use. This version is controlled: the listener gets passed
+   * the stream and must indicate when it is ready for the next value. It also allows you to skip to
    * the next finish.
    */
-  public static <K extends Object, V extends Object> void onEach(final Stream<Pair<K, V>> stream, final Procedure3<? super K, ? super V, ? super Stream<Pair<K, V>>> listener) {
+  public static <K extends Object, V extends Object> void onEachAsync(final Stream<Pair<K, V>> stream, final Procedure3<? super K, ? super V, ? super Stream<Pair<K, V>>> listener) {
     final Procedure1<SyncSubscription<Pair<K, V>>> _function = new Procedure1<SyncSubscription<Pair<K, V>>>() {
       public void apply(final SyncSubscription<Pair<K, V>> it) {
         final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
@@ -191,5 +191,30 @@ public class StreamPairExtensions {
       }
     };
     StreamExtensions.<Pair<K, V>>on(stream, _function);
+  }
+  
+  public static <K extends Object, V extends Object> void onEach(final AsyncSubscription<Pair<K, V>> subscription, final Procedure2<? super K, ? super V> listener) {
+    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+      public void apply(final Pair<K, V> it) {
+        K _key = it.getKey();
+        V _value = it.getValue();
+        listener.apply(_key, _value);
+        subscription.next();
+      }
+    };
+    subscription.each(_function);
+    subscription.next();
+  }
+  
+  public static <K extends Object, V extends Object> void onEachAsync(final AsyncSubscription<Pair<K, V>> subscription, final Procedure3<? super K, ? super V, ? super AsyncSubscription<Pair<K, V>>> listener) {
+    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+      public void apply(final Pair<K, V> it) {
+        K _key = it.getKey();
+        V _value = it.getValue();
+        listener.apply(_key, _value, subscription);
+      }
+    };
+    subscription.each(_function);
+    subscription.next();
   }
 }

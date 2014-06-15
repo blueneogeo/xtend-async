@@ -112,12 +112,29 @@ class StreamPairExtensions {
 
 	/**
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-	 * See async2() for example of how to use. This version is controlled: the listener gets passed
-	 * the =stream and must indicate when it is ready for the next value. It also allows you to skip to
+	 * See resolve() for example of how to use. This version is controlled: the listener gets passed
+	 * the stream and must indicate when it is ready for the next value. It also allows you to skip to
 	 * the next finish.
 	 */
-	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
+	def static <K, V> void onEachAsync(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
 		stream.on [ each [ it | listener.apply(key, value, stream) ] ]
 	}
+
+	// SUBSCRIPTION ENDPOINTS ///////////////////////////////////////////////////
+	
+	def static <K, V> void onEach(AsyncSubscription<Pair<K, V>> subscription, (K, V)=>void listener) {
+		subscription.each [
+			listener.apply(key, value)
+			subscription.next
+		]
+		subscription.next
+	}
+
+	def static <K, V> void onEachAsync(AsyncSubscription<Pair<K, V>> subscription, (K, V, AsyncSubscription<Pair<K, V>>)=>void listener) {
+		subscription.each [
+			listener.apply(key, value, subscription)
+		]
+		subscription.next
+	}	
 
 }
