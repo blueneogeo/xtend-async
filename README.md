@@ -25,7 +25,7 @@ Some features are:
 
 	def loadWebpageInBackground(URL url) {
 		val loaded = new Promise<Webpage>
-		someHttpService.loadAsync(url) [ loaded.apply(webpage) 	]
+		someHttpService.loadAsync(url) [ page | loaded.apply(page) 	]
 		return loaded
 	}
 
@@ -48,7 +48,9 @@ Instead of having aggregation such as stream.count and stream.collect block the 
 
 	stream << 1 << 2 << 3 << finish
 
-This will print: got list [1, 2, 3]
+This will print: 
+
+	got list [1, 2, 3]
 
 ## Stream Segmentation
 
@@ -60,6 +62,7 @@ You can easily split a stream into multiple blocks for aggregation using the .sp
 		.onEach [ println(it) ]
 
 This will print:
+
 	[1, 2]
 	[3, 4]
 	[5]
@@ -72,7 +75,7 @@ Promises are a bit like Futures, they represent a promise of a value in the futu
 
 Importing the promise extensions:
 
-	import static extension nl.kii.stream.PromiseExtensions.*
+	import static extension nl.kii.promise.PromiseExtensions.*
 
 ## Creating a Promise
 
