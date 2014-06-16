@@ -23,32 +23,37 @@ Some features are:
 
 ## Normal Stream Processing
 
-	// non-blocking collections
+Non-blocking collections:
+
 	#[1, 2, 3].stream
 		.map [ it * 2 ]
 		.collect
 		.then [ assertEquals(#[2, 4, 6], it) ]
 
-	// streaming the numbers on demand, not all in memory
+Streaming the numbers on demand, not all in memory:
+
 	(1..1_000_000).stream
 		.filter [ it % 2 == 0 ] // only even numbers
 		.count
 		.then [ assertEquals(500_000, it) ]
 
-	// streaming after creation of the stream
+Streaming after creation of the stream:
+	
 	val s = int.stream
 	s
 		.onFinish [ println('done!') ]
 		.onEach [ println(it) ]
 	s << 1 << 2 << finish // prints 1 2 done!
 
-	// cutting off a stream
+Cutting off a stream:
+
 	(1..1_000_000_000).stream
 		.until [ it > 1000 ]
 		.count
 		.then [ assertEquals(1000, it) ]
 
-	// flow control
+Flow control:
+
 	val s = #['John', 'Mary'].stream
 	s.onEach [ name, stream |
 		// ask for the next only after the user is saved
