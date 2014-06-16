@@ -18,7 +18,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings("all")
-public class TestAsyncProcessing {
+public class TestMultiThreadedProcessing {
   private final ExecutorService threads = Executors.newCachedThreadPool();
   
   @Test
@@ -49,14 +49,14 @@ public class TestAsyncProcessing {
       Promise<Integer> _power2 = this.power2(2);
       final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.power2((it).intValue());
+          return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(_power2, _function);
       Promise<Integer> _resolve = PromiseExtensions.<Integer>resolve(_map);
       final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.power2((it).intValue());
+          return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_resolve, _function_1);
@@ -88,7 +88,7 @@ public class TestAsyncProcessing {
       final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
       final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.power2((it).intValue());
+          return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Stream<Promise<Integer>> _map = StreamExtensions.<Integer, Promise<Integer>>map(s, _function);
@@ -101,7 +101,7 @@ public class TestAsyncProcessing {
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_resolve, _function_1);
       final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.power2((it).intValue());
+          return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Stream<Promise<Integer>> _map_2 = StreamExtensions.<Integer, Promise<Integer>>map(_map_1, _function_2);
@@ -144,7 +144,7 @@ public class TestAsyncProcessing {
       final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
       final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.throwsError((it).intValue());
+          return TestMultiThreadedProcessing.this.throwsError((it).intValue());
         }
       };
       Stream<Promise<Integer>> _map = StreamExtensions.<Integer, Promise<Integer>>map(s, _function);
@@ -157,7 +157,7 @@ public class TestAsyncProcessing {
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_resolve, _function_1);
       final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
-          return TestAsyncProcessing.this.power2((it).intValue());
+          return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Stream<Promise<Integer>> _map_2 = StreamExtensions.<Integer, Promise<Integer>>map(_map_1, _function_2);

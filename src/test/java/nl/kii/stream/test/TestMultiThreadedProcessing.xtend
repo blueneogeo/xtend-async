@@ -10,7 +10,7 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
 import java.util.concurrent.Executors
 
-class TestAsyncProcessing {
+class TestMultiThreadedProcessing {
 
 	val threads = Executors.newCachedThreadPool
 
