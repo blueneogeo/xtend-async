@@ -43,82 +43,6 @@ public class PromiseExtensions {
     return new Promise<T>(value);
   }
   
-  public static <T extends Object> Promise<T> promise(final Class<T> type, final Procedure1<? super Promise<T>> blockThatFulfillsPromise) {
-    Promise<T> _xblockexpression = null;
-    {
-      final Promise<T> promise = PromiseExtensions.<T>promise(type);
-      try {
-        blockThatFulfillsPromise.apply(promise);
-      } catch (final Throwable _t) {
-        if (_t instanceof Throwable) {
-          final Throwable t = (Throwable)_t;
-          promise.error(t);
-        } else {
-          throw Exceptions.sneakyThrow(_t);
-        }
-      }
-      _xblockexpression = promise;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> Promise<List<T>> promiseList(final Class<T> type, final Procedure1<? super Promise<List<T>>> blockThatFulfillsPromise) {
-    Promise<List<T>> _xblockexpression = null;
-    {
-      final Promise<List<T>> promise = PromiseExtensions.<T>promiseList(type);
-      try {
-        blockThatFulfillsPromise.apply(promise);
-      } catch (final Throwable _t) {
-        if (_t instanceof Throwable) {
-          final Throwable t = (Throwable)_t;
-          promise.error(t);
-        } else {
-          throw Exceptions.sneakyThrow(_t);
-        }
-      }
-      _xblockexpression = promise;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <K extends Object, V extends Object> Promise<Map<K, V>> promiseMap(final Pair<Class<K>, Class<V>> type, final Procedure1<? super Promise<Map<K, V>>> blockThatFulfillsPromise) {
-    Promise<Map<K, V>> _xblockexpression = null;
-    {
-      final Promise<Map<K, V>> promise = PromiseExtensions.<K, V>promiseMap(type);
-      try {
-        blockThatFulfillsPromise.apply(promise);
-      } catch (final Throwable _t) {
-        if (_t instanceof Throwable) {
-          final Throwable t = (Throwable)_t;
-          promise.error(t);
-        } else {
-          throw Exceptions.sneakyThrow(_t);
-        }
-      }
-      _xblockexpression = promise;
-    }
-    return _xblockexpression;
-  }
-  
-  public static Task task(final Procedure1<? super Task> blockThatPerformsTask) {
-    Task _xblockexpression = null;
-    {
-      final Task task = new Task();
-      try {
-        blockThatPerformsTask.apply(task);
-      } catch (final Throwable _t) {
-        if (_t instanceof Throwable) {
-          final Throwable t = (Throwable)_t;
-          task.error(t);
-        } else {
-          throw Exceptions.sneakyThrow(_t);
-        }
-      }
-      _xblockexpression = task;
-    }
-    return _xblockexpression;
-  }
-  
   /**
    * Tell the task it went wrong
    */
@@ -281,27 +205,28 @@ public class PromiseExtensions {
    * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
    */
   public static Task run(final ExecutorService service, final Runnable runnable) {
-    final Procedure1<Task> _function = new Procedure1<Task>() {
-      public void apply(final Task task) {
-        final Runnable _function = new Runnable() {
-          public void run() {
-            try {
-              runnable.run();
-              task.complete();
-            } catch (final Throwable _t) {
-              if (_t instanceof Throwable) {
-                final Throwable t = (Throwable)_t;
-                task.error(t);
-              } else {
-                throw Exceptions.sneakyThrow(_t);
-              }
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      final Runnable _function = new Runnable() {
+        public void run() {
+          try {
+            runnable.run();
+            task.complete();
+          } catch (final Throwable _t) {
+            if (_t instanceof Throwable) {
+              final Throwable t = (Throwable)_t;
+              task.error(t);
+            } else {
+              throw Exceptions.sneakyThrow(_t);
             }
           }
-        };
-        final Runnable processor = _function;
-        service.submit(processor);
-      }
-    };
-    return PromiseExtensions.task(_function);
+        }
+      };
+      final Runnable processor = _function;
+      service.submit(processor);
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
   }
 }

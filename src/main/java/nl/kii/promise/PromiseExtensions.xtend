@@ -30,48 +30,6 @@ class PromiseExtensions {
 		new Promise<T>(value)
 	}
 	
-	// CREATING PROMISE AND TASK FUNCTIONS ////////////////////////////////////
-
-	def static <T> promise(Class<T> type, (Promise<T>)=>void blockThatFulfillsPromise) {
-		val promise = type.promise
-		try {
-			blockThatFulfillsPromise.apply(promise)			
-		} catch(Throwable t) {
-			promise.error(t)
-		}
-		promise
-	}
-
-	def static <T> promiseList(Class<T> type, (Promise<List<T>>)=>void blockThatFulfillsPromise) {
-		val promise = type.promiseList
-		try {
-			blockThatFulfillsPromise.apply(promise)			
-		} catch(Throwable t) {
-			promise.error(t)
-		}
-		promise
-	}
-
-	def static <K, V> promiseMap(Pair<Class<K>, Class<V>> type, (Promise<Map<K, V>>)=>void blockThatFulfillsPromise) {
-		val promise = type.promiseMap
-		try {
-			blockThatFulfillsPromise.apply(promise)			
-		} catch(Throwable t) {
-			promise.error(t)
-		}
-		promise
-	}
-	
-	def static task((Task)=>void blockThatPerformsTask) {
-		val task = new Task
-		try {
-			blockThatPerformsTask.apply(task)			
-		} catch(Throwable t) {
-			task.error(t)
-		}
-		task
-	}
-	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 	
 	/** Tell the task it went wrong */
@@ -177,17 +135,17 @@ class PromiseExtensions {
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
 	def static Task run(ExecutorService service, Runnable runnable) {
-		task [ task |
-			val Runnable processor = [|
-				try {
-					runnable.run
-					task.complete
-				} catch(Throwable t) {
-					task.error(t)
-				}
-			]
-			service.submit(processor)
+		val task = new Task
+		val Runnable processor = [|
+			try {
+				runnable.run
+				task.complete
+			} catch(Throwable t) {
+				task.error(t)
+			}
 		]
+		service.submit(processor)
+		task
 	}	
 	
 }

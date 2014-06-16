@@ -86,7 +86,7 @@ public class TestAnnotations {
     }
   }
   
-  public Promise<Integer> increment(final int number) {
+  private Promise<Integer> increment(final int number) {
     Promise<Integer> promise = new Promise<Integer>();
     try {
     	increment(number,promise);
@@ -97,7 +97,7 @@ public class TestAnnotations {
     }
   }
   
-  public Task printHello(final String name) {
+  private Task printHello(final String name) {
     Task task = new Task();
     try {
     	printHello(task,name);
