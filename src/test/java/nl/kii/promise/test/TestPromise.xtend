@@ -1,4 +1,4 @@
-package nl.kii.stream.test
+package nl.kii.promise.test
 
 import org.junit.Test
 

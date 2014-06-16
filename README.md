@@ -21,6 +21,40 @@ Some features are:
 
 # QUICK EXAMPLES
 
+## Normal Stream Processing
+
+	// non-blocking collections
+	#[1, 2, 3].stream
+		.map [ it * 2 ]
+		.collect
+		.then [ assertEquals(#[2, 4, 6], it) ]
+
+	// streaming the numbers on demand, not all in memory
+	(1..1_000_000).stream
+		.filter [ it % 2 == 0 ] // only even numbers
+		.count
+		.then [ assertEquals(500_000, it) ]
+
+	// streaming after creation of the stream
+	val s = int.stream
+	s
+		.onFinish [ println('done!') ]
+		.onEach [ println(it) ]
+	s << 1 << 2 << finish // prints 1 2 done!
+
+	// cutting off a stream
+	(1..1_000_000_000).stream
+		.until [ it > 1000 ]
+		.count
+		.then [ assertEquals(1000, it) ]
+
+	// flow control
+	val s = #['John', 'Mary'].stream
+	s.onEach [ name, stream |
+		// ask for the next only after the user is saved
+		saveUserAsync(name) [ stream.next ]
+	]
+
 ## Async Processing
 
 	def loadWebpageInBackground(URL url) {
@@ -32,7 +66,7 @@ Some features are:
 	val stream = new Stream<URL>
 	stream
 		.map [ loadWebpageInBackground ]
-		.resolve
+		.resolve(2) // max two async processes in parallel
 		.onEach [ webpage | println(webpage.content) ]
 
 	stream << new URL('http://www.cnn.com') << new URL('http://www.theverge.com') << .. etc. << finish
@@ -227,7 +261,7 @@ The Observable.onChange method returns a closure that you can call to stop liste
 
 # COMBINING STREAMS AND PROMISES
 
-## Promise Functions
+## @Async Functions
 
 The strength of streams comes out best using asynchronous programming. In asynchronous programming, when you call a function, it is executed directly, and this function is executed on another thread or moment. The result from the function is returned later.
 
@@ -244,18 +278,20 @@ To simply print a webpage, you can then do this:
 	loadWebpage('http://cnn.com')
 		.then [ println(it) ]
 
-The nice thing about promise functions is that they allow you to  reuse asynchronous code.
+The nice thing about promise functions is that they allow you to  reuse asynchronous code. Since this is a common pattern, there is an @Async Active Annotation that helps you write this code. For example:
 
-Since this is a common pattern, PromiseExtensions has some shortcuts for making the code look nicer. The loadWebpage function above can also be written like this:
-
-	def loadWebpage(String url) {
-		promise(String) [ loadWebPage |
-			... code that loads webpage
-			webpage >> loadWebPage
-		]
+	@Async def loadWebpage(String url, Promise<String> result) {
+		... code that loads webpage, and calls result.set(webpage)
 	}
 
-This syntax makes it clear on the first line what happens inside the method, and it makes sure the promise is returned at the end.
+This syntax makes it clear on the first line that this is an asynchronous function, and it makes sure the promise is returned at the end.
+
+You can then call this async function like before:
+
+	loadWebpage('http://cnn.com')
+		.then [ println(it) ]
+
+The @Async annotation creates a loadWebpage(String url) function, creates the promise, calls your function, then returns the promise. It also catches any exceptions and reports them to the promise, and makes sure the promise is always returned.
 
 ## Using Promise Functions in Streams
 
@@ -296,22 +332,9 @@ Note that counts takes a lambda instead of directly returning a value. This is b
 
 So when does count know that it is finished? Here the finish command comes in. The count function uses the finish to know it has come to the end of the batch.
 
-## Counting Multiple Batches 
-
-Note that count returns a new Stream<Integer>, and .then on a stream produces a Promise of the first value from that stream. The reason for this is that actually, count counts each batch. You could also do this:
-
-	val s = char.stream
-	s.count.each [ println('counted ' + it + ' chars') ]
-	s << 'a' << 'x' << 'c' << finish << 'v' << 't' << finish
-
-This will produce:
-
-	counted 3 chars
-	counted 2 chars
-
 ## Other Aggregations
 
-Similar functions are: 
+Other supported aggregation functions are: 
 
 - avg : gives the average of all numbers in a batch
 - sum: sum of all numbers in a batch
@@ -320,25 +343,13 @@ Similar functions are:
 - allMatch: true only when all entries match a criterium
 - reduce: custom aggregation
 
-## Substreams
-
-If you think about it, splitting a Stream<T> actually models a Stream<Stream<T>>. You get a stream of smaller streams, separated by the finish separators. However, it is discouraged to use Stream<Stream<T>> with xtend-stream. There are a couple of reasons for this:
-
-- Stream objects are relatively heavy, containing two queues each
-- A Stream<Stream<T>> does not necessarily define that the sub streams all operate serially. The different streams may also operate in parallel
-- Substreams are harder to serialize. In the end, you will need to flatten them.
-
-Because of this, StreamExtensions.split and StreamExtensions.merge work with levels of separation, to simulate substreams. Each time you split a stream, you add a layer of finishes in the stream and upgrade the ones that were already there. Each time you merge a stream, you reverse that process. All the aggregation algorithms (sum, avg, collect etc) use the lowest level for figuring out the blocks to merge, and then downgrade the higher finish layer, so when you aggregate again, it will use that layer.
-
-In short, you can split multiple times and merge and aggregate multiple times, and it will just work, as if you had substreams. 
-
 # EXTENDING XTEND-STREAM
 
 The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.
 
 In order not to clutter the namespace, extensions that use the stream flow control functions must be packaged in package nl.kii.stream.
 
-I recommend you have a look at PromiseExt and StreamExt as an example.
+I recommend you have a look at the PromiseExtensions and StreamExtensions source code as an example.
 
 ## FLOW CONTROL
 

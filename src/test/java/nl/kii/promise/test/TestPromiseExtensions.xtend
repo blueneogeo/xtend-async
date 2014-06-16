@@ -1,4 +1,4 @@
-package nl.kii.stream.test
+package nl.kii.promise.test
 
 import java.util.concurrent.ExecutionException
 import nl.kii.promise.Promise
