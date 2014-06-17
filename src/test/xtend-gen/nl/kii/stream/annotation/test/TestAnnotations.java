@@ -64,12 +64,12 @@ public class TestAnnotations {
   }
   
   @Async
-  public Promise<Integer> increment(final int number, final Promise<Integer> promise) {
+  private Promise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
   @Async
-  public Task printHello(final Task task, final String name) {
+  private Task printHello(final Task task, final String name) {
     try {
       Task _xblockexpression = null;
       {
@@ -86,7 +86,7 @@ public class TestAnnotations {
     }
   }
   
-  private Promise<Integer> increment(final int number) {
+  public Promise<Integer> increment(final int number) {
     Promise<Integer> promise = new Promise<Integer>();
     try {
     	increment(number,promise);
@@ -97,7 +97,7 @@ public class TestAnnotations {
     }
   }
   
-  private Task printHello(final String name) {
+  public Task printHello(final String name) {
     Task task = new Task();
     try {
     	printHello(task,name);
