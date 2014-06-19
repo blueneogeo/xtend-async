@@ -298,6 +298,17 @@ You can then call this async function like before:
 
 The @Async annotation creates a loadWebpage(String url) function, creates the promise, calls your function, then returns the promise. It also catches any exceptions and reports them to the promise, and makes sure the promise is always returned.
 
+You can also have an async function execute on a threadpool or other Executor like this:
+
+	import static java.util.concurrent.Executors.*
+	...
+	val exec = newCachedThreadPool
+	exec.loadWebpage('http://cnn.com')
+		.then [ println(it) ]
+
+This is possible because the @Async active annotation also creates a version of your method that takes an Executor as the first parameter, and executes the task or promise on the executor.
+
+
 ## Using Promise Functions in Streams
 
 If you want to load a whole bunch of URL's, you can create a stream of URL's, and then process these with the same promise function:
@@ -310,6 +321,20 @@ If you want to load a whole bunch of URL's, you can create a stream of URL's, an
 	urls << 'http://cnn.com' << 'http://yahoo.com'
 
 The mapping first takes the url and applies it to loadWebpage, which is a function that returns a Promise<String>. We then have a Stream<Promise<String>>. You can then use the resolve function to resolve the promises so you get a Stream<String>, a stream of actual values.
+
+Say that you want to have the above loadWebpage calls run on a thread pool because they are blocking or slow. In that case, you only need a small change:
+
+	import static java.util.concurrent.Executors.*
+	...
+	val exec = newCachedThreadPool
+	val urls = String.stream
+	urls
+		.map [ exec.loadWebpage ] // results in a Stream<Promise<String>
+		.resolve // results in a Stream<String>
+		.then [ println(it) ] // so then we can print it
+	urls << 'http://cnn.com' << 'http://yahoo.com'
+	
+The above code will execute on the exec threadpool the loadWebpage calls, one by one. The .resolve call controls how the calls are resolved. If for example you want a maximum of three calls to take place in parallel, you can change .resolve into .resolve(3).
 
 # BATCHES AND AGGREGATION
 
