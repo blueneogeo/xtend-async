@@ -7,6 +7,7 @@ import nl.kii.promise.Task
 import nl.kii.stream.annotation.Async
 import org.junit.Test
 
+import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
@@ -37,6 +38,12 @@ class TestAnnotations {
 			.then [ isError.set(false) ]
 		assertEquals(true, isError.get)
 	}
+
+	@Test
+	def void testAsyncTaskOnExecutor() {
+		val exec = newCachedThreadPool
+		exec.printHello('christian').then [ println('done!') ]
+	}
 	
 	@Async def increment(int number, Promise<Integer> promise) {
 		promise << number + 1 
@@ -47,5 +54,5 @@ class TestAnnotations {
 		println('hello ' + name)
 		task.complete
 	}
-
+	
 }

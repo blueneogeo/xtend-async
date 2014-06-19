@@ -1,6 +1,9 @@
 package nl.kii.stream.annotation.test;
 
 import com.google.common.base.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.promise.Promise;
@@ -63,6 +66,18 @@ public class TestAnnotations {
     Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
   }
   
+  @Test
+  public void testAsyncTaskOnExecutor() {
+    final ExecutorService exec = Executors.newCachedThreadPool();
+    Task _printHello = this.printHello(exec, "christian");
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<String>println("done!");
+      }
+    };
+    _printHello.then(_function);
+  }
+  
   @Async
   private Promise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
@@ -87,7 +102,7 @@ public class TestAnnotations {
   }
   
   public Promise<Integer> increment(final int number) {
-    Promise<Integer> promise = new Promise<Integer>();
+    final Promise<Integer> promise = new Promise<Integer>();
     try {
     	increment(number,promise);
     } catch(Throwable t) {
@@ -97,8 +112,23 @@ public class TestAnnotations {
     }
   }
   
+  private Promise<Integer> increment(final Executor executor, final int number) {
+    final Promise<Integer> promise = new Promise<Integer>();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			increment(number,promise);
+    		} catch(Throwable t) {
+    			promise.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return promise;
+  }
+  
   public Task printHello(final String name) {
-    Task task = new Task();
+    final Task task = new Task();
     try {
     	printHello(task,name);
     } catch(Throwable t) {
@@ -106,5 +136,20 @@ public class TestAnnotations {
     } finally {
     	return task;
     }
+  }
+  
+  private Task printHello(final Executor executor, final String name) {
+    final Task task = new Task();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			printHello(task,name);
+    		} catch(Throwable t) {
+    			task.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return task;
   }
 }
