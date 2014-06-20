@@ -106,6 +106,8 @@ class Promise<T> implements Procedure1<Entry<T>> {
 		}
 	}
 	
+	override toString() '''Promise { fulfilled: «fulfilled», entry: «get» }'''
+	
 }
 
 class Task extends Promise<Boolean> {
@@ -120,6 +122,8 @@ class Task extends Promise<Boolean> {
 		set(true)
 		this
 	}
+	
+	override toString() '''Task { fulfilled: «fulfilled» }'''
 
 }
 

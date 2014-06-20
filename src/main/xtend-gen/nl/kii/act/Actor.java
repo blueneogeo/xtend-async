@@ -7,12 +7,18 @@ import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.act.AtMaxProcessDepth;
+import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
- * An Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
+ * An Actor<T> is a computational unit that processes incoming messages, spawn other actors,
+ * send messages to other actors and code, and that can contain its own state.
+ * <p>
+ * http://en.wikipedia.org/wiki/Actor_model
+ * <p>
+ * In Java an Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
  * single threaded. To accomplish this, it has an inbox (which is a queue) which gathers all
  * incoming messages of type T. Calls from one or more threads to the apply function simply add to
  * this queue. The actor then uses a singlethreaded process loop to process these messages one by one.
@@ -184,5 +190,45 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   
   public Collection<T> getInbox() {
     return Collections.<T>unmodifiableCollection(this.inbox);
+  }
+  
+  public String toString() {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("Actor { ");
+    _builder.newLine();
+    _builder.append("\t\t");
+    _builder.append("processing: ");
+    boolean _get = this.processing.get();
+    _builder.append(_get, "\t\t");
+    _builder.append(",");
+    _builder.newLineIfNotEmpty();
+    _builder.append("\t\t");
+    _builder.append("inbox size: ");
+    int _size = this.inbox.size();
+    _builder.append(_size, "\t\t");
+    _builder.append(", ");
+    _builder.newLineIfNotEmpty();
+    _builder.append("\t\t");
+    _builder.append("inbox: {");
+    _builder.newLine();
+    {
+      boolean _hasElements = false;
+      for(final T item : this.inbox) {
+        if (!_hasElements) {
+          _hasElements = true;
+        } else {
+          _builder.appendImmediate(",", "\t\t\t");
+        }
+        _builder.append("\t\t\t");
+        _builder.append(item, "\t\t\t");
+        _builder.newLineIfNotEmpty();
+      }
+    }
+    _builder.append("\t\t");
+    _builder.append("}");
+    _builder.newLine();
+    _builder.append("\t");
+    _builder.append("} ");
+    return _builder.toString();
   }
 }

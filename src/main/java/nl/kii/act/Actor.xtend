@@ -7,12 +7,17 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static com.google.common.collect.Queues.*
 
 /**
- * An Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
+ * An Actor<T> is a computational unit that processes incoming messages, spawn other actors,
+ * send messages to other actors and code, and that can contain its own state.
+ * <p>
+ * http://en.wikipedia.org/wiki/Actor_model
+ * <p>
+ * In Java an Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
  * single threaded. To accomplish this, it has an inbox (which is a queue) which gathers all
  * incoming messages of type T. Calls from one or more threads to the apply function simply add to
  * this queue. The actor then uses a singlethreaded process loop to process these messages one by one.
  * The acting is implemented by extending this actor and implementing the act method.
- *  
+ * 
  * <h3>Asynchronous act method</h3>
  * 
  * The act method of this actor is asynchronous. This means that you have to call done.apply to indicate
@@ -138,6 +143,16 @@ abstract class Actor<T> implements Procedure1<T> {
 	def getInbox() {
 		inbox.unmodifiableView
 	}
+	
+	override toString() '''Actor { 
+		processing: «processing.get»,
+		inbox size: «inbox.size», 
+		inbox: {
+			«FOR item : inbox SEPARATOR ','»
+			«item»
+			«ENDFOR»
+		}
+	} '''
 	
 }
 

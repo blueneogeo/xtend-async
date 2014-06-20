@@ -39,4 +39,6 @@ class Publisher<T> extends Actor<T> implements Observable<T> {
 	
 	def setPublishing(boolean value) { _publishing.set(value) }
 	
+	override toString() '''Publisher { publishing: «publishing», observers: «observers.get.size», inbox: «inbox.size» } '''
+	
 }

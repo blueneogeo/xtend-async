@@ -1,12 +1,14 @@
 package nl.kii.observe;
 
 import com.google.common.base.Objects;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.observe.Observable;
+import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -62,5 +64,22 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
   
   public void setPublishing(final boolean value) {
     this._publishing.set(value);
+  }
+  
+  public String toString() {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("Publisher { publishing: ");
+    boolean _isPublishing = this.isPublishing();
+    _builder.append(_isPublishing, "");
+    _builder.append(", observers: ");
+    List<Procedure1<T>> _get = this.observers.get();
+    int _size = _get.size();
+    _builder.append(_size, "");
+    _builder.append(", inbox: ");
+    Collection<T> _inbox = this.getInbox();
+    int _size_1 = _inbox.size();
+    _builder.append(_size_1, "");
+    _builder.append(" } ");
+    return _builder.toString();
   }
 }

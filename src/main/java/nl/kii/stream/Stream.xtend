@@ -164,4 +164,6 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 			notifyListener.apply(notification)
 	}
 	
+	override toString() '''Stream { open: «open», ready: «listenerReady», skipping: «skipping», queue: «queue.size», hasListener: «entryListener != null» }'''
+	
 }

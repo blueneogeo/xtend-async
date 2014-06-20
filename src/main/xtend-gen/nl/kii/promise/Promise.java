@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.promise.PromiseException;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
+import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -185,5 +186,17 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
         }
       }
     }
+  }
+  
+  public String toString() {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("Promise { fulfilled: ");
+    boolean _isFulfilled = this.isFulfilled();
+    _builder.append(_isFulfilled, "");
+    _builder.append(", entry: ");
+    Entry<T> _get = this.get();
+    _builder.append(_get, "");
+    _builder.append(" }");
+    return _builder.toString();
   }
 }
