@@ -17,8 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class Publisher<T> extends Actor<T> implements Observable<T> {
 	
-	val _publishing = new AtomicBoolean(true)
-	val observers = new AtomicReference<List<Procedure1<T>>>
+	transient val _publishing = new AtomicBoolean(true)
+	transient val observers = new AtomicReference<List<Procedure1<T>>>
 
 	synchronized override =>void onChange((T)=>void observeFn) {
 		if(observers.get == null) observers.set(newLinkedList(observeFn))
@@ -27,7 +27,7 @@ class Publisher<T> extends Actor<T> implements Observable<T> {
 	}
 	
 	override protected act(T message, =>void done) {
-		if(publishing) {
+		if(observers.get != null && publishing) {
 			for(observer : observers.get) {
 				observer.apply(message)
 			}

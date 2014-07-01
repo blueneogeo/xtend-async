@@ -45,7 +45,7 @@ class TestAnnotations {
 		exec.printHello('christian').then [ println('done!') ]
 	}
 	
-	@Async def increment(int number, Promise<Integer> promise) {
+	@Async private synchronized def increment(int number, Promise<Integer> promise) {
 		promise << number + 1 
 	}
 

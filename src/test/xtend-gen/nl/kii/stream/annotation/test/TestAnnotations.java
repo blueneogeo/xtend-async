@@ -79,7 +79,7 @@ public class TestAnnotations {
   }
   
   @Async
-  private Promise<Integer> increment(final int number, final Promise<Integer> promise) {
+  private synchronized Promise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
@@ -101,7 +101,7 @@ public class TestAnnotations {
     }
   }
   
-  public Promise<Integer> increment(final int number) {
+  private synchronized Promise<Integer> increment(final int number) {
     final Promise<Integer> promise = new Promise<Integer>();
     try {
     	increment(number,promise);
@@ -112,7 +112,7 @@ public class TestAnnotations {
     }
   }
   
-  private Promise<Integer> increment(final Executor executor, final int number) {
+  private synchronized Promise<Integer> increment(final Executor executor, final int number) {
     final Promise<Integer> promise = new Promise<Integer>();
     final Runnable toRun = new Runnable() {
     	public void run() {
@@ -138,7 +138,7 @@ public class TestAnnotations {
     }
   }
   
-  private Task printHello(final Executor executor, final String name) {
+  public Task printHello(final Executor executor, final String name) {
     final Task task = new Task();
     final Runnable toRun = new Runnable() {
     	public void run() {

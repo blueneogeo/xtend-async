@@ -24,9 +24,9 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public class Publisher<T extends Object> extends Actor<T> implements Observable<T> {
-  private final AtomicBoolean _publishing = new AtomicBoolean(true);
+  private final transient AtomicBoolean _publishing = new AtomicBoolean(true);
   
-  private final AtomicReference<List<Procedure1<T>>> observers = new AtomicReference<List<Procedure1<T>>>();
+  private final transient AtomicReference<List<Procedure1<T>>> observers = new AtomicReference<List<Procedure1<T>>>();
   
   public synchronized Procedure0 onChange(final Procedure1<? super T> observeFn) {
     List<Procedure1<T>> _get = this.observers.get();
@@ -48,10 +48,18 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
   }
   
   protected void act(final T message, final Procedure0 done) {
-    boolean _isPublishing = this.isPublishing();
-    if (_isPublishing) {
-      List<Procedure1<T>> _get = this.observers.get();
-      for (final Procedure1<T> observer : _get) {
+    boolean _and = false;
+    List<Procedure1<T>> _get = this.observers.get();
+    boolean _notEquals = (!Objects.equal(_get, null));
+    if (!_notEquals) {
+      _and = false;
+    } else {
+      boolean _isPublishing = this.isPublishing();
+      _and = _isPublishing;
+    }
+    if (_and) {
+      List<Procedure1<T>> _get_1 = this.observers.get();
+      for (final Procedure1<T> observer : _get_1) {
         observer.apply(message);
       }
     }
