@@ -1,6 +1,6 @@
-# XTEND-STREAM
+# XTEND-ASYNC
 
-Xtend-stream give streams and promises to Xtend. It is inspired by the Java 8 Streams and RXJava, but is specifically built to work well with the Xtend language and Vert.x. It has no runtime dependencies apart from Xtend.
+Xtend-async provides asynchronous streams, promises and functions to Xtend. It can be used for any Java-based project, but is specifically built to work well with the Xtend language and Vert.x. It has no runtime dependencies apart from Xtend.
 
 So why was this library built, even though Java8 already has stream support?
 
