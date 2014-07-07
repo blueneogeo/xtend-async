@@ -49,6 +49,13 @@ class TestPromise {
 	}
 	
 	@Test
+	def void testPromiseChaining() {
+		val p = 1.promise
+		val p2 = p.then [ return 2.promise ]
+		p2.assertPromiseEquals(2)
+	}
+	
+	@Test
 	def void testPromiseErrorChaining() {
 		val p = 1.promise
 		val p2 = boolean.promise

@@ -3,8 +3,8 @@ package nl.kii.promise
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.stream.Entry
-import nl.kii.stream.Value
 import nl.kii.stream.Error
+import nl.kii.stream.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 /**
@@ -64,7 +64,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def then(Procedure1<T> onValue) {
+	def void then(Procedure1<T> onValue) {
 		if(_onValue.get != null) throw new PromiseException('cannot listen to a promise more than once')
 		_onValue.set(onValue)
 		if(fulfilled) publish(_entry.get)

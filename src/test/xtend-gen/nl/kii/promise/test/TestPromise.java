@@ -80,6 +80,18 @@ public class TestPromise {
   }
   
   @Test
+  public void testPromiseChaining() {
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(1));
+    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      public Promise<Integer> apply(final Integer it) {
+        return PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+      }
+    };
+    final Promise<Integer> p2 = PromiseExtensions.<Integer, Integer>then(p, _function);
+    StreamAssert.<Integer>assertPromiseEquals(p2, Integer.valueOf(2));
+  }
+  
+  @Test
   public void testPromiseErrorChaining() {
     final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(1));
     final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);

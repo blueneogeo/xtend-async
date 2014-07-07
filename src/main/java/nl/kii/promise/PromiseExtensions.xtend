@@ -5,6 +5,7 @@ import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import org.eclipse.xtext.xbase.lib.Functions.Function1
 
 class PromiseExtensions {
 	
@@ -31,6 +32,18 @@ class PromiseExtensions {
 	}
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
+	
+	/** Chaining promises */
+	def static <T, P> Promise<P> then(Promise<T> promise, Function1<T, Promise<P>> closure) {
+		val p = new Promise<P>
+		promise.then [
+			val returnedPromise = closure.apply(it)
+			returnedPromise
+				.onError [ p.error(it) ]
+				.then [ p.set(it) ]
+		]
+		p
+	}
 	
 	/** Tell the task it went wrong */
 	def static error(Task task, String message) {

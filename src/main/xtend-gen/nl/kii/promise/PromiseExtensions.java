@@ -44,6 +44,36 @@ public class PromiseExtensions {
   }
   
   /**
+   * Chaining promises
+   */
+  public static <T extends Object, P extends Object> Promise<P> then(final Promise<T> promise, final Function1<T, Promise<P>> closure) {
+    Promise<P> _xblockexpression = null;
+    {
+      final Promise<P> p = new Promise<P>();
+      final Procedure1<T> _function = new Procedure1<T>() {
+        public void apply(final T it) {
+          final Promise<P> returnedPromise = closure.apply(it);
+          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              p.error(it);
+            }
+          };
+          Promise<P> _onError = returnedPromise.onError(_function);
+          final Procedure1<P> _function_1 = new Procedure1<P>() {
+            public void apply(final P it) {
+              p.set(it);
+            }
+          };
+          _onError.then(_function_1);
+        }
+      };
+      promise.then(_function);
+      _xblockexpression = p;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Tell the task it went wrong
    */
   public static Task error(final Task task, final String message) {
