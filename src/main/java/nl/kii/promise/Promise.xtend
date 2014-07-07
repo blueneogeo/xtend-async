@@ -17,6 +17,9 @@ class Promise<T> implements Procedure1<Entry<T>> {
 
 	/** Lets others listen for the arrival of a value */
 	val _onValue = new AtomicReference<Procedure1<T>>
+	
+	/** Always called, both when there is a value and when there is an error */
+	val _onResult = new AtomicReference<Procedure1<Promise<T>>>
 
 	/** Lets others listen for errors occurring in the onValue listener */
 	val _onError = new AtomicReference<Procedure1<Throwable>>
@@ -64,15 +67,21 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def void then(Procedure1<T> onValue) {
-		if(_onValue.get != null) throw new PromiseException('cannot listen to a promise more than once')
-		_onValue.set(onValue)
-		if(fulfilled) publish(_entry.get)
-	}
-	
 	def onError(Procedure1<Throwable> onError) {
 		_onError.set(onError)
 		this
+	}
+	
+	def always(Procedure1<Promise<T>> onResult) {
+		if(_onValue.get != null) throw new PromiseException('cannot listen to promise.always more than once')
+		_onResult.set(onResult)
+		this
+	}
+	
+	def void then(Procedure1<T> onValue) {
+		if(_onValue.get != null) throw new PromiseException('cannot listen to promise.then more than once')
+		_onValue.set(onValue)
+		if(fulfilled) publish(_entry.get)
 	}
 	
 	// OTHER //////////////////////////////////////////////////////////////////
@@ -103,6 +112,13 @@ class Promise<T> implements Procedure1<Entry<T>> {
 			}	
 			Error<T>: if(_onError.get != null) _onError.get.apply(error)
 			// we do not process Finish<T>
+		}
+		if(_onResult.get != null) {
+			try {
+				_onResult.get.apply(this)
+			} catch(Throwable t) {
+				_onError.get.apply(t)
+			}
 		}
 	}
 	

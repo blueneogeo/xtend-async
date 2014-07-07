@@ -3,9 +3,13 @@ package nl.kii.promise.test
 import org.junit.Test
 
 import static org.junit.Assert.*
-
+import static java.util.concurrent.Executors.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import nl.kii.async.annotation.Async
+import nl.kii.promise.Promise
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class TestPromise {
 	
@@ -54,6 +58,57 @@ class TestPromise {
 		val p2 = p.then [ return 2.promise ]
 		p2.assertPromiseEquals(2)
 	}
+	
+
+	@Test def void testLongChain() {
+		val alwaysDone = new AtomicBoolean
+		val caughtError = new AtomicReference<Throwable>
+		1.addOne
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.onError [ caughtError.set(it) ]
+			.always [ alwaysDone.set(true) ]
+			.assertPromiseEquals(10)
+		assertEquals(true, alwaysDone.get)
+		assertNull(caughtError.get)
+	}
+	
+	@Test def void testLongChainWithError() {
+		val alwaysDone = new AtomicBoolean
+		val caughtError = new AtomicReference<Throwable>
+		1.addOne
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [
+				if(true) throw new Exception('help!') 
+				return addOne
+			]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.onError [ caughtError.set(it) ]
+			.always [ alwaysDone.set(true) ]
+			.then [ fail('should not get here' + it)]
+		assertEquals(true, alwaysDone.get)
+		assertNotNull(caughtError.get)
+	}	
+	
+	val threads = newCachedThreadPool
+
+	@Async
+	def addOne(int n, Promise<Integer> promise) {
+		threads.run [|
+			promise << n + 1
+		]
+	} 
 	
 	@Test
 	def void testPromiseErrorChaining() {

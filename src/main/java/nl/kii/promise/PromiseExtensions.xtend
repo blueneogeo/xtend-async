@@ -33,15 +33,40 @@ class PromiseExtensions {
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 	
-	/** Chaining promises */
-	def static <T, P> Promise<P> then(Promise<T> promise, Function1<T, Promise<P>> closure) {
+	/** When the promise gives a result, call the function that returns another promise and 
+	 * return that promise so you can chain and continue. Any thrown errors will be caught 
+	 * and passed down the chain so you can catch them at the bottom.
+	 * <p>
+	 * Example:
+	 * <pre>
+	 * loadUser
+	 *   .then [ checkCredentialsAsync ]
+	 *   .then [ signinUser ]
+	 *   .onError [ setErrorMessage('could not sign you in') ]
+	 *   .then [ println('success!') ]
+	 * </pre>
+	 */
+	def static <T, P> Promise<P> then(Promise<T> promise, Function1<T, Promise<P>> promiseFn) {
 		val p = new Promise<P>
-		promise.then [
-			val returnedPromise = closure.apply(it)
-			returnedPromise
-				.onError [ p.error(it) ]
-				.then [ p.set(it) ]
-		]
+		promise
+			.onError[ 
+				p.error(it)
+			]
+			.then [
+				try {
+					val returnedPromise = promiseFn.apply(it)
+					returnedPromise
+						.onError [ 
+							p.error(it)
+						]
+						.then [ 
+							p.set(it)
+						]
+				} catch(Throwable t) {
+					// println(t)
+					p.error(t)
+				}
+			]
 		p
 	}
 	

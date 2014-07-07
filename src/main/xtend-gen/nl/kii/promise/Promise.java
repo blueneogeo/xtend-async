@@ -25,6 +25,11 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
   private final AtomicReference<Procedure1<T>> _onValue = new AtomicReference<Procedure1<T>>();
   
   /**
+   * Always called, both when there is a value and when there is an error
+   */
+  private final AtomicReference<Procedure1<Promise<T>>> _onResult = new AtomicReference<Procedure1<Promise<T>>>();
+  
+  /**
    * Lets others listen for errors occurring in the onValue listener
    */
   private final AtomicReference<Procedure1<Throwable>> _onError = new AtomicReference<Procedure1<Throwable>>();
@@ -109,12 +114,39 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
     }
   }
   
+  public Promise<T> onError(final Procedure1<Throwable> onError) {
+    Promise<T> _xblockexpression = null;
+    {
+      this._onError.set(onError);
+      _xblockexpression = this;
+    }
+    return _xblockexpression;
+  }
+  
+  public Promise<T> always(final Procedure1<Promise<T>> onResult) {
+    try {
+      Promise<T> _xblockexpression = null;
+      {
+        Procedure1<T> _get = this._onValue.get();
+        boolean _notEquals = (!Objects.equal(_get, null));
+        if (_notEquals) {
+          throw new PromiseException("cannot listen to promise.always more than once");
+        }
+        this._onResult.set(onResult);
+        _xblockexpression = this;
+      }
+      return _xblockexpression;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
   public void then(final Procedure1<T> onValue) {
     try {
       Procedure1<T> _get = this._onValue.get();
       boolean _notEquals = (!Objects.equal(_get, null));
       if (_notEquals) {
-        throw new PromiseException("cannot listen to a promise more than once");
+        throw new PromiseException("cannot listen to promise.then more than once");
       }
       this._onValue.set(onValue);
       boolean _isFulfilled = this.isFulfilled();
@@ -125,15 +157,6 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
-  }
-  
-  public Promise<T> onError(final Procedure1<Throwable> onError) {
-    Promise<T> _xblockexpression = null;
-    {
-      this._onError.set(onError);
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
   }
   
   protected void buffer(final Entry<T> value) {
@@ -183,6 +206,22 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
         if (_notEquals) {
           Procedure1<Throwable> _get_1 = this._onError.get();
           _get_1.apply(((nl.kii.stream.Error<T>)it).error);
+        }
+      }
+    }
+    Procedure1<Promise<T>> _get = this._onResult.get();
+    boolean _notEquals = (!Objects.equal(_get, null));
+    if (_notEquals) {
+      try {
+        Procedure1<Promise<T>> _get_1 = this._onResult.get();
+        _get_1.apply(this);
+      } catch (final Throwable _t) {
+        if (_t instanceof Throwable) {
+          final Throwable t = (Throwable)_t;
+          Procedure1<Throwable> _get_2 = this._onError.get();
+          _get_2.apply(t);
+        } else {
+          throw Exceptions.sneakyThrow(_t);
         }
       }
     }

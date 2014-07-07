@@ -44,30 +44,56 @@ public class PromiseExtensions {
   }
   
   /**
-   * Chaining promises
+   * When the promise gives a result, call the function that returns another promise and
+   * return that promise so you can chain and continue. Any thrown errors will be caught
+   * and passed down the chain so you can catch them at the bottom.
+   * <p>
+   * Example:
+   * <pre>
+   * loadUser
+   *   .then [ checkCredentialsAsync ]
+   *   .then [ signinUser ]
+   *   .onError [ setErrorMessage('could not sign you in') ]
+   *   .then [ println('success!') ]
+   * </pre>
    */
-  public static <T extends Object, P extends Object> Promise<P> then(final Promise<T> promise, final Function1<T, Promise<P>> closure) {
+  public static <T extends Object, P extends Object> Promise<P> then(final Promise<T> promise, final Function1<T, Promise<P>> promiseFn) {
     Promise<P> _xblockexpression = null;
     {
       final Promise<P> p = new Promise<P>();
-      final Procedure1<T> _function = new Procedure1<T>() {
-        public void apply(final T it) {
-          final Promise<P> returnedPromise = closure.apply(it);
-          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              p.error(it);
-            }
-          };
-          Promise<P> _onError = returnedPromise.onError(_function);
-          final Procedure1<P> _function_1 = new Procedure1<P>() {
-            public void apply(final P it) {
-              p.set(it);
-            }
-          };
-          _onError.then(_function_1);
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          p.error(it);
         }
       };
-      promise.then(_function);
+      Promise<T> _onError = promise.onError(_function);
+      final Procedure1<T> _function_1 = new Procedure1<T>() {
+        public void apply(final T it) {
+          try {
+            final Promise<P> returnedPromise = promiseFn.apply(it);
+            final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+              public void apply(final Throwable it) {
+                p.error(it);
+              }
+            };
+            Promise<P> _onError = returnedPromise.onError(_function);
+            final Procedure1<P> _function_1 = new Procedure1<P>() {
+              public void apply(final P it) {
+                p.set(it);
+              }
+            };
+            _onError.then(_function_1);
+          } catch (final Throwable _t) {
+            if (_t instanceof Throwable) {
+              final Throwable t = (Throwable)_t;
+              p.error(t);
+            } else {
+              throw Exceptions.sneakyThrow(_t);
+            }
+          }
+        }
+      };
+      _onError.then(_function_1);
       _xblockexpression = p;
     }
     return _xblockexpression;
