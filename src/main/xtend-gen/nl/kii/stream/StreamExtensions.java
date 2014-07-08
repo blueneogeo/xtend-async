@@ -769,7 +769,15 @@ public class StreamExtensions {
     StreamExtensions.<T>on(stream, _function);
   }
   
-  public static <T extends Object> void onEachAsync(final Stream<T> stream, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
+  /**
+   * Asynchronous listener to the stream. It will create an AsyncSubscription which you use to control the stream.
+   * By just calling this to listen, values will not arrive. Instead, you need to call next on the subscription
+   * to ask for the next message.
+   * <p>
+   * Note that this is a very manual way of listening, usually you are better off by creating asynchronous methods
+   * and mapping to these methods.
+   */
+  public static <T extends Object> AsyncSubscription<T> onEachAsync(final Stream<T> stream, final Procedure2<? super T, ? super AsyncSubscription<T>> listener) {
     final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
       public void apply(final AsyncSubscription<T> sub) {
         final Procedure1<T> _function = new Procedure1<T>() {
@@ -790,19 +798,7 @@ public class StreamExtensions {
         sub.error(_function_1);
       }
     };
-    StreamExtensions.<T>onAsync(stream, _function);
-  }
-  
-  /**
-   * Create a new stream that listenes to this stream
-   */
-  public static <T extends Object> Stream<T> fork(final Stream<T> stream) {
-    final Function1<T, T> _function = new Function1<T, T>() {
-      public T apply(final T it) {
-        return it;
-      }
-    };
-    return StreamExtensions.<T, T>map(stream, _function);
+    return StreamExtensions.<T>onAsync(stream, _function);
   }
   
   /**
@@ -1087,7 +1083,7 @@ public class StreamExtensions {
   /**
    * Average the items in the stream until a finish
    */
-  public static <T extends Number> Stream<Double> avg(final Stream<T> stream) {
+  public static <T extends Number> Stream<Double> average(final Stream<T> stream) {
     Stream<Double> _xblockexpression = null;
     {
       final AtomicDouble avg = new AtomicDouble();

@@ -192,7 +192,7 @@ class TestStreamExtensions {
 	@Test
 	def void testAvg() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		val avg = s.avg
+		val avg = s.average
 		avg.assertStreamEquals(#[2D.value, 4.5D.value])
 	}
 	

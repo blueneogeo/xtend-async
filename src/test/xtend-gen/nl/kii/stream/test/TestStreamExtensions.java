@@ -394,7 +394,7 @@ public class TestStreamExtensions {
     Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
     Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish();
     final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
-    final Stream<Double> avg = StreamExtensions.<Integer>avg(s);
+    final Stream<Double> avg = StreamExtensions.<Integer>average(s);
     Value<Double> _value = StreamAssert.<Double>value(Double.valueOf(2D));
     Value<Double> _value_1 = StreamAssert.<Double>value(Double.valueOf(4.5D));
     StreamAssert.<Double>assertStreamEquals(avg, Collections.<Value<Double>>unmodifiableList(Lists.<Value<Double>>newArrayList(_value, _value_1)));

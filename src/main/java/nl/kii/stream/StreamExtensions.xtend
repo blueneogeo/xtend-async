@@ -474,20 +474,21 @@ class StreamExtensions {
 		]
 	}
 
-	def static <T> void onEachAsync(Stream<T> stream, (T, AsyncSubscription<T>)=>void listener) {
+	/**
+	 * Asynchronous listener to the stream. It will create an AsyncSubscription which you use to control the stream.
+	 * By just calling this to listen, values will not arrive. Instead, you need to call next on the subscription
+	 * to ask for the next message.
+	 * <p>
+	 * Note that this is a very manual way of listening, usually you are better off by creating asynchronous methods
+	 * and mapping to these methods.
+	 */
+	def static <T> AsyncSubscription<T> onEachAsync(Stream<T> stream, (T, AsyncSubscription<T>)=>void listener) {
 		stream.onAsync [ sub |
 			sub.each [
 				listener.apply(it, sub)
 			]
 			sub.error [ throw it ]
 		]
-	}
-
-	/** 
-	 * Create a new stream that listenes to this stream
-	 */
-	def static <T> fork(Stream<T> stream) {
-		stream.map[it]
 	}
 
 	/**
@@ -658,7 +659,7 @@ class StreamExtensions {
 	/**
 	 * Average the items in the stream until a finish
 	 */
-	def static <T extends Number> avg(Stream<T> stream) {
+	def static <T extends Number> average(Stream<T> stream) {
 		val avg = new AtomicDouble
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Double>
