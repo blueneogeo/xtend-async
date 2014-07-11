@@ -4,7 +4,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.stream.StreamAssert;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -49,21 +51,36 @@ public class TestPromiseExtensions {
   
   @Test
   public void testMap() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nassertPromiseEquals cannot be resolved");
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(4));
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() + 10));
+      }
+    };
+    final Promise<Integer> mapped = PromiseExtensions.<Integer, Integer>map(p, _function);
+    StreamAssert.<Integer>assertPromiseEquals(mapped, Integer.valueOf(14));
   }
   
   @Test
   public void testFlatten() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nassertPromiseEquals cannot be resolved");
+    final Promise<Integer> p1 = PromiseExtensions.<Integer>promise(Integer.valueOf(3));
+    Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
+    final Promise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
+    final Promise<Integer> flattened = PromiseExtensions.<Integer>flatten(p2);
+    StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
   }
   
   @Test
   public void testAsync() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nresolve cannot be resolved"
-      + "\nassertPromiseEquals cannot be resolved");
+    final Promise<Integer> s = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      public Promise<Integer> apply(final Integer it) {
+        return TestPromiseExtensions.this.power2((it).intValue());
+      }
+    };
+    Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
+    final Promise<Integer> asynced = PromiseExtensions.<Integer>resolve(_map);
+    StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   
   private Promise<Integer> power2(final int i) {

@@ -27,7 +27,7 @@ class TestRecursion {
 		try {
 			var input = loops
 			var result = 0
-			while(true) {
+			while(loops > 0) {
 				try {
 					count(input, result)
 				} catch(Call2 call) {

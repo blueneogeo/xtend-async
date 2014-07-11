@@ -119,18 +119,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   protected abstract void act(final T message, final Procedure0 done);
   
   protected void process() {
-    boolean _and = false;
-    boolean _get = this.processing.get();
-    boolean _not = (!_get);
-    if (!_not) {
-      _and = false;
-    } else {
-      boolean _isEmpty = this.inbox.isEmpty();
-      boolean _not_1 = (!_isEmpty);
-      _and = _not_1;
-    }
-    boolean _while = _and;
-    while (_while) {
+    while (((!this.processing.get()) && (!this.inbox.isEmpty()))) {
       try {
         this.processNextAsync(Actor.MAX_PROCESS_DEPTH);
         this.processing.set(false);
@@ -143,17 +132,6 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
           throw Exceptions.sneakyThrow(_t);
         }
       }
-      boolean _and_1 = false;
-      boolean _get_1 = this.processing.get();
-      boolean _not_2 = (!_get_1);
-      if (!_not_2) {
-        _and_1 = false;
-      } else {
-        boolean _isEmpty_1 = this.inbox.isEmpty();
-        boolean _not_3 = (!_isEmpty_1);
-        _and_1 = _not_3;
-      }
-      _while = _and_1;
     }
   }
   

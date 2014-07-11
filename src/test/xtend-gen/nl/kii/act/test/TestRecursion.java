@@ -30,8 +30,7 @@ public class TestRecursion {
     try {
       int input = loops;
       int result = 0;
-      boolean _while = true;
-      while (_while) {
+      while ((loops > 0)) {
         try {
           this.count(input, result);
         } catch (final Throwable _t) {
@@ -43,7 +42,6 @@ public class TestRecursion {
             throw Exceptions.sneakyThrow(_t);
           }
         }
-        _while = true;
       }
     } catch (final Throwable _t) {
       if (_t instanceof Result) {

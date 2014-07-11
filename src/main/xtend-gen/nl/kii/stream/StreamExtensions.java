@@ -1,6 +1,5 @@
 package nl.kii.stream;
 
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AtomicDouble;
 import java.util.Collections;
 import java.util.Iterator;
@@ -23,6 +22,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.SyncSubscription;
 import nl.kii.stream.Value;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -472,7 +472,7 @@ public class StreamExtensions {
               if ((_apply).booleanValue()) {
                 Value<T> _value = new Value<T>(it);
                 Finish<T> _finish = new Finish<T>(0);
-                final List<? extends Entry<T>> entries = Collections.<Entry<T>>unmodifiableList(Lists.<Entry<T>>newArrayList(_value, _finish));
+                final List<? extends Entry<T>> entries = Collections.<Entry<T>>unmodifiableList(CollectionLiterals.<Entry<T>>newArrayList(_value, _finish));
                 justPostedFinish0.set(true);
                 Entries<T> _entries = new Entries<T>(((Entry<T>[])Conversions.unwrapArray(entries, Entry.class)));
                 newStream.apply(_entries);
@@ -500,7 +500,7 @@ public class StreamExtensions {
                 justPostedFinish0.set(true);
                 Finish<Object> _finish_1 = new Finish<Object>(0);
                 Finish<Object> _finish_2 = new Finish<Object>((it.level + 1));
-                final List<Finish<Object>> entries = Collections.<Finish<Object>>unmodifiableList(Lists.<Finish<Object>>newArrayList(_finish_1, _finish_2));
+                final List<Finish<Object>> entries = Collections.<Finish<Object>>unmodifiableList(CollectionLiterals.<Finish<Object>>newArrayList(_finish_1, _finish_2));
                 Entries<Object> _entries = new Entries<Object>(((Entry<Object>[])Conversions.unwrapArray(entries, Entry.class)));
                 newStream.apply(_entries);
               }
