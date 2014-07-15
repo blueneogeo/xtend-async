@@ -49,7 +49,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
     return _function;
   }
   
-  protected void act(final T message, final Procedure0 done) {
+  public void act(final T message, final Procedure0 done) {
     boolean _and = false;
     List<Procedure1<T>> _get = this.observers.get();
     boolean _notEquals = (!Objects.equal(_get, null));

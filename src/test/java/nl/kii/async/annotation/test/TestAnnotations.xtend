@@ -2,9 +2,9 @@ package nl.kii.async.annotation.test
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.async.annotation.Async
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
-import nl.kii.stream.annotation.Async
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*

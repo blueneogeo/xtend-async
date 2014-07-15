@@ -28,7 +28,7 @@ class Publisher<T> extends Actor<T> implements Observable<T> {
 		return [| observers.get.remove(observeFn) ]
 	}
 	
-	override protected act(T message, =>void done) {
+	override act(T message, =>void done) {
 		if(observers.get != null && publishing) {
 			for(observer : observers.get) {
 				observer.apply(message)
