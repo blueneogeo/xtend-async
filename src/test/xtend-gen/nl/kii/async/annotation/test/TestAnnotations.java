@@ -43,7 +43,7 @@ public class TestAnnotations {
     };
     _printHello.then(_function);
     boolean _get = result.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
+    Assert.assertTrue(_get);
   }
   
   @Test
@@ -63,23 +63,31 @@ public class TestAnnotations {
     };
     _onError.then(_function_1);
     boolean _get = isError.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
+    Assert.assertTrue(_get);
   }
   
   @Test
   public void testAsyncTaskOnExecutor() {
-    final ExecutorService exec = Executors.newCachedThreadPool();
-    Task _printHello = this.printHello(exec, "christian");
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("done!");
-      }
-    };
-    _printHello.then(_function);
+    try {
+      final AtomicBoolean success = new AtomicBoolean();
+      final ExecutorService exec = Executors.newCachedThreadPool();
+      Task _printHello = this.printHello(exec, "christian");
+      final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+        public void apply(final Boolean it) {
+          success.set(true);
+        }
+      };
+      _printHello.then(_function);
+      Thread.sleep(10);
+      boolean _get = success.get();
+      Assert.assertTrue(_get);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   @Async
-  private synchronized Promise<Integer> increment(final int number, final Promise<Integer> promise) {
+  private Promise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
@@ -101,7 +109,7 @@ public class TestAnnotations {
     }
   }
   
-  private synchronized Promise<Integer> increment(final int number) {
+  public Promise<Integer> increment(final int number) {
     final Promise<Integer> promise = new Promise<Integer>();
     try {
     	increment(number,promise);
@@ -112,7 +120,7 @@ public class TestAnnotations {
     }
   }
   
-  private synchronized Promise<Integer> increment(final Executor executor, final int number) {
+  public Promise<Integer> increment(final Executor executor, final int number) {
     final Promise<Integer> promise = new Promise<Integer>();
     final Runnable toRun = new Runnable() {
     	public void run() {

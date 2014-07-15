@@ -27,7 +27,7 @@ class TestAnnotations {
 		val result = new AtomicBoolean
 		printHello('world')
 			.then [ result.set(it) ]
-		assertEquals(true, result.get)
+		assertTrue(result.get)
 	}
 
 	@Test
@@ -36,16 +36,19 @@ class TestAnnotations {
 		printHello(null)
 			.onError [ isError.set(true) ]
 			.then [ isError.set(false) ]
-		assertEquals(true, isError.get)
+		assertTrue(isError.get)
 	}
 
 	@Test
 	def void testAsyncTaskOnExecutor() {
+		val success = new AtomicBoolean
 		val exec = newCachedThreadPool
-		exec.printHello('christian').then [ println('done!') ]
+		exec.printHello('christian').then [ success.set(true) ]
+		Thread.sleep(10)
+		assertTrue(success.get)
 	}
 	
-	@Async private synchronized def increment(int number, Promise<Integer> promise) {
+	@Async def increment(int number, Promise<Integer> promise) {
 		promise << number + 1 
 	}
 
