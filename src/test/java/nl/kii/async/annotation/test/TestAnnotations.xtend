@@ -1,4 +1,4 @@
-package nl.kii.stream.annotation.test
+package nl.kii.async.annotation.test
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
