@@ -1,6 +1,5 @@
 package nl.kii.promise.test;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -312,20 +311,5 @@ public class TestPromise {
     } finally {
     	return promise;
     }
-  }
-  
-  public Promise<Integer> addOne(final Executor executor, final int n) {
-    final Promise<Integer> promise = new Promise<Integer>();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			addOne(n,promise);
-    		} catch(Throwable t) {
-    			promise.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return promise;
   }
 }

@@ -18,7 +18,9 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * <p>
  * A Publisher is more lightweight than a stream with a streamobserver.
  * It does not have any flow control or async support, and has only
- * a single queue.
+ * a single queue. Contrary to a stream, it allows for multiple
+ * subscriptions, and each subscription can be unsubscribed by calling
+ * the returned method.
  * <p>
  * For it to work correctly, the listeners should be non-blocking.
  */
