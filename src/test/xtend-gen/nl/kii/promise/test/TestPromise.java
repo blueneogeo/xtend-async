@@ -257,7 +257,7 @@ public class TestPromise {
   private final ExecutorService threads = Executors.newCachedThreadPool();
   
   @Async
-  private Task addOne(final int n, final Promise<Integer> promise) {
+  public Task addOne(final int n, final Promise<Integer> promise) {
     final Runnable _function = new Runnable() {
       public void run() {
         PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((n + 1)));

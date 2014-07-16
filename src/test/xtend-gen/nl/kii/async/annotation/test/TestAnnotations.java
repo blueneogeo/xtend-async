@@ -87,12 +87,12 @@ public class TestAnnotations {
   }
   
   @Async
-  private Promise<Integer> increment(final int number, final Promise<Integer> promise) {
+  public Promise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
   @Async
-  private Task printHello(final Task task, final String name) {
+  public Task printHello(final Task task, final String name) {
     try {
       Task _xblockexpression = null;
       {
