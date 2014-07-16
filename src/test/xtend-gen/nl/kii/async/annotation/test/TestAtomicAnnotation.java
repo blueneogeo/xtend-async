@@ -6,6 +6,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.async.annotation.test.Tester;
+import org.eclipse.xtext.xbase.lib.InputOutput;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -21,7 +23,7 @@ public class TestAtomicAnnotation {
   private final AtomicDouble _price = new AtomicDouble();
   
   @Atomic
-  private final AtomicReference<Tester> _tester = new AtomicReference<Tester>();
+  private final AtomicReference<Tester> _tester = new AtomicReference<Tester>(new Tester("Lucien"));
   
   @Test
   public void testInteger() {
@@ -49,23 +51,56 @@ public class TestAtomicAnnotation {
     Assert.assertEquals(4.5, (_price).doubleValue(), 0);
   }
   
-  private Integer setCounter(final Integer value) {
+  @Atomic
+  private final AtomicInteger _i = new AtomicInteger(0);
+  
+  @Test
+  public void testReference() {
+    Tester _tester = this.getTester();
+    String _name = _tester.getName();
+    Assert.assertEquals("Lucien", _name);
+    Tester _tester_1 = new Tester("christian");
+    this.setTester(_tester_1);
+    Tester _tester_2 = new Tester("Floris");
+    final Tester oldTester = this.setTester(_tester_2);
+    String _name_1 = oldTester.getName();
+    Assert.assertEquals("christian", _name_1);
+    Tester _tester_3 = this.getTester();
+    String _name_2 = _tester_3.getName();
+    Assert.assertEquals("Floris", _name_2);
+    final Procedure0 _function = new Procedure0() {
+      public void apply() {
+        Integer _i = TestAtomicAnnotation.this.getI();
+        int _plus = ((_i).intValue() + 1);
+        TestAtomicAnnotation.this.setI(Integer.valueOf(_plus));
+      }
+    };
+    this.doSomething(_function);
+    Integer _i = this.getI();
+    InputOutput.<Integer>println(_i);
+  }
+  
+  public void doSomething(final Procedure0 closure) {
+    closure.apply();
+  }
+  
+  public Integer setCounter(final Integer value) {
     return this._counter.getAndSet(value);
   }
   
-  private Integer getCounter() {
+  public Integer getCounter() {
     return this._counter.get();
   }
   
-  private Integer incCounter() {
+  public Integer incCounter() {
     return this._counter.incrementAndGet();
   }
   
-  private Integer decCounter() {
+  public Integer decCounter() {
     return this._counter.decrementAndGet();
   }
   
-  private Integer incCounter(final Integer value) {
+  public Integer incCounter(final Integer value) {
     return this._counter.addAndGet(value);
   }
   
@@ -107,5 +142,25 @@ public class TestAtomicAnnotation {
   
   private Tester getTester() {
     return this._tester.get();
+  }
+  
+  private Integer setI(final Integer value) {
+    return this._i.getAndSet(value);
+  }
+  
+  private Integer getI() {
+    return this._i.get();
+  }
+  
+  private Integer incI() {
+    return this._i.incrementAndGet();
+  }
+  
+  private Integer decI() {
+    return this._i.decrementAndGet();
+  }
+  
+  private Integer incI(final Integer value) {
+    return this._i.addAndGet(value);
   }
 }

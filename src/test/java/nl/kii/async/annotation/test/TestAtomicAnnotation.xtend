@@ -8,10 +8,10 @@ import static org.junit.Assert.*
 
 class TestAtomicAnnotation {
 	
-	@Atomic int counter = 2
-	@Atomic long longNumber
+	@Atomic public int counter = 2
+	@Atomic Long longNumber
 	@Atomic float price
-	@Atomic Tester tester
+	@Atomic Tester tester = new Tester("Lucien")
 	
 	@Test
 	def void testInteger() {
@@ -31,6 +31,24 @@ class TestAtomicAnnotation {
 	def void testFloat() {
 		price = 4.5
 		assertEquals(4.5, price, 0)
+	}
+
+	@Atomic int i = 0
+	
+	@Test
+	def void testReference() {
+		assertEquals('Lucien', tester.name)
+		tester = new Tester('christian')
+		val oldTester = (tester = new Tester('Floris'))
+		assertEquals('christian', oldTester.name)
+		assertEquals('Floris', tester.name)
+		
+		doSomething [| i = i + 1 ]
+		println(i)
+	}
+	
+	def doSomething(=>void closure) {
+		closure.apply
 	}
 	
 }
