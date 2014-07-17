@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.act.AtMaxProcessDepth;
+import nl.kii.async.annotation.Atomic;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
@@ -87,7 +88,8 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   
   private final Queue<T> inbox;
   
-  private final AtomicBoolean processing = new AtomicBoolean(false);
+  @Atomic
+  private final AtomicBoolean _processing = new AtomicBoolean();
   
   /**
    * Create a new actor with a concurrentlinkedqueue as inbox
@@ -119,15 +121,15 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   protected abstract void act(final T message, final Procedure0 done);
   
   protected void process() {
-    while (((!this.processing.get()) && (!this.inbox.isEmpty()))) {
+    while (((!(this.getProcessing()).booleanValue()) && (!this.inbox.isEmpty()))) {
       try {
         this.processNextAsync(Actor.MAX_PROCESS_DEPTH);
-        this.processing.set(false);
+        this.setProcessing(Boolean.valueOf(false));
         return;
       } catch (final Throwable _t) {
         if (_t instanceof AtMaxProcessDepth) {
           final AtMaxProcessDepth e = (AtMaxProcessDepth)_t;
-          this.processing.set(false);
+          this.setProcessing(Boolean.valueOf(true));
         } else {
           throw Exceptions.sneakyThrow(_t);
         }
@@ -140,8 +142,8 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
       if ((depth == 0)) {
         throw new AtMaxProcessDepth();
       }
-      boolean _get = this.processing.get();
-      if (_get) {
+      Boolean _processing = this.getProcessing();
+      if ((_processing).booleanValue()) {
         return;
       }
       final T message = this.inbox.poll();
@@ -149,10 +151,10 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
       if (_equals) {
         return;
       }
-      this.processing.set(true);
+      this.setProcessing(Boolean.valueOf(true));
       final Procedure0 _function = new Procedure0() {
         public void apply() {
-          Actor.this.processing.set(false);
+          Actor.this.setProcessing(Boolean.valueOf(false));
           boolean _isEmpty = Actor.this.inbox.isEmpty();
           boolean _not = (!_isEmpty);
           if (_not) {
@@ -176,8 +178,8 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     _builder.newLine();
     _builder.append("\t\t");
     _builder.append("processing: ");
-    boolean _get = this.processing.get();
-    _builder.append(_get, "\t\t");
+    Boolean _processing = this.getProcessing();
+    _builder.append(_processing, "\t\t");
     _builder.append(",");
     _builder.newLineIfNotEmpty();
     _builder.append("\t\t");
@@ -208,5 +210,13 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     _builder.append("\t");
     _builder.append("} ");
     return _builder.toString();
+  }
+  
+  private Boolean setProcessing(final Boolean value) {
+    return this._processing.getAndSet(value);
+  }
+  
+  private Boolean getProcessing() {
+    return this._processing.get();
   }
 }

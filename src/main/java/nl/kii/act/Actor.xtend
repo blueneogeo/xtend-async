@@ -1,7 +1,7 @@
 package nl.kii.act
 
 import java.util.Queue
-import java.util.concurrent.atomic.AtomicBoolean
+import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
@@ -79,7 +79,7 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	val static MAX_PROCESS_DEPTH = 50
 	val Queue<T> inbox
-	val processing = new AtomicBoolean(false)
+	@Atomic val boolean processing
 	
 	/** Create a new actor with a concurrentlinkedqueue as inbox */
 	new() {	
@@ -108,32 +108,32 @@ abstract class Actor<T> implements Procedure1<T> {
 
 	protected def void process() {
 		// this outer loop is for re-entering the process loop after a AtMaxProcessDepth exception is thrown
-		while(!processing.get && !inbox.empty) {
+		while(!processing && !inbox.empty) {
 			try {
 				// processNextAsync will try to recurse through the entire inbox,
 				processNextAsync(MAX_PROCESS_DEPTH)
 				// in which case we are done processing and looping...
-				processing.set(false)
+				processing = false
 				return;
 			} catch (AtMaxProcessDepth e) {
 				// ... or we end up at max recursion, in which case we are not finished and the while tries again
 				// println('was at max depth, coming back up!')
-				processing.set(false)
+				processing = true
 			}
 		}
 	}
 
 	protected def void processNextAsync(int depth) {
 		if(depth == 0) throw new AtMaxProcessDepth
-		if(processing.get) return;
+		if(processing) return;
 		// try to get the next message
 		val message = inbox.poll
 		if(message == null) return;
 		// ok, we have a message, start processing
-		processing.set(true)
+		processing = true
 		act(message) [|
 			// the act is done, stop processing
-			processing.set(false)
+			processing = false
 			// if there is more to do, call this method again
 			if(!inbox.empty)
 				processNextAsync(depth - 1)
@@ -145,7 +145,7 @@ abstract class Actor<T> implements Procedure1<T> {
 	}
 	
 	override toString() '''Actor { 
-		processing: «processing.get»,
+		processing: «processing»,
 		inbox size: «inbox.size», 
 		inbox: {
 			«FOR item : inbox SEPARATOR ','»
