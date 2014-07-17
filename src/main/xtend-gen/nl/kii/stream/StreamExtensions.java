@@ -841,8 +841,8 @@ public class StreamExtensions {
         public void apply(final AsyncSubscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
-              boolean _isFulfilled = promise.isFulfilled();
-              boolean _not = (!_isFulfilled);
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
               if (_not) {
                 promise.set(it);
               }
@@ -851,8 +851,8 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
-              boolean _isFulfilled = promise.isFulfilled();
-              boolean _not = (!_isFulfilled);
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
               if (_not) {
                 promise.error(it);
               }

@@ -1,10 +1,9 @@
 package nl.kii.observe
 
 import java.util.List
-import java.util.concurrent.atomic.AtomicReference
 import nl.kii.act.Actor
+import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * A threadsafe distributor of events to its registered listeners.
@@ -19,28 +18,24 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class Publisher<T> extends Actor<T> implements Observable<T> {
 	
-	transient val _publishing = new AtomicBoolean(true)
-	transient val observers = new AtomicReference<List<Procedure1<T>>>
+	@Atomic public val boolean publishing = true
+	@Atomic transient val List<Procedure1<T>> observers 
 
 	synchronized override =>void onChange((T)=>void observeFn) {
-		if(observers.get == null) observers.set(newLinkedList(observeFn))
-		else observers.get.add(observeFn)
-		return [| observers.get.remove(observeFn) ]
+		if(observers == null) observers = newLinkedList(observeFn) 
+		else observers.add(observeFn)
+		return [| observers.remove(observeFn) ]
 	}
 	
 	override act(T message, =>void done) {
-		if(observers.get != null && publishing) {
-			for(observer : observers.get) {
+		if(observers != null && publishing) {
+			for(observer : observers) {
 				observer.apply(message)
 			}
 		} 
 		done.apply
 	}
 	
-	def isPublishing() { _publishing.get }
-	
-	def setPublishing(boolean value) { _publishing.set(value) }
-	
-	override toString() '''Publisher { publishing: «publishing», observers: «observers.get.size», inbox: «inbox.size» } '''
+	override toString() '''Publisher { publishing: «publishing», observers: «observers.size», inbox: «inbox.size» } '''
 	
 }

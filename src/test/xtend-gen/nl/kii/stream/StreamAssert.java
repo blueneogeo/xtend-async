@@ -66,8 +66,8 @@ public class StreamAssert {
       }
     };
     promise.then(_function);
-    boolean _isFulfilled = promise.isFulfilled();
-    Assert.assertTrue(_isFulfilled);
+    Boolean _fulfilled = promise.getFulfilled();
+    Assert.assertTrue((_fulfilled).booleanValue());
   }
   
   public static <T extends Object> void assertPromiseEquals(final Promise<T> promise, final T value) {
@@ -78,8 +78,8 @@ public class StreamAssert {
       }
     };
     promise.then(_function);
-    boolean _isFulfilled = promise.isFulfilled();
-    Assert.assertTrue(_isFulfilled);
+    Boolean _fulfilled = promise.getFulfilled();
+    Assert.assertTrue((_fulfilled).booleanValue());
     T _get = ref.get();
     Assert.assertEquals(_get, value);
   }
@@ -92,8 +92,8 @@ public class StreamAssert {
       }
     };
     promise.then(_function);
-    boolean _isFulfilled = promise.isFulfilled();
-    Assert.assertTrue(_isFulfilled);
+    Boolean _fulfilled = promise.getFulfilled();
+    Assert.assertTrue((_fulfilled).booleanValue());
     List<T> _get = ref.get();
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_get, Object.class)), ((Object[])Conversions.unwrapArray(value, Object.class)));
   }

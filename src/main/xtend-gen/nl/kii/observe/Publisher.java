@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
+import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Observable;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
@@ -26,24 +27,26 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public class Publisher<T extends Object> extends Actor<T> implements Observable<T> {
-  private final transient AtomicBoolean _publishing = new AtomicBoolean(true);
+  @Atomic
+  private final AtomicBoolean _publishing = new AtomicBoolean(true);
   
-  private final transient AtomicReference<List<Procedure1<T>>> observers = new AtomicReference<List<Procedure1<T>>>();
+  @Atomic
+  private final transient AtomicReference<List<Procedure1<T>>> _observers = new AtomicReference<List<Procedure1<T>>>();
   
   public synchronized Procedure0 onChange(final Procedure1<? super T> observeFn) {
-    List<Procedure1<T>> _get = this.observers.get();
-    boolean _equals = Objects.equal(_get, null);
+    List<Procedure1<T>> _observers = this.getObservers();
+    boolean _equals = Objects.equal(_observers, null);
     if (_equals) {
       LinkedList<Procedure1<T>> _newLinkedList = CollectionLiterals.<Procedure1<T>>newLinkedList(((Procedure1<T>)observeFn));
-      this.observers.set(_newLinkedList);
+      this.setObservers(_newLinkedList);
     } else {
-      List<Procedure1<T>> _get_1 = this.observers.get();
-      _get_1.add(((Procedure1<T>)observeFn));
+      List<Procedure1<T>> _observers_1 = this.getObservers();
+      _observers_1.add(((Procedure1<T>)observeFn));
     }
     final Procedure0 _function = new Procedure0() {
       public void apply() {
-        List<Procedure1<T>> _get = Publisher.this.observers.get();
-        _get.remove(observeFn);
+        List<Procedure1<T>> _observers = Publisher.this.getObservers();
+        _observers.remove(observeFn);
       }
     };
     return _function;
@@ -51,39 +54,31 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
   
   public void act(final T message, final Procedure0 done) {
     boolean _and = false;
-    List<Procedure1<T>> _get = this.observers.get();
-    boolean _notEquals = (!Objects.equal(_get, null));
+    List<Procedure1<T>> _observers = this.getObservers();
+    boolean _notEquals = (!Objects.equal(_observers, null));
     if (!_notEquals) {
       _and = false;
     } else {
-      boolean _isPublishing = this.isPublishing();
-      _and = _isPublishing;
+      Boolean _publishing = this.getPublishing();
+      _and = (_publishing).booleanValue();
     }
     if (_and) {
-      List<Procedure1<T>> _get_1 = this.observers.get();
-      for (final Procedure1<T> observer : _get_1) {
+      List<Procedure1<T>> _observers_1 = this.getObservers();
+      for (final Procedure1<T> observer : _observers_1) {
         observer.apply(message);
       }
     }
     done.apply();
   }
   
-  public boolean isPublishing() {
-    return this._publishing.get();
-  }
-  
-  public void setPublishing(final boolean value) {
-    this._publishing.set(value);
-  }
-  
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Publisher { publishing: ");
-    boolean _isPublishing = this.isPublishing();
-    _builder.append(_isPublishing, "");
+    Boolean _publishing = this.getPublishing();
+    _builder.append(_publishing, "");
     _builder.append(", observers: ");
-    List<Procedure1<T>> _get = this.observers.get();
-    int _size = _get.size();
+    List<Procedure1<T>> _observers = this.getObservers();
+    int _size = _observers.size();
     _builder.append(_size, "");
     _builder.append(", inbox: ");
     Collection<T> _inbox = this.getInbox();
@@ -91,5 +86,21 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
     _builder.append(_size_1, "");
     _builder.append(" } ");
     return _builder.toString();
+  }
+  
+  public Boolean setPublishing(final Boolean value) {
+    return this._publishing.getAndSet(value);
+  }
+  
+  public Boolean getPublishing() {
+    return this._publishing.get();
+  }
+  
+  private List<Procedure1<T>> setObservers(final List<Procedure1<T>> value) {
+    return this._observers.getAndSet(value);
+  }
+  
+  private List<Procedure1<T>> getObservers() {
+    return this._observers.get();
   }
 }

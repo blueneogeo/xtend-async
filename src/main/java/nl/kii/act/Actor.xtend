@@ -79,7 +79,7 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	val static MAX_PROCESS_DEPTH = 50
 	val Queue<T> inbox
-	@Atomic val boolean processing
+	@Atomic val boolean processing = false
 	
 	/** Create a new actor with a concurrentlinkedqueue as inbox */
 	new() {	
@@ -118,7 +118,7 @@ abstract class Actor<T> implements Procedure1<T> {
 			} catch (AtMaxProcessDepth e) {
 				// ... or we end up at max recursion, in which case we are not finished and the while tries again
 				// println('was at max depth, coming back up!')
-				processing = true
+				processing = false
 			}
 		}
 	}
@@ -144,15 +144,23 @@ abstract class Actor<T> implements Procedure1<T> {
 		inbox.unmodifiableView
 	}
 	
-	override toString() '''Actor { 
+	val static MAX_INBOX_TO_PRINT = 10
+	
+	override toString() '''
+	Actor {
 		processing: «processing»,
-		inbox size: «inbox.size», 
-		inbox: {
-			«FOR item : inbox SEPARATOR ','»
-			«item»
-			«ENDFOR»
-		}
-	} '''
+		inbox size: «inbox.size»,
+		«IF inbox.size < Actor.MAX_INBOX_TO_PRINT» 
+			inbox: {
+				«FOR item : inbox SEPARATOR ','»
+					«item»
+				«ENDFOR»
+			}
+		«ELSE»
+			inbox: { larger than «MAX_INBOX_TO_PRINT» items }
+		«ENDIF»
+	}
+	'''
 	
 }
 

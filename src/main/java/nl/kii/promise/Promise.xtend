@@ -1,7 +1,6 @@
 package nl.kii.promise
 
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
 import nl.kii.stream.Error
 import nl.kii.stream.Value
@@ -12,35 +11,37 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  */
 class Promise<T> implements Procedure1<Entry<T>> {
 	
-	val _entry = new AtomicReference<Entry<T>>
-	var _fulfilled = new AtomicBoolean(false)
+	/** Property to see if the promise is fulfulled */
+	@Atomic public val boolean fulfilled = false
+
+	/** The result of the promise, if any, otherwise null */
+	@Atomic protected val Entry<T> entry
 
 	/** Lets others listen for the arrival of a value */
-	val _onValue = new AtomicReference<Procedure1<T>>
+	@Atomic protected val Procedure1<T> valueFn
 	
 	/** Always called, both when there is a value and when there is an error */
-	val _onResult = new AtomicReference<Procedure1<Promise<T>>>
+	@Atomic protected val Procedure1<Promise<T>> resultFn
 
 	/** Lets others listen for errors occurring in the onValue listener */
-	val _onError = new AtomicReference<Procedure1<Throwable>>
+	@Atomic protected val Procedure1<Throwable> errorFn
 	
+	/** Create a new unfulfilled promise */
 	new() { }
 	
+	/** Create a fulfilled promise */
 	new(T value) { set(value) }
 	
+	/** Constructor for easily creating a child promise */
 	new(Promise<?> parentPromise) {
 		parentPromise.onError [ error(it) ]
 	}
 	
 	// GETTERS AND SETTERS ////////////////////////////////////////////////////
 	
-	def isFulfilled() {
-		_fulfilled.get
-	}
-	
 	/** only has a value when finished, otherwise null */
 	def get() {
-		_entry.get
+		entry
 	}
 	
 	// PUSH ///////////////////////////////////////////////////////////////////
@@ -57,37 +58,40 @@ class Promise<T> implements Procedure1<Entry<T>> {
 		apply(new Error<T>(t))
 		this
 	}
-		
+	
 	override apply(Entry<T> it) {
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
 		if(fulfilled) throw new PromiseException('cannot apply an entry to a completed promise. entry was: ' + it)
-		_fulfilled.set(true)
-		if(_onValue.get != null) publish(it) else _entry.set(it)
+		fulfilled = true
+		if(valueFn != null) publish(it) else entry = it
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def onError(Procedure1<Throwable> onError) {
-		_onError.set(onError)
+	/** If the promise recieved or recieves an error, onError is called with the throwable */
+	def Promise<T> onError(Procedure1<Throwable> errorFn) {
+		this.errorFn = errorFn
 		this
 	}
 	
-	def always(Procedure1<Promise<T>> onResult) {
-		if(_onValue.get != null) throw new PromiseException('cannot listen to promise.always more than once')
-		_onResult.set(onResult)
+	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
+	def always(Procedure1<Promise<T>> resultFn) {
+		if(this.resultFn != null) throw new PromiseException('cannot listen to promise.always more than once')
+		this.resultFn = resultFn
 		this
 	}
 	
-	def void then(Procedure1<T> onValue) {
-		if(_onValue.get != null) throw new PromiseException('cannot listen to promise.then more than once')
-		_onValue.set(onValue)
-		if(fulfilled) publish(_entry.get)
+	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
+	def void then(Procedure1<T> valueFn) {
+		if(this.valueFn != null) throw new PromiseException('cannot listen to promise.then more than once')
+		this.valueFn = valueFn
+		if(fulfilled) publish(entry)
 	}
 	
 	// OTHER //////////////////////////////////////////////////////////////////
 	
 	protected def buffer(Entry<T> value) {
-		if(_entry.get == null) _entry.set(value)
+		if(entry == null) entry = value
 	}
 	
 	/** 
@@ -99,25 +103,25 @@ class Promise<T> implements Procedure1<Entry<T>> {
 		switch it {
 			Value<T>: {
 				// duplicate code on purpose, so that without an error, it is thrown without a wrapper
-				if(_onError.get != null) {
+				if(errorFn != null) {
 					try {
-						_onValue.get.apply(value)
+						valueFn.apply(value)
 					} catch(Throwable t) {
-						_onError.get.apply(t)
+						errorFn.apply(t)
 					} 
 				} else {
-					_onValue.get.apply(value)
+					valueFn.apply(value)
 				} 
 				
 			}	
-			Error<T>: if(_onError.get != null) _onError.get.apply(error)
+			Error<T>: if(errorFn != null) errorFn.apply(error)
 			// we do not process Finish<T>
 		}
-		if(_onResult.get != null) {
+		if(resultFn != null) {
 			try {
-				_onResult.get.apply(this)
+				resultFn.apply(this)
 			} catch(Throwable t) {
-				_onError.get.apply(t)
+				errorFn.apply(t)
 			}
 		}
 	}
@@ -126,6 +130,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	
 }
 
+/** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
 class Task extends Promise<Boolean> {
 	
 	new() { }
@@ -143,6 +148,7 @@ class Task extends Promise<Boolean> {
 
 }
 
+/** Thrown when some error occurred during a promise */
 class PromiseException extends Exception {
 	
 	new(String msg) { super(msg) }

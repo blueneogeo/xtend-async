@@ -89,7 +89,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   private final Queue<T> inbox;
   
   @Atomic
-  private final AtomicBoolean _processing = new AtomicBoolean();
+  private final AtomicBoolean _processing = new AtomicBoolean(false);
   
   /**
    * Create a new actor with a concurrentlinkedqueue as inbox
@@ -129,7 +129,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
       } catch (final Throwable _t) {
         if (_t instanceof AtMaxProcessDepth) {
           final AtMaxProcessDepth e = (AtMaxProcessDepth)_t;
-          this.setProcessing(Boolean.valueOf(true));
+          this.setProcessing(Boolean.valueOf(false));
         } else {
           throw Exceptions.sneakyThrow(_t);
         }
@@ -172,43 +172,58 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     return Collections.<T>unmodifiableCollection(this.inbox);
   }
   
+  private final static int MAX_INBOX_TO_PRINT = 10;
+  
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
-    _builder.append("Actor { ");
+    _builder.append("Actor {");
     _builder.newLine();
-    _builder.append("\t\t");
+    _builder.append("\t");
     _builder.append("processing: ");
     Boolean _processing = this.getProcessing();
-    _builder.append(_processing, "\t\t");
+    _builder.append(_processing, "\t");
     _builder.append(",");
     _builder.newLineIfNotEmpty();
-    _builder.append("\t\t");
+    _builder.append("\t");
     _builder.append("inbox size: ");
     int _size = this.inbox.size();
-    _builder.append(_size, "\t\t");
-    _builder.append(", ");
+    _builder.append(_size, "\t");
+    _builder.append(",");
     _builder.newLineIfNotEmpty();
-    _builder.append("\t\t");
-    _builder.append("inbox: {");
-    _builder.newLine();
     {
-      boolean _hasElements = false;
-      for(final T item : this.inbox) {
-        if (!_hasElements) {
-          _hasElements = true;
-        } else {
-          _builder.appendImmediate(",", "\t\t\t");
+      int _size_1 = this.inbox.size();
+      boolean _lessThan = (_size_1 < Actor.MAX_INBOX_TO_PRINT);
+      if (_lessThan) {
+        _builder.append("\t");
+        _builder.append("inbox: {");
+        _builder.newLine();
+        {
+          boolean _hasElements = false;
+          for(final T item : this.inbox) {
+            if (!_hasElements) {
+              _hasElements = true;
+            } else {
+              _builder.appendImmediate(",", "\t\t");
+            }
+            _builder.append("\t");
+            _builder.append("\t");
+            _builder.append(item, "\t\t");
+            _builder.newLineIfNotEmpty();
+          }
         }
-        _builder.append("\t\t\t");
-        _builder.append(item, "\t\t\t");
+        _builder.append("\t");
+        _builder.append("}");
+        _builder.newLine();
+      } else {
+        _builder.append("\t");
+        _builder.append("inbox: { larger than ");
+        _builder.append(Actor.MAX_INBOX_TO_PRINT, "\t");
+        _builder.append(" items }");
         _builder.newLineIfNotEmpty();
       }
     }
-    _builder.append("\t\t");
     _builder.append("}");
     _builder.newLine();
-    _builder.append("\t");
-    _builder.append("} ");
     return _builder.toString();
   }
   
