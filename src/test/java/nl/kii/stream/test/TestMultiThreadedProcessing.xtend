@@ -27,8 +27,8 @@ class TestMultiThreadedProcessing {
 	def void testTripleAsyncPromise() {
 		val result = new AtomicInteger
 		power2(2)
-			.map [ power2 ].resolve
-			.map [ power2 ].resolve
+			.map [ power2 ].flatten
+			.map [ power2 ].flatten
 			.then [	result.set(it) ]
 		0.assertEquals(result.get)
 		Thread.sleep(500)

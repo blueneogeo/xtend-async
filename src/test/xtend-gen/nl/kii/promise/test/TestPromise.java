@@ -9,6 +9,7 @@ import nl.kii.async.annotation.Async;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
+import nl.kii.stream.Entry;
 import nl.kii.stream.StreamAssert;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -157,8 +158,8 @@ public class TestPromise {
       }
     };
     Promise<Integer> _onError = _then_7.onError(_function_8);
-    final Procedure1<Promise<Integer>> _function_9 = new Procedure1<Promise<Integer>>() {
-      public void apply(final Promise<Integer> it) {
+    final Procedure1<Entry<Integer>> _function_9 = new Procedure1<Entry<Integer>>() {
+      public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);
       }
     };
@@ -236,8 +237,8 @@ public class TestPromise {
       }
     };
     Promise<Integer> _onError = _then_7.onError(_function_8);
-    final Procedure1<Promise<Integer>> _function_9 = new Procedure1<Promise<Integer>>() {
-      public void apply(final Promise<Integer> it) {
+    final Procedure1<Entry<Integer>> _function_9 = new Procedure1<Entry<Integer>>() {
+      public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);
       }
     };

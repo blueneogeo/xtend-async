@@ -53,20 +53,20 @@ public class TestMultiThreadedProcessing {
         }
       };
       Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(_power2, _function);
-      Promise<Integer> _resolve = PromiseExtensions.<Integer>resolve(_map);
+      Promise<Integer> _flatten = PromiseExtensions.<Integer>flatten(_map);
       final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_resolve, _function_1);
-      Promise<Integer> _resolve_1 = PromiseExtensions.<Integer>resolve(_map_1);
+      Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_flatten, _function_1);
+      Promise<Integer> _flatten_1 = PromiseExtensions.<Integer>flatten(_map_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
         }
       };
-      _resolve_1.then(_function_2);
+      _flatten_1.then(_function_2);
       int _get = result.get();
       Assert.assertEquals(0, _get);
       Thread.sleep(500);

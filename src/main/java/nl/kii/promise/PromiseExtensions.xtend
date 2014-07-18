@@ -108,7 +108,7 @@ class PromiseExtensions {
 	}
 	
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <T> flatten(Promise<Promise<T>> promise) {
+	def static <T> flatten(Promise<? extends Promise<T>> promise) {
 		val newPromise = new Promise<T>(promise)
 		promise.then [
 			onError [ newPromise.error(it) ] 
@@ -117,17 +117,21 @@ class PromiseExtensions {
 		newPromise
 	}
 	
-	/** Alias for flatten, turns a promise of a promise into a promise */
-	def static <T> resolve(Promise<Promise<T>> promise) {
-		promise.flatten
-	}
-
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** Create a new promise that listenes to this promise */
 	def static <T> fork(Promise<T> promise) {
 		promise.map[it]
-	}	
+	}
+	
+	/** Forward the events from this promise to another promise of the same type */
+	def static <T> forwardTo(Promise<T> promise, Promise<T> existingPromise) {
+		promise.always [
+			existingPromise.apply(it)
+		].then [
+			// starts listening
+		]
+	}
 
 	// BLOCKING ///////////////////////////////////////////////////////////////	
 	

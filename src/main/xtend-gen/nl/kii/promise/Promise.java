@@ -38,7 +38,7 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
    * Always called, both when there is a value and when there is an error
    */
   @Atomic
-  private final AtomicReference<Procedure1<Promise<T>>> _resultFn = new AtomicReference<Procedure1<Promise<T>>>();
+  private final AtomicReference<Procedure1<Entry<T>>> _resultFn = new AtomicReference<Procedure1<Entry<T>>>();
   
   /**
    * Lets others listen for errors occurring in the onValue listener
@@ -146,11 +146,11 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
   /**
    * Always call onResult, whether the promise has been either fulfilled or had an error.
    */
-  public Promise<T> always(final Procedure1<Promise<T>> resultFn) {
+  public Promise<T> always(final Procedure1<Entry<T>> resultFn) {
     try {
       Promise<T> _xblockexpression = null;
       {
-        Procedure1<Promise<T>> _resultFn = this.getResultFn();
+        Procedure1<Entry<T>> _resultFn = this.getResultFn();
         boolean _notEquals = (!Objects.equal(_resultFn, null));
         if (_notEquals) {
           throw new PromiseException("cannot listen to promise.always more than once");
@@ -237,12 +237,12 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
         }
       }
     }
-    Procedure1<Promise<T>> _resultFn = this.getResultFn();
+    Procedure1<Entry<T>> _resultFn = this.getResultFn();
     boolean _notEquals = (!Objects.equal(_resultFn, null));
     if (_notEquals) {
       try {
-        Procedure1<Promise<T>> _resultFn_1 = this.getResultFn();
-        _resultFn_1.apply(this);
+        Procedure1<Entry<T>> _resultFn_1 = this.getResultFn();
+        _resultFn_1.apply(it);
       } catch (final Throwable _t) {
         if (_t instanceof Throwable) {
           final Throwable t = (Throwable)_t;
@@ -291,11 +291,11 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
     return this._valueFn.get();
   }
   
-  protected Procedure1<Promise<T>> setResultFn(final Procedure1<Promise<T>> value) {
+  protected Procedure1<Entry<T>> setResultFn(final Procedure1<Entry<T>> value) {
     return this._resultFn.getAndSet(value);
   }
   
-  protected Procedure1<Promise<T>> getResultFn() {
+  protected Procedure1<Entry<T>> getResultFn() {
     return this._resultFn.get();
   }
   

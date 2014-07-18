@@ -19,7 +19,7 @@ class TestPromisePairExtensions {
 	@Test
 	def void testAsyncWithPairParams() {
 		val p = (int->int).promisePair << (1->2)
-		val asynced = p.map [ a, b | power2(a + b) ].resolve
+		val asynced = p.map [ a, b | power2(a + b) ].flatten
 		asynced.assertPromiseEquals(9)
 	}
 	

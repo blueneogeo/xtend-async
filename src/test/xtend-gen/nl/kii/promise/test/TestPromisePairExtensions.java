@@ -40,7 +40,7 @@ public class TestPromisePairExtensions {
       }
     };
     Promise<Promise<Integer>> _map = PromisePairExtensions.<Integer, Integer, Promise<Integer>>map(p, _function);
-    final Promise<Integer> asynced = PromiseExtensions.<Integer>resolve(_map);
+    final Promise<Integer> asynced = PromiseExtensions.<Integer>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(9));
   }
   

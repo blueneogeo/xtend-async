@@ -21,7 +21,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	@Atomic protected val Procedure1<T> valueFn
 	
 	/** Always called, both when there is a value and when there is an error */
-	@Atomic protected val Procedure1<Promise<T>> resultFn
+	@Atomic protected val Procedure1<Entry<T>> resultFn
 
 	/** Lets others listen for errors occurring in the onValue listener */
 	@Atomic protected val Procedure1<Throwable> errorFn
@@ -75,7 +75,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	}
 	
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
-	def always(Procedure1<Promise<T>> resultFn) {
+	def always(Procedure1<Entry<T>> resultFn) {
 		if(this.resultFn != null) throw new PromiseException('cannot listen to promise.always more than once')
 		this.resultFn = resultFn
 		this
@@ -119,7 +119,7 @@ class Promise<T> implements Procedure1<Entry<T>> {
 		}
 		if(resultFn != null) {
 			try {
-				resultFn.apply(this)
+				resultFn.apply(it)
 			} catch(Throwable t) {
 				errorFn.apply(t)
 			}

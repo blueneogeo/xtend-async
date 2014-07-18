@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
+import nl.kii.stream.Entry;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -164,7 +165,7 @@ public class PromiseExtensions {
   /**
    * Flattens a promise of a promise to directly a promise.
    */
-  public static <T extends Object> Promise<T> flatten(final Promise<Promise<T>> promise) {
+  public static <T extends Object> Promise<T> flatten(final Promise<? extends Promise<T>> promise) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> newPromise = new Promise<T>(promise);
@@ -191,13 +192,6 @@ public class PromiseExtensions {
   }
   
   /**
-   * Alias for flatten, turns a promise of a promise into a promise
-   */
-  public static <T extends Object> Promise<T> resolve(final Promise<Promise<T>> promise) {
-    return PromiseExtensions.<T>flatten(promise);
-  }
-  
-  /**
    * Create a new promise that listenes to this promise
    */
   public static <T extends Object> Promise<T> fork(final Promise<T> promise) {
@@ -207,6 +201,23 @@ public class PromiseExtensions {
       }
     };
     return PromiseExtensions.<T, T>map(promise, _function);
+  }
+  
+  /**
+   * Forward the events from this promise to another promise of the same type
+   */
+  public static <T extends Object> void forwardTo(final Promise<T> promise, final Promise<T> existingPromise) {
+    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+      public void apply(final Entry<T> it) {
+        existingPromise.apply(it);
+      }
+    };
+    Promise<T> _always = promise.always(_function);
+    final Procedure1<T> _function_1 = new Procedure1<T>() {
+      public void apply(final T it) {
+      }
+    };
+    _always.then(_function_1);
   }
   
   /**
