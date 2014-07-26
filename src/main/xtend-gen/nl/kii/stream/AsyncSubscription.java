@@ -40,4 +40,8 @@ public class AsyncSubscription<T extends Object> extends Subscription<T> {
   public void skip() {
     this.stream.skip();
   }
+  
+  public void close() {
+    this.stream.close();
+  }
 }

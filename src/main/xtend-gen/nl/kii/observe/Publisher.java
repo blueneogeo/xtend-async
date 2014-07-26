@@ -33,6 +33,9 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
   @Atomic
   private final transient AtomicReference<List<Procedure1<T>>> _observers = new AtomicReference<List<Procedure1<T>>>();
   
+  /**
+   * Listen for publications from the publisher
+   */
   public synchronized Procedure0 onChange(final Procedure1<? super T> observeFn) {
     List<Procedure1<T>> _observers = this.getObservers();
     boolean _equals = Objects.equal(_observers, null);

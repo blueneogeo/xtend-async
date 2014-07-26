@@ -373,6 +373,39 @@ Other supported aggregation functions are:
 - allMatch: true only when all entries match a criterium
 - reduce: custom aggregation
 
+## Splitting and Merging
+
+It is possible to split a stream multiple times. For example, say we have a stream of the numbers 1 to 10:
+
+	val s = (1..10).stream // produces stream 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, finish(0)
+
+Notice how this already produces a finish at the end, of the lowest level. This means you can collect it, since it ends with a finish(0).
+
+Now lets split it into batches of 4:
+
+	val s2 = s.split [ it%4==0 ] // produces stream 1, 2, 3, 4, finish(0), 5, 6, 7, 8, finish(0), 9, 10, finish(0), finish(1)
+	
+Now if you collect it, you get two lists, because each ends with a finish(0):
+
+	val s3 = s2.collect // produces stream #[1,2, 3, 4], #[5, 6,7, 8], #[9, 10], finish(0)
+	
+As you see, by collecting, we 'consumed' a split/finish level. The finish(0)'s were used to determine the batches, and those were removed and replaced with the lists. The finish(1) was reduced back into a finish(0). This means that we can collect again to get a list of a list:
+
+	val s4 = s3.collect // produces stream #[ #[1, 2, 3, 4], #[5, 6, 7, 8], #[9, 10] ]
+	
+If we want to collect this value from s4, we can get the first entry from the stream using Stream.first(), which produces a Promise of the first value. We can then use .then [ ] on the promise to do something with it.
+
+	s4.first.then [ println(it) ] // prints  [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10] ]
+	
+Since this is a common pattern, there is a shortcut:
+
+	s4.then [ println(it) ] // same result as above
+
+The reverse of split is merge. For example:
+
+	val s = int.stream << 1 << 2 << 3 << 4 << finish(0) << 5 << 6 << 7 << 8 << finish(0) << 9 << 10 << finish(0) << finish(1)
+	val s2 = s.merge // produces stream 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, finish(0)
+
 # EXTENDING XTEND-STREAM
 
 The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.

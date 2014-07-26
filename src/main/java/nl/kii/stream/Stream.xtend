@@ -96,42 +96,48 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	 * Since the stream extends Actor, there is no more than one thread active.
 	 */
 	override protected act(StreamMessage entry, =>void done) {
-		switch entry {
-			Value<T>, Finish<T>, Error<T>: {
-				queue.add(entry)
-				publishNext
-			}
-			Entries<T>: {
-				entry.entries.forEach [
-					queue.add(it)
-				]
-				publishNext
-			}
-			Next: {
-				listenerReady = true
-				// try to publish the next from the queue
-				val published = publishNext
-				// if nothing was published, notify there parent stream we need a next entry
-				if(!published) notify(entry)			
-			}
-			Skip: {
-				if(skipping) return 
-				else skipping = true		
-				// discard everything up to finish from the queue
-				while(skipping && !queue.empty) {
-					switch it: queue.peek {
-						Finish<T> case level==0: skipping = false
-						default: queue.poll
-					}
+		if(open) {
+			switch entry {
+				Value<T>, Finish<T>, Error<T>: {
+					queue.add(entry)
+					publishNext
 				}
-				// if we are still skipping, notify the parent stream it needs to skip
-				if(skipping) notify(entry)			
+				Entries<T>: {
+					entry.entries.forEach [
+						queue.add(it)
+					]
+					publishNext
+				}
+				Next: {
+					listenerReady = true
+					// try to publish the next from the queue
+					val published = publishNext
+					// if nothing was published, notify there parent stream we need a next entry
+					if(!published) notify(entry)			
+				}
+				Skip: {
+					if(skipping) return 
+					else skipping = true		
+					// discard everything up to finish from the queue
+					while(skipping && !queue.empty) {
+						switch it: queue.peek {
+							Finish<T> case level==0: skipping = false
+							default: queue.poll
+						}
+					}
+					// if we are still skipping, notify the parent stream it needs to skip
+					if(skipping) notify(entry)			
+				}
+				Close: {
+					// and publish the closed command downwards
+					queue.add(new Closed)
+					publishNext
+					notify(entry)
+					open = false
+				}
 			}
-			Close: {
-				publishNext
-				open = false
-				notify(entry)
-			}
+		} else {
+			queue.clear
 		}
 		done.apply
 	}

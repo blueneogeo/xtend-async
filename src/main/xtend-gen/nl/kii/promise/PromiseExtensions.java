@@ -9,8 +9,10 @@ import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
+import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -58,46 +60,14 @@ public class PromiseExtensions {
    *   .then [ println('success!') ]
    * </pre>
    */
-  public static <T extends Object, P extends Object> Promise<P> then(final Promise<T> promise, final Function1<T, Promise<P>> promiseFn) {
-    Promise<P> _xblockexpression = null;
-    {
-      final Promise<P> p = new Promise<P>();
-      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          p.error(it);
-        }
-      };
-      Promise<T> _onError = promise.onError(_function);
-      final Procedure1<T> _function_1 = new Procedure1<T>() {
-        public void apply(final T it) {
-          try {
-            final Promise<P> returnedPromise = promiseFn.apply(it);
-            final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-              public void apply(final Throwable it) {
-                p.error(it);
-              }
-            };
-            Promise<P> _onError = returnedPromise.onError(_function);
-            final Procedure1<P> _function_1 = new Procedure1<P>() {
-              public void apply(final P it) {
-                p.set(it);
-              }
-            };
-            _onError.then(_function_1);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              p.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        }
-      };
-      _onError.then(_function_1);
-      _xblockexpression = p;
-    }
-    return _xblockexpression;
+  public static <T extends Object, R extends Object, P extends Promise<R>> Promise<R> then(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
+    final Function1<T, P> _function = new Function1<T, P>() {
+      public P apply(final T it) {
+        return promiseFn.apply(it);
+      }
+    };
+    Promise<P> _map = PromiseExtensions.<T, P>map(promise, _function);
+    return PromiseExtensions.<R>flatten(_map);
   }
   
   /**
@@ -192,15 +162,39 @@ public class PromiseExtensions {
   }
   
   /**
-   * Create a new promise that listenes to this promise
+   * Fork a single promise into a list of promises
+   * Note that the original promise is then being listened to and you
+   * can no longer perform .then and .onError on it.
    */
-  public static <T extends Object> Promise<T> fork(final Promise<T> promise) {
-    final Function1<T, T> _function = new Function1<T, T>() {
-      public T apply(final T it) {
-        return it;
-      }
-    };
-    return PromiseExtensions.<T, T>map(promise, _function);
+  public static <T extends Object> Promise<T>[] fork(final Promise<T> promise, final int amount) {
+    Promise<T>[] _xblockexpression = null;
+    {
+      final Promise<T>[] promises = new Promise[amount];
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable t) {
+          final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
+            public void apply(final Promise<T> p) {
+              p.error(t);
+            }
+          };
+          IterableExtensions.<Promise<T>>forEach(((Iterable<Promise<T>>)Conversions.doWrapArray(promises)), _function);
+        }
+      };
+      Promise<T> _onError = promise.onError(_function);
+      final Procedure1<T> _function_1 = new Procedure1<T>() {
+        public void apply(final T value) {
+          final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
+            public void apply(final Promise<T> p) {
+              p.set(value);
+            }
+          };
+          IterableExtensions.<Promise<T>>forEach(((Iterable<Promise<T>>)Conversions.doWrapArray(promises)), _function);
+        }
+      };
+      _onError.then(_function_1);
+      _xblockexpression = promises;
+    }
+    return _xblockexpression;
   }
   
   /**

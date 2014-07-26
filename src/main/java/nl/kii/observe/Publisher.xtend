@@ -21,6 +21,7 @@ class Publisher<T> extends Actor<T> implements Observable<T> {
 	@Atomic public val boolean publishing = true
 	@Atomic transient val List<Procedure1<T>> observers 
 
+	/** Listen for publications from the publisher */
 	synchronized override =>void onChange((T)=>void observeFn) {
 		if(observers == null) observers = newLinkedList(observeFn) 
 		else observers.add(observeFn)

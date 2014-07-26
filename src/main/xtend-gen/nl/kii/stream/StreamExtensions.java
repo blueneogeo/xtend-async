@@ -126,16 +126,57 @@ public class StreamExtensions {
   }
   
   /**
-   * Observe changes on the observable. This allows you to observe the stream
-   * with multiple listeners. Observables do not support flow control, so every
-   * value coming from the stream will be pushed out immediately.
+   * Create a publisher for the stream. This allows you to observe the stream
+   * with multiple listeners. Publishers do not support flow control, and the
+   * created Publisher will eagerly pull all data from the stream for publishing.
    */
-  public static <T extends Object> Observable<T> observe(final Stream<T> stream) {
+  public static <T extends Object> Publisher<T> publish(final Stream<T> stream) {
     Publisher<T> _xblockexpression = null;
     {
       final Publisher<T> publisher = new Publisher<T>();
-      StreamExtensions.<T>onEach(stream, publisher);
+      final Procedure2<T, AsyncSubscription<T>> _function = new Procedure2<T, AsyncSubscription<T>>() {
+        public void apply(final T it, final AsyncSubscription<T> s) {
+          publisher.apply(it);
+          Boolean _publishing = publisher.getPublishing();
+          if ((_publishing).booleanValue()) {
+            stream.next();
+          }
+        }
+      };
+      StreamExtensions.<T>onEachAsync(stream, _function);
+      stream.next();
       _xblockexpression = publisher;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create new streams from an observable. Notice that these streams are
+   * being pushed only, you lose flow control. Closing the stream will also
+   * unsubscribe from the observable.
+   */
+  public static <T extends Object> Stream<T> stream(final Observable<T> observable) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<T> _function = new Procedure1<T>() {
+        public void apply(final T it) {
+          newStream.push(it);
+        }
+      };
+      final Procedure0 stopObserving = observable.onChange(_function);
+      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
+        public void apply(final CommandSubscription it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              stopObserving.apply();
+            }
+          };
+          it.onClose(_function);
+        }
+      };
+      StreamExtensions.<T>monitor(newStream, _function_1);
+      _xblockexpression = newStream;
     }
     return _xblockexpression;
   }
@@ -518,6 +559,7 @@ public class StreamExtensions {
   
   /**
    * Merges one level of finishes.
+   * @See StreamExtensions.split
    */
   public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
     Stream<T> _xblockexpression = null;
@@ -874,6 +916,21 @@ public class StreamExtensions {
   public static <T extends Object> void then(final Stream<T> stream, final Procedure1<T> listener) {
     Promise<T> _first = StreamExtensions.<T>first(stream);
     _first.then(listener);
+  }
+  
+  public static <T extends Object> AsyncSubscription<T> onClosed(final Stream<T> stream, final Procedure1<? super Stream<T>> listener) {
+    final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
+      public void apply(final AsyncSubscription<T> subscription) {
+        final Procedure0 _function = new Procedure0() {
+          public void apply() {
+            listener.apply(stream);
+            subscription.next();
+          }
+        };
+        subscription.closed(_function);
+      }
+    };
+    return StreamExtensions.<T>onAsync(stream, _function);
   }
   
   public static <T extends Object> AsyncSubscription<T> onError(final Stream<T> stream, final Procedure1<? super Throwable> listener) {
@@ -1268,7 +1325,6 @@ public class StreamExtensions {
   
   /**
    * True if any of the values match the passed testFn
-   * FIX: currently .first gives recursive loop?
    */
   public static <T extends Object> Stream<Boolean> anyMatch(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
     Stream<Boolean> _xblockexpression = null;

@@ -1,19 +1,32 @@
 package nl.kii.stream
 
+import java.util.List
+
+/** A message used by streams and promises */
 interface StreamMessage { }
 
 // COMMANDS ///////////////////////////////////////////////////////////////////
 
+/** A command given to a stream. 
+ * Commands travel upwards towards the source of a stream, to control the stream.
+ */
 interface StreamCommand extends StreamMessage { }
 
+/** Request the next entry from the stream */
 class Next implements StreamCommand { }
 
+/** Request the stream to stop sending entries until after the next finish entry */
 class Skip implements StreamCommand { }
 
+/** Request the stream to close and stop sending */
 class Close implements StreamCommand{ }
 
 // ENTRIES ////////////////////////////////////////////////////////////////////
 
+/** 
+ * An entry is a stream message that contains either a value or stream state information.
+ * Entries travel downwards a stream towards the listeners of the stream at the end.
+ */
 interface Entry<T> extends StreamMessage { }
 
 /** 
@@ -21,13 +34,14 @@ interface Entry<T> extends StreamMessage { }
  * Consider it an atomic push of multiple entries onto the stream.
  */
 class Entries<T> implements StreamMessage {
-	public val Entry<T>[] entries
-	new(Entry<T>[] entries) { this.entries = entries }
+	public val List<Entry<T>> entries
+	new(Entry<T>... entries) { this.entries = entries }
 	override toString() { entries.toString }
-	// TODO: this is not correct, needs to iterate through entries
+	// FIX: this is not correct, needs to iterate through entries
 	override equals(Object o) { o instanceof Entries<?> && (o as Entries<?>).entries == this.entries }
 }
 
+/** Wraps a streamed data value of type T */
 class Value<T> implements Entry<T> {
 	public val T value
 	new(T value) { this.value = value }
@@ -35,6 +49,11 @@ class Value<T> implements Entry<T> {
 	override equals(Object o) { o instanceof Value<?> && (o as Value<?>).value == this.value }
 }
 
+/** 
+ * Indicates that a batch of data has finished.
+ * Batches of data can be of different levels. The finish has a level property that indicates
+ * which level of data was finished.
+ */
 class Finish<T> implements Entry<T> {
 	public val int level
 	new() { this(0) }
@@ -45,6 +64,12 @@ class Finish<T> implements Entry<T> {
 	override equals(Object o) { o instanceof Finish<?> && (o as Finish<?>).level == level }
 }
 
+/** Indicates that the stream was closed and no more data will be passed */
+class Closed<T> implements Entry<T> {
+	override toString() { 'closed stream' }
+}
+
+/**  Indicates that the stream encountered an error while processing information. */
 class Error<T> implements Entry<T> {
 	public val Throwable error
 	new(Throwable error) { this.error = error }

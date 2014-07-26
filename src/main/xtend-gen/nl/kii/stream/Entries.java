@@ -1,8 +1,10 @@
 package nl.kii.stream;
 
 import com.google.common.base.Objects;
+import java.util.List;
 import nl.kii.stream.Entry;
 import nl.kii.stream.StreamMessage;
+import org.eclipse.xtext.xbase.lib.Conversions;
 
 /**
  * Use entries to push multiple entries onto the stream for one recieved entry.
@@ -10,10 +12,10 @@ import nl.kii.stream.StreamMessage;
  */
 @SuppressWarnings("all")
 public class Entries<T extends Object> implements StreamMessage {
-  public final Entry<T>[] entries;
+  public final List<Entry<T>> entries;
   
-  public Entries(final Entry<T>[] entries) {
-    this.entries = entries;
+  public Entries(final Entry<T>... entries) {
+    this.entries = ((List<Entry<T>>)Conversions.doWrapArray(entries));
   }
   
   public String toString() {

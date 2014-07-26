@@ -10,6 +10,7 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	protected (Throwable)=>void onErrorFn
 	protected =>void onFinish0Fn
 	protected (Finish<T>)=>void onFinishFn
+	protected =>void onClosedFn
 	
 	new(Stream<T> stream) {
 		this.stream = stream
@@ -26,6 +27,7 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 				if(level == 0)
 					onFinish0Fn?.apply
 			}
+			Closed<T>: onClosedFn?.apply
 		}
 	}
 	
@@ -50,11 +52,11 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	def error((Throwable)=>void onErrorFn) {
 		this.onErrorFn = onErrorFn
 	}
-		
-	def close() {
-		stream.close
-	}
 	
+	def closed(=>void onClosedFn) {
+		this.onClosedFn = onClosedFn
+	}	
+		
 }
 
 class SyncSubscription<T> extends Subscription<T> {
@@ -94,6 +96,10 @@ class AsyncSubscription<T> extends Subscription<T> {
 	
 	def skip() {
 		stream.skip
+	}
+	
+	def close() {
+		stream.close
 	}
 	
 }

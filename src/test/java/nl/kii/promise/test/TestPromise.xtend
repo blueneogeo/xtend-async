@@ -11,6 +11,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import nl.kii.promise.Task
 
 class TestPromise {
 	
@@ -59,7 +60,15 @@ class TestPromise {
 		val p2 = p.then [ return 2.promise ]
 		p2.assertPromiseEquals(2)
 	}
-	
+
+	@Test def void testTaskChain() {
+		sayHello
+			.then [ return sayHello ]
+			.then [ return sayHello ]
+			.then [
+				sayHello
+			]
+	}
 
 	@Test def void testLongChain() {
 		val alwaysDone = new AtomicBoolean
@@ -68,7 +77,7 @@ class TestPromise {
 			.then [ return addOne ]
 			.then [ return addOne ]
 			.then [ return addOne ]
-			.then [return addOne ]
+			.then [ return addOne ]
 			.then [ return addOne ]
 			.then [ return addOne ]
 			.then [ return addOne ]
@@ -84,6 +93,9 @@ class TestPromise {
 		val alwaysDone = new AtomicBoolean
 		val caughtError = new AtomicReference<Throwable>
 		1.addOne
+			.then [ return addOne ]
+			.then [ return addOne ]
+			.then [ return addOne ]
 			.then [ return addOne ]
 			.then [ return addOne ]
 			.then [ return addOne ]
@@ -109,7 +121,15 @@ class TestPromise {
 		threads.run [|
 			promise << n + 1
 		]
-	} 
+	}
+	
+	@Async
+	def sayHello(Task task) {
+		threads.run [| 
+			println('hello')
+			task.complete
+		]
+	}
 	
 	@Test
 	def void testPromiseErrorChaining() {

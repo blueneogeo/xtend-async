@@ -6,10 +6,22 @@ import nl.kii.stream.Error
 import nl.kii.stream.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
+interface IPromise<T> extends Procedure1<Entry<T>> {
+	
+	def Entry<T> get()
+	def Promise<T> set(T value)
+	def Promise<T> error(Throwable t)
+	
+	def Promise<T> onError(Procedure1<Throwable> errorFn)
+	def Promise<T> always(Procedure1<Entry<T>> resultFn)
+	def void then(Procedure1<T> valueFn)
+	
+}
+
 /**
  * A Promise is a publisher of a value. The value may arrive later.
  */
-class Promise<T> implements Procedure1<Entry<T>> {
+class Promise<T> implements IPromise<T> {
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
@@ -40,23 +52,23 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	// GETTERS AND SETTERS ////////////////////////////////////////////////////
 	
 	/** only has a value when finished, otherwise null */
-	def get() {
+	override get() {
 		entry
 	}
 	
 	// PUSH ///////////////////////////////////////////////////////////////////
 
 	/** set the promised value */
-	def set(T value) {
+	override set(T value) {
 		if(value == null) throw new NullPointerException('cannot promise a null value')
 		apply(new Value(value))
 		this
 	}
 
 	/** report an error to the listener of the promise. */
-	def error(Throwable t) {
+	override error(Throwable t) {
 		apply(new Error<T>(t))
-		this
+		return this
 	}
 	
 	override apply(Entry<T> it) {
@@ -69,20 +81,20 @@ class Promise<T> implements Procedure1<Entry<T>> {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** If the promise recieved or recieves an error, onError is called with the throwable */
-	def Promise<T> onError(Procedure1<Throwable> errorFn) {
+	override Promise<T> onError(Procedure1<Throwable> errorFn) {
 		this.errorFn = errorFn
 		this
 	}
 	
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
-	def always(Procedure1<Entry<T>> resultFn) {
+	override always(Procedure1<Entry<T>> resultFn) {
 		if(this.resultFn != null) throw new PromiseException('cannot listen to promise.always more than once')
 		this.resultFn = resultFn
 		this
 	}
 	
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
-	def void then(Procedure1<T> valueFn) {
+	override void then(Procedure1<T> valueFn) {
 		if(this.valueFn != null) throw new PromiseException('cannot listen to promise.then more than once')
 		this.valueFn = valueFn
 		if(fulfilled) publish(entry)

@@ -5,7 +5,6 @@ import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
-import org.eclipse.xtext.xbase.lib.Functions.Function1
 
 class PromiseExtensions {
 	
@@ -31,6 +30,12 @@ class PromiseExtensions {
 		new Promise<T>(value)
 	}
 	
+//	@Async(false) def static onAny(Promise<?>[] promises, Task task) {
+//		promises.forEach [
+//			it.fork
+//		]
+//	}
+	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 	
 	/** When the promise gives a result, call the function that returns another promise and 
@@ -46,29 +51,31 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <T, P> Promise<P> then(Promise<T> promise, Function1<T, Promise<P>> promiseFn) {
-		val p = new Promise<P>
-		promise
-			.onError[ 
-				p.error(it)
-			]
-			.then [
-				try {
-					val returnedPromise = promiseFn.apply(it)
-					returnedPromise
-						.onError [ 
-							p.error(it)
-						]
-						.then [ 
-							p.set(it)
-						]
-				} catch(Throwable t) {
-					// println(t)
-					p.error(t)
-				}
-			]
-		p
+	def static <T, R, P extends Promise<R>> Promise<R> then(Promise<T> promise, (T)=>P promiseFn) {
+		promise.map [ promiseFn.apply(it) ].flatten
+//		val p = new Promise<R>
+//		promise
+//			.onError[ 
+//				p.error(it)
+//			]
+//			.then [
+//				try {
+//					val returnedPromise = promiseFn.apply(it)
+//					returnedPromise
+//						.onError [ 
+//							p.error(it)
+//						]
+//						.then [ 
+//							p.set(it)
+//						]
+//				} catch(Throwable t) {
+//					// println(t)
+//					p.error(t)
+//				}
+//			]
+//		p
 	}
+
 	
 	/** Tell the task it went wrong */
 	def static error(Task task, String message) {
@@ -119,11 +126,19 @@ class PromiseExtensions {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	/** Create a new promise that listenes to this promise */
-	def static <T> fork(Promise<T> promise) {
-		promise.map[it]
+	/** 
+	 * Fork a single promise into a list of promises
+	 * Note that the original promise is then being listened to and you 
+	 * can no longer perform .then and .onError on it.
+	 */
+	def static <T> fork(Promise<T> promise, int amount) {
+		val promises = newArrayOfSize(amount)
+		promise
+			.onError [ t | promises.forEach [ Promise<T> p | p.error(t) ] ]
+			.then [ value | promises.forEach [ Promise<T> p | p.set(value) ] ]
+		promises
 	}
-	
+
 	/** Forward the events from this promise to another promise of the same type */
 	def static <T> forwardTo(Promise<T> promise, Promise<T> existingPromise) {
 		promise.always [

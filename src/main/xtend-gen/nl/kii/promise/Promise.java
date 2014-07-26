@@ -4,6 +4,7 @@ import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseException;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
@@ -15,7 +16,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * A Promise is a publisher of a value. The value may arrive later.
  */
 @SuppressWarnings("all")
-public class Promise<T extends Object> implements Procedure1<Entry<T>> {
+public class Promise<T extends Object> implements IPromise<T> {
   /**
    * Property to see if the promise is fulfulled
    */
@@ -99,13 +100,9 @@ public class Promise<T extends Object> implements Procedure1<Entry<T>> {
    * report an error to the listener of the promise.
    */
   public Promise<T> error(final Throwable t) {
-    Promise<T> _xblockexpression = null;
-    {
-      nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
-      this.apply(_error);
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
+    nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
+    this.apply(_error);
+    return this;
   }
   
   public void apply(final Entry<T> it) {

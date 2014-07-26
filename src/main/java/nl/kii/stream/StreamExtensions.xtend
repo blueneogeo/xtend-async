@@ -68,14 +68,35 @@ class StreamExtensions {
 	// OBSERVING //////////////////////////////////////////////////////////////
 
 	/** 
-	 * Observe changes on the observable. This allows you to observe the stream
-	 * with multiple listeners. Observables do not support flow control, so every
-	 * value coming from the stream will be pushed out immediately.
+	 * Create a publisher for the stream. This allows you to observe the stream
+	 * with multiple listeners. Publishers do not support flow control, and the
+	 * created Publisher will eagerly pull all data from the stream for publishing.
 	 */
-	def static <T> Observable<T> observe(Stream<T> stream) {
+	def static <T> Publisher<T> publish(Stream<T> stream) {
 		val publisher = new Publisher<T>
-		stream.onEach(publisher)
+		stream.onEachAsync [ it, s |
+			publisher.apply(it)
+			if(publisher.publishing)
+				stream.next
+		]
+		stream.next
 		publisher
+	}
+
+	/** 
+	 * Create new streams from an observable. Notice that these streams are
+	 * being pushed only, you lose flow control. Closing the stream will also
+	 * unsubscribe from the observable.
+	 */
+	def static <T> Stream<T> stream(Observable<T> observable) {
+		val newStream = new Stream<T>
+		val stopObserving = observable.onChange [
+			newStream.push(it)
+		]
+		newStream.monitor [
+			onClose [ stopObserving.apply ]
+		]
+		newStream
 	}
 	
 	// OPERATORS //////////////////////////////////////////////////////////////
@@ -317,7 +338,8 @@ class StreamExtensions {
 	}
 	
 	/**
-	 * Merges one level of finishes.
+	 * Merges one level of finishes. 
+	 * @See StreamExtensions.split
 	 */
 	def static <T> Stream<T> merge(Stream<T> stream) {
 		val newStream = new Stream<T>
@@ -527,6 +549,15 @@ class StreamExtensions {
 	 }
 	
 	// SUBSCRIPTION BUILDERS //////////////////////////////////////////////////
+
+	def static <T> onClosed(Stream<T> stream, (Stream<T>)=>void listener) {
+		stream.onAsync [ subscription | 
+			subscription.closed [
+				listener.apply(stream)
+				subscription.next
+			]
+		]
+	}
 
 	def static <T> onError(Stream<T> stream, (Throwable)=>void listener) {
 		stream.onAsync [ subscription | 
@@ -770,7 +801,6 @@ class StreamExtensions {
 
 	/**
 	 * True if any of the values match the passed testFn
-	 * FIX: currently .first gives recursive loop?
 	 */
 	 def static <T> Stream<Boolean> anyMatch(Stream<T> stream, (T)=>boolean testFn) {
 	 	val anyMatch = new AtomicBoolean(false)

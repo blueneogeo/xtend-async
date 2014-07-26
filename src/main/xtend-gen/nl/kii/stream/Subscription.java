@@ -1,5 +1,6 @@
 package nl.kii.stream;
 
+import nl.kii.stream.Closed;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
@@ -20,6 +21,8 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
   protected Procedure0 onFinish0Fn;
   
   protected Procedure1<? super Finish<T>> onFinishFn;
+  
+  protected Procedure0 onClosedFn;
   
   public Subscription(final Stream<T> stream) {
     this.stream = stream;
@@ -65,6 +68,14 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
         }
       }
     }
+    if (!_matched) {
+      if (it instanceof Closed) {
+        _matched=true;
+        if (this.onClosedFn!=null) {
+          this.onClosedFn.apply();
+        }
+      }
+    }
   }
   
   public Procedure1<? super Entry<T>> entry(final Procedure1<? super Entry<T>> onEntryFn) {
@@ -93,7 +104,7 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
     return this.onErrorFn = onErrorFn;
   }
   
-  public void close() {
-    this.stream.close();
+  public Procedure0 closed(final Procedure0 onClosedFn) {
+    return this.onClosedFn = onClosedFn;
   }
 }

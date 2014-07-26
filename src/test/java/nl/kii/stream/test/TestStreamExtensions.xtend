@@ -62,23 +62,27 @@ class TestStreamExtensions {
 	// OBSERVABLE /////////////////////////////////////////////////////////////
 	
 	@Test
-	def void testObserve() {
+	def void testObservable() {
 		val count1 = new AtomicInteger(0)
 		val count2 = new AtomicInteger(0)
 		
 		val s = int.stream
-		val observable = s.observe
+		val publisher = s.publish
 		
-		val cancel1 = observable.onChange [ count1.addAndGet(it) ]
-		observable.onChange [ count2.addAndGet(it) ]
+		val s1 = publisher.stream
+		val s2 = publisher.stream
+		
+		s1.onEach [ count1.addAndGet(it) ]
+		s2.onEach [ count2.addAndGet(it) ]
 		
 		s << 1 << 2 << 3
 		// both counts are listening, both should increase
 		assertEquals(6, count1.get)
 		assertEquals(6, count2.get)
 		
-		// we cancel the first listener, now the first count should no longer change
-		cancel1.apply
+		// we cancel the first listener by closing the stream, now the first count should no longer change
+		s1.close
+		
 		s << 4 << 5
 		assertEquals(6, count1.get)
 		assertEquals(15, count2.get)
