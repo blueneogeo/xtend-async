@@ -51,7 +51,7 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <T, R, P extends Promise<R>> Promise<R> then(Promise<T> promise, (T)=>P promiseFn) {
+	def static <T, R, P extends Promise<R>> Promise<R> thenAsync(Promise<T> promise, (T)=>P promiseFn) {
 		promise.map [ promiseFn.apply(it) ].flatten
 //		val p = new Promise<R>
 //		promise

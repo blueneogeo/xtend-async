@@ -57,14 +57,14 @@ class TestPromise {
 	@Test
 	def void testPromiseChaining() {
 		val p = 1.promise
-		val p2 = p.then [ return 2.promise ]
+		val p2 = p.thenAsync [ return 2.promise ]
 		p2.assertPromiseEquals(2)
 	}
 
 	@Test def void testTaskChain() {
 		sayHello
-			.then [ return sayHello ]
-			.then [ return sayHello ]
+			.thenAsync [ return sayHello ]
+			.thenAsync [ return sayHello ]
 			.then [
 				sayHello
 			]
@@ -74,14 +74,14 @@ class TestPromise {
 		val alwaysDone = new AtomicBoolean
 		val caughtError = new AtomicReference<Throwable>
 		1.addOne
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
 			.onError [ caughtError.set(it) ]
 			.always [ alwaysDone.set(true) ]
 			.assertPromiseEquals(10)
@@ -93,20 +93,20 @@ class TestPromise {
 		val alwaysDone = new AtomicBoolean
 		val caughtError = new AtomicReference<Throwable>
 		1.addOne
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [
 				if(true) throw new Exception('help!') 
 				return addOne
 			]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
-			.then [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
+			.thenAsync [ return addOne ]
 			.onError [ caughtError.set(it) ]
 			.always [ alwaysDone.set(true) ]
 			.then [ fail('should not get here' + it)]

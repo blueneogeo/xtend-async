@@ -95,7 +95,7 @@ public class TestPromise {
         return PromiseExtensions.<Integer>promise(Integer.valueOf(2));
       }
     };
-    final Promise<Integer> p2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(p, _function);
+    final Promise<Integer> p2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(p, _function);
     StreamAssert.<Integer>assertPromiseEquals(p2, Integer.valueOf(2));
   }
   
@@ -107,19 +107,19 @@ public class TestPromise {
         return TestPromise.this.sayHello();
       }
     };
-    Promise<Boolean> _then = PromiseExtensions.<Boolean, Boolean, Task>then(_sayHello, _function);
+    Promise<Boolean> _thenAsync = PromiseExtensions.<Boolean, Boolean, Task>thenAsync(_sayHello, _function);
     final Function1<Boolean, Task> _function_1 = new Function1<Boolean, Task>() {
       public Task apply(final Boolean it) {
         return TestPromise.this.sayHello();
       }
     };
-    Promise<Boolean> _then_1 = PromiseExtensions.<Boolean, Boolean, Task>then(_then, _function_1);
+    Promise<Boolean> _thenAsync_1 = PromiseExtensions.<Boolean, Boolean, Task>thenAsync(_thenAsync, _function_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromise.this.sayHello();
       }
     };
-    _then_1.then(_function_2);
+    _thenAsync_1.then(_function_2);
   }
   
   @Test
@@ -132,55 +132,55 @@ public class TestPromise {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_addOne, _function);
+    Promise<Integer> _thenAsync = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then, _function_1);
+    Promise<Integer> _thenAsync_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_1, _function_2);
+    Promise<Integer> _thenAsync_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_2, _function_3);
+    Promise<Integer> _thenAsync_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_3, _function_4);
+    Promise<Integer> _thenAsync_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_4, _function_5);
+    Promise<Integer> _thenAsync_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_5, _function_6);
+    Promise<Integer> _thenAsync_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_6, _function_7);
+    Promise<Integer> _thenAsync_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_6, _function_7);
     final Procedure1<Throwable> _function_8 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         caughtError.set(it);
       }
     };
-    Promise<Integer> _onError = _then_7.onError(_function_8);
+    Promise<Integer> _onError = _thenAsync_7.onError(_function_8);
     final Procedure1<Entry<Integer>> _function_9 = new Procedure1<Entry<Integer>>() {
       public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);
@@ -204,37 +204,37 @@ public class TestPromise {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_addOne, _function);
+    Promise<Integer> _thenAsync = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then, _function_1);
+    Promise<Integer> _thenAsync_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_1, _function_2);
+    Promise<Integer> _thenAsync_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_2, _function_3);
+    Promise<Integer> _thenAsync_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_3, _function_4);
+    Promise<Integer> _thenAsync_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_4, _function_5);
+    Promise<Integer> _thenAsync_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         try {
@@ -247,37 +247,37 @@ public class TestPromise {
         }
       }
     };
-    Promise<Integer> _then_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_5, _function_6);
+    Promise<Integer> _thenAsync_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_6, _function_7);
+    Promise<Integer> _thenAsync_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_6, _function_7);
     final Function1<Integer, Promise<Integer>> _function_8 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_8 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_7, _function_8);
+    Promise<Integer> _thenAsync_8 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_7, _function_8);
     final Function1<Integer, Promise<Integer>> _function_9 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_9 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_8, _function_9);
+    Promise<Integer> _thenAsync_9 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_8, _function_9);
     final Function1<Integer, Promise<Integer>> _function_10 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    Promise<Integer> _then_10 = PromiseExtensions.<Integer, Integer, Promise<Integer>>then(_then_9, _function_10);
+    Promise<Integer> _thenAsync_10 = PromiseExtensions.<Integer, Integer, Promise<Integer>>thenAsync(_thenAsync_9, _function_10);
     final Procedure1<Throwable> _function_11 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         caughtError.set(it);
       }
     };
-    Promise<Integer> _onError = _then_10.onError(_function_11);
+    Promise<Integer> _onError = _thenAsync_10.onError(_function_11);
     final Procedure1<Entry<Integer>> _function_12 = new Procedure1<Entry<Integer>>() {
       public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);

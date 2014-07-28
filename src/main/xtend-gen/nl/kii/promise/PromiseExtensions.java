@@ -60,7 +60,7 @@ public class PromiseExtensions {
    *   .then [ println('success!') ]
    * </pre>
    */
-  public static <T extends Object, R extends Object, P extends Promise<R>> Promise<R> then(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
+  public static <T extends Object, R extends Object, P extends Promise<R>> Promise<R> thenAsync(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
     final Function1<T, P> _function = new Function1<T, P>() {
       public P apply(final T it) {
         return promiseFn.apply(it);
