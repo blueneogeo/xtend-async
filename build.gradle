@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-	compile 'com.kimengi.util:xtend-async-annotations:+'
+	compile 'com.kimengi.util:xtend-async-annotations:3.0-SNAPSHOT'
 
     testCompile 'junit:junit:4.+'
 }
