@@ -13,3 +13,8 @@
 /.TestStream.java._trace
 /.TestParallel.java._trace
 /.TestMultiThreadedProcessing.java._trace
+/TestCollector.java
+/TestMultiThreadedProcessing.java
+/TestStream.java
+/TestStreamExtensions.java
+/TestStreamPairExt.java

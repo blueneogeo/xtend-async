@@ -1,3 +1,7 @@
 /.TestAnnotations.java._trace
 /.TestAtomicAnnotation.java._trace
 /.Tester.java._trace
+/.TestAsyncAnnotation.java._trace
+/TestAsyncAnnotation.java
+/TestAtomicAnnotation.java
+/Tester.java

@@ -5,3 +5,10 @@
 /.PromiseFuture.java._trace
 /.PromisePairExtensions.java._trace
 /.IPromise.java._trace
+/IPromise.java
+/Promise.java
+/PromiseException.java
+/PromiseExtensions.java
+/PromiseFuture.java
+/PromisePairExtensions.java
+/Task.java

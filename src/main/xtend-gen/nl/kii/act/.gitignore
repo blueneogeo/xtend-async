@@ -13,3 +13,6 @@
 /.Actor2.java._trace
 /.DoneException.java._trace
 /.Publisher.java._trace
+/Actor.java
+/ActorExtensions.java
+/AtMaxProcessDepth.java

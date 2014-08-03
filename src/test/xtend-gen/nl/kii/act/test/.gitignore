@@ -16,3 +16,7 @@
 /.Result.java._trace
 /.Call2.java._trace
 /.TestContinuation.java._trace
+/Call2.java
+/Result.java
+/TestActor.java
+/TestRecursion.java

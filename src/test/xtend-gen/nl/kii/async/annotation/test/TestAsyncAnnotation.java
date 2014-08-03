@@ -17,7 +17,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings("all")
-public class TestAnnotations {
+public class TestAsyncAnnotation {
   @Test
   public void testAsyncPromise() {
     final AtomicInteger result = new AtomicInteger();
