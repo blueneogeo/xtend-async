@@ -306,4 +306,13 @@ class TestStreamExtensions {
 		s.collect.first.assertPromiseEquals(#[1, 2])
 	}
 	
+	@Test
+	def void testStreamForwardTo() {
+		// since we use flow control, we can stream forward a lot without using much memory
+		val s1 = (1..1000000).stream
+		val s2 = int.stream
+		s1.forwardTo(s2)
+		s2.count.then [ assertEquals(1000000, it, 0) ]
+	}
+	
 }

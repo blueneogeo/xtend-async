@@ -332,19 +332,4 @@ public class TestStream {
       throw Exceptions.sneakyThrow(_e);
     }
   }
-  
-  @Test
-  public void testStreamForwardTo() {
-    IntegerRange _upTo = new IntegerRange(1, 3);
-    final Stream<Integer> s1 = StreamExtensions.<Integer>stream(_upTo);
-    final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    StreamExtensions.<Integer>forwardTo(s1, s2);
-    Stream<Double> _sum = StreamExtensions.<Integer>sum(s2);
-    final Procedure1<Double> _function = new Procedure1<Double>() {
-      public void apply(final Double it) {
-        Assert.assertEquals(6, (it).doubleValue(), 0);
-      }
-    };
-    StreamExtensions.<Double>then(_sum, _function);
-  }
 }

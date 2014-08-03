@@ -663,4 +663,19 @@ public class TestStreamExtensions {
     Promise<List<Integer>> _first = StreamExtensions.<List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))));
   }
+  
+  @Test
+  public void testStreamForwardTo() {
+    IntegerRange _upTo = new IntegerRange(1, 1000000);
+    final Stream<Integer> s1 = StreamExtensions.<Integer>stream(_upTo);
+    final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
+    StreamExtensions.<Integer>forwardTo(s1, s2);
+    Stream<Long> _count = StreamExtensions.<Integer>count(s2);
+    final Procedure1<Long> _function = new Procedure1<Long>() {
+      public void apply(final Long it) {
+        Assert.assertEquals(1000000, (it).longValue(), 0);
+      }
+    };
+    StreamExtensions.<Long>then(_count, _function);
+  }
 }
