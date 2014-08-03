@@ -6,6 +6,7 @@ import org.junit.Test
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
 
 class TestPromiseExtensions {
@@ -59,6 +60,12 @@ class TestPromiseExtensions {
 		val s = 2.promise
 		val asynced = s.map [ power2(it) ].flatten
 		asynced.assertPromiseEquals(4)
+	}
+	
+	@Test
+	def void testListPromiseToStream() {
+		val p = #[1, 2, 3].promise
+		p.stream.sum.then [ assertEquals(6, it, 0) ]
 	}
 	
 	private def power2(int i) { (i*i).promise }

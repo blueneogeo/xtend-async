@@ -1,12 +1,18 @@
 package nl.kii.promise.test;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
+import nl.kii.stream.StreamExtensions;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -81,6 +87,19 @@ public class TestPromiseExtensions {
     Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
     final Promise<Integer> asynced = PromiseExtensions.<Integer>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
+  }
+  
+  @Test
+  public void testListPromiseToStream() {
+    final Promise<List<Integer>> p = PromiseExtensions.<List<Integer>>promise(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
+    Stream<Integer> _stream = PromiseExtensions.<Integer>stream(p);
+    Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
+    final Procedure1<Double> _function = new Procedure1<Double>() {
+      public void apply(final Double it) {
+        Assert.assertEquals(6, (it).doubleValue(), 0);
+      }
+    };
+    StreamExtensions.<Double>then(_sum, _function);
   }
   
   private Promise<Integer> power2(final int i) {

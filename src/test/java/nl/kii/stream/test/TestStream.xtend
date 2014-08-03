@@ -164,5 +164,13 @@ class TestStream {
 		Thread.sleep(100)
 		Assert.assertEquals(12000, sum.get)
 	}
+	
+	@Test
+	def void testStreamForwardTo() {
+		val s1 = (1..3).stream
+		val s2 = int.stream
+		s1.forwardTo(s2)
+		s2.sum.then [ assertEquals(6, it, 0) ]
+	}
 
 }

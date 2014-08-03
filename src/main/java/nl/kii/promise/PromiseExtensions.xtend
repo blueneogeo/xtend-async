@@ -1,10 +1,11 @@
 package nl.kii.promise
-
+import static extension nl.kii.stream.StreamExtensions.*
 import java.util.List
 import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import nl.kii.stream.Stream
 
 class PromiseExtensions {
 	
@@ -146,6 +147,15 @@ class PromiseExtensions {
 		].then [
 			// starts listening
 		]
+	}
+	
+	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
+	def static <T> stream(Promise<? extends Iterable<T>> promise) {
+		val newStream = new Stream<T>
+		promise
+			.onError[ newStream.error(it) ]
+			.then [ stream(it).forwardTo(newStream) ]
+		newStream
 	}
 
 	// BLOCKING ///////////////////////////////////////////////////////////////	

@@ -847,8 +847,8 @@ public class StreamExtensions {
    * Forward the results of the stream to another stream and start that stream.
    */
   public static <T extends Object> void forwardTo(final Stream<T> stream, final Stream<T> otherStream) {
-    final Procedure1<SyncSubscription<T>> _function = new Procedure1<SyncSubscription<T>>() {
-      public void apply(final SyncSubscription<T> it) {
+    final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
+      public void apply(final AsyncSubscription<T> it) {
         final Procedure1<T> _function = new Procedure1<T>() {
           public void apply(final T it) {
             otherStream.push(it);
@@ -869,7 +869,8 @@ public class StreamExtensions {
         it.finish(_function_2);
       }
     };
-    StreamExtensions.<T>on(stream, _function);
+    final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
+    StreamExtensions.<T, Object>controls(otherStream, subscription);
   }
   
   /**

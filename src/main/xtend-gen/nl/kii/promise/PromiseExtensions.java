@@ -9,6 +9,8 @@ import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
+import nl.kii.stream.Stream;
+import nl.kii.stream.StreamExtensions;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -212,6 +214,31 @@ public class PromiseExtensions {
       }
     };
     _always.then(_function_1);
+  }
+  
+  /**
+   * Create a stream of values out of a Promise of a list. If the promise throws an error,
+   */
+  public static <T extends Object> Stream<T> stream(final Promise<? extends Iterable<T>> promise) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          newStream.error(it);
+        }
+      };
+      Promise<? extends Iterable<T>> _onError = promise.onError(_function);
+      final Procedure1<Iterable<T>> _function_1 = new Procedure1<Iterable<T>>() {
+        public void apply(final Iterable<T> it) {
+          Stream<T> _stream = StreamExtensions.<T>stream(it);
+          StreamExtensions.<T>forwardTo(_stream, newStream);
+        }
+      };
+      _onError.then(_function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**

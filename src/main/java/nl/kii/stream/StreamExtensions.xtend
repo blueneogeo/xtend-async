@@ -517,11 +517,12 @@ class StreamExtensions {
 	 * Forward the results of the stream to another stream and start that stream. 
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
-		stream.on [
+		val subscription = stream.onAsync [
 			each [ otherStream.push(it) ]
 			error [ otherStream.error(it) ]
 			finish [ otherStream.finish ]
 		]
+		otherStream.controls(subscription)
 	}
 	
 	 /**
