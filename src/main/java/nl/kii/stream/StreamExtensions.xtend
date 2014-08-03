@@ -523,6 +523,7 @@ class StreamExtensions {
 			finish [ otherStream.finish ]
 		]
 		otherStream.controls(subscription)
+		subscription.next
 	}
 	
 	 /**

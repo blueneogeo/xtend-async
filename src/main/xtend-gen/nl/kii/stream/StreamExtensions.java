@@ -871,6 +871,7 @@ public class StreamExtensions {
     };
     final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
     StreamExtensions.<T, Object>controls(otherStream, subscription);
+    subscription.next();
   }
   
   /**

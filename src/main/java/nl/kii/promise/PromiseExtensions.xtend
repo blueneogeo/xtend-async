@@ -142,11 +142,9 @@ class PromiseExtensions {
 
 	/** Forward the events from this promise to another promise of the same type */
 	def static <T> forwardTo(Promise<T> promise, Promise<T> existingPromise) {
-		promise.always [
-			existingPromise.apply(it)
-		].then [
-			// starts listening
-		]
+		promise
+			.always [ existingPromise.apply(it) ]
+			.then [ ] // starts listening
 	}
 	
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
@@ -154,7 +152,7 @@ class PromiseExtensions {
 		val newStream = new Stream<T>
 		promise
 			.onError[ newStream.error(it) ]
-			.then [ stream(it).forwardTo(newStream) ]
+			.then [	stream(it).forwardTo(newStream) ]
 		newStream
 	}
 
