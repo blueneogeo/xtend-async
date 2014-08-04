@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
@@ -69,7 +70,7 @@ public class PromiseExtensions {
       }
     };
     Promise<P> _map = PromiseExtensions.<T, P>map(promise, _function);
-    return PromiseExtensions.<R>flatten(_map);
+    return PromiseExtensions.<R, P>flatten(_map);
   }
   
   /**
@@ -137,12 +138,12 @@ public class PromiseExtensions {
   /**
    * Flattens a promise of a promise to directly a promise.
    */
-  public static <T extends Object> Promise<T> flatten(final Promise<? extends Promise<T>> promise) {
+  public static <T extends Object, T2 extends IPromise<T>> Promise<T> flatten(final Promise<T2> promise) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> newPromise = new Promise<T>(promise);
-      final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
-        public void apply(final Promise<T> it) {
+      final Procedure1<T2> _function = new Procedure1<T2>() {
+        public void apply(final T2 it) {
           final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               newPromise.error(it);
@@ -219,7 +220,7 @@ public class PromiseExtensions {
   /**
    * Create a stream of values out of a Promise of a list. If the promise throws an error,
    */
-  public static <T extends Object> Stream<T> stream(final Promise<? extends Iterable<T>> promise) {
+  public static <T extends Object, T2 extends Iterable<T>> Stream<T> stream(final Promise<T2> promise) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
@@ -228,9 +229,9 @@ public class PromiseExtensions {
           newStream.error(it);
         }
       };
-      Promise<? extends Iterable<T>> _onError = promise.onError(_function);
-      final Procedure1<Iterable<T>> _function_1 = new Procedure1<Iterable<T>>() {
-        public void apply(final Iterable<T> it) {
+      Promise<T2> _onError = promise.onError(_function);
+      final Procedure1<T2> _function_1 = new Procedure1<T2>() {
+        public void apply(final T2 it) {
           Stream<T> _stream = StreamExtensions.<T>stream(it);
           StreamExtensions.<T>forwardTo(_stream, newStream);
         }

@@ -72,7 +72,7 @@ public class TestPromiseExtensions {
     final Promise<Integer> p1 = PromiseExtensions.<Integer>promise(Integer.valueOf(3));
     Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
     final Promise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
-    final Promise<Integer> flattened = PromiseExtensions.<Integer>flatten(p2);
+    final Promise<Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>>flatten(p2);
     StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
   }
   
@@ -85,14 +85,14 @@ public class TestPromiseExtensions {
       }
     };
     Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
-    final Promise<Integer> asynced = PromiseExtensions.<Integer>flatten(_map);
+    final Promise<Integer> asynced = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   
   @Test
   public void testListPromiseToStream() {
     final Promise<List<Integer>> p = PromiseExtensions.<List<Integer>>promise(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
-    Stream<Integer> _stream = PromiseExtensions.<Integer>stream(p);
+    Stream<Integer> _stream = PromiseExtensions.<Integer, List<Integer>>stream(p);
     Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
       public void apply(final Double it) {

@@ -116,7 +116,7 @@ class PromiseExtensions {
 	}
 	
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <T> flatten(Promise<? extends Promise<T>> promise) {
+	def static <T, T2 extends IPromise<T>> flatten(Promise<T2> promise) {
 		val newPromise = new Promise<T>(promise)
 		promise.then [
 			onError [ newPromise.error(it) ] 
@@ -148,7 +148,7 @@ class PromiseExtensions {
 	}
 	
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
-	def static <T> stream(Promise<? extends Iterable<T>> promise) {
+	def static <T, T2 extends Iterable<T>> stream(Promise<T2> promise) {
 		val newStream = new Stream<T>
 		promise
 			.onError[ newStream.error(it) ]

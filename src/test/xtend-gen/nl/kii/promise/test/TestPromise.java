@@ -1,5 +1,6 @@
 package nl.kii.promise.test;
 
+import com.google.common.base.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -238,7 +239,8 @@ public class TestPromise {
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         try {
-          if (true) {
+          boolean _notEquals = (!Objects.equal(it, null));
+          if (_notEquals) {
             throw new Exception("help!");
           }
           return TestPromise.this.addOne((it).intValue());

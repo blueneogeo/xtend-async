@@ -1,6 +1,7 @@
 package nl.kii.stream.test
 
 import java.util.LinkedList
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
@@ -8,7 +9,6 @@ import org.junit.Test
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.Executors
 
 class TestMultiThreadedProcessing {
 
@@ -80,7 +80,7 @@ class TestMultiThreadedProcessing {
 	def throwsError(int i) {
 		async(threads) [|
 			Thread.sleep(100)
-			if(true) throw new Exception('something went wrong')
+			if(threads != null) throw new Exception('something went wrong')
 			return i * i
 		]
 	}

@@ -106,7 +106,7 @@ This will print:
 	[3, 4]
 	[5]
 
-# PROMISE USAGE
+# PROMISES
 
 Promises are a bit like Futures, they represent a promise of a value in the future. This allows you to think of that value as if you already have it, and describe what should happen to it when it arrives. Promises come into their own with asynchronous programming.
 
@@ -156,7 +156,7 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
 
-# STREAM USAGE
+# STREAMS
 
 Streams are like queues that you can listen to. You can push values in, and listen for these incoming values. Like with Promises, you can use operations on streams to transform them. The usage of a stream is almost identical to a promise.
 
@@ -265,6 +265,20 @@ The Observable.onChange method returns a closure that you can call to stop liste
 	stop.apply // stops the listener from responding
 
 # COMBINING STREAMS AND PROMISES
+
+## From a Stream<T> to a Promise<T>
+
+To convert a stream into a promise, you can use stream.first() to promise the first entry from a stream. Often you want to do this when aggregating a stream.
+
+    val Promise<Integer> promise = #[1, 2, 3].stream.average.first // promises 2
+
+## From Promise<List<T>> to a Stream<T>
+
+You can create an asynchronous stream from a list promise. For example:
+
+    val promise = new Promise<List<Integer>>
+    promise.stream.onEach [ println(it) ]
+    promise.set(#[1, 2, 3]) // prints 1 2 and 3 on seperate lines
 
 ## @Async Functions
 

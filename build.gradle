@@ -6,31 +6,30 @@ apply from: 'gradle/xtend.gradle'
  
 repositories {
 	mavenLocal()
-    mavenCentral()
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+	mavenCentral()
 }
 
 dependencies {
-	compile 'com.kimengi.util:xtend-async-annotations:3.0-SNAPSHOT'
+	compile 'com.kimengi.util:xtend-async-annotations:3.1'
 
-    testCompile 'junit:junit:4.+'
+	testCompile 'junit:junit:4.+'
 }
 
 tasks.jar.dependsOn javadoc
 
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-        }
-    }
-    /*
-    repositories {
-        url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-        credentials {
-            username = sona_username
-            password = sona_password
-        }
-    }
-    */
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+		}
+	}
+	/*
+	repositories {
+		url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+		credentials {
+			username = sona_username
+			password = sona_password
+		}
+	}
+	*/
 }

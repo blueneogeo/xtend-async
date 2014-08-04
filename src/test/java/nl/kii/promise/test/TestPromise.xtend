@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Async
 import nl.kii.promise.Promise
+import nl.kii.promise.Task
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -11,7 +12,6 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
-import nl.kii.promise.Task
 
 class TestPromise {
 	
@@ -100,7 +100,7 @@ class TestPromise {
 			.thenAsync [ return addOne ]
 			.thenAsync [ return addOne ]
 			.thenAsync [
-				if(true) throw new Exception('help!') 
+				if(it != null) throw new Exception('help!') 
 				return addOne
 			]
 			.thenAsync [ return addOne ]

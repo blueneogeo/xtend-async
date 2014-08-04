@@ -1,5 +1,6 @@
 package nl.kii.stream.test;
 
+import com.google.common.base.Objects;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -53,14 +54,14 @@ public class TestMultiThreadedProcessing {
         }
       };
       Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(_power2, _function);
-      Promise<Integer> _flatten = PromiseExtensions.<Integer>flatten(_map);
+      Promise<Integer> _flatten = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map);
       final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
         public Promise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
       Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_flatten, _function_1);
-      Promise<Integer> _flatten_1 = PromiseExtensions.<Integer>flatten(_map_1);
+      Promise<Integer> _flatten_1 = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
@@ -201,7 +202,8 @@ public class TestMultiThreadedProcessing {
     final Callable<Integer> _function = new Callable<Integer>() {
       public Integer call() throws Exception {
         Thread.sleep(100);
-        if (true) {
+        boolean _notEquals = (!Objects.equal(TestMultiThreadedProcessing.this.threads, null));
+        if (_notEquals) {
           throw new Exception("something went wrong");
         }
         return Integer.valueOf((i * i));
