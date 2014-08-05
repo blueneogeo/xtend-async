@@ -26,7 +26,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * For it to work correctly, the listeners should be non-blocking.
  */
 @SuppressWarnings("all")
-public class Publisher<T extends Object> extends Actor<T> implements Observable<T> {
+public class Publisher<T extends Object> extends Actor<T> implements Procedure1<T>, Observable<T> {
   @Atomic
   private final AtomicBoolean _publishing = new AtomicBoolean(true);
   

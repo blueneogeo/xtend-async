@@ -16,7 +16,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * <p>
  * For it to work correctly, the listeners should be non-blocking. 
  */
-class Publisher<T> extends Actor<T> implements Observable<T> {
+class Publisher<T> extends Actor<T> implements Procedure1<T>, Observable<T> {
 	
 	@Atomic public val boolean publishing = true
 	@Atomic transient val List<Procedure1<T>> observers 
