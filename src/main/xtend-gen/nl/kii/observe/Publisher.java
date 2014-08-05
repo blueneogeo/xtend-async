@@ -33,6 +33,13 @@ public class Publisher<T extends Object> extends Actor<T> implements Observable<
   @Atomic
   private final transient AtomicReference<List<Procedure1<T>>> _observers = new AtomicReference<List<Procedure1<T>>>();
   
+  public Publisher() {
+  }
+  
+  public Publisher(final boolean isPublishing) {
+    this.setPublishing(Boolean.valueOf(isPublishing));
+  }
+  
   /**
    * Listen for publications from the publisher
    */
