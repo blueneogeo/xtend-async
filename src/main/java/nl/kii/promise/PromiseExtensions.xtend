@@ -42,6 +42,9 @@ class PromiseExtensions {
 	/** When the promise gives a result, call the function that returns another promise and 
 	 * return that promise so you can chain and continue. Any thrown errors will be caught 
 	 * and passed down the chain so you can catch them at the bottom.
+	 * 
+	 * Internally, this method calls flatMap. However you use this method call to indicate
+	 * that the promiseFn will create sideeffects.
 	 * <p>
 	 * Example:
 	 * <pre>
@@ -52,8 +55,11 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <T, R, P extends Promise<R>> Promise<R> thenAsync(Promise<T> promise, (T)=>P promiseFn) {
-		promise.map [ promiseFn.apply(it) ].flatten
+	def static <T, R, P extends IPromise<R>> Promise<R> thenAsync(Promise<T> promise, (T)=>P promiseFn) {
+		promise.flatMap(promiseFn)
+		
+		
+//		promise.map [ promiseFn.apply(it) ].flatten
 //		val p = new Promise<R>
 //		promise
 //			.onError[ 
@@ -86,6 +92,11 @@ class PromiseExtensions {
 	/** Tell the promise it went wrong */
 	def static <T> error(Promise<T> promise, String message) {
 		promise.error(new Exception(message))
+	}
+
+	/** Tell the promise it went wrong, with the cause throwable */
+	def static <T> error(Promise<T> promise, String message, Throwable cause) {
+		promise.error(new Exception(message, cause))
 	}
 
 	// OPERATORS //////////////////////////////////////////////////////////////
@@ -123,6 +134,11 @@ class PromiseExtensions {
 			.then [ newPromise.set(it) ]
 		]
 		newPromise
+	}
+
+	/** Performs a flatmap, which is a combination of map and flatten */	
+	def static <T, R, P extends IPromise<R>> Promise<R> flatMap(Promise<T> promise, (T)=>P promiseFn) {
+		promise.map [ promiseFn.apply(it) ].flatten
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////

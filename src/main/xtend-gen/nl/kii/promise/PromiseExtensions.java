@@ -53,6 +53,9 @@ public class PromiseExtensions {
    * When the promise gives a result, call the function that returns another promise and
    * return that promise so you can chain and continue. Any thrown errors will be caught
    * and passed down the chain so you can catch them at the bottom.
+   * 
+   * Internally, this method calls flatMap. However you use this method call to indicate
+   * that the promiseFn will create sideeffects.
    * <p>
    * Example:
    * <pre>
@@ -63,14 +66,8 @@ public class PromiseExtensions {
    *   .then [ println('success!') ]
    * </pre>
    */
-  public static <T extends Object, R extends Object, P extends Promise<R>> Promise<R> thenAsync(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
-    final Function1<T, P> _function = new Function1<T, P>() {
-      public P apply(final T it) {
-        return promiseFn.apply(it);
-      }
-    };
-    Promise<P> _map = PromiseExtensions.<T, P>map(promise, _function);
-    return PromiseExtensions.<R, P>flatten(_map);
+  public static <T extends Object, R extends Object, P extends IPromise<R>> Promise<R> thenAsync(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
+    return PromiseExtensions.<T, R, P>flatMap(promise, promiseFn);
   }
   
   /**
@@ -87,6 +84,14 @@ public class PromiseExtensions {
    */
   public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message) {
     Exception _exception = new Exception(message);
+    return promise.error(_exception);
+  }
+  
+  /**
+   * Tell the promise it went wrong, with the cause throwable
+   */
+  public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message, final Throwable cause) {
+    Exception _exception = new Exception(message, cause);
     return promise.error(_exception);
   }
   
@@ -162,6 +167,19 @@ public class PromiseExtensions {
       _xblockexpression = newPromise;
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * Performs a flatmap, which is a combination of map and flatten
+   */
+  public static <T extends Object, R extends Object, P extends IPromise<R>> Promise<R> flatMap(final Promise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
+    final Function1<T, P> _function = new Function1<T, P>() {
+      public P apply(final T it) {
+        return promiseFn.apply(it);
+      }
+    };
+    Promise<P> _map = PromiseExtensions.<T, P>map(promise, _function);
+    return PromiseExtensions.<R, P>flatten(_map);
   }
   
   /**

@@ -2,17 +2,14 @@ package nl.kii.async
 import static extension nl.kii.promise.PromiseExtensions.*
 import java.util.Map
 import nl.kii.promise.Task
+import java.util.concurrent.ConcurrentHashMap
 
 /** 
  * Converts a normal Map into an AsyncMap
  */
-class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
+class AsyncMemoryMap<K, V> implements AsyncMap<K, V> {
 	
-	val Map<K, V> map
-	
-	new(Map<K, V> map) {
-		this.map = map
-	}
+	val Map<K, V> map = new ConcurrentHashMap
 	
 	override put(K key, V value) {
 		map.put(key, value)
@@ -26,15 +23,6 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	override remove(K key) {
 		map.remove(key)
 		new Task().complete
-	}
-	
-	override clear() {
-		map.clear
-		new Task().complete
-	}
-	
-	override isEmpty() {
-		map.isEmpty.promise
 	}
 	
 }

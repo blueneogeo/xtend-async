@@ -21,8 +21,4 @@ interface AsyncMap<K, V> {
 	
 	def Task remove(K key)
 	
-	def Task clear()
-	
-	def Promise<Boolean> isEmpty()
-	
 }
