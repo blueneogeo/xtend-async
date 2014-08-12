@@ -32,6 +32,11 @@ class StreamExtensions {
 		new Stream<Map<K, V>>
 	}
 	
+	/** create a stream of pairs */
+	def static <K, V> streamPair(Pair<Class<K>, Class<V>> type) {
+		new Stream<Pair<K, V>>
+	}
+	
 	/** create a stream of a set of data and finish it */
 	def static <T> stream(T... data) {
 		data.iterator.stream
@@ -217,6 +222,14 @@ class StreamExtensions {
 	}
 
 	/**
+	 * Perform mapping of a pair stream using a function that exposes the key and value of
+	 * the incoming value.
+	 */
+	def static <K1, V1, V2> Stream<V2> mapPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>V2 mappingFn) {
+		stream.map [ mappingFn.apply(key, value) ]
+	}
+
+	/**
 	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for.
 	 */
@@ -239,6 +252,14 @@ class StreamExtensions {
 		]
 		newStream.controls(subscription)
 		newStream
+	}
+	
+	/**
+	 * Filter items in a stream to only the ones that the filterFn
+	 * returns a true for.
+	 */
+	def static <K, V> Stream<Pair<K, V>> filter(Stream<Pair<K, V>> stream, (K, V)=>boolean filterFn) {
+		stream.filter [ filterFn.apply(key, value) ]
 	}
 
 	/**
@@ -423,6 +444,8 @@ class StreamExtensions {
 		newStream
 	}
 	
+	// RESOLVING //////////////////////////////////////////////////////////////
+	
 	/** 
 	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
 	 * values, and builds a stream of that.
@@ -484,6 +507,56 @@ class StreamExtensions {
 		newStream
 	}
 	
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream) {
+		stream.resolvePair(1)
+	}
+	
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream, int concurrency) {
+		val newStream = new Stream<Pair<K, V>>
+		val isFinished = new AtomicBoolean(false)
+		val processes = new AtomicInteger(0)
+		val =>void onProcessComplete = [|
+			val open = processes.decrementAndGet
+			if(isFinished.get) {
+				newStream.finish
+			}
+			if(concurrency > open) {
+				stream.next
+			}
+		]
+		stream.onAsync [
+			each [ result |
+				val key = result.key
+				val promise = result.value
+				processes.incrementAndGet
+				promise
+					.onError [
+						newStream.error(it)
+						stream.next
+					]
+					.then [
+						newStream.push(key -> it)
+						onProcessComplete.apply 
+					]
+			]
+			error [
+				newStream.error(it)
+				stream.next
+			]
+			finish [ 
+				if(processes.get == 0) {
+					newStream.finish(level)
+					stream.next
+				} else {
+					// we are still processing, so finish when we are done processing instead
+					isFinished.set(true)
+				}
+			]
+		]
+		stream.next
+		newStream
+	}
+	
 	// STREAM ENDPOINTS ////////////////////////////////////////////////////
 
 	/** 
@@ -495,6 +568,13 @@ class StreamExtensions {
 			each (listener)
 			error [ throw it ]
 		]
+	}
+
+	/**
+	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
+	 */
+	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
+		stream.on [ each [ listener.apply(key, value) ] ]
 	}
 
 	/**
@@ -513,6 +593,18 @@ class StreamExtensions {
 			sub.error [ throw it ]
 		]
 	}
+	
+	/**
+	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
+	 * See resolve() for example of how to use. This version is controlled: the listener gets passed
+	 * the stream and must indicate when it is ready for the next value. It also allows you to skip to
+	 * the next finish.
+	 */
+	def static <K, V> void onEachAsync(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
+		stream.on [ each [ it | listener.apply(key, value, stream) ] ]
+	}
+
+	
 
 	/**
 	 * Forward the results of the stream to another stream and start that stream. 
@@ -631,6 +723,21 @@ class StreamExtensions {
 		]
 		subscription.next
 	}
+
+	def static <K, V> void onEach(AsyncSubscription<Pair<K, V>> subscription, (K, V)=>void listener) {
+		subscription.each [
+			listener.apply(key, value)
+			subscription.next
+		]
+		subscription.next
+	}
+
+	def static <K, V> void onEachAsync(AsyncSubscription<Pair<K, V>> subscription, (K, V, AsyncSubscription<Pair<K, V>>)=>void listener) {
+		subscription.each [
+			listener.apply(key, value, subscription)
+		]
+		subscription.next
+	}	
 
 	// AGGREGATIONS ///////////////////////////////////////////////////////////
 

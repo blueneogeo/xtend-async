@@ -5,7 +5,6 @@ import org.junit.Test
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.StreamPairExtensions.*
 
 class TestStreamPairExt {
 
@@ -21,7 +20,7 @@ class TestStreamPairExt {
 	def void testAsyncWithPairParams() {
 		val p = stream(1->2)
 		val asynced = p
-			.map [ a, b | power2(a + b) ]
+			.mapPair [ a, b | power2(a + b) ]
 			.resolve
 //		val asynced = p.mapAsync [ a, b | power2(a + b) ]
 		asynced.assertStreamEquals(#[9.value, finish])
@@ -32,7 +31,7 @@ class TestStreamPairExt {
 		val p = stream(2)
 		val asynced = p
 			.map [ it -> it * it ] // returns stream(2->4)
-			.map [ key, value | key -> (key + value) * (key + value) ] // returns stream(2->36)
+			.mapPair [ key, value | key -> (key + value) * (key + value) ] // returns stream(2->36)
 		asynced.assertStreamEquals(#[value(2->36), finish])
 	}
 	
@@ -42,7 +41,7 @@ class TestStreamPairExt {
 		val asynced = p
 			.map [ it -> promise(it) ]
 			.resolvePair
-			.map [ key, value | key -> power2(value) ]
+			.mapPair [ key, value | key -> power2(value) ]
 			.resolvePair
 		asynced.assertStreamEquals(#[value(2->4), finish])
 	}
