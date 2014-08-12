@@ -59,18 +59,9 @@ public class PromiseExtensions {
   }
   
   /**
-   * Tell the task it went wrong
-   */
-  public static Task error(final Task task, final String message) {
-    Exception _exception = new Exception(message);
-    Promise<Boolean> _error = task.error(_exception);
-    return ((Task) _error);
-  }
-  
-  /**
    * Tell the promise it went wrong
    */
-  public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message) {
+  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message) {
     Exception _exception = new Exception(message);
     return promise.error(_exception);
   }
@@ -78,7 +69,7 @@ public class PromiseExtensions {
   /**
    * Tell the promise it went wrong, with the cause throwable
    */
-  public static <T extends Object> Promise<T> error(final Promise<T> promise, final String message, final Throwable cause) {
+  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message, final Throwable cause) {
     Exception _exception = new Exception(message, cause);
     return promise.error(_exception);
   }

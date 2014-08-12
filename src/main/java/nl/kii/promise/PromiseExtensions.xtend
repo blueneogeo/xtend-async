@@ -44,18 +44,13 @@ class PromiseExtensions {
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 	
-	/** Tell the task it went wrong */
-	def static error(Task task, String message) {
-		task.error(new Exception(message)) as Task
-	}
-
 	/** Tell the promise it went wrong */
-	def static <T> error(Promise<T> promise, String message) {
+	def static <T> error(IPromise<T> promise, String message) {
 		promise.error(new Exception(message))
 	}
 
 	/** Tell the promise it went wrong, with the cause throwable */
-	def static <T> error(Promise<T> promise, String message, Throwable cause) {
+	def static <T> error(IPromise<T> promise, String message, Throwable cause) {
 		promise.error(new Exception(message, cause))
 	}
 
