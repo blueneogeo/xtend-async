@@ -74,6 +74,13 @@ class PromiseExtensions {
 	}
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
+
+	/** Convert a promise into a task */	
+	def static <T> task(IPromise<Boolean> promise) {
+		val task = new Task
+		promise.forwardTo(task)
+		task
+	}
 	
 	/** 
 	 * Create a new promise from an existing promise, 

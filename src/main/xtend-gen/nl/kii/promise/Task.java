@@ -1,5 +1,6 @@
 package nl.kii.promise;
 
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -12,7 +13,7 @@ public class Task extends Promise<Boolean> {
   public Task() {
   }
   
-  public Task(final Promise<?> parentPromise) {
+  public Task(final IPromise<?> parentPromise) {
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         Task.this.error(it);

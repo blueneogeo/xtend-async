@@ -108,6 +108,19 @@ public class PromiseExtensions {
   }
   
   /**
+   * Convert a promise into a task
+   */
+  public static <T extends Object> Task task(final IPromise<Boolean> promise) {
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      PromiseExtensions.<Boolean>forwardTo(promise, task);
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Create a new promise from an existing promise,
    * that transforms the value of the promise
    * once the existing promise is resolved.

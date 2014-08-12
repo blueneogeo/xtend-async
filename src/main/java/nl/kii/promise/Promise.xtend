@@ -148,7 +148,7 @@ class Task extends Promise<Boolean> {
 	
 	new() { }
 	
-	new(Promise<?> parentPromise) {
+	new(IPromise<?> parentPromise) {
 		parentPromise.onError [ error(it) ]
 	}
 	
