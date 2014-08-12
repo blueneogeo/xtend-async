@@ -3,6 +3,7 @@ package nl.kii.async
 import java.util.Map
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
+import java.util.List
 
 /**
  * An asynchronous version of a Java Map.
@@ -22,7 +23,7 @@ interface AsyncMap<K, V> {
 	
 	def Promise<V> get(K key)
 	
-	def Promise<Map<K, V>> get(K... keys)
+	def Promise<Map<K, V>> get(List<K> keys)
 	
 	def Task remove(K key)
 	

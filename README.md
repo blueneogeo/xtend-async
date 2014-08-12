@@ -1,10 +1,10 @@
 # XTEND-ASYNC
 
-Xtend-async provides asynchronous streams, promises and functions to Xtend. It can be used for any Java-based project, but is specifically built to work well with the Xtend language and Vert.x. It has no runtime dependencies apart from Xtend.
+Xtend-async provides asynchronous streams, promises and functions to Xtend. It can be used for any Java-based project, but is specifically built to work well with the Xtend language. It has no runtime dependencies apart from the small Xtend Java library and Google Guava.
 
-So why was this library built, even though Java8 already has stream support?
+Main features:
 
-- completely non blocking
+- non-blocking and thread-safe 
 - optimized for asynchronous programming
 - integration between promises and streams
 
@@ -21,9 +21,20 @@ Some features are:
 
 # QUICK EXAMPLES
 
+## Doing lots in parallel
+
+	val userIds = 1..1000 // users to load from db
+
+	val users = userIds.distribute(3) [ id | db.loadUser(id) ]
+		.then [ users | assertEquals(1000, users.length) ]
+
+This will allow 3 processes in parallel, but will not start new threads. Instead, the loadUser method returns a Promise<User>. It could look like this:
+
+	def Promise<User> loadUser(int id)
+
 ## Normal Stream Processing
 
-Non-blocking collections:
+Non-blocking collecting:
 
 	#[1, 2, 3].stream
 		.map [ it * 2 ]

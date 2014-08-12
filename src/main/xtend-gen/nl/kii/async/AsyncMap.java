@@ -1,5 +1,6 @@
 package nl.kii.async;
 
+import java.util.List;
 import java.util.Map;
 import nl.kii.promise.Promise;
 import nl.kii.promise.Task;
@@ -22,7 +23,7 @@ public interface AsyncMap<K extends Object, V extends Object> {
   
   public abstract Promise<V> get(final K key);
   
-  public abstract Promise<Map<K, V>> get(final K... keys);
+  public abstract Promise<Map<K, V>> get(final List<K> keys);
   
   public abstract Task remove(final K key);
 }

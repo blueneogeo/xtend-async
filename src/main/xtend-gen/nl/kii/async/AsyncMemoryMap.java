@@ -10,7 +10,6 @@ import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -49,14 +48,14 @@ public class AsyncMemoryMap<K extends Object, V extends Object> implements Async
     return _xblockexpression;
   }
   
-  public Promise<Map<K, V>> get(final K... keys) {
+  public Promise<Map<K, V>> get(final List<K> keys) {
     final Function1<K, Pair<K, V>> _function = new Function1<K, Pair<K, V>>() {
       public Pair<K, V> apply(final K it) {
         V _get = AsyncMemoryMap.this.map.get(it);
         return Pair.<K, V>of(it, _get);
       }
     };
-    List<Pair<K, V>> _map = ListExtensions.<K, Pair<K, V>>map(((List<K>)Conversions.doWrapArray(keys)), _function);
+    List<Pair<K, V>> _map = ListExtensions.<K, Pair<K, V>>map(keys, _function);
     Map<K, V> _map_1 = AsyncMemoryMap.<K, V>toMap(_map);
     return PromiseExtensions.<Map<K, V>>promise(_map_1);
   }

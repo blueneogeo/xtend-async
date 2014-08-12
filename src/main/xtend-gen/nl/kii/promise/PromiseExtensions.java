@@ -52,10 +52,21 @@ public class PromiseExtensions {
   }
   
   /**
-   * create a promise of a pair
+   * Create a promise of a pair
    */
   public static <K extends Object, V extends Object> Promise<Pair<K, V>> promisePair(final Pair<Class<K>, Class<V>> type) {
     return new Promise<Pair<K, V>>();
+  }
+  
+  /**
+   * Distribute work using an asynchronous method
+   */
+  public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<List<R>> distribute(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
+    Stream<T> _stream = StreamExtensions.<T>stream(data);
+    Stream<P> _map = StreamExtensions.<T, P>map(_stream, operationFn);
+    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map);
+    Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
+    return StreamExtensions.<List<R>>first(_collect);
   }
   
   /**
@@ -101,7 +112,7 @@ public class PromiseExtensions {
   /**
    * Convert a promise into a task
    */
-  public static <T extends Object> Task task(final IPromise<Boolean> promise) {
+  public static <T extends Object> Task toTask(final IPromise<Boolean> promise) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
@@ -148,22 +159,37 @@ public class PromiseExtensions {
   }
   
   /**
+   * Maps just the values of a promise of a pair to a new promise
+   */
+  public static <K1 extends Object, V1 extends Object, V2 extends Object> Promise<Pair<K1, V2>> mapValue(final IPromise<Pair<K1, V1>> promise, final Function1<? super V1, ? extends V2> mappingFn) {
+    final Function1<Pair<K1, V1>, Pair<K1, V2>> _function = new Function1<Pair<K1, V1>, Pair<K1, V2>>() {
+      public Pair<K1, V2> apply(final Pair<K1, V1> it) {
+        K1 _key = it.getKey();
+        V1 _value = it.getValue();
+        V2 _apply = mappingFn.apply(_value);
+        return Pair.<K1, V2>of(_key, _apply);
+      }
+    };
+    return PromiseExtensions.<Pair<K1, V1>, Pair<K1, V2>>map(promise, _function);
+  }
+  
+  /**
    * Flattens a promise of a promise to directly a promise.
    */
-  public static <T extends Object, T2 extends IPromise<T>> Promise<T> flatten(final IPromise<T2> promise) {
-    Promise<T> _xblockexpression = null;
+  public static <R extends Object, P extends IPromise<R>> Promise<R> flatten(final IPromise<P> promise) {
+    Promise<R> _xblockexpression = null;
     {
-      final Promise<T> newPromise = new Promise<T>(promise);
-      final Procedure1<T2> _function = new Procedure1<T2>() {
-        public void apply(final T2 it) {
+      final Promise<R> newPromise = new Promise<R>(promise);
+      final Procedure1<P> _function = new Procedure1<P>() {
+        public void apply(final P it) {
           final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               newPromise.error(it);
             }
           };
-          Promise<T> _onError = it.onError(_function);
-          final Procedure1<T> _function_1 = new Procedure1<T>() {
-            public void apply(final T it) {
+          Promise<R> _onError = it.onError(_function);
+          final Procedure1<R> _function_1 = new Procedure1<R>() {
+            public void apply(final R it) {
               newPromise.set(it);
             }
           };
@@ -179,13 +205,13 @@ public class PromiseExtensions {
   /**
    * Same as normal promise resolve, however this time for a pair of a key and a promise.
    */
-  public static <K extends Object, R extends Object, V extends IPromise<R>> Promise<Pair<K, R>> flattenPair(final IPromise<Pair<K, V>> promise) {
+  public static <K extends Object, R extends Object, P extends IPromise<R>> Promise<Pair<K, R>> flattenPair(final IPromise<Pair<K, P>> promise) {
     Promise<Pair<K, R>> _xblockexpression = null;
     {
       final Promise<Pair<K, R>> newPromise = new Promise<Pair<K, R>>(promise);
-      final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
-        public void apply(final Pair<K, V> pair) {
-          V _value = pair.getValue();
+      final Procedure1<Pair<K, P>> _function = new Procedure1<Pair<K, P>>() {
+        public void apply(final Pair<K, P> pair) {
+          P _value = pair.getValue();
           final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               newPromise.error(it);
@@ -233,16 +259,6 @@ public class PromiseExtensions {
     return PromiseExtensions.<R, P>flatten(_map);
   }
   
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(final IPromise<T> promise, final Function1<? super T, ? extends Pair<K, P>> promiseFn) {
-    final Function1<T, Pair<K, P>> _function = new Function1<T, Pair<K, P>>() {
-      public Pair<K, P> apply(final T it) {
-        return promiseFn.apply(it);
-      }
-    };
-    Promise<Pair<K, P>> _map = PromiseExtensions.<T, Pair<K, P>>map(promise, _function);
-    return PromiseExtensions.<K, R, P>flattenPair(_map);
-  }
-  
   public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends Pair<K, P>> promiseFn) {
     final Function1<Pair<K, T>, Pair<K, P>> _function = new Function1<Pair<K, T>, Pair<K, P>>() {
       public Pair<K, P> apply(final Pair<K, T> it) {
@@ -252,6 +268,16 @@ public class PromiseExtensions {
       }
     };
     Promise<Pair<K, P>> _map = PromiseExtensions.<Pair<K, T>, Pair<K, P>>map(promise, _function);
+    return PromiseExtensions.<K, R, P>flattenPair(_map);
+  }
+  
+  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(final IPromise<T> promise, final Function1<? super T, ? extends Pair<K, P>> promiseFn) {
+    final Function1<T, Pair<K, P>> _function = new Function1<T, Pair<K, P>>() {
+      public Pair<K, P> apply(final T it) {
+        return promiseFn.apply(it);
+      }
+    };
+    Promise<Pair<K, P>> _map = PromiseExtensions.<T, Pair<K, P>>map(promise, _function);
     return PromiseExtensions.<K, R, P>flattenPair(_map);
   }
   
@@ -346,6 +372,23 @@ public class PromiseExtensions {
     final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
       public void apply(final Entry<T> it) {
         existingPromise.apply(it);
+      }
+    };
+    Promise<T> _always = promise.always(_function);
+    final Procedure1<T> _function_1 = new Procedure1<T>() {
+      public void apply(final T it) {
+      }
+    };
+    _always.then(_function_1);
+  }
+  
+  /**
+   * Forward the events from this promise to another promise of the same type
+   */
+  public static <T extends Object> void forwardToX(final IPromise<T> promise, final Task task) {
+    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+      public void apply(final Entry<T> it) {
+        task.complete();
       }
     };
     Promise<T> _always = promise.always(_function);

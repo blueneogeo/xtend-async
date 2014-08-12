@@ -37,9 +37,18 @@ class PromiseExtensions {
 //		]
 //	}
 
-	/** create a promise of a pair */
+	/** Create a promise of a pair */
 	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
 		new Promise<Pair<K, V>>
+	}
+
+	/** Distribute work using an asynchronous method */	
+	def static <T, R, P extends IPromise<R>> IPromise<List<R>> distribute(List<T> data, int concurrency, (T)=>P operationFn) {
+		data.stream
+			.map(operationFn) // put each of them
+			.resolve // we get back a pair of the key->value used, and the done result
+			.collect // see it as a list of results
+			.first
 	}
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
@@ -71,7 +80,7 @@ class PromiseExtensions {
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 
 	/** Convert a promise into a task */	
-	def static <T> task(IPromise<Boolean> promise) {
+	def static <T> toTask(IPromise<Boolean> promise) {
 		val task = new Task
 		promise.forwardTo(task)
 		task
@@ -97,10 +106,19 @@ class PromiseExtensions {
 			mappingFn.apply(key, value)
 		]
 	}
+	
+	/**
+	 * Maps just the values of a promise of a pair to a new promise
+	 */
+	def static <K1, V1, V2> mapValue(IPromise<Pair<K1, V1>> promise, (V1)=>V2 mappingFn) {
+		promise.map [ 
+			key -> mappingFn.apply(value)
+		]
+	}
 
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <T, T2 extends IPromise<T>> flatten(IPromise<T2> promise) {
-		val newPromise = new Promise<T>(promise)
+	def static <R, P extends IPromise<R>> flatten(IPromise<P> promise) {
+		val newPromise = new Promise<R>(promise)
 		promise.then [
 			onError [ newPromise.error(it) ] 
 			.then [ newPromise.set(it) ]
@@ -111,7 +129,7 @@ class PromiseExtensions {
 	/**
 	 * Same as normal promise resolve, however this time for a pair of a key and a promise.
 	 */
-	def static <K, R, V extends IPromise<R>> flattenPair(IPromise<Pair<K, V>> promise) {
+	def static <K, R, P extends IPromise<R>> flattenPair(IPromise<Pair<K, P>> promise) {
 		val newPromise = new Promise<Pair<K, R>>(promise)
 		promise.then [ pair |
 			pair.value
@@ -130,12 +148,12 @@ class PromiseExtensions {
 		promise.map [ promiseFn.apply(key, value) ].flatten
 	}
 	
-	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
-		promise.map [ promiseFn.apply(it) ].flattenPair
-	}
-
 	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
 		promise.map [ promiseFn.apply(key, value) ].flattenPair
+	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
+		promise.map [ promiseFn.apply(it) ].flattenPair
 	}
 
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
@@ -175,7 +193,7 @@ class PromiseExtensions {
 	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
 		promise.flatMapPair(promiseFn)
 	}
-
+	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/**
@@ -205,6 +223,14 @@ class PromiseExtensions {
 			.always [ existingPromise.apply(it) ]
 			.then [ ] // starts listening
 	}
+
+	/** Forward the events from this promise to another promise of the same type */
+	def static <T> forwardToX(IPromise<T> promise, Task task) {
+		promise
+			.always [ task.complete ]
+			.then [ ] // starts listening
+	}
+
 
 //	/** Forward the events from this promise to another promise of the same type */
 //	def static <T> forwardTo(IPromise<Boolean> promise, Task existingTask) {

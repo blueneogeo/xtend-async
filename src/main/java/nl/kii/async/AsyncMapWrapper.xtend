@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import nl.kii.promise.Task
 
 import static extension nl.kii.promise.PromiseExtensions.*
+import java.util.List
 
 /** 
  * Converts a normal Map into an AsyncMap
@@ -27,7 +28,7 @@ class AsyncMemoryMap<K, V> implements AsyncMap<K, V> {
 		new Task().complete
 	}
 	
-	override get(K... keys) {
+	override get(List<K> keys) {
 		keys.map[ it->map.get(it) ].toMap.promise
 	}
 	
