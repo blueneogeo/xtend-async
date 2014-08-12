@@ -3,7 +3,7 @@ package nl.kii.stream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import nl.kii.promise.Promise;
+import nl.kii.promise.IPromise;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
@@ -60,7 +60,7 @@ public class StreamAssert {
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(entries, Object.class)), ((Object[])Conversions.unwrapArray(data, Object.class)));
   }
   
-  public static void assertFulfilled(final Promise<Boolean> promise) {
+  public static void assertFulfilled(final IPromise<Boolean> promise) {
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
       }
@@ -70,7 +70,7 @@ public class StreamAssert {
     Assert.assertTrue((_fulfilled).booleanValue());
   }
   
-  public static <T extends Object> void assertPromiseEquals(final Promise<T> promise, final T value) {
+  public static <T extends Object> void assertPromiseEquals(final IPromise<T> promise, final T value) {
     final AtomicReference<T> ref = new AtomicReference<T>();
     final Procedure1<T> _function = new Procedure1<T>() {
       public void apply(final T it) {
@@ -84,7 +84,7 @@ public class StreamAssert {
     Assert.assertEquals(_get, value);
   }
   
-  public static <T extends Object> void assertPromiseEquals(final Promise<List<T>> promise, final List<T> value) {
+  public static <T extends Object> void assertPromiseEquals(final IPromise<List<T>> promise, final List<T> value) {
     final AtomicReference<List<T>> ref = new AtomicReference<List<T>>();
     final Procedure1<List<T>> _function = new Procedure1<List<T>>() {
       public void apply(final List<T> it) {

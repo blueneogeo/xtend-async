@@ -3,7 +3,6 @@ package nl.kii.promise.test
 import org.junit.Test
 
 import static extension nl.kii.promise.PromiseExtensions.*
-import static extension nl.kii.promise.PromisePairExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 
 class TestPromisePairExtensions {
@@ -19,7 +18,9 @@ class TestPromisePairExtensions {
 	@Test
 	def void testAsyncWithPairParams() {
 		val p = (int->int).promisePair << (1->2)
-		val asynced = p.map [ a, b | power2(a + b) ].flatten
+		val asynced = p
+			.map [ a, b | power2(a + b) ]
+			.flatten
 		asynced.assertPromiseEquals(9)
 	}
 	
@@ -37,9 +38,19 @@ class TestPromisePairExtensions {
 		val p = promise(2)
 		val asynced = p
 			.map [ it -> promise(it) ]
-			.resolvePair
+			.flattenPair
 			.map [ key, value | key -> power2(value) ]
-			.resolvePair
+			.flattenPair
+		asynced.assertPromiseEquals(2 -> 4)
+	}
+
+	@Test
+	def void testAsyncPairUsingFlatmap() {
+		val p = promise(2)
+		val asynced = p
+			.flatMapPair [ it -> promise(it) ]
+			.map [ key, value | key -> power2(value) ]
+			.flattenPair
 		asynced.assertPromiseEquals(2 -> 4)
 	}
 

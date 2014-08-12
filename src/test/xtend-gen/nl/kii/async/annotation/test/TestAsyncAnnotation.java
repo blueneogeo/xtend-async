@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.async.annotation.Async;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
@@ -87,7 +88,7 @@ public class TestAsyncAnnotation {
   }
   
   @Async
-  public Promise<Integer> increment(final int number, final Promise<Integer> promise) {
+  public IPromise<Integer> increment(final int number, final Promise<Integer> promise) {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   

@@ -2,7 +2,7 @@ package nl.kii.stream
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import nl.kii.promise.Promise
+import nl.kii.promise.IPromise
 
 import static extension nl.kii.stream.StreamExtensions.*
 
@@ -53,11 +53,11 @@ class StreamPairExtensions {
 		stream.filter [ filterFn.apply(key, value) ]
 	}
 	
-	def static <K, V> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, Promise<V>>> stream) {
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream) {
 		stream.resolvePair(1)
 	}
 	
-	def static <K, V> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, Promise<V>>> stream, int concurrency) {
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream, int concurrency) {
 		val newStream = new Stream<Pair<K, V>>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)

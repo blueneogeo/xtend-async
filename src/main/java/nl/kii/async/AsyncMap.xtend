@@ -1,7 +1,8 @@
 package nl.kii.async
 
-import nl.kii.promise.Task
+import java.util.Map
 import nl.kii.promise.Promise
+import nl.kii.promise.Task
 
 /**
  * An asynchronous version of a Java Map.
@@ -11,7 +12,9 @@ import nl.kii.promise.Promise
  * or to catch any thrown exceptions.
  * <p>
  * Async maps are especially useful representing networked operations, since it allows
- * for slower operations to not block the code and to have a mechanism to catch exceptions. 
+ * for slower operations to not block the code and to have a mechanism to catch exceptions.
+ * <p>
+ * The get for a list of keys is added because it allows the remote implementation to optimize.  
  */
 interface AsyncMap<K, V> {
 	
@@ -19,6 +22,21 @@ interface AsyncMap<K, V> {
 	
 	def Promise<V> get(K key)
 	
+	def Promise<Map<K, V>> get(K... keys)
+	
 	def Task remove(K key)
+	
+}
+
+interface IndexedAsyncMap<V> extends AsyncMap<String, V> {
+
+	/** Add a value on the default index */
+	def Promise<String> add(V value)
+
+	/** Add a value on the specified counter */
+	def Promise<String> add(V value, String counter)
+	
+	/** Generate a new key for the given counter */
+	def Promise<String> newKey(String counter)
 	
 }

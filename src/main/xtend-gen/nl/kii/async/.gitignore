@@ -3,3 +3,6 @@
 /.AsyncMap.java._trace
 /.AsyncMapWrapper.java._trace
 /.AsyncMemoryMap.java._trace
+/.TypedAsyncMap.java._trace
+/.DataStore.java._trace
+/.IndexedAsyncMap.java._trace

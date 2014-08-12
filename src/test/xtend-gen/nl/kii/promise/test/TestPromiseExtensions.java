@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Stream;
@@ -71,7 +72,7 @@ public class TestPromiseExtensions {
   public void testFlatten() {
     final Promise<Integer> p1 = PromiseExtensions.<Integer>promise(Integer.valueOf(3));
     Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
-    final Promise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
+    final IPromise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
     final Promise<Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>>flatten(p2);
     StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
   }

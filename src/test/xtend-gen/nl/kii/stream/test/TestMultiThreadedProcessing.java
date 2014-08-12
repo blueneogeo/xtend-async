@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Stream;
@@ -26,7 +27,7 @@ public class TestMultiThreadedProcessing {
   public void testSimpleAsyncPromise() {
     try {
       final AtomicInteger result = new AtomicInteger();
-      Promise<Integer> _power2 = this.power2(2);
+      IPromise<Integer> _power2 = this.power2(2);
       final Procedure1<Integer> _function = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
@@ -47,21 +48,21 @@ public class TestMultiThreadedProcessing {
   public void testTripleAsyncPromise() {
     try {
       final AtomicInteger result = new AtomicInteger();
-      Promise<Integer> _power2 = this.power2(2);
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      IPromise<Integer> _power2 = this.power2(2);
+      final Function1<Integer, IPromise<Integer>> _function = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(_power2, _function);
-      Promise<Integer> _flatten = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map);
-      final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      Promise<IPromise<Integer>> _map = PromiseExtensions.<Integer, IPromise<Integer>>map(_power2, _function);
+      Promise<Integer> _flatten = PromiseExtensions.<Integer, IPromise<Integer>>flatten(_map);
+      final Function1<Integer, IPromise<Integer>> _function_1 = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Promise<Promise<Integer>> _map_1 = PromiseExtensions.<Integer, Promise<Integer>>map(_flatten, _function_1);
-      Promise<Integer> _flatten_1 = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map_1);
+      Promise<IPromise<Integer>> _map_1 = PromiseExtensions.<Integer, IPromise<Integer>>map(_flatten, _function_1);
+      Promise<Integer> _flatten_1 = PromiseExtensions.<Integer, IPromise<Integer>>flatten(_map_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           result.set((it).intValue());
@@ -87,12 +88,12 @@ public class TestMultiThreadedProcessing {
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
       final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      final Function1<Integer, IPromise<Integer>> _function = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Promise<Integer>> _map = StreamExtensions.<Integer, Promise<Integer>>map(s, _function);
+      Stream<IPromise<Integer>> _map = StreamExtensions.<Integer, IPromise<Integer>>map(s, _function);
       Stream<Integer> _resolve = StreamExtensions.<Integer, Object>resolve(_map, 2);
       final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
         public Integer apply(final Integer it) {
@@ -100,12 +101,12 @@ public class TestMultiThreadedProcessing {
         }
       };
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_resolve, _function_1);
-      final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      final Function1<Integer, IPromise<Integer>> _function_2 = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Promise<Integer>> _map_2 = StreamExtensions.<Integer, Promise<Integer>>map(_map_1, _function_2);
+      Stream<IPromise<Integer>> _map_2 = StreamExtensions.<Integer, IPromise<Integer>>map(_map_1, _function_2);
       Stream<Integer> _resolve_1 = StreamExtensions.<Integer, Object>resolve(_map_2, 3);
       final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
@@ -143,12 +144,12 @@ public class TestMultiThreadedProcessing {
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
       final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-      final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      final Function1<Integer, IPromise<Integer>> _function = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.throwsError((it).intValue());
         }
       };
-      Stream<Promise<Integer>> _map = StreamExtensions.<Integer, Promise<Integer>>map(s, _function);
+      Stream<IPromise<Integer>> _map = StreamExtensions.<Integer, IPromise<Integer>>map(s, _function);
       Stream<Integer> _resolve = StreamExtensions.<Integer, Object>resolve(_map);
       final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
         public Integer apply(final Integer it) {
@@ -156,12 +157,12 @@ public class TestMultiThreadedProcessing {
         }
       };
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_resolve, _function_1);
-      final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-        public Promise<Integer> apply(final Integer it) {
+      final Function1<Integer, IPromise<Integer>> _function_2 = new Function1<Integer, IPromise<Integer>>() {
+        public IPromise<Integer> apply(final Integer it) {
           return TestMultiThreadedProcessing.this.power2((it).intValue());
         }
       };
-      Stream<Promise<Integer>> _map_2 = StreamExtensions.<Integer, Promise<Integer>>map(_map_1, _function_2);
+      Stream<IPromise<Integer>> _map_2 = StreamExtensions.<Integer, IPromise<Integer>>map(_map_1, _function_2);
       Stream<Integer> _resolve_1 = StreamExtensions.<Integer, Object>resolve(_map_2);
       final Procedure1<SyncSubscription<Integer>> _function_3 = new Procedure1<SyncSubscription<Integer>>() {
         public void apply(final SyncSubscription<Integer> it) {
@@ -188,7 +189,7 @@ public class TestMultiThreadedProcessing {
     }
   }
   
-  public Promise<Integer> power2(final int i) {
+  public IPromise<Integer> power2(final int i) {
     final Callable<Integer> _function = new Callable<Integer>() {
       public Integer call() throws Exception {
         Thread.sleep(100);
@@ -198,7 +199,7 @@ public class TestMultiThreadedProcessing {
     return PromiseExtensions.<Integer>async(this.threads, _function);
   }
   
-  public Promise<Integer> throwsError(final int i) {
+  public IPromise<Integer> throwsError(final int i) {
     final Callable<Integer> _function = new Callable<Integer>() {
       public Integer call() throws Exception {
         Thread.sleep(100);

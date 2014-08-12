@@ -81,7 +81,7 @@ public class TestStreamPairExt {
       }
     };
     Stream<Pair<Integer, Promise<Integer>>> _map = StreamExtensions.<Integer, Pair<Integer, Promise<Integer>>>map(p, _function);
-    Stream<Pair<Integer, Integer>> _resolvePair = StreamPairExtensions.<Integer, Integer>resolvePair(_map);
+    Stream<Pair<Integer, Integer>> _resolvePair = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolvePair(_map);
     final Function2<Integer, Integer, Pair<Integer, Promise<Integer>>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer key, final Integer value) {
         Promise<Integer> _power2 = TestStreamPairExt.this.power2((value).intValue());
@@ -89,7 +89,7 @@ public class TestStreamPairExt {
       }
     };
     Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamPairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolvePair, _function_1);
-    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer>resolvePair(_map_1);
+    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolvePair(_map_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
     Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();

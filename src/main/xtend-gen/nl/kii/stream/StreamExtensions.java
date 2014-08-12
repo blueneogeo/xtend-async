@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.CommandSubscription;
@@ -706,7 +707,7 @@ public class StreamExtensions {
    * values, and builds a stream of that.
    * It only asks the next promise from the stream when the previous promise has been resolved.
    */
-  public static <T extends Object, R extends Object> Stream<T> resolve(final Stream<Promise<T>> stream) {
+  public static <T extends Object, R extends Object> Stream<T> resolve(final Stream<? extends IPromise<T>> stream) {
     return StreamExtensions.<T, Object>resolve(stream, 1);
   }
   
@@ -718,7 +719,7 @@ public class StreamExtensions {
    * <p>
    * note: resolving breaks flow control.
    */
-  public static <T extends Object, R extends Object> Stream<T> resolve(final Stream<Promise<T>> stream, final int concurrency) {
+  public static <T extends Object, R extends Object> Stream<T> resolve(final Stream<? extends IPromise<T>> stream, final int concurrency) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
@@ -737,10 +738,10 @@ public class StreamExtensions {
         }
       };
       final Procedure0 onProcessComplete = _function;
-      final Procedure1<AsyncSubscription<Promise<T>>> _function_1 = new Procedure1<AsyncSubscription<Promise<T>>>() {
-        public void apply(final AsyncSubscription<Promise<T>> it) {
-          final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
-            public void apply(final Promise<T> promise) {
+      final Procedure1<AsyncSubscription<? extends IPromise<T>>> _function_1 = new Procedure1<AsyncSubscription<? extends IPromise<T>>>() {
+        public void apply(final AsyncSubscription<? extends IPromise<T>> it) {
+          final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
+            public void apply(final IPromise<T> promise) {
               processes.incrementAndGet();
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
@@ -766,8 +767,8 @@ public class StreamExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Finish<Promise<T>>> _function_2 = new Procedure1<Finish<Promise<T>>>() {
-            public void apply(final Finish<Promise<T>> it) {
+          final Procedure1<Finish<? extends IPromise<T>>> _function_2 = new Procedure1<Finish<? extends IPromise<T>>>() {
+            public void apply(final Finish<? extends IPromise<T>> it) {
               int _get = processes.get();
               boolean _equals = (_get == 0);
               if (_equals) {
@@ -781,7 +782,7 @@ public class StreamExtensions {
           it.finish(_function_2);
         }
       };
-      StreamExtensions.<Promise<T>>onAsync(stream, _function_1);
+      StreamExtensions.onAsync(stream, _function_1);
       stream.next();
       _xblockexpression = newStream;
     }
@@ -877,7 +878,7 @@ public class StreamExtensions {
   /**
    * Start the stream and promise the first value coming from the stream.
    */
-  public static <T extends Object> Promise<T> first(final Stream<T> stream) {
+  public static <T extends Object> IPromise<T> first(final Stream<T> stream) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
@@ -916,7 +917,7 @@ public class StreamExtensions {
    * Start the stream and listen to the first value only.
    */
   public static <T extends Object> void then(final Stream<T> stream, final Procedure1<T> listener) {
-    Promise<T> _first = StreamExtensions.<T>first(stream);
+    IPromise<T> _first = StreamExtensions.<T>first(stream);
     _first.then(listener);
   }
   

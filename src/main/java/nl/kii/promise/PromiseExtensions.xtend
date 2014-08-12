@@ -36,53 +36,13 @@ class PromiseExtensions {
 //			it.fork
 //		]
 //	}
+
+	/** create a promise of a pair */
+	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
+		new Promise<Pair<K, V>>
+	}
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
-	
-	/** When the promise gives a result, call the function that returns another promise and 
-	 * return that promise so you can chain and continue. Any thrown errors will be caught 
-	 * and passed down the chain so you can catch them at the bottom.
-	 * 
-	 * Internally, this method calls flatMap. However you use this method call to indicate
-	 * that the promiseFn will create sideeffects.
-	 * <p>
-	 * Example:
-	 * <pre>
-	 * loadUser
-	 *   .then [ checkCredentialsAsync ]
-	 *   .then [ signinUser ]
-	 *   .onError [ setErrorMessage('could not sign you in') ]
-	 *   .then [ println('success!') ]
-	 * </pre>
-	 */
-	def static <T, R, P extends IPromise<R>> Promise<R> thenAsync(Promise<T> promise, (T)=>P promiseFn) {
-		promise.flatMap(promiseFn)
-		
-		
-//		promise.map [ promiseFn.apply(it) ].flatten
-//		val p = new Promise<R>
-//		promise
-//			.onError[ 
-//				p.error(it)
-//			]
-//			.then [
-//				try {
-//					val returnedPromise = promiseFn.apply(it)
-//					returnedPromise
-//						.onError [ 
-//							p.error(it)
-//						]
-//						.then [ 
-//							p.set(it)
-//						]
-//				} catch(Throwable t) {
-//					// println(t)
-//					p.error(t)
-//				}
-//			]
-//		p
-	}
-
 	
 	/** Tell the task it went wrong */
 	def static error(Task task, String message) {
@@ -102,13 +62,13 @@ class PromiseExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
-	def static <T> operator_doubleGreaterThan(T value, Promise<T> promise) {
+	def static <T> operator_doubleGreaterThan(T value, IPromise<T> promise) {
 		promise.set(value)
 		promise
 	}
 	
 	/** Fulfill a promise */
-	def static <T> operator_doubleLessThan(Promise<T> promise, T value) {
+	def static <T> operator_doubleLessThan(IPromise<T> promise, T value) {
 		promise.set(value)
 		promise
 	}
@@ -120,14 +80,24 @@ class PromiseExtensions {
 	 * that transforms the value of the promise
 	 * once the existing promise is resolved.
 	 */
-	def static <T, R> map(Promise<T> promise, (T)=>R mappingFn) {
+	def static <T, R> map(IPromise<T> promise, (T)=>R mappingFn) {
 		val newPromise = new Promise<R>(promise)
 		promise.then [ newPromise.set(mappingFn.apply(it)) ]
 		newPromise
 	}
 	
+	/**
+	 * Maps a promise of a pair to a new promise, passing the key and value of the incoming
+	 * promise as listener parameters.
+	 */
+	def static <K1, V1, V2> map(IPromise<Pair<K1, V1>> promise, (K1, V1)=>V2 mappingFn) {
+		promise.map [ 
+			mappingFn.apply(key, value)
+		]
+	}
+
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <T, T2 extends IPromise<T>> flatten(Promise<T2> promise) {
+	def static <T, T2 extends IPromise<T>> flatten(IPromise<T2> promise) {
 		val newPromise = new Promise<T>(promise)
 		promise.then [
 			onError [ newPromise.error(it) ] 
@@ -136,35 +106,113 @@ class PromiseExtensions {
 		newPromise
 	}
 
+	/**
+	 * Same as normal promise resolve, however this time for a pair of a key and a promise.
+	 */
+	def static <K, R, V extends IPromise<R>> flattenPair(IPromise<Pair<K, V>> promise) {
+		val newPromise = new Promise<Pair<K, R>>(promise)
+		promise.then [ pair |
+			pair.value
+				.onError [ newPromise.error(it) ] 
+				.then [ newPromise.set(pair.key -> it) ]
+		]
+		newPromise
+	}
+
 	/** Performs a flatmap, which is a combination of map and flatten */	
-	def static <T, R, P extends IPromise<R>> Promise<R> flatMap(Promise<T> promise, (T)=>P promiseFn) {
+	def static <T, R, P extends IPromise<R>> IPromise<R> flatMap(IPromise<T> promise, (T)=>P promiseFn) {
 		promise.map [ promiseFn.apply(it) ].flatten
 	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<R> flatMap(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
+		promise.map [ promiseFn.apply(key, value) ].flatten
+	}
 	
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
+		promise.map [ promiseFn.apply(it) ].flattenPair
+	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
+		promise.map [ promiseFn.apply(key, value) ].flattenPair
+	}
+
+	// ASYNC MAPPING //////////////////////////////////////////////////////////
+	
+	// Note: these are just aliases of flatmap, but used for nicer syntax and to indicate that the operations
+	// may have sideeffects. Flatmap operations should not have sideeffects.
+
+	/** 
+	 * When the promise gives a result, call the function that returns another promise and 
+	 * return that promise so you can chain and continue. Any thrown errors will be caught 
+	 * and passed down the chain so you can catch them at the bottom.
+	 * 
+	 * Internally, this method calls flatMap. However you use this method call to indicate
+	 * that the promiseFn will create sideeffects.
+	 * <p>
+	 * Example:
+	 * <pre>
+	 * loadUser
+	 *   .thenAsync [ checkCredentialsAsync ]
+	 *   .thenAsync [ signinUser ]
+	 *   .onError [ setErrorMessage('could not sign you in') ]
+	 *   .then [ println('success!') ]
+	 * </pre>
+	 */
+	def static <T, R, P extends IPromise<R>> IPromise<R> thenAsync(IPromise<T> promise, (T)=>P promiseFn) {
+		promise.flatMap(promiseFn)
+	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<R> thenAsync(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
+		promise.flatMap(promiseFn)
+	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
+		promise.flatMapPair(promiseFn)
+	}
+
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
+		promise.flatMapPair(promiseFn)
+	}
+
 	// ENDPOINTS //////////////////////////////////////////////////////////////
+	
+	/**
+	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
+	 * See chain2() for example of how to use.
+	 */
+	def static <K, V> then(IPromise<Pair<K, V>> promise, (K, V)=>void listener) {
+		promise.then [ listener.apply(key, value) ]
+	}
 	
 	/** 
 	 * Fork a single promise into a list of promises
 	 * Note that the original promise is then being listened to and you 
 	 * can no longer perform .then and .onError on it.
 	 */
-	def static <T> fork(Promise<T> promise, int amount) {
+	def static <T> fork(IPromise<T> promise, int amount) {
 		val promises = newArrayOfSize(amount)
 		promise
-			.onError [ t | promises.forEach [ Promise<T> p | p.error(t) ] ]
-			.then [ value | promises.forEach [ Promise<T> p | p.set(value) ] ]
+			.onError [ t | promises.forEach [ IPromise<T> p | p.error(t) ] ]
+			.then [ value | promises.forEach [ IPromise<T> p | p.set(value) ] ]
 		promises
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <T> forwardTo(Promise<T> promise, Promise<T> existingPromise) {
+	def static <T> forwardTo(IPromise<T> promise, IPromise<T> existingPromise) {
 		promise
 			.always [ existingPromise.apply(it) ]
 			.then [ ] // starts listening
 	}
+
+//	/** Forward the events from this promise to another promise of the same type */
+//	def static <T> forwardTo(IPromise<Boolean> promise, Task existingTask) {
+//		promise
+//			.always [ existingTask.apply(it) ]
+//			.then [ ] // starts listening
+//	}
 	
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
-	def static <T, T2 extends Iterable<T>> stream(Promise<T2> promise) {
+	def static <T, T2 extends Iterable<T>> stream(IPromise<T2> promise) {
 		val newStream = new Stream<T>
 		promise
 			.onError[ newStream.error(it) ]
@@ -181,7 +229,7 @@ class PromiseExtensions {
 	 * <pre>
 	 * val result = promise.future.get // blocks code until the promise is fulfilled
 	 */
-	def static <T> Future<T> future(Promise<T> promise) {
+	def static <T> Future<T> future(IPromise<T> promise) {
 		new PromiseFuture(promise)
 	}
 
@@ -194,7 +242,7 @@ class PromiseExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> Promise<T> async(ExecutorService service, Callable<T> callable) {
+	def static <T> IPromise<T> async(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {

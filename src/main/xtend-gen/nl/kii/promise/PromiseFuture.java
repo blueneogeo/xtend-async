@@ -1,12 +1,13 @@
 package nl.kii.promise;
 
 import com.google.common.util.concurrent.AbstractFuture;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
 public class PromiseFuture<T extends Object> extends AbstractFuture<T> {
-  public PromiseFuture(final Promise<T> promise) {
+  public PromiseFuture(final IPromise<T> promise) {
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         PromiseFuture.this.setException(it);

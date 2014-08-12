@@ -3,7 +3,7 @@ package nl.kii.stream
 import java.util.LinkedList
 import java.util.List
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.promise.Promise
+import nl.kii.promise.IPromise
 
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
@@ -27,19 +27,19 @@ class StreamAssert {
 		assertArrayEquals(entries, data)
 	}
 	
-	def static assertFulfilled(Promise<Boolean> promise) {
+	def static assertFulfilled(IPromise<Boolean> promise) {
 		promise.then[] // force start
 		promise.fulfilled.assertTrue
 	}
 
-	def static <T> assertPromiseEquals(Promise<T> promise, T value) {
+	def static <T> assertPromiseEquals(IPromise<T> promise, T value) {
 		val ref = new AtomicReference<T>
 		promise.then[ ref.set(it) ]
 		promise.fulfilled.assertTrue
 		ref.get.assertEquals(value)
 	}
 
-	def static <T> void assertPromiseEquals(Promise<List<T>> promise, List<T> value) {
+	def static <T> void assertPromiseEquals(IPromise<List<T>> promise, List<T> value) {
 		val ref = new AtomicReference<List<T>>
 		promise.then[ ref.set(it) ]
 		promise.fulfilled.assertTrue

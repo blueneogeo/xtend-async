@@ -63,7 +63,7 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * Constructor for easily creating a child promise
    */
-  public Promise(final Promise<?> parentPromise) {
+  public Promise(final IPromise<?> parentPromise) {
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         Promise.this.error(it);

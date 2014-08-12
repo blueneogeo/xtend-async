@@ -13,6 +13,7 @@ import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.Promise
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import nl.kii.promise.IPromise
 
 class StreamExtensions {
 	
@@ -427,7 +428,7 @@ class StreamExtensions {
 	 * values, and builds a stream of that.
 	 * It only asks the next promise from the stream when the previous promise has been resolved.  
 	 */
-	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream) {
+	def static <T, R> Stream<T> resolve(Stream<? extends IPromise<T>> stream) {
 		stream.resolve(1)
 	}
 
@@ -439,7 +440,7 @@ class StreamExtensions {
 	 * <p>
 	 * note: resolving breaks flow control. 
 	 */
-	def static <T, R> Stream<T> resolve(Stream<Promise<T>> stream, int concurrency) {
+	def static <T, R> Stream<T> resolve(Stream<? extends IPromise<T>> stream, int concurrency) {
 		val newStream = new Stream<T>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
@@ -529,7 +530,7 @@ class StreamExtensions {
 	 /**
 	  * Start the stream and promise the first value coming from the stream.
 	  */
-	def static <T> Promise<T> first(Stream<T> stream) {
+	def static <T> IPromise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
 		val subscription = stream.onAsync [
 			each [

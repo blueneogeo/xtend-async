@@ -8,6 +8,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 interface IPromise<T> extends Procedure1<Entry<T>> {
 	
+	def Boolean getFulfilled()
 	def Entry<T> get()
 	def Promise<T> set(T value)
 	def Promise<T> error(Throwable t)
@@ -45,7 +46,7 @@ class Promise<T> implements IPromise<T> {
 	new(T value) { set(value) }
 	
 	/** Constructor for easily creating a child promise */
-	new(Promise<?> parentPromise) {
+	new(IPromise<?> parentPromise) {
 		parentPromise.onError [ error(it) ]
 	}
 	

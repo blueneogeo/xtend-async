@@ -2,6 +2,7 @@ package nl.kii.stream;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Finish;
@@ -75,11 +76,11 @@ public class StreamPairExtensions {
     return StreamExtensions.<Pair<K, V>>filter(stream, _function);
   }
   
-  public static <K extends Object, V extends Object> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, Promise<V>>> stream) {
-    return StreamPairExtensions.<K, V>resolvePair(stream, 1);
+  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, P>> stream) {
+    return StreamPairExtensions.<K, V, P>resolvePair(stream, 1);
   }
   
-  public static <K extends Object, V extends Object> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, Promise<V>>> stream, final int concurrency) {
+  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, P>> stream, final int concurrency) {
     Stream<Pair<K, V>> _xblockexpression = null;
     {
       final Stream<Pair<K, V>> newStream = new Stream<Pair<K, V>>();
@@ -98,12 +99,12 @@ public class StreamPairExtensions {
         }
       };
       final Procedure0 onProcessComplete = _function;
-      final Procedure1<AsyncSubscription<Pair<K, Promise<V>>>> _function_1 = new Procedure1<AsyncSubscription<Pair<K, Promise<V>>>>() {
-        public void apply(final AsyncSubscription<Pair<K, Promise<V>>> it) {
-          final Procedure1<Pair<K, Promise<V>>> _function = new Procedure1<Pair<K, Promise<V>>>() {
-            public void apply(final Pair<K, Promise<V>> result) {
+      final Procedure1<AsyncSubscription<Pair<K, P>>> _function_1 = new Procedure1<AsyncSubscription<Pair<K, P>>>() {
+        public void apply(final AsyncSubscription<Pair<K, P>> it) {
+          final Procedure1<Pair<K, P>> _function = new Procedure1<Pair<K, P>>() {
+            public void apply(final Pair<K, P> result) {
               final K key = result.getKey();
-              final Promise<V> promise = result.getValue();
+              final P promise = result.getValue();
               processes.incrementAndGet();
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
@@ -130,8 +131,8 @@ public class StreamPairExtensions {
             }
           };
           it.error(_function_1);
-          final Procedure1<Finish<Pair<K, Promise<V>>>> _function_2 = new Procedure1<Finish<Pair<K, Promise<V>>>>() {
-            public void apply(final Finish<Pair<K, Promise<V>>> it) {
+          final Procedure1<Finish<Pair<K, P>>> _function_2 = new Procedure1<Finish<Pair<K, P>>>() {
+            public void apply(final Finish<Pair<K, P>> it) {
               int _get = processes.get();
               boolean _equals = (_get == 0);
               if (_equals) {
@@ -145,7 +146,7 @@ public class StreamPairExtensions {
           it.finish(_function_2);
         }
       };
-      StreamExtensions.<Pair<K, Promise<V>>>onAsync(stream, _function_1);
+      StreamExtensions.<Pair<K, P>>onAsync(stream, _function_1);
       stream.next();
       _xblockexpression = newStream;
     }
