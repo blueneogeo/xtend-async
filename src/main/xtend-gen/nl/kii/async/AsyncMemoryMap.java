@@ -21,7 +21,21 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public class AsyncMemoryMap<K extends Object, V extends Object> implements AsyncMap<K, V> {
-  private final Map<K, V> map = new ConcurrentHashMap<K, V>();
+  private final Map<K, V> map;
+  
+  /**
+   * Create using a new ConcurrentHashMap
+   */
+  public AsyncMemoryMap() {
+    this(new ConcurrentHashMap<K, V>());
+  }
+  
+  /**
+   * Create wrapping your own map
+   */
+  public AsyncMemoryMap(final Map<K, V> myMap) {
+    this.map = myMap;
+  }
   
   public Task put(final K key, final V value) {
     Task _xblockexpression = null;

@@ -12,7 +12,13 @@ import java.util.List
  */
 class AsyncMemoryMap<K, V> implements AsyncMap<K, V> {
 	
-	val Map<K, V> map = new ConcurrentHashMap
+	val Map<K, V> map
+	
+	/** Create using a new ConcurrentHashMap */
+	new() { this(new ConcurrentHashMap) }
+	
+	/** Create wrapping your own map */
+	new(Map<K, V> myMap) { this.map = myMap }
 	
 	override put(K key, V value) {
 		map.put(key, value)
@@ -29,13 +35,13 @@ class AsyncMemoryMap<K, V> implements AsyncMap<K, V> {
 	}
 	
 	override get(List<K> keys) {
-		keys.map[ it->map.get(it) ].toMap.promise
+		keys.map [ it->map.get(it) ].toMap.promise
 	}
 	
 	// copied from xtend-tools/IterableExtensions.toMap
 	private static def <K, V> Map<K, V> toMap(Iterable<Pair<K, V>> pairs) {
 		val map = newHashMap
-		if(pairs != null) pairs.forEach[map.put(key, value)]
+		if(pairs != null) pairs.forEach [ map.put(key, value) ]
 		map
 	}
 	
