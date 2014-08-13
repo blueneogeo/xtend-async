@@ -3,7 +3,7 @@ package nl.kii.stream.test
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
-import static nl.kii.promise.PromiseExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
@@ -238,9 +238,16 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testUntil() {
-		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
+		val s = Long.stream << 1L << 2L << 3L << 4L << finish << 4L << 2L << 5L << 6L << finish
 		val untilled = s.until [ it == 2L ]
-		untilled.assertStreamEquals(#[1L.value, finish, 4L.value, 5L.value, finish])
+		untilled.assertStreamEquals(#[1L.value, finish, 4L.value, finish])
+	}
+
+	@Test
+	def void testUntil2() {
+		val s = Long.stream << 1L << 2L << 3L << 4L << finish << 4L << 2L << 5L << 6L << finish
+		val untilled = s.until [ it == 2L ].collect
+		untilled.assertStreamEquals(#[#[1L].value, #[4L].value])
 	}
 	
 	@Test
@@ -298,6 +305,18 @@ class TestStreamExtensions {
 	def void testFirst() {
 		val s = Integer.stream << 2 << 3 << 4
 		s.first.assertPromiseEquals(2)
+	}
+
+	@Test
+	def void testLast() {
+		val s = (1..1_000_000).stream // will loop a million times upto the last...
+		s.last.assertPromiseEquals(1_000_000)
+	}
+
+	@Test
+	def void testSkipAndTake() {
+		val s = (1..1_000_000_000).stream // will loop only 3 times!
+		s.skip(3).take(3).collect.first.assertPromiseEquals(#[4, 5, 6])
 	}
 	
 	@Test

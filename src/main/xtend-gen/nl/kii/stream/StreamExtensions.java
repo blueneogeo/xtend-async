@@ -1,5 +1,6 @@
 package nl.kii.stream;
 
+import com.google.common.base.Objects;
 import com.google.common.util.concurrent.AtomicDouble;
 import java.util.Collections;
 import java.util.Iterator;
@@ -102,17 +103,17 @@ public class StreamExtensions {
       final Stream<T> stream = new Stream<T>();
       final Procedure0 _function = new Procedure0() {
         public void apply() {
+          boolean _get = finished.get();
+          if (_get) {
+            return;
+          }
           boolean _hasNext = iterator.hasNext();
           if (_hasNext) {
             T _next = iterator.next();
             StreamExtensions.<T>operator_doubleGreaterThan(_next, stream);
           } else {
-            boolean _get = finished.get();
-            boolean _not = (!_get);
-            if (_not) {
-              finished.set(true);
-              stream.finish();
-            }
+            finished.set(true);
+            stream.finish();
           }
         }
       };
@@ -125,6 +126,13 @@ public class StreamExtensions {
             }
           };
           it.onNext(_function);
+          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              finished.set(true);
+              stream.finish();
+            }
+          };
+          it.onSkip(_function_1);
         }
       };
       StreamExtensions.<T>monitor(stream, _function_1);
@@ -424,15 +432,36 @@ public class StreamExtensions {
    * returns a true for.
    */
   public static <T extends Object> Stream<T> filter(final Stream<T> stream, final Function1<? super T, ? extends Boolean> filterFn) {
+    final Function3<T, Long, Long, Boolean> _function = new Function3<T, Long, Long, Boolean>() {
+      public Boolean apply(final T it, final Long index, final Long passed) {
+        return filterFn.apply(it);
+      }
+    };
+    return StreamExtensions.<T>filter(stream, _function);
+  }
+  
+  /**
+   * Filter items in a stream to only the ones that the filterFn
+   * returns a true for. This version also counts the number of
+   * items passed into the stream (the index) and the number of
+   * items passed by this filter so far. Both of these numbers
+   * are reset by a finish.
+   */
+  public static <T extends Object> Stream<T> filter(final Stream<T> stream, final Function3<? super T, ? super Long, ? super Long, ? extends Boolean> filterFn) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
+      final AtomicLong index = new AtomicLong(0);
+      final AtomicLong passed = new AtomicLong(0);
       final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
         public void apply(final AsyncSubscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
-              Boolean _apply = filterFn.apply(it);
+              final long i = index.incrementAndGet();
+              long _get = passed.get();
+              Boolean _apply = filterFn.apply(it, Long.valueOf(i), Long.valueOf(_get));
               if ((_apply).booleanValue()) {
+                passed.incrementAndGet();
                 newStream.push(it);
               } else {
                 stream.next();
@@ -448,6 +477,8 @@ public class StreamExtensions {
           it.error(_function_1);
           final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
+              index.set(0);
+              passed.set(0);
               newStream.finish(it.level);
             }
           };
@@ -656,15 +687,34 @@ public class StreamExtensions {
    * stream matches the untilFn, that value will not be passed.
    */
   public static <T extends Object> Stream<T> until(final Stream<T> stream, final Function1<? super T, ? extends Boolean> untilFn) {
+    final Function3<T, Long, Long, Boolean> _function = new Function3<T, Long, Long, Boolean>() {
+      public Boolean apply(final T it, final Long index, final Long passed) {
+        return untilFn.apply(it);
+      }
+    };
+    return StreamExtensions.<T>until(stream, _function);
+  }
+  
+  /**
+   * Stream until the until condition Fn returns true.
+   * It is exclusive, meaning that if the value from the
+   * stream matches the untilFn, that value will not be passed.
+   */
+  public static <T extends Object> Stream<T> until(final Stream<T> stream, final Function3<? super T, ? super Long, ? super Long, ? extends Boolean> untilFn) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
+      final AtomicLong index = new AtomicLong(0);
+      final AtomicLong passed = new AtomicLong(0);
       final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
         public void apply(final AsyncSubscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
-              Boolean _apply = untilFn.apply(it);
+              final long i = index.incrementAndGet();
+              long _get = passed.get();
+              Boolean _apply = untilFn.apply(it, Long.valueOf(i), Long.valueOf(_get));
               if ((_apply).booleanValue()) {
+                passed.incrementAndGet();
                 stream.skip();
                 stream.next();
               } else {
@@ -681,6 +731,8 @@ public class StreamExtensions {
           it.error(_function_1);
           final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
+              index.set(0);
+              passed.set(0);
               newStream.finish(it.level);
             }
           };
@@ -980,9 +1032,8 @@ public class StreamExtensions {
   
   /**
    * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-   * See resolve() for example of how to use. This version is controlled: the listener gets passed
-   * the stream and must indicate when it is ready for the next value. It also allows you to skip to
-   * the next finish.
+   * This version is controlled: the listener gets passed the stream and must indicate when it is ready
+   * for the next value. It also allows you to skip to the next finish.
    */
   public static <K extends Object, V extends Object> void onEachAsync(final Stream<Pair<K, V>> stream, final Procedure3<? super K, ? super V, ? super Stream<Pair<K, V>>> listener) {
     final Procedure1<SyncSubscription<Pair<K, V>>> _function = new Procedure1<SyncSubscription<Pair<K, V>>>() {
@@ -1070,7 +1121,91 @@ public class StreamExtensions {
   }
   
   /**
-   * Start the stream and listen to the first value only.
+   * Start the stream and promise the first value coming from the stream.
+   * Will keep asking on the stream until it gets to the last value.
+   */
+  public static <T extends Object> IPromise<T> last(final Stream<T> stream) {
+    Promise<T> _xblockexpression = null;
+    {
+      final Promise<T> promise = new Promise<T>();
+      final AtomicReference<T> last = new AtomicReference<T>();
+      final Procedure1<SyncSubscription<T>> _function = new Procedure1<SyncSubscription<T>>() {
+        public void apply(final SyncSubscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
+              if (_not) {
+                last.set(it);
+              }
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
+              if (_not) {
+                promise.error(it);
+              }
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              boolean _and = false;
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
+              if (!_not) {
+                _and = false;
+              } else {
+                T _get = last.get();
+                boolean _notEquals = (!Objects.equal(_get, null));
+                _and = _notEquals;
+              }
+              if (_and) {
+                T _get_1 = last.get();
+                promise.set(_get_1);
+              }
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      StreamExtensions.<T>on(stream, _function);
+      _xblockexpression = promise;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Skip an amount of items from the stream, and process only the ones after that.
+   * Resets at finish.
+   */
+  public static <T extends Object> Stream<T> skip(final Stream<T> stream, final int amount) {
+    final Function3<T, Long, Long, Boolean> _function = new Function3<T, Long, Long, Boolean>() {
+      public Boolean apply(final T it, final Long index, final Long passed) {
+        return Boolean.valueOf(((index).longValue() > amount));
+      }
+    };
+    return StreamExtensions.<T>filter(stream, _function);
+  }
+  
+  /**
+   * Take only a set amount of items from the stream.
+   * Resets at finish.
+   */
+  public static <T extends Object> Stream<T> take(final Stream<T> stream, final int amount) {
+    final Function3<T, Long, Long, Boolean> _function = new Function3<T, Long, Long, Boolean>() {
+      public Boolean apply(final T it, final Long index, final Long passed) {
+        return Boolean.valueOf(((index).longValue() > amount));
+      }
+    };
+    return StreamExtensions.<T>until(stream, _function);
+  }
+  
+  /**
+   * Start the stream and and promise the first value from it.
    */
   public static <T extends Object> void then(final Stream<T> stream, final Procedure1<T> listener) {
     IPromise<T> _first = StreamExtensions.<T>first(stream);

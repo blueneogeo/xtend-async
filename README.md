@@ -21,18 +21,32 @@ Some features are:
 
 # QUICK EXAMPLES
 
-## Doing lots in parallel
+## Asynchronously loading 1000 users in parallel
 
 	val userIds = 1..1000 // users to load from db
 
-	val users = userIds.distribute(3) [ id | db.loadUser(id) ]
+	userIds.distribute(3) [ id | db.loadUser(id) ]
 		.then [ users | assertEquals(1000, users.length) ]
 
-This will allow 3 processes in parallel, but will not start new threads. Instead, the loadUser method returns a Promise<User>. It could look like this:
+This will allow 3 loadUser processes in parallel, but will not start new threads by itself.
 
-	def Promise<User> loadUser(int id)
+It is synonymous for:
 
-## Normal Stream Processing
+	val userIds = 1..1000 // users to load from db
+
+	userIds.stream
+		.map [ id | db.loadUser(id) ]
+		.resolve(3)
+		.collect
+		.then [ users | assertEquals(1000, users.length) ]
+
+The thing to take away here is that loadUser is an asynchronous, non blocking method. In this example it has a signature of:
+
+	def Promise<User> loadUser(id)
+
+Calling this method returns immediately the promise. It might be part of an object that manages its own thread pool. The async stream library does not care. It simply listens for these promises and resolves at most 3 at a time. And when all are resolved, a promise of a List<User> is returned, which can then be listened and responded to.
+
+## Normal Stream Processing Examples
 
 Non-blocking collecting:
 
@@ -71,7 +85,7 @@ Flow control:
 		saveUserAsync(name) [ stream.next ]
 	]
 
-## Async Processing
+## Async Processing Example
 
 	def loadWebpageInBackground(URL url) {
 		val loaded = new Promise<Webpage>
@@ -89,7 +103,7 @@ Flow control:
 
 The loadWebpageInBackground method returns a promise of a webpage for a given url. The stream code then uses that method to set up a pipeline that allows you to push in URLs, which get mapped to a stream of webpage promises, which then get resolved into a stream of webpages, which in turn get printed.
 
-## Non-blocking Aggregation
+## Non-blocking Aggregation Example
 
 Instead of having aggregation such as stream.count and stream.collect block the thread, these streams use finish markers to indicate the end of a stream of data.
 
@@ -102,7 +116,7 @@ This will print:
 
 	got list [1, 2, 3]
 
-## Stream Segmentation
+## Stream Segmentation Example
 
 You can easily split a stream into multiple blocks for aggregation using the .split method:
 
@@ -123,9 +137,11 @@ Promises are a bit like Futures, they represent a promise of a value in the futu
 
 ## Importing the Extensions
 
-Importing the promise extensions:
+Importing the promise extensions, Promise and Task:
 
 	import static extension nl.kii.promise.PromiseExtensions.*
+	import nl.kii.promise.Promise
+	import nl.kii.promise.Task
 
 ## Creating a Promise
 
@@ -166,6 +182,10 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
+
+## Tasks
+
+Tasks are simply an extension of Promise<Boolean>, and represent a task to complete, without a result. To complete a task, you can call Task.complete().
 
 # STREAMS
 

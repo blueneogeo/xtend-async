@@ -57,15 +57,17 @@ class StreamExtensions {
 		val finished = new AtomicBoolean(false)
 		val stream = new Stream<T>
 		val =>void pushNext = [|
+			if(finished.get) return;
 			if(iterator.hasNext) {
 				iterator.next >> stream
-			} else if(!finished.get) {
+			} else {
 				finished.set(true)
 				stream.finish
 			}
 		]
 		stream.monitor [
 			onNext [ pushNext.apply ]
+			onSkip [ finished.set(true) stream.finish ]
 		]
 		pushNext.apply
 		stream
@@ -234,19 +236,36 @@ class StreamExtensions {
 	 * returns a true for.
 	 */
 	def static <T> filter(Stream<T> stream, (T)=>boolean filterFn) {
+		stream.filter [ it, index, passed | filterFn.apply(it) ]
+	}
+
+	/**
+	 * Filter items in a stream to only the ones that the filterFn
+	 * returns a true for. This version also counts the number of
+	 * items passed into the stream (the index) and the number of
+	 * items passed by this filter so far. Both of these numbers
+	 * are reset by a finish.
+	 */
+	def static <T> filter(Stream<T> stream, (T, Long, Long)=>boolean filterFn) {
 		val newStream = new Stream<T>
+		val index = new AtomicLong(0)
+		val passed = new AtomicLong(0)
 		val subscription = stream.onAsync [
 			each [
-				if(filterFn.apply(it)) {
+				val i = index.incrementAndGet
+				if(filterFn.apply(it, i, passed.get)) {
+					passed.incrementAndGet
 					newStream.push(it)
 				} else {
 					stream.next
 				}
 			]
-			error [ 
+			error [
 				newStream.error(it)
 			]
-			finish [ 
+			finish [
+				index.set(0)
+				passed.set(0)
 				newStream.finish(level)
 			]
 		]
@@ -395,10 +414,23 @@ class StreamExtensions {
 	 * stream matches the untilFn, that value will not be passed.
 	 */
 	def static <T> Stream<T> until(Stream<T> stream, (T)=>boolean untilFn) {
+		stream.until [ it, index, passed | untilFn.apply(it) ]
+	}
+
+	/**
+	 * Stream until the until condition Fn returns true. 
+	 * It is exclusive, meaning that if the value from the
+	 * stream matches the untilFn, that value will not be passed.
+	 */
+	def static <T> Stream<T> until(Stream<T> stream, (T, Long, Long)=>boolean untilFn) {
 		val newStream = new Stream<T>
+		val index = new AtomicLong(0)
+		val passed = new AtomicLong(0)	
 		val subscription = stream.onAsync [
 			each [
-				if(untilFn.apply(it)) {
+				val i = index.incrementAndGet
+				if(untilFn.apply(it, i, passed.get)) {
+					passed.incrementAndGet
 					stream.skip
 					stream.next
 				} else {
@@ -408,7 +440,9 @@ class StreamExtensions {
 			error [ 
 				newStream.error(it)
 			]
-			finish [ 
+			finish [
+				index.set(0)
+				passed.set(0)
 				newStream.finish(level)
 			]
 		]
@@ -596,12 +630,15 @@ class StreamExtensions {
 	
 	/**
 	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-	 * See resolve() for example of how to use. This version is controlled: the listener gets passed
-	 * the stream and must indicate when it is ready for the next value. It also allows you to skip to
-	 * the next finish.
+	 * This version is controlled: the listener gets passed the stream and must indicate when it is ready 
+	 * for the next value. It also allows you to skip to the next finish.
 	 */
 	def static <K, V> void onEachAsync(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
-		stream.on [ each [ it | listener.apply(key, value, stream) ] ]
+		stream.on [ 
+			each [ 
+				listener.apply(key, value, stream)
+			]
+		]
 	}
 
 	
@@ -611,9 +648,15 @@ class StreamExtensions {
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
 		val subscription = stream.onAsync [
-			each [ otherStream.push(it) ]
-			error [ otherStream.error(it) ]
-			finish [ otherStream.finish ]
+			each [ 
+				otherStream.push(it)
+			]
+			error [ 
+				otherStream.error(it)
+			]
+			finish [ 
+				otherStream.finish
+			]
 		]
 		otherStream.controls(subscription)
 		subscription.next
@@ -635,9 +678,46 @@ class StreamExtensions {
 	 	subscription.next
 		promise
 	}
+	
+	 /**
+	  * Start the stream and promise the first value coming from the stream.
+	  * Will keep asking on the stream until it gets to the last value.
+	  */
+	def static <T> IPromise<T> last(Stream<T> stream) {
+		val promise = new Promise<T>
+		val last = new AtomicReference<T>
+		stream.on [
+			each [
+				if(!promise.fulfilled) last.set(it)
+			]
+			error [
+				if(!promise.fulfilled) promise.error(it)
+			]
+			finish [
+				if(!promise.fulfilled && last.get != null) promise.set(last.get)
+			]
+		]
+		promise
+	}
 
 	/**
-	 * Start the stream and listen to the first value only.
+	 * Skip an amount of items from the stream, and process only the ones after that.
+	 * Resets at finish.
+	 */
+	def static <T> skip(Stream<T> stream, int amount) {
+		stream.filter [ it, index, passed | index > amount ]
+	}
+
+	/**
+	 * Take only a set amount of items from the stream. 
+	 * Resets at finish.
+	 */
+	def static <T> take(Stream<T> stream, int amount) {
+		stream.until [ it, index, passed | index > amount ]
+	}
+	
+	/**
+	 * Start the stream and and promise the first value from it.
 	 */
 	 def static <T> void then(Stream<T> stream, Procedure1<T> listener) {
 	 	stream.first.then(listener)

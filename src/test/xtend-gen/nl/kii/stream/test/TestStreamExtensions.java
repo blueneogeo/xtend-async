@@ -506,12 +506,15 @@ public class TestStreamExtensions {
     Stream<Long> _doubleLessThan = StreamExtensions.<Long>operator_doubleLessThan(_stream, Long.valueOf(1L));
     Stream<Long> _doubleLessThan_1 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan, Long.valueOf(2L));
     Stream<Long> _doubleLessThan_2 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_1, Long.valueOf(3L));
+    Stream<Long> _doubleLessThan_3 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_2, Long.valueOf(4L));
     Finish<Long> _finish = StreamExtensions.<Long>finish();
-    Stream<Long> _doubleLessThan_3 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_2, _finish);
-    Stream<Long> _doubleLessThan_4 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_3, Long.valueOf(4L));
-    Stream<Long> _doubleLessThan_5 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_4, Long.valueOf(5L));
+    Stream<Long> _doubleLessThan_4 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_3, _finish);
+    Stream<Long> _doubleLessThan_5 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_4, Long.valueOf(4L));
+    Stream<Long> _doubleLessThan_6 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_5, Long.valueOf(2L));
+    Stream<Long> _doubleLessThan_7 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_6, Long.valueOf(5L));
+    Stream<Long> _doubleLessThan_8 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_7, Long.valueOf(6L));
     Finish<Long> _finish_1 = StreamExtensions.<Long>finish();
-    final Stream<Long> s = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
+    final Stream<Long> s = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
     final Function1<Long, Boolean> _function = new Function1<Long, Boolean>() {
       public Boolean apply(final Long it) {
         return Boolean.valueOf(((it).longValue() == 2L));
@@ -521,9 +524,35 @@ public class TestStreamExtensions {
     Value<Long> _value = StreamAssert.<Long>value(Long.valueOf(1L));
     Finish<Long> _finish_2 = StreamExtensions.<Long>finish();
     Value<Long> _value_1 = StreamAssert.<Long>value(Long.valueOf(4L));
-    Value<Long> _value_2 = StreamAssert.<Long>value(Long.valueOf(5L));
     Finish<Long> _finish_3 = StreamExtensions.<Long>finish();
-    StreamAssert.<Long>assertStreamEquals(untilled, Collections.<Entry<Long>>unmodifiableList(CollectionLiterals.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _value_2, _finish_3)));
+    StreamAssert.<Long>assertStreamEquals(untilled, Collections.<Entry<Long>>unmodifiableList(CollectionLiterals.<Entry<Long>>newArrayList(_value, _finish_2, _value_1, _finish_3)));
+  }
+  
+  @Test
+  public void testUntil2() {
+    Stream<Long> _stream = StreamExtensions.<Long>stream(Long.class);
+    Stream<Long> _doubleLessThan = StreamExtensions.<Long>operator_doubleLessThan(_stream, Long.valueOf(1L));
+    Stream<Long> _doubleLessThan_1 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan, Long.valueOf(2L));
+    Stream<Long> _doubleLessThan_2 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_1, Long.valueOf(3L));
+    Stream<Long> _doubleLessThan_3 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_2, Long.valueOf(4L));
+    Finish<Long> _finish = StreamExtensions.<Long>finish();
+    Stream<Long> _doubleLessThan_4 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_3, _finish);
+    Stream<Long> _doubleLessThan_5 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_4, Long.valueOf(4L));
+    Stream<Long> _doubleLessThan_6 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_5, Long.valueOf(2L));
+    Stream<Long> _doubleLessThan_7 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_6, Long.valueOf(5L));
+    Stream<Long> _doubleLessThan_8 = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_7, Long.valueOf(6L));
+    Finish<Long> _finish_1 = StreamExtensions.<Long>finish();
+    final Stream<Long> s = StreamExtensions.<Long>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
+    final Function1<Long, Boolean> _function = new Function1<Long, Boolean>() {
+      public Boolean apply(final Long it) {
+        return Boolean.valueOf(((it).longValue() == 2L));
+      }
+    };
+    Stream<Long> _until = StreamExtensions.<Long>until(s, _function);
+    final Stream<List<Long>> untilled = StreamExtensions.<Long>collect(_until);
+    Value<List<Long>> _value = StreamAssert.<List<Long>>value(Collections.<Long>unmodifiableList(CollectionLiterals.<Long>newArrayList(Long.valueOf(1L))));
+    Value<List<Long>> _value_1 = StreamAssert.<List<Long>>value(Collections.<Long>unmodifiableList(CollectionLiterals.<Long>newArrayList(Long.valueOf(4L))));
+    StreamAssert.<List<Long>>assertStreamEquals(untilled, Collections.<Value<List<Long>>>unmodifiableList(CollectionLiterals.<Value<List<Long>>>newArrayList(_value, _value_1)));
   }
   
   @Test
@@ -646,6 +675,25 @@ public class TestStreamExtensions {
     final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(4));
     IPromise<Integer> _first = StreamExtensions.<Integer>first(s);
     StreamAssert.<Integer>assertPromiseEquals(_first, Integer.valueOf(2));
+  }
+  
+  @Test
+  public void testLast() {
+    IntegerRange _upTo = new IntegerRange(1, 1000000);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    IPromise<Integer> _last = StreamExtensions.<Integer>last(s);
+    StreamAssert.<Integer>assertPromiseEquals(_last, Integer.valueOf(1000000));
+  }
+  
+  @Test
+  public void testSkipAndTake() {
+    IntegerRange _upTo = new IntegerRange(1, 1000000000);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    Stream<Integer> _skip = StreamExtensions.<Integer>skip(s, 3);
+    Stream<Integer> _take = StreamExtensions.<Integer>take(_skip, 3);
+    Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_take);
+    IPromise<List<Integer>> _first = StreamExtensions.<List<Integer>>first(_collect);
+    StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5), Integer.valueOf(6))));
   }
   
   @Test
