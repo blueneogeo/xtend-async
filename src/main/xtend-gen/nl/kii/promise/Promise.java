@@ -106,25 +106,21 @@ public class Promise<T extends Object> implements IPromise<T> {
   }
   
   public void apply(final Entry<T> it) {
-    try {
-      boolean _equals = Objects.equal(it, null);
-      if (_equals) {
-        throw new NullPointerException("cannot promise a null entry");
-      }
-      Boolean _fulfilled = this.getFulfilled();
-      if ((_fulfilled).booleanValue()) {
-        throw new PromiseException(("cannot apply an entry to a completed promise. entry was: " + it));
-      }
-      this.setFulfilled(Boolean.valueOf(true));
-      Procedure1<T> _valueFn = this.getValueFn();
-      boolean _notEquals = (!Objects.equal(_valueFn, null));
-      if (_notEquals) {
-        this.publish(it);
-      } else {
-        this.setEntry(it);
-      }
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
+    Boolean _fulfilled = this.getFulfilled();
+    if ((_fulfilled).booleanValue()) {
+      return;
+    }
+    boolean _equals = Objects.equal(it, null);
+    if (_equals) {
+      throw new NullPointerException("cannot promise a null entry");
+    }
+    this.setFulfilled(Boolean.valueOf(true));
+    Procedure1<T> _valueFn = this.getValueFn();
+    boolean _notEquals = (!Objects.equal(_valueFn, null));
+    if (_notEquals) {
+      this.publish(it);
+    } else {
+      this.setEntry(it);
     }
   }
   

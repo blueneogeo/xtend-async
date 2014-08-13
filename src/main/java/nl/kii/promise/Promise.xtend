@@ -73,8 +73,8 @@ class Promise<T> implements IPromise<T> {
 	}
 	
 	override apply(Entry<T> it) {
+		if(fulfilled) return;
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
-		if(fulfilled) throw new PromiseException('cannot apply an entry to a completed promise. entry was: ' + it)
 		fulfilled = true
 		if(valueFn != null) publish(it) else entry = it
 	}
