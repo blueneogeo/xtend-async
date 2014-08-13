@@ -64,7 +64,7 @@ public class PromiseExtensions {
   public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<List<R>> distribute(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
     Stream<T> _stream = StreamExtensions.<T>stream(data);
     Stream<P> _map = StreamExtensions.<T, P>map(_stream, operationFn);
-    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map);
+    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
     Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
     return StreamExtensions.<List<R>>first(_collect);
   }

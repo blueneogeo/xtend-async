@@ -46,7 +46,7 @@ class PromiseExtensions {
 	def static <T, R, P extends IPromise<R>> IPromise<List<R>> distribute(List<T> data, int concurrency, (T)=>P operationFn) {
 		data.stream
 			.map(operationFn) // put each of them
-			.resolve // we get back a pair of the key->value used, and the done result
+			.resolve(concurrency) // we get back a pair of the key->value used, and the done result
 			.collect // see it as a list of results
 			.first
 	}
