@@ -11,7 +11,7 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 	def Boolean getFulfilled()
 	def Entry<T> get()
 	def Promise<T> set(T value)
-	def Promise<T> error(Throwable t)
+	def void error(Throwable t)
 	
 	def Promise<T> onError(Procedure1<Throwable> errorFn)
 	def Promise<T> always(Procedure1<Entry<T>> resultFn)
@@ -69,7 +69,6 @@ class Promise<T> implements IPromise<T> {
 	/** report an error to the listener of the promise. */
 	override error(Throwable t) {
 		apply(new Error<T>(t))
-		return this
 	}
 	
 	override apply(Entry<T> it) {

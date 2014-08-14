@@ -12,7 +12,7 @@ public interface IPromise<T extends Object> extends Procedure1<Entry<T>> {
   
   public abstract Promise<T> set(final T value);
   
-  public abstract Promise<T> error(final Throwable t);
+  public abstract void error(final Throwable t);
   
   public abstract Promise<T> onError(final Procedure1<Throwable> errorFn);
   

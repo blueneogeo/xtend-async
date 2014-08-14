@@ -99,10 +99,9 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * report an error to the listener of the promise.
    */
-  public Promise<T> error(final Throwable t) {
+  public void error(final Throwable t) {
     nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
     this.apply(_error);
-    return this;
   }
   
   public void apply(final Entry<T> it) {
