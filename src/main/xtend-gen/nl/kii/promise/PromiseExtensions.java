@@ -72,17 +72,17 @@ public class PromiseExtensions {
   /**
    * Tell the promise it went wrong
    */
-  public static <T extends Object> void error(final IPromise<T> promise, final String message) {
+  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message) {
     Exception _exception = new Exception(message);
-    promise.error(_exception);
+    return promise.error(_exception);
   }
   
   /**
    * Tell the promise it went wrong, with the cause throwable
    */
-  public static <T extends Object> void error(final IPromise<T> promise, final String message, final Throwable cause) {
+  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message, final Throwable cause) {
     Exception _exception = new Exception(message, cause);
-    promise.error(_exception);
+    return promise.error(_exception);
   }
   
   /**
