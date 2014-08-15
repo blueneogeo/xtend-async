@@ -112,11 +112,17 @@ public class PromiseExtensions {
   /**
    * Convert a promise into a task
    */
-  public static <T extends Object> Task toTask(final IPromise<Boolean> promise) {
+  public static <T extends Object> Task toTask(final IPromise<T> promise) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
-      PromiseExtensions.<Boolean>forwardTo(promise, task);
+      final Function1<T, Boolean> _function = new Function1<T, Boolean>() {
+        public Boolean apply(final T it) {
+          return Boolean.valueOf(true);
+        }
+      };
+      Promise<Boolean> _map = PromiseExtensions.<T, Boolean>map(promise, _function);
+      PromiseExtensions.<Boolean>forwardTo(_map, task);
       _xblockexpression = task;
     }
     return _xblockexpression;
