@@ -78,7 +78,16 @@ abstract class Actor<T> implements Procedure1<T> {
 	 * processNextAsync call can be called recursively before it breaks out through an exception. 
 	 */
 	val static MAX_PROCESS_DEPTH = 50
+	
+	/**
+	 * The queue of messages waiting to be processed by this actor.
+	 * Must be a threadsafe queue.
+	 */
 	val Queue<T> inbox
+	
+	/**
+	 * Indicates if this actor is busy processing the queue.
+	 */
 	@Atomic val boolean processing = false
 	
 	/** Create a new actor with a concurrentlinkedqueue as inbox */
@@ -106,6 +115,9 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	protected abstract def void act(T message, =>void done)
 
+	/**
+	 * Start processing as many messages as possible before releasing the thread.
+	 */
 	protected def void process() {
 		// this outer loop is for re-entering the process loop after a AtMaxProcessDepth exception is thrown
 		while(!processing && !inbox.empty) {
@@ -123,6 +135,10 @@ abstract class Actor<T> implements Procedure1<T> {
 		}
 	}
 
+	/**
+	 * Process a single message recursively by calling itself until either the inbox is empty,
+	 * or the maximum depth is achieved, in which case an AtMaxProcessDepth exception is thrown.
+	 */
 	protected def void processNextAsync(int depth) {
 		if(depth == 0) throw new AtMaxProcessDepth
 		if(processing) return;
@@ -140,6 +156,9 @@ abstract class Actor<T> implements Procedure1<T> {
 		]
 	}
 	
+	/**
+	 * Get the current inbox. The returned collection is unmodifiable. 
+	 */
 	def getInbox() {
 		inbox.unmodifiableView
 	}

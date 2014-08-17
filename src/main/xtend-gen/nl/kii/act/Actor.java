@@ -86,8 +86,15 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
    */
   private final static int MAX_PROCESS_DEPTH = 50;
   
+  /**
+   * The queue of messages waiting to be processed by this actor.
+   * Must be a threadsafe queue.
+   */
   private final Queue<T> inbox;
   
+  /**
+   * Indicates if this actor is busy processing the queue.
+   */
   @Atomic
   private final AtomicBoolean _processing = new AtomicBoolean(false);
   
@@ -120,6 +127,9 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
    */
   protected abstract void act(final T message, final Procedure0 done);
   
+  /**
+   * Start processing as many messages as possible before releasing the thread.
+   */
   protected void process() {
     while (((!(this.getProcessing()).booleanValue()) && (!this.inbox.isEmpty()))) {
       try {
@@ -137,6 +147,10 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     }
   }
   
+  /**
+   * Process a single message recursively by calling itself until either the inbox is empty,
+   * or the maximum depth is achieved, in which case an AtMaxProcessDepth exception is thrown.
+   */
   protected void processNextAsync(final int depth) {
     try {
       if ((depth == 0)) {
@@ -168,6 +182,9 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     }
   }
   
+  /**
+   * Get the current inbox. The returned collection is unmodifiable.
+   */
   public Collection<T> getInbox() {
     return Collections.<T>unmodifiableCollection(this.inbox);
   }
