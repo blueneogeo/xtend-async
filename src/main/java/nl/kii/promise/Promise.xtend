@@ -127,7 +127,9 @@ class Promise<T> implements IPromise<T> {
 				} 
 				
 			}	
-			Error<T>: if(errorFn != null) errorFn.apply(error)
+			Error<T>: 
+				if(errorFn != null) errorFn.apply(error) 
+				else error.printStackTrace
 			// we do not process Finish<T>
 		}
 		if(resultFn != null) {

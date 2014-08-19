@@ -231,6 +231,8 @@ public class Promise<T extends Object> implements IPromise<T> {
         if (_notEquals) {
           Procedure1<Throwable> _errorFn_1 = this.getErrorFn();
           _errorFn_1.apply(((nl.kii.stream.Error<T>)it).error);
+        } else {
+          ((nl.kii.stream.Error<T>)it).error.printStackTrace();
         }
       }
     }
