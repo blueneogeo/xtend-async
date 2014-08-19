@@ -224,21 +224,6 @@ class PromiseExtensions {
 			.then [ ] // starts listening
 	}
 
-	/** Forward the events from this promise to another promise of the same type */
-	def static <T> forwardToX(IPromise<T> promise, Task task) {
-		promise
-			.always [ task.complete ]
-			.then [ ] // starts listening
-	}
-
-
-//	/** Forward the events from this promise to another promise of the same type */
-//	def static <T> forwardTo(IPromise<Boolean> promise, Task existingTask) {
-//		promise
-//			.always [ existingTask.apply(it) ]
-//			.then [ ] // starts listening
-//	}
-	
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
 	def static <T, T2 extends Iterable<T>> stream(IPromise<T2> promise) {
 		val newStream = new Stream<T>

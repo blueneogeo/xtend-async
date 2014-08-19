@@ -16,6 +16,7 @@ import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
+import nl.kii.promise.Task;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entries;
@@ -967,6 +968,7 @@ public class StreamExtensions {
         final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
           public void apply(final Throwable it) {
             try {
+              it.printStackTrace();
               throw it;
             } catch (Throwable _e) {
               throw Exceptions.sneakyThrow(_e);
@@ -996,6 +998,19 @@ public class StreamExtensions {
       }
     };
     StreamExtensions.<Pair<K, V>>on(stream, _function);
+  }
+  
+  /**
+   * Performs a task for every incoming value.
+   */
+  public static <T extends Object> void onEachAsync(final Stream<T> stream, final Function1<? super T, ? extends Task> listener) {
+    Stream<Task> _map = StreamExtensions.<T, Task>map(stream, listener);
+    Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map);
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+      }
+    };
+    StreamExtensions.<Boolean>onEach(_resolve, _function);
   }
   
   /**

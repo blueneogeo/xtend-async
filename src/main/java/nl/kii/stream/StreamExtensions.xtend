@@ -14,6 +14,7 @@ import nl.kii.observe.Publisher
 import nl.kii.promise.Promise
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import nl.kii.promise.IPromise
+import nl.kii.promise.Task
 
 class StreamExtensions {
 	
@@ -598,9 +599,12 @@ class StreamExtensions {
 	 * note: onEach swallows exceptions in your listener. If you needs error detection/handling, use .on[] instead.
 	 */
 	def static <T> void onEach(Stream<T> stream, (T)=>void listener) {
-		stream.on [ 
+		stream.on [
 			each (listener)
-			error [ throw it ]
+			error [
+				printStackTrace
+				throw it
+			]
 		]
 	}
 
@@ -609,6 +613,15 @@ class StreamExtensions {
 	 */
 	def static <K, V> void onEach(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
 		stream.on [ each [ listener.apply(key, value) ] ]
+	}
+
+	/**
+	 * Performs a task for every incoming value.
+	 */
+	def static <T> void onEachAsync(Stream<T> stream, (T)=>Task listener) {
+		stream.map(listener).resolve.onEach [
+			// just ask for the next 
+		]
 	}
 
 	/**

@@ -389,23 +389,6 @@ public class PromiseExtensions {
   }
   
   /**
-   * Forward the events from this promise to another promise of the same type
-   */
-  public static <T extends Object> void forwardToX(final IPromise<T> promise, final Task task) {
-    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-      public void apply(final Entry<T> it) {
-        task.complete();
-      }
-    };
-    Promise<T> _always = promise.always(_function);
-    final Procedure1<T> _function_1 = new Procedure1<T>() {
-      public void apply(final T it) {
-      }
-    };
-    _always.then(_function_1);
-  }
-  
-  /**
    * Create a stream of values out of a Promise of a list. If the promise throws an error,
    */
   public static <T extends Object, T2 extends Iterable<T>> Stream<T> stream(final IPromise<T2> promise) {
