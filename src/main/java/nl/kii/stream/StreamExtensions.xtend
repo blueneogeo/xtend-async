@@ -832,6 +832,30 @@ class StreamExtensions {
 		subscription.next
 	}	
 
+	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////
+	
+	/** 
+	 * Opposite of collect, fragments each list in the stream into separate
+	 * stream entries and streams those separately.
+	 */
+	def static <T> Stream<T> fragment(Stream<List<T>> stream) {
+		val newStream = new Stream<T>
+		val subscription = stream.onAsync [
+			each [ list |
+				// apply multiple entries at once for a single next
+				val entries = list.map [ new Value(it) ]
+				newStream.apply(new Entries(entries))
+			]
+			error [ 
+				newStream.error(it)
+			]
+			finish [
+				newStream.finish(level)
+			]
+		]
+		newStream.controls(subscription)
+		newStream	}
+
 	// AGGREGATIONS ///////////////////////////////////////////////////////////
 
 	/**

@@ -32,6 +32,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -1377,6 +1378,50 @@ public class StreamExtensions {
     };
     subscription.each(_function);
     subscription.next();
+  }
+  
+  /**
+   * Opposite of collect, fragments each list in the stream into separate
+   * stream entries and streams those separately.
+   */
+  public static <T extends Object> Stream<T> fragment(final Stream<List<T>> stream) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<AsyncSubscription<List<T>>> _function = new Procedure1<AsyncSubscription<List<T>>>() {
+        public void apply(final AsyncSubscription<List<T>> it) {
+          final Procedure1<List<T>> _function = new Procedure1<List<T>>() {
+            public void apply(final List<T> list) {
+              final Function1<T, Value<T>> _function = new Function1<T, Value<T>>() {
+                public Value<T> apply(final T it) {
+                  return new Value<T>(it);
+                }
+              };
+              final List<Value<T>> entries = ListExtensions.<T, Value<T>>map(list, _function);
+              Entries<T> _entries = new Entries<T>(((Entry<T>[])Conversions.unwrapArray(entries, Entry.class)));
+              newStream.apply(_entries);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<List<T>>> _function_2 = new Procedure1<Finish<List<T>>>() {
+            public void apply(final Finish<List<T>> it) {
+              newStream.finish(it.level);
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      final AsyncSubscription<List<T>> subscription = StreamExtensions.<List<T>>onAsync(stream, _function);
+      StreamExtensions.<T, Object>controls(newStream, subscription);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**

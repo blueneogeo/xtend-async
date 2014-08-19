@@ -26,6 +26,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
@@ -588,6 +589,25 @@ public class TestStreamExtensions {
     Stream<Boolean> _anyMatch = StreamExtensions.<Boolean>anyMatch(s, _function);
     final IPromise<Boolean> matches = StreamExtensions.<Boolean>first(_anyMatch);
     StreamAssert.<Boolean>assertPromiseEquals(matches, Boolean.valueOf(false));
+  }
+  
+  @Test
+  public void testFragment() {
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 3) == 0));
+      }
+    };
+    Stream<Integer> _split = StreamExtensions.<Integer>split(s, _function);
+    Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_split);
+    Stream<Integer> _fragment = StreamExtensions.<Integer>fragment(_collect);
+    Stream<List<Integer>> _collect_1 = StreamExtensions.<Integer>collect(_fragment);
+    final IPromise<List<Integer>> matches = StreamExtensions.<List<Integer>>first(_collect_1);
+    IntegerRange _upTo_1 = new IntegerRange(1, 10);
+    List<Integer> _list = IterableExtensions.<Integer>toList(_upTo_1);
+    StreamAssert.<Integer>assertPromiseEquals(matches, _list);
   }
   
   @Test

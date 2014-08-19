@@ -20,20 +20,20 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * Converts a normal Map into an AsyncMap
  */
 @SuppressWarnings("all")
-public class AsyncMemoryMap<K extends Object, V extends Object> implements AsyncMap<K, V> {
+public class AsyncMapWrapper<K extends Object, V extends Object> implements AsyncMap<K, V> {
   private final Map<K, V> map;
   
   /**
    * Create using a new ConcurrentHashMap
    */
-  public AsyncMemoryMap() {
+  public AsyncMapWrapper() {
     this(new ConcurrentHashMap<K, V>());
   }
   
   /**
    * Create wrapping your own map
    */
-  public AsyncMemoryMap(final Map<K, V> myMap) {
+  public AsyncMapWrapper(final Map<K, V> myMap) {
     this.map = myMap;
   }
   
@@ -65,12 +65,12 @@ public class AsyncMemoryMap<K extends Object, V extends Object> implements Async
   public Promise<Map<K, V>> get(final List<K> keys) {
     final Function1<K, Pair<K, V>> _function = new Function1<K, Pair<K, V>>() {
       public Pair<K, V> apply(final K it) {
-        V _get = AsyncMemoryMap.this.map.get(it);
+        V _get = AsyncMapWrapper.this.map.get(it);
         return Pair.<K, V>of(it, _get);
       }
     };
     List<Pair<K, V>> _map = ListExtensions.<K, Pair<K, V>>map(keys, _function);
-    Map<K, V> _map_1 = AsyncMemoryMap.<K, V>toMap(_map);
+    Map<K, V> _map_1 = AsyncMapWrapper.<K, V>toMap(_map);
     return PromiseExtensions.<Map<K, V>>promise(_map_1);
   }
   

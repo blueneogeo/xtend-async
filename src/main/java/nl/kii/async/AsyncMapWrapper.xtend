@@ -10,7 +10,7 @@ import java.util.List
 /** 
  * Converts a normal Map into an AsyncMap
  */
-class AsyncMemoryMap<K, V> implements AsyncMap<K, V> {
+class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	
 	val Map<K, V> map
 	

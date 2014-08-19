@@ -263,6 +263,13 @@ class TestStreamExtensions {
 		val matches = s.anyMatch[it].first
 		matches.assertPromiseEquals(false)
 	}
+	
+	@Test
+	def void testFragment() {
+		val s = (1..10).stream
+		val matches = s.split [ it % 3 == 0 ].collect.fragment.collect.first
+		matches.assertPromiseEquals((1..10).toList)
+	}
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
