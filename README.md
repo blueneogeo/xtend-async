@@ -85,6 +85,26 @@ Flow control:
 		saveUserAsync(name) [ stream.next ]
 	]
 
+## Print all lines with 'Joe' in a file
+
+	new File('example.txt').stream
+		.toText
+		.filter [ contains('Joe') ]
+		.onEach [ println(it) ]
+
+## Copy a file
+
+	new File('example.txt').stream
+		.writeTo(new File('copy.txt'))
+
+## Copy all lines containing Joe to another file
+
+	new File('example.txt').stream
+		.toText
+		.filter [ contains('Joe') ]
+		.toBytes
+		.writeTo(new File('filtered.txt'))
+
 ## Async Processing Example
 
 	def loadWebpageInBackground(URL url) {
@@ -450,6 +470,27 @@ The reverse of split is merge. For example:
 
 	val s = int.stream << 1 << 2 << 3 << 4 << finish(0) << 5 << 6 << 7 << 8 << finish(0) << 9 << 10 << finish(0) << finish(1)
 	val s2 = s.merge // produces stream 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, finish(0)
+
+## File Operations
+
+You can create a Stream<List<Byte>> out of a Java File or any Java OutputStream. Once you have a Stream<List<Byte>> you can use StreamExtensions.writeTo to write it to any output stream or file.
+
+For example, to copy a file:
+
+	val source = new File('source.txt')
+	val destination = new File('destination.txt')
+	
+	source.stream.writeTo(destination)
+
+In order to process it as text, the toText method takes a Stream<List<Byte>> and converts it into a Stream<String>. Each string is a text line. This allows you to easily process per line of text. The reverse is toBytes, which converts from text lines to byte lists.
+
+For example, to copy only the lines in the file that contain the word 'hello':
+
+	source.stream
+		.toText	// now we have lines of text
+		.filter[contains('hello')] // only allow lines with hello
+		.toBytes // now we have byte lists again
+		.writeTo(destination)
 
 # EXTENDING XTEND-STREAM
 
