@@ -5,6 +5,7 @@ import nl.kii.act.Actor
 import nl.kii.observe.Observable
 
 import static com.google.common.collect.Queues.*
+import nl.kii.async.annotation.Atomic
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -23,7 +24,7 @@ import static com.google.common.collect.Queues.*
  */
 class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 
-	var open = true
+	@Atomic public val boolean open = true
 	var listenerReady = false
 	var skipping = false
 

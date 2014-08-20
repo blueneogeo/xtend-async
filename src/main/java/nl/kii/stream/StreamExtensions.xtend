@@ -1,6 +1,12 @@
 package nl.kii.stream
 
+import com.google.common.io.ByteProcessor
+import com.google.common.io.Files
 import com.google.common.util.concurrent.AtomicDouble
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.Iterator
 import java.util.LinkedList
 import java.util.List
@@ -11,10 +17,14 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
-import nl.kii.promise.Promise
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import nl.kii.promise.IPromise
+import nl.kii.promise.Promise
 import nl.kii.promise.Task
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+
+import static extension com.google.common.io.ByteStreams.*
+import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.async.annotation.Async
 
 class StreamExtensions {
 	
@@ -74,6 +84,33 @@ class StreamExtensions {
 		stream
 	}
 	
+	/** stream a standard Java inputstream. closing the stream closes the inputstream. */
+	def static Stream<List<Byte>> stream(InputStream stream) {
+		val newStream = new Stream<List<Byte>>
+		stream.readBytes(new ByteProcessor {
+			
+			override getResult() { newStream.finish null }
+			
+			override processBytes(byte[] buf, int off, int len) throws IOException {
+				if(!newStream.open) return false
+				newStream.push(buf)
+				true
+			}
+			
+		})
+		newStream.monitor [
+			onSkip [ stream.close]
+			onClose [ stream.close ]
+		]
+		newStream
+	}
+
+	/** stream a file as byte blocks. closing the stream closes the file. */	
+	def static Stream<List<Byte>> stream(File file) {
+		val source = Files.asByteSource(file)
+		source.openBufferedStream.stream
+	}
+
 	// OBSERVING //////////////////////////////////////////////////////////////
 
 	/** 
@@ -193,6 +230,9 @@ class StreamExtensions {
 			finish [ 
 				newStream.finish(level)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
@@ -218,6 +258,9 @@ class StreamExtensions {
 				if(level == 0) 
 					counter.set(0) 
 				newStream.finish(level)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -268,6 +311,9 @@ class StreamExtensions {
 				index.set(0)
 				passed.set(0)
 				newStream.finish(level)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -374,6 +420,9 @@ class StreamExtensions {
 					newStream.apply(new Entries(entries))
 				}
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
@@ -396,6 +445,9 @@ class StreamExtensions {
 				if(level > 0)
 					newStream.finish(level - 1)
 				else stream.next
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -446,6 +498,9 @@ class StreamExtensions {
 				passed.set(0)
 				newStream.finish(level)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
@@ -473,6 +528,9 @@ class StreamExtensions {
 			finish [ 
 				count.set(0)
 				newStream.finish(level)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -537,6 +595,9 @@ class StreamExtensions {
 					isFinished.set(true)
 				}
 			]
+			closed [
+				newStream.close
+			]
 		]
 		stream.next
 		newStream
@@ -586,6 +647,9 @@ class StreamExtensions {
 					// we are still processing, so finish when we are done processing instead
 					isFinished.set(true)
 				}
+			]
+			closed [
+				newStream.close
 			]
 		]
 		stream.next
@@ -669,6 +733,9 @@ class StreamExtensions {
 			]
 			finish [ 
 				otherStream.finish
+			]
+			closed [
+				otherStream.close
 			]
 		]
 		otherStream.controls(subscription)
@@ -835,10 +902,10 @@ class StreamExtensions {
 	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////
 	
 	/** 
-	 * Opposite of collect, fragments each list in the stream into separate
+	 * Opposite of collect, separate each list in the stream into separate
 	 * stream entries and streams those separately.
 	 */
-	def static <T> Stream<T> fragment(Stream<List<T>> stream) {
+	def static <T> Stream<T> separate(Stream<List<T>> stream) {
 		val newStream = new Stream<T>
 		val subscription = stream.onAsync [
 			each [ list |
@@ -852,9 +919,13 @@ class StreamExtensions {
 			finish [
 				newStream.finish(level)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
-		newStream	}
+		newStream
+	}
 
 	// AGGREGATIONS ///////////////////////////////////////////////////////////
 
@@ -880,6 +951,9 @@ class StreamExtensions {
 			]
 			error [
 				newStream.error(it)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -908,6 +982,9 @@ class StreamExtensions {
 			]
 			error [
 				newStream.error(it)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -939,6 +1016,9 @@ class StreamExtensions {
 			error [
 				newStream.error(it)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
@@ -965,6 +1045,9 @@ class StreamExtensions {
 			error [
 				newStream.error(it)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
@@ -990,6 +1073,9 @@ class StreamExtensions {
 			]
 			error [
 				newStream.error(it)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -1020,6 +1106,9 @@ class StreamExtensions {
 			]
 			error [
 				newStream.error(it)
+			]
+			closed [
+				newStream.close
 			]
 		]
 		newStream.controls(subscription)
@@ -1054,9 +1143,49 @@ class StreamExtensions {
 			error [
 				newStream.error(it)
 			]
+			closed [
+				newStream.close
+			]
 		]
 		newStream.controls(subscription)
 		newStream
-	 }
+	}
+	
+	// WRITING TO OUTPUT STREAMS AND FILES ///////////////////////////////////
+
+	def static Stream<String> toText(Stream<List<Byte>> stream) {
+		stream.toText('UTF-8')
+	}
+	
+	def static Stream<String> toText(Stream<List<Byte>> stream, String encoding) {
+		stream
+			.map [ new String(it, encoding).split('\n').toList ]
+			.separate
+	}
+	
+	def static Stream<List<Byte>> toBytes(Stream<String> stream) {
+		stream.toBytes('UTF-8')
+	}
+
+	def static Stream<List<Byte>> toBytes(Stream<String> stream, String encoding) {
+		stream
+			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
+	}
+
+	/** write a buffered bytestream to an standard java outputstream */
+	@Async def static void writeTo(Stream<List<Byte>> stream, OutputStream out, Task task) {
+		stream
+			.onClosed [ out.close task.complete ]
+			.onFinish [ if(level == 0) out.close task.complete ]
+			.onError [ task.error(it) ]
+			.onEach [ out.write(it) ]
+	}
+
+	/** write a buffered bytestream to a file */
+	@Async def static void writeTo(Stream<List<Byte>> stream, File file, Task task) {
+		val sink = Files.asByteSink(file)
+		val out = sink.openBufferedStream
+		stream.writeTo(out, task)
+	}
 
 }

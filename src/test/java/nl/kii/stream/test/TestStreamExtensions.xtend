@@ -10,6 +10,7 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.io.File
 
 class TestStreamExtensions {
 
@@ -266,9 +267,13 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testFragment() {
-		val s = (1..10).stream
-		val matches = s.split [ it % 3 == 0 ].collect.fragment.collect.first
-		matches.assertPromiseEquals((1..10).toList)
+		(1..10).stream
+			.split [ it % 3 == 0 ]
+			.collect
+			.separate
+			.collect
+			.first
+			.assertPromiseEquals((1..10).toList)
 	}
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
@@ -339,6 +344,38 @@ class TestStreamExtensions {
 		val s2 = int.stream
 		s1.forwardTo(s2)
 		s2.count.then [ assertEquals(1000000, it, 0) ]
+	}
+	
+	// TEST FILE STREAMING ////////////////////////////////////////////////////
+	
+	@Test
+	def void testFileStreaming() {
+		val file = new File('gradle.properties')
+		file.stream
+			.toText
+			.map [ '- ' + it ]
+			.onFinish [ println('finish') ]
+			.onEach [ println(it) ]
+	}
+	
+	@Test
+	def void testWriteStreamToFile() {
+		val data = #[
+			'Hello,',
+			'This is some text',
+			'Please make this into a nice file!'
+		]
+		data.stream.toBytes.writeTo(new File('test.txt'))
+	}
+	
+	@Test
+	def void testFileCopy() {
+		val source = new File('test.txt')
+		val destination = new File('text2.txt')
+		source.stream.writeTo(destination).then [
+			source.delete
+			destination.delete
+		]
 	}
 	
 }

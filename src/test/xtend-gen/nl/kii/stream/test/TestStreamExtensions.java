@@ -1,5 +1,6 @@
 package nl.kii.stream.test;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.Task;
 import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
@@ -594,20 +596,20 @@ public class TestStreamExtensions {
   @Test
   public void testFragment() {
     IntegerRange _upTo = new IntegerRange(1, 10);
-    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 3) == 0));
       }
     };
-    Stream<Integer> _split = StreamExtensions.<Integer>split(s, _function);
+    Stream<Integer> _split = StreamExtensions.<Integer>split(_stream, _function);
     Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_split);
-    Stream<Integer> _fragment = StreamExtensions.<Integer>fragment(_collect);
-    Stream<List<Integer>> _collect_1 = StreamExtensions.<Integer>collect(_fragment);
-    final IPromise<List<Integer>> matches = StreamExtensions.<List<Integer>>first(_collect_1);
+    Stream<Integer> _separate = StreamExtensions.<Integer>separate(_collect);
+    Stream<List<Integer>> _collect_1 = StreamExtensions.<Integer>collect(_separate);
+    IPromise<List<Integer>> _first = StreamExtensions.<List<Integer>>first(_collect_1);
     IntegerRange _upTo_1 = new IntegerRange(1, 10);
     List<Integer> _list = IterableExtensions.<Integer>toList(_upTo_1);
-    StreamAssert.<Integer>assertPromiseEquals(matches, _list);
+    StreamAssert.<Integer>assertPromiseEquals(_first, _list);
   }
   
   @Test
@@ -745,5 +747,54 @@ public class TestStreamExtensions {
       }
     };
     StreamExtensions.<Long>then(_count, _function);
+  }
+  
+  @Test
+  public void testFileStreaming() {
+    final File file = new File("gradle.properties");
+    Stream<List<Byte>> _stream = StreamExtensions.stream(file);
+    Stream<String> _text = StreamExtensions.toText(_stream);
+    final Function1<String, String> _function = new Function1<String, String>() {
+      public String apply(final String it) {
+        return ("- " + it);
+      }
+    };
+    Stream<String> _map = StreamExtensions.<String, String>map(_text, _function);
+    final Procedure1<Finish<String>> _function_1 = new Procedure1<Finish<String>>() {
+      public void apply(final Finish<String> it) {
+        InputOutput.<String>println("finish");
+      }
+    };
+    AsyncSubscription<String> _onFinish = StreamExtensions.<String>onFinish(_map, _function_1);
+    final Procedure1<String> _function_2 = new Procedure1<String>() {
+      public void apply(final String it) {
+        InputOutput.<String>println(it);
+      }
+    };
+    StreamExtensions.<String>onEach(_onFinish, _function_2);
+  }
+  
+  @Test
+  public void testWriteStreamToFile() {
+    final List<String> data = Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("Hello,", "This is some text", "Please make this into a nice file!"));
+    Stream<String> _stream = StreamExtensions.<String>stream(data);
+    Stream<List<Byte>> _bytes = StreamExtensions.toBytes(_stream);
+    File _file = new File("test.txt");
+    StreamExtensions.writeTo(_bytes, _file);
+  }
+  
+  @Test
+  public void testFileCopy() {
+    final File source = new File("test.txt");
+    final File destination = new File("text2.txt");
+    Stream<List<Byte>> _stream = StreamExtensions.stream(source);
+    Task _writeTo = StreamExtensions.writeTo(_stream, destination);
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        source.delete();
+        destination.delete();
+      }
+    };
+    _writeTo.then(_function);
   }
 }

@@ -1,17 +1,30 @@
 package nl.kii.stream;
 
 import com.google.common.base.Objects;
+import com.google.common.io.ByteProcessor;
+import com.google.common.io.ByteSink;
+import com.google.common.io.ByteSource;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.AtomicDouble;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.annotation.Async;
 import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
@@ -142,6 +155,88 @@ public class StreamExtensions {
       _xblockexpression = stream;
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * stream a standard Java inputstream. closing the stream closes the inputstream.
+   */
+  public static Stream<List<Byte>> stream(final InputStream stream) {
+    try {
+      Stream<List<Byte>> _xblockexpression = null;
+      {
+        final Stream<List<Byte>> newStream = new Stream<List<Byte>>();
+        ByteStreams.<Object>readBytes(stream, new ByteProcessor() {
+          public Object getResult() {
+            Object _xblockexpression = null;
+            {
+              newStream.finish();
+              _xblockexpression = null;
+            }
+            return _xblockexpression;
+          }
+          
+          public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
+            boolean _xblockexpression = false;
+            {
+              Boolean _open = newStream.getOpen();
+              boolean _not = (!(_open).booleanValue());
+              if (_not) {
+                return false;
+              }
+              newStream.push(((List<Byte>)Conversions.doWrapArray(buf)));
+              _xblockexpression = true;
+            }
+            return _xblockexpression;
+          }
+        });
+        final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
+          public void apply(final CommandSubscription it) {
+            final Procedure1<Void> _function = new Procedure1<Void>() {
+              public void apply(final Void it) {
+                try {
+                  stream.close();
+                } catch (Throwable _e) {
+                  throw Exceptions.sneakyThrow(_e);
+                }
+              }
+            };
+            it.onSkip(_function);
+            final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+              public void apply(final Void it) {
+                try {
+                  stream.close();
+                } catch (Throwable _e) {
+                  throw Exceptions.sneakyThrow(_e);
+                }
+              }
+            };
+            it.onClose(_function_1);
+          }
+        };
+        StreamExtensions.<List<Byte>>monitor(newStream, _function);
+        _xblockexpression = newStream;
+      }
+      return _xblockexpression;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  /**
+   * stream a file as byte blocks. closing the stream closes the file.
+   */
+  public static Stream<List<Byte>> stream(final File file) {
+    try {
+      Stream<List<Byte>> _xblockexpression = null;
+      {
+        final ByteSource source = Files.asByteSource(file);
+        BufferedInputStream _openBufferedStream = source.openBufferedStream();
+        _xblockexpression = StreamExtensions.stream(_openBufferedStream);
+      }
+      return _xblockexpression;
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   /**
@@ -361,6 +456,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -405,6 +506,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -485,6 +592,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -620,6 +733,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -662,6 +781,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -739,6 +864,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -785,6 +916,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -872,6 +1009,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       StreamExtensions.onAsync(stream, _function_1);
@@ -949,6 +1092,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       StreamExtensions.<Pair<K, P>>onAsync(stream, _function_1);
@@ -1091,6 +1240,12 @@ public class StreamExtensions {
           }
         };
         it.finish(_function_2);
+        final Procedure0 _function_3 = new Procedure0() {
+          public void apply() {
+            otherStream.close();
+          }
+        };
+        it.closed(_function_3);
       }
     };
     final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1381,10 +1536,10 @@ public class StreamExtensions {
   }
   
   /**
-   * Opposite of collect, fragments each list in the stream into separate
+   * Opposite of collect, separate each list in the stream into separate
    * stream entries and streams those separately.
    */
-  public static <T extends Object> Stream<T> fragment(final Stream<List<T>> stream) {
+  public static <T extends Object> Stream<T> separate(final Stream<List<T>> stream) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
@@ -1415,6 +1570,12 @@ public class StreamExtensions {
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<List<T>> subscription = StreamExtensions.<List<T>>onAsync(stream, _function);
@@ -1462,6 +1623,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1507,6 +1674,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1556,6 +1729,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1599,6 +1778,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1644,6 +1829,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1693,6 +1884,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1744,6 +1941,12 @@ public class StreamExtensions {
             }
           };
           it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
         }
       };
       final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
@@ -1751,5 +1954,168 @@ public class StreamExtensions {
       _xblockexpression = newStream;
     }
     return _xblockexpression;
+  }
+  
+  public static Stream<String> toText(final Stream<List<Byte>> stream) {
+    return StreamExtensions.toText(stream, "UTF-8");
+  }
+  
+  public static Stream<String> toText(final Stream<List<Byte>> stream, final String encoding) {
+    final Function1<List<Byte>, List<String>> _function = new Function1<List<Byte>, List<String>>() {
+      public List<String> apply(final List<Byte> it) {
+        try {
+          String _string = new String(((byte[])Conversions.unwrapArray(it, byte.class)), encoding);
+          String[] _split = _string.split("\n");
+          return IterableExtensions.<String>toList(((Iterable<String>)Conversions.doWrapArray(_split)));
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    Stream<List<String>> _map = StreamExtensions.<List<Byte>, List<String>>map(stream, _function);
+    return StreamExtensions.<String>separate(_map);
+  }
+  
+  public static Stream<List<Byte>> toBytes(final Stream<String> stream) {
+    return StreamExtensions.toBytes(stream, "UTF-8");
+  }
+  
+  public static Stream<List<Byte>> toBytes(final Stream<String> stream, final String encoding) {
+    final Function1<String, List<Byte>> _function = new Function1<String, List<Byte>>() {
+      public List<Byte> apply(final String it) {
+        try {
+          byte[] _bytes = (it + "\n").getBytes(encoding);
+          return ((List<Byte>) Conversions.doWrapArray(_bytes));
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    return StreamExtensions.<String, List<Byte>>map(stream, _function);
+  }
+  
+  /**
+   * write a buffered bytestream to an standard java outputstream
+   */
+  @Async
+  public static void writeTo(final Stream<List<Byte>> stream, final OutputStream out, final Task task) {
+    final Procedure1<Stream<List<Byte>>> _function = new Procedure1<Stream<List<Byte>>>() {
+      public void apply(final Stream<List<Byte>> it) {
+        try {
+          out.close();
+          task.complete();
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    AsyncSubscription<List<Byte>> _onClosed = StreamExtensions.<List<Byte>>onClosed(stream, _function);
+    final Procedure1<Finish<List<Byte>>> _function_1 = new Procedure1<Finish<List<Byte>>>() {
+      public void apply(final Finish<List<Byte>> it) {
+        try {
+          if ((it.level == 0)) {
+            out.close();
+          }
+          task.complete();
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    AsyncSubscription<List<Byte>> _onFinish = StreamExtensions.<List<Byte>>onFinish(_onClosed, _function_1);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        task.error(it);
+      }
+    };
+    AsyncSubscription<List<Byte>> _onError = StreamExtensions.<List<Byte>>onError(_onFinish, _function_2);
+    final Procedure1<List<Byte>> _function_3 = new Procedure1<List<Byte>>() {
+      public void apply(final List<Byte> it) {
+        try {
+          out.write(((byte[])Conversions.unwrapArray(it, byte.class)));
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    StreamExtensions.<List<Byte>>onEach(_onError, _function_3);
+  }
+  
+  /**
+   * write a buffered bytestream to a file
+   */
+  @Async
+  public static void writeTo(final Stream<List<Byte>> stream, final File file, final Task task) {
+    try {
+      final ByteSink sink = Files.asByteSink(file);
+      final BufferedOutputStream out = sink.openBufferedStream();
+      StreamExtensions.writeTo(stream, out, task);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  /**
+   * write a buffered bytestream to an standard java outputstream
+   */
+  public static Task writeTo(final Stream<List<Byte>> stream, final OutputStream out) {
+    final Task task = new Task();
+    try {
+    	writeTo(stream,out,task);
+    } catch(Throwable t) {
+    	task.error(t);
+    } finally {
+    	return task;
+    }
+  }
+  
+  /**
+   * write a buffered bytestream to an standard java outputstream
+   */
+  public static Task writeTo(final Executor executor, final Stream<List<Byte>> stream, final OutputStream out) {
+    final Task task = new Task();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			writeTo(stream,out,task);
+    		} catch(Throwable t) {
+    			task.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return task;
+  }
+  
+  /**
+   * write a buffered bytestream to a file
+   */
+  public static Task writeTo(final Stream<List<Byte>> stream, final File file) {
+    final Task task = new Task();
+    try {
+    	writeTo(stream,file,task);
+    } catch(Throwable t) {
+    	task.error(t);
+    } finally {
+    	return task;
+    }
+  }
+  
+  /**
+   * write a buffered bytestream to a file
+   */
+  public static Task writeTo(final Executor executor, final Stream<List<Byte>> stream, final File file) {
+    final Task task = new Task();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			writeTo(stream,file,task);
+    		} catch(Throwable t) {
+    			task.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return task;
   }
 }
