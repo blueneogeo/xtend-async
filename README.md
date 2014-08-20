@@ -492,6 +492,11 @@ For example, to copy only the lines in the file that contain the word 'hello':
 		.toBytes // now we have byte lists again
 		.writeTo(destination)
 
+Since streams are so generic, writing any text to disk is now very simple and automatically buffered:
+
+	#['hello', 'second line', 'third and done'].stream
+		.toBytes.writeTo(new File('text.txt'))
+
 # EXTENDING XTEND-STREAM
 
 The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.
