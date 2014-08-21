@@ -31,6 +31,7 @@ import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -94,6 +95,25 @@ public class TestStreamExtensions {
     Value<Pair<Integer, String>> _value_1 = StreamAssert.<Pair<Integer, String>>value(_mappedTo_3);
     Finish<Pair<Integer, String>> _finish = StreamExtensions.<Pair<Integer, String>>finish();
     StreamAssert.<Pair<Integer, String>>assertStreamEquals(s2, Collections.<Entry<Pair<Integer, String>>>unmodifiableList(CollectionLiterals.<Entry<Pair<Integer, String>>>newArrayList(_value, _value_1, _finish)));
+  }
+  
+  @Test
+  public void testRandomStream() {
+    IntegerRange _upTo = new IntegerRange(1, 3);
+    final Stream<Integer> s = StreamExtensions.randomStream(_upTo);
+    IntegerRange _upTo_1 = new IntegerRange(1, 1000);
+    for (final Integer i : _upTo_1) {
+      s.next();
+    }
+    Collection<Entry<Integer>> _queue = s.getQueue();
+    int _size = _queue.size();
+    Assert.assertEquals(1000, _size);
+    final Procedure2<Integer, AsyncSubscription<Integer>> _function = new Procedure2<Integer, AsyncSubscription<Integer>>() {
+      public void apply(final Integer it, final AsyncSubscription<Integer> sub) {
+        Assert.assertTrue((((it).intValue() >= 1) && ((it).intValue() <= 3)));
+      }
+    };
+    StreamExtensions.<Integer>onEachAsync(s, _function);
   }
   
   @Test

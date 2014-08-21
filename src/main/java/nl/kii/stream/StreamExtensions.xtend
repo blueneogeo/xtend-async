@@ -11,10 +11,12 @@ import java.util.Iterator
 import java.util.LinkedList
 import java.util.List
 import java.util.Map
+import java.util.Random
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.annotation.Async
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
@@ -24,7 +26,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.async.annotation.Async
 
 class StreamExtensions {
 	
@@ -109,6 +110,19 @@ class StreamExtensions {
 	def static Stream<List<Byte>> stream(File file) {
 		val source = Files.asByteSource(file)
 		source.openBufferedStream.stream
+	}
+	
+	/** create an unending stream of random integers in the range you have given */
+	def static Stream<Integer> randomStream(IntegerRange range) {
+		val randomizer = new Random
+		val newStream = int.stream
+		newStream.monitor [
+			onNext [
+				val next = range.start + randomizer.nextInt(range.size)
+				newStream.push(next)
+			]
+		]
+		newStream
 	}
 
 	// OBSERVING //////////////////////////////////////////////////////////////
@@ -1186,6 +1200,30 @@ class StreamExtensions {
 		val sink = Files.asByteSink(file)
 		val out = sink.openBufferedStream
 		stream.writeTo(out, task)
+	}
+
+	// OTHER //////////////////////////////////////////////////////////////////
+	
+	/** 
+	 * Peek into what values going through the stream chain at this point.
+	 * It is meant as a debugging tool for inspecting the data flowing
+	 * through the stream.
+	 * <p>
+	 * The listener will not modify the stream and only get a view of the
+	 * data passing by. It should never modify the passed reference!
+	 * <p>
+	 * If the listener throws an error, it will be caught and printed,
+	 * and not interrupt the stream or throw an error on the stream.
+	 */
+	def static <T> peek(Stream<T> stream, (T)=>void listener) {
+		stream.map [
+			try {
+				listener.apply(it)
+			} catch(Throwable t) {
+				t.printStackTrace
+			}
+			it
+		]
 	}
 
 }

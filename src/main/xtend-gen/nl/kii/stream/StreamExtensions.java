@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,6 +45,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
+import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -237,6 +239,34 @@ public class StreamExtensions {
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
+  }
+  
+  /**
+   * create an unending stream of random integers in the range you have given
+   */
+  public static Stream<Integer> randomStream(final IntegerRange range) {
+    Stream<Integer> _xblockexpression = null;
+    {
+      final Random randomizer = new Random();
+      final Stream<Integer> newStream = StreamExtensions.<Integer>stream(int.class);
+      final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
+        public void apply(final CommandSubscription it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              int _start = range.getStart();
+              int _size = range.getSize();
+              int _nextInt = randomizer.nextInt(_size);
+              final int next = (_start + _nextInt);
+              newStream.push(Integer.valueOf(next));
+            }
+          };
+          it.onNext(_function);
+        }
+      };
+      StreamExtensions.<Integer>monitor(newStream, _function);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -2053,6 +2083,40 @@ public class StreamExtensions {
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
+  }
+  
+  /**
+   * Peek into what values going through the stream chain at this point.
+   * It is meant as a debugging tool for inspecting the data flowing
+   * through the stream.
+   * <p>
+   * The listener will not modify the stream and only get a view of the
+   * data passing by. It should never modify the passed reference!
+   * <p>
+   * If the listener throws an error, it will be caught and printed,
+   * and not interrupt the stream or throw an error on the stream.
+   */
+  public static <T extends Object> Stream<T> peek(final Stream<T> stream, final Procedure1<? super T> listener) {
+    final Function1<T, T> _function = new Function1<T, T>() {
+      public T apply(final T it) {
+        T _xblockexpression = null;
+        {
+          try {
+            listener.apply(it);
+          } catch (final Throwable _t) {
+            if (_t instanceof Throwable) {
+              final Throwable t = (Throwable)_t;
+              t.printStackTrace();
+            } else {
+              throw Exceptions.sneakyThrow(_t);
+            }
+          }
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    return StreamExtensions.<T, T>map(stream, _function);
   }
   
   /**

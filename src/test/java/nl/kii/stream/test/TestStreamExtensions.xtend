@@ -1,16 +1,16 @@
 package nl.kii.stream.test
 
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
-import static extension nl.kii.promise.PromiseExtensions.*
+import static nl.kii.promise.PromiseExtensions.*
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.io.File
 
 class TestStreamExtensions {
 
@@ -37,6 +37,17 @@ class TestStreamExtensions {
 		val s = map.stream
 		val s2 = s.map[key+1->value]
 		s2.assertStreamEquals(#[value(2->'a'), value(3->'b'), finish])
+	}
+	
+	@Test
+	def void testRandomStream() {
+		val s = (1..3).randomStream
+		// buffer 100 numbers into the stream 
+		for(i : 1..1000) { s.next }
+		// check the buffer size
+		assertEquals(1000, s.queue.size)
+		// process each buffered number
+		s.onEachAsync [ it, sub | assertTrue(it >= 1 && it <= 3) ]
 	}
 	
 	// SUBSCRIPTION BUILDING //////////////////////////////////////////////////
