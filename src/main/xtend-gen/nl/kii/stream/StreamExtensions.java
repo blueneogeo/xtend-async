@@ -506,7 +506,7 @@ public class StreamExtensions {
    * Also passes a counter to count the amount of items passed since
    * the start or the last finish.
    */
-  public static <T extends Object, R extends Object> Stream<R> map(final Stream<T> stream, final Function2<? super T, ? super Long, ? extends R> mappingFn) {
+  public static <T extends Object, R extends Object> Stream<R> mapWithCounter(final Stream<T> stream, final Function2<? super T, ? super Long, ? extends R> mappingFn) {
     Stream<R> _xblockexpression = null;
     {
       final AtomicLong counter = new AtomicLong(0);
@@ -555,7 +555,7 @@ public class StreamExtensions {
    * Perform mapping of a pair stream using a function that exposes the key and value of
    * the incoming value.
    */
-  public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> mapPair(final Stream<Pair<K1, V1>> stream, final Function2<? super K1, ? super V1, ? extends V2> mappingFn) {
+  public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> map(final Stream<Pair<K1, V1>> stream, final Function2<? super K1, ? super V1, ? extends V2> mappingFn) {
     final Function1<Pair<K1, V1>, V2> _function = new Function1<Pair<K1, V1>, V2>() {
       public V2 apply(final Pair<K1, V1> it) {
         K1 _key = it.getKey();
@@ -1054,11 +1054,11 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, P>> stream) {
-    return StreamExtensions.<K, V, P>resolvePair(stream, 1);
+  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(final Stream<Pair<K, P>> stream) {
+    return StreamExtensions.<K, V, P>resolveValue(stream, 1);
   }
   
-  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(final Stream<Pair<K, P>> stream, final int concurrency) {
+  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(final Stream<Pair<K, P>> stream, final int concurrency) {
     Stream<Pair<K, V>> _xblockexpression = null;
     {
       final Stream<Pair<K, V>> newStream = new Stream<Pair<K, V>>();
@@ -2086,6 +2086,30 @@ public class StreamExtensions {
   }
   
   /**
+   * Complete a task when the stream finishes or closes
+   */
+  @Async
+  public static void toTask(final Stream<?> stream, final Task task) {
+    final Procedure1<Stream<?>> _function = new Procedure1<Stream<?>>() {
+      public void apply(final Stream<?> it) {
+        task.complete();
+      }
+    };
+    AsyncSubscription<?> _onClosed = StreamExtensions.onClosed(stream, _function);
+    final Procedure1<Finish<?>> _function_1 = new Procedure1<Finish<?>>() {
+      public void apply(final Finish<?> it) {
+        task.complete();
+      }
+    };
+    AsyncSubscription<?> _onFinish = StreamExtensions.onFinish(_onClosed, _function_1);
+    final Procedure1<Object> _function_2 = new Procedure1<Object>() {
+      public void apply(final Object it) {
+      }
+    };
+    StreamExtensions.onEach(_onFinish, _function_2);
+  }
+  
+  /**
    * Peek into what values going through the stream chain at this point.
    * It is meant as a debugging tool for inspecting the data flowing
    * through the stream.
@@ -2174,6 +2198,38 @@ public class StreamExtensions {
     	public void run() {
     		try {
     			writeTo(stream,file,task);
+    		} catch(Throwable t) {
+    			task.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return task;
+  }
+  
+  /**
+   * Complete a task when the stream finishes or closes
+   */
+  public static Task toTask(final Stream<?> stream) {
+    final Task task = new Task();
+    try {
+    	toTask(stream,task);
+    } catch(Throwable t) {
+    	task.error(t);
+    } finally {
+    	return task;
+    }
+  }
+  
+  /**
+   * Complete a task when the stream finishes or closes
+   */
+  public static Task toTask(final Executor executor, final Stream<?> stream) {
+    final Task task = new Task();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			toTask(stream,task);
     		} catch(Throwable t) {
     			task.error(t);
     		}

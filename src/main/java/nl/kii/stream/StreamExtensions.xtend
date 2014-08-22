@@ -257,7 +257,7 @@ class StreamExtensions {
 	 * Also passes a counter to count the amount of items passed since
 	 * the start or the last finish.
 	 */
-	def static <T, R> map(Stream<T> stream, (T, long)=>R mappingFn) {
+	def static <T, R> mapWithCounter(Stream<T> stream, (T, long)=>R mappingFn) {
 		val counter = new AtomicLong(0)
 		val newStream = new Stream<R>
 		val subscription = stream.onAsync [
@@ -285,7 +285,7 @@ class StreamExtensions {
 	 * Perform mapping of a pair stream using a function that exposes the key and value of
 	 * the incoming value.
 	 */
-	def static <K1, V1, V2> Stream<V2> mapPair(Stream<Pair<K1, V1>> stream, (K1, V1)=>V2 mappingFn) {
+	def static <K1, V1, V2> Stream<V2> map(Stream<Pair<K1, V1>> stream, (K1, V1)=>V2 mappingFn) {
 		stream.map [ mappingFn.apply(key, value) ]
 	}
 
@@ -617,11 +617,11 @@ class StreamExtensions {
 		newStream
 	}
 	
-	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream) {
-		stream.resolvePair(1)
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(Stream<Pair<K, P>> stream) {
+		stream.resolveValue(1)
 	}
 	
-	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolvePair(Stream<Pair<K, P>> stream, int concurrency) {
+	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(Stream<Pair<K, P>> stream, int concurrency) {
 		val newStream = new Stream<Pair<K, V>>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
@@ -1203,7 +1203,15 @@ class StreamExtensions {
 	}
 
 	// OTHER //////////////////////////////////////////////////////////////////
-	
+
+	/** Complete a task when the stream finishes or closes */	
+	@Async def static toTask(Stream<?> stream, Task task) {
+		stream
+			.onClosed [ task.complete ]
+			.onFinish [ task.complete ]
+			.onEach [ /* discard values */ ]
+	}
+		
 	/** 
 	 * Peek into what values going through the stream chain at this point.
 	 * It is meant as a debugging tool for inspecting the data flowing
