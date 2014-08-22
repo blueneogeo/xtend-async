@@ -502,56 +502,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Transform each item in the stream using the passed mappingFn.
-   * Also passes a counter to count the amount of items passed since
-   * the start or the last finish.
-   */
-  public static <T extends Object, R extends Object> Stream<R> mapWithCounter(final Stream<T> stream, final Function2<? super T, ? super Long, ? extends R> mappingFn) {
-    Stream<R> _xblockexpression = null;
-    {
-      final AtomicLong counter = new AtomicLong(0);
-      final Stream<R> newStream = new Stream<R>();
-      final Procedure1<AsyncSubscription<T>> _function = new Procedure1<AsyncSubscription<T>>() {
-        public void apply(final AsyncSubscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              long _incrementAndGet = counter.incrementAndGet();
-              final R mapped = mappingFn.apply(it, Long.valueOf(_incrementAndGet));
-              newStream.push(mapped);
-            }
-          };
-          it.each(_function);
-          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                counter.set(0);
-              }
-              newStream.finish(it.level);
-            }
-          };
-          it.finish(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      final AsyncSubscription<T> subscription = StreamExtensions.<T>onAsync(stream, _function);
-      StreamExtensions.<R, Object>controls(newStream, subscription);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
    * Perform mapping of a pair stream using a function that exposes the key and value of
    * the incoming value.
    */

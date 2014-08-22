@@ -253,35 +253,6 @@ class StreamExtensions {
 	}
 	
 	/**
-	 * Transform each item in the stream using the passed mappingFn.
-	 * Also passes a counter to count the amount of items passed since
-	 * the start or the last finish.
-	 */
-	def static <T, R> mapWithCounter(Stream<T> stream, (T, long)=>R mappingFn) {
-		val counter = new AtomicLong(0)
-		val newStream = new Stream<R>
-		val subscription = stream.onAsync [
-			each [
-				val mapped = mappingFn.apply(it, counter.incrementAndGet)
-				newStream.push(mapped)
-			]
-			error [ 
-				newStream.error(it)
-			]
-			finish [
-				if(level == 0) 
-					counter.set(0) 
-				newStream.finish(level)
-			]
-			closed [
-				newStream.close
-			]
-		]
-		newStream.controls(subscription)
-		newStream
-	}
-
-	/**
 	 * Perform mapping of a pair stream using a function that exposes the key and value of
 	 * the incoming value.
 	 */
