@@ -14,12 +14,12 @@ import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
-import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.Subscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -31,7 +31,6 @@ import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -101,19 +100,21 @@ public class TestStreamExtensions {
   public void testRandomStream() {
     IntegerRange _upTo = new IntegerRange(1, 3);
     final Stream<Integer> s = StreamExtensions.randomStream(_upTo);
+    final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
+      public void apply(final Subscription<Integer> it) {
+        final Procedure1<Integer> _function = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            Assert.assertTrue((((it).intValue() >= 1) && ((it).intValue() <= 3)));
+          }
+        };
+        it.each(_function);
+      }
+    };
+    StreamExtensions.<Integer>on(s, _function);
     IntegerRange _upTo_1 = new IntegerRange(1, 1000);
     for (final Integer i : _upTo_1) {
       s.next();
     }
-    Collection<Entry<Integer>> _queue = s.getQueue();
-    int _size = _queue.size();
-    Assert.assertEquals(1000, _size);
-    final Procedure2<Integer, AsyncSubscription<Integer>> _function = new Procedure2<Integer, AsyncSubscription<Integer>>() {
-      public void apply(final Integer it, final AsyncSubscription<Integer> sub) {
-        Assert.assertTrue((((it).intValue() >= 1) && ((it).intValue() <= 3)));
-      }
-    };
-    StreamExtensions.<Integer>onEachAsync(s, _function);
   }
   
   @Test
@@ -140,13 +141,13 @@ public class TestStreamExtensions {
         errored.set(true);
       }
     };
-    AsyncSubscription<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_2);
+    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_2);
     final Procedure1<Finish<Integer>> _function_3 = new Procedure1<Finish<Integer>>() {
       public void apply(final Finish<Integer> it) {
         finished.set(true);
       }
     };
-    AsyncSubscription<Integer> _onFinish = StreamExtensions.<Integer>onFinish(_onError, _function_3);
+    Subscription<Integer> _onFinish = StreamExtensions.<Integer>onFinish(_onError, _function_3);
     final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         count.incrementAndGet();
@@ -785,7 +786,7 @@ public class TestStreamExtensions {
         InputOutput.<String>println("finish");
       }
     };
-    AsyncSubscription<String> _onFinish = StreamExtensions.<String>onFinish(_map, _function_1);
+    Subscription<String> _onFinish = StreamExtensions.<String>onFinish(_map, _function_1);
     final Procedure1<String> _function_2 = new Procedure1<String>() {
       public void apply(final String it) {
         InputOutput.<String>println(it);
@@ -795,20 +796,16 @@ public class TestStreamExtensions {
   }
   
   @Test
-  public void testWriteStreamToFile() {
+  public void testStreamToFileAndFileCopy() {
     final List<String> data = Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("Hello,", "This is some text", "Please make this into a nice file!"));
     Stream<String> _stream = StreamExtensions.<String>stream(data);
     Stream<List<Byte>> _bytes = StreamExtensions.toBytes(_stream);
     File _file = new File("test.txt");
     StreamExtensions.writeTo(_bytes, _file);
-  }
-  
-  @Test
-  public void testFileCopy() {
     final File source = new File("test.txt");
     final File destination = new File("text2.txt");
-    Stream<List<Byte>> _stream = StreamExtensions.stream(source);
-    Task _writeTo = StreamExtensions.writeTo(_stream, destination);
+    Stream<List<Byte>> _stream_1 = StreamExtensions.stream(source);
+    Task _writeTo = StreamExtensions.writeTo(_stream_1, destination);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         source.delete();

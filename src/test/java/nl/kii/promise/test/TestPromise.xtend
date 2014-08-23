@@ -57,14 +57,16 @@ class TestPromise {
 	@Test
 	def void testPromiseChaining() {
 		val p = 1.promise
-		val p2 = p.thenAsync [ return 2.promise ]
+		val p2 = p.map [ return 2.promise ].resolve
 		p2.assertPromiseEquals(2)
 	}
 
 	@Test def void testTaskChain() {
 		sayHello
-			.thenAsync [ return sayHello ]
-			.thenAsync [ return sayHello ]
+			.map [ return sayHello ]
+			.resolve
+			.map [ return sayHello ]
+			.resolve
 			.then [
 				sayHello
 			]
@@ -74,14 +76,14 @@ class TestPromise {
 		val alwaysDone = new AtomicBoolean
 		val caughtError = new AtomicReference<Throwable>
 		1.addOne
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
 			.onError [ caughtError.set(it) ]
 			.always [ alwaysDone.set(true) ]
 			.assertPromiseEquals(10)
@@ -93,20 +95,20 @@ class TestPromise {
 		val alwaysDone = new AtomicBoolean
 		val caughtError = new AtomicReference<Throwable>
 		1.addOne
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [
 				if(it != null) throw new Exception('help!') 
-				return addOne
+				addOne
 			]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
-			.thenAsync [ return addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
 			.onError [ caughtError.set(it) ]
 			.always [ alwaysDone.set(true) ]
 			.then [ fail('should not get here' + it)]

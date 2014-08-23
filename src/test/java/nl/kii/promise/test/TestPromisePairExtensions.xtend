@@ -18,9 +18,7 @@ class TestPromisePairExtensions {
 	@Test
 	def void testAsyncWithPairParams() {
 		val p = (int->int).promisePair << (1->2)
-		val asynced = p
-			.map [ a, b | power2(a + b) ]
-			.flatten
+		val asynced = p.call [ a, b | power2(a + b) ]
 		asynced.assertPromiseEquals(9)
 	}
 	
@@ -37,10 +35,8 @@ class TestPromisePairExtensions {
 	def void testAsyncPair() {
 		val p = promise(2)
 		val asynced = p
-			.map [ it -> promise(it) ]
-			.flattenPair
-			.map [ key, value | key -> power2(value) ]
-			.flattenPair
+			.call2 [ it -> promise(it) ]
+			.call2 [ key, value | key -> power2(value) ]
 		asynced.assertPromiseEquals(2 -> 4)
 	}
 
@@ -48,9 +44,8 @@ class TestPromisePairExtensions {
 	def void testAsyncPairUsingFlatmap() {
 		val p = promise(2)
 		val asynced = p
-			.flatMapPair [ it -> promise(it) ]
-			.map [ key, value | key -> power2(value) ]
-			.flattenPair
+			.call2 [ it -> promise(it) ]
+			.call2 [ key, value | key -> power2(value) ]
 		asynced.assertPromiseEquals(2 -> 4)
 	}
 

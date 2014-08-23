@@ -42,8 +42,7 @@ public class TestStreamPairExt {
         return TestStreamPairExt.this.power2(((a).intValue() + (b).intValue()));
       }
     };
-    Stream<Promise<Integer>> _map = StreamExtensions.<Integer, Integer, Promise<Integer>>map(p, _function);
-    final Stream<Integer> asynced = StreamExtensions.<Integer, Object>resolve(_map);
+    final Stream<Integer> asynced = StreamExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
     Finish<Integer> _finish = StreamExtensions.<Integer>finish();
     StreamAssert.<Integer>assertStreamEquals(asynced, Collections.<Entry<Integer>>unmodifiableList(CollectionLiterals.<Entry<Integer>>newArrayList(_value, _finish)));

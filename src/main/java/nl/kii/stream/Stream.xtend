@@ -59,9 +59,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	 */
 	def error(Throwable error) { apply(new Error(error)) }
 	
-	/**
-	 * tell the stream the current batch of data is finished. The same as finish(0).
-	 */
+	/** tell the stream the current batch of data is finished. The same as finish(0). */
 	def finish() { apply(new Finish(0)) }	
 
 	/** tell the stream a batch of the given level has finished. */
@@ -104,9 +102,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 					publishNext
 				}
 				Entries<T>: {
-					entry.entries.forEach [
-						queue.add(it)
-					]
+					queue.addAll(entry.entries)
 					publishNext
 				}
 				Next: {

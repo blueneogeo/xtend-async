@@ -183,6 +183,14 @@ public class PromiseExtensions {
    * Flattens a promise of a promise to directly a promise.
    */
   public static <R extends Object, P extends IPromise<R>> Promise<R> flatten(final IPromise<P> promise) {
+    return PromiseExtensions.<R, P>resolve(promise);
+  }
+  
+  /**
+   * Resolve a promise of a promise to directly a promise.
+   * Alias for Promise.flatten, added for consistent syntax with streams
+   */
+  public static <R extends Object, P extends IPromise<R>> Promise<R> resolve(final IPromise<P> promise) {
     Promise<R> _xblockexpression = null;
     {
       final Promise<R> newPromise = new Promise<R>(promise);
@@ -210,8 +218,9 @@ public class PromiseExtensions {
   
   /**
    * Same as normal promise resolve, however this time for a pair of a key and a promise.
+   * Similar to Stream.resolveValue.
    */
-  public static <K extends Object, R extends Object, P extends IPromise<R>> Promise<Pair<K, R>> flattenPair(final IPromise<Pair<K, P>> promise) {
+  public static <K extends Object, R extends Object, P extends IPromise<R>> Promise<Pair<K, R>> resolveValue(final IPromise<Pair<K, P>> promise) {
     Promise<Pair<K, R>> _xblockexpression = null;
     {
       final Promise<Pair<K, R>> newPromise = new Promise<Pair<K, R>>(promise);
@@ -241,50 +250,16 @@ public class PromiseExtensions {
   }
   
   /**
-   * Performs a flatmap, which is a combination of map and flatten
+   * Performs a flatmap, which is a combination of map and flatten/resolve
    */
   public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<R> flatMap(final IPromise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
-    final Function1<T, P> _function = new Function1<T, P>() {
-      public P apply(final T it) {
-        return promiseFn.apply(it);
-      }
-    };
-    Promise<P> _map = PromiseExtensions.<T, P>map(promise, _function);
+    Promise<P> _map = PromiseExtensions.<T, P>map(promise, promiseFn);
     return PromiseExtensions.<R, P>flatten(_map);
   }
   
   public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<R> flatMap(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends P> promiseFn) {
-    final Function1<Pair<K, T>, P> _function = new Function1<Pair<K, T>, P>() {
-      public P apply(final Pair<K, T> it) {
-        K _key = it.getKey();
-        T _value = it.getValue();
-        return promiseFn.apply(_key, _value);
-      }
-    };
-    Promise<P> _map = PromiseExtensions.<Pair<K, T>, P>map(promise, _function);
+    Promise<P> _map = PromiseExtensions.<K, T, P>map(promise, promiseFn);
     return PromiseExtensions.<R, P>flatten(_map);
-  }
-  
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends Pair<K, P>> promiseFn) {
-    final Function1<Pair<K, T>, Pair<K, P>> _function = new Function1<Pair<K, T>, Pair<K, P>>() {
-      public Pair<K, P> apply(final Pair<K, T> it) {
-        K _key = it.getKey();
-        T _value = it.getValue();
-        return promiseFn.apply(_key, _value);
-      }
-    };
-    Promise<Pair<K, P>> _map = PromiseExtensions.<Pair<K, T>, Pair<K, P>>map(promise, _function);
-    return PromiseExtensions.<K, R, P>flattenPair(_map);
-  }
-  
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(final IPromise<T> promise, final Function1<? super T, ? extends Pair<K, P>> promiseFn) {
-    final Function1<T, Pair<K, P>> _function = new Function1<T, Pair<K, P>>() {
-      public Pair<K, P> apply(final T it) {
-        return promiseFn.apply(it);
-      }
-    };
-    Promise<Pair<K, P>> _map = PromiseExtensions.<T, Pair<K, P>>map(promise, _function);
-    return PromiseExtensions.<K, R, P>flattenPair(_map);
   }
   
   /**
@@ -304,20 +279,24 @@ public class PromiseExtensions {
    *   .then [ println('success!') ]
    * </pre>
    */
-  public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<R> thenAsync(final IPromise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
-    return PromiseExtensions.<T, R, P>flatMap(promise, promiseFn);
+  public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<R> call(final IPromise<T> promise, final Function1<? super T, ? extends P> promiseFn) {
+    Promise<P> _map = PromiseExtensions.<T, P>map(promise, promiseFn);
+    return PromiseExtensions.<R, P>resolve(_map);
   }
   
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<R> thenAsync(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends P> promiseFn) {
-    return PromiseExtensions.<T, R, K, P>flatMap(promise, promiseFn);
+  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<R> call(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends P> promiseFn) {
+    Promise<P> _map = PromiseExtensions.<K, T, P>map(promise, promiseFn);
+    return PromiseExtensions.<R, P>resolve(_map);
   }
   
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(final IPromise<T> promise, final Function1<? super T, ? extends Pair<K, P>> promiseFn) {
-    return PromiseExtensions.<T, R, K, P>flatMapPair(promise, promiseFn);
+  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>, K2 extends Object> IPromise<Pair<K, R>> call2(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends Pair<K, P>> promiseFn) {
+    Promise<Pair<K, P>> _map = PromiseExtensions.<K, T, Pair<K, P>>map(promise, promiseFn);
+    return PromiseExtensions.<K, R, P>resolveValue(_map);
   }
   
-  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(final IPromise<Pair<K, T>> promise, final Function2<? super K, ? super T, ? extends Pair<K, P>> promiseFn) {
-    return PromiseExtensions.<T, R, K, P>flatMapPair(promise, promiseFn);
+  public static <T extends Object, R extends Object, K extends Object, P extends IPromise<R>> IPromise<Pair<K, R>> call2(final IPromise<T> promise, final Function1<? super T, ? extends Pair<K, P>> promiseFn) {
+    Promise<Pair<K, P>> _map = PromiseExtensions.<T, Pair<K, P>>map(promise, promiseFn);
+    return PromiseExtensions.<K, R, P>resolveValue(_map);
   }
   
   /**

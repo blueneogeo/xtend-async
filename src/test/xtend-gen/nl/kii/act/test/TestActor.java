@@ -113,7 +113,7 @@ public class TestActor {
       for (final Integer i : _upTo) {
         ActorExtensions.<Integer>operator_doubleLessThan(a, i);
       }
-      Thread.sleep(2000);
+      Thread.sleep(4000);
       int _get = counter.get();
       Assert.assertEquals(100000, _get);
     } catch (Throwable _e) {

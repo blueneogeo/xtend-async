@@ -62,10 +62,8 @@ class TestMultiThreadedProcessing {
 			.map [ it + 1 ]
 			.map [ power2 ]
 			.resolve
-			.on [
-				each [ fail('we should not end up here, since an error should be caught instead') ]
-				error [ result.incrementAndGet ]
-			]
+			.onError [ result.incrementAndGet ]
+			.onEach [ fail('we should not end up here, since an error should be caught instead') ]
 		Thread.sleep(500)
 		3.assertEquals(result.get)
 	}

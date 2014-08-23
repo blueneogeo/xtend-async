@@ -41,13 +41,12 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testRandomStream() {
+		// generate numbers between 1 and 3 (1 and 3 inclusive)
 		val s = (1..3).randomStream
-		// buffer 100 numbers into the stream 
-		for(i : 1..1000) { s.next }
-		// check the buffer size
-		assertEquals(1000, s.queue.size)
 		// process each buffered number
-		s.onEachAsync [ it, sub | assertTrue(it >= 1 && it <= 3) ]
+		s.on [ each [ assertTrue(it >= 1 && it <= 3) ] ]
+		// generate 1000 numbers 
+		for(i : 1..1000) { s.next }
 	}
 	
 	// SUBSCRIPTION BUILDING //////////////////////////////////////////////////
@@ -370,17 +369,14 @@ class TestStreamExtensions {
 	}
 	
 	@Test
-	def void testWriteStreamToFile() {
+	def void testStreamToFileAndFileCopy() {
 		val data = #[
 			'Hello,',
 			'This is some text',
 			'Please make this into a nice file!'
 		]
 		data.stream.toBytes.writeTo(new File('test.txt'))
-	}
-	
-	@Test
-	def void testFileCopy() {
+
 		val source = new File('test.txt')
 		val destination = new File('text2.txt')
 		source.stream.writeTo(destination).then [

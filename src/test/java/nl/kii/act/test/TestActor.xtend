@@ -68,7 +68,7 @@ class TestActor {
 		for(i : 1..100000) {
 			a << i
 		}
-		Thread.sleep(2000)
+		Thread.sleep(4000)
 		assertEquals(100000, counter.get)
 	}
 	

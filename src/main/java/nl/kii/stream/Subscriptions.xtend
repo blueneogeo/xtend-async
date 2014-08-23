@@ -1,10 +1,13 @@
 package nl.kii.stream
 
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import nl.kii.async.annotation.Async
+import nl.kii.promise.Task
 
-abstract class Subscription<T> implements Procedure1<Entry<T>> {
+class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	val protected Stream<T> stream
+	protected Task task
 	protected (Entry<T>)=>void onEntryFn
 	protected (T)=>void onValueFn
 	protected (Throwable)=>void onErrorFn
@@ -21,14 +24,22 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 		onEntryFn?.apply(it)
 		switch it {
 			Value<T>: onValueFn?.apply(value)
-			Error<T>: onErrorFn?.apply(error)
+			Error<T>: {
+				onErrorFn?.apply(error)
+				task?.error(error)
+			}
 			Finish<T>: {
 				onFinishFn?.apply(it)
 				if(level == 0)
 					onFinish0Fn?.apply
+				task?.complete
 			}
 			Closed<T>: onClosedFn?.apply
 		}
+	}
+	
+	def getStream() {
+		stream
 	}
 	
 	def entry((Entry<T>)=>void onEntryFn) {
@@ -55,53 +66,12 @@ abstract class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	def closed(=>void onClosedFn) {
 		this.onClosedFn = onClosedFn
-	}	
+	}
+	
+	@Async def toTask(Task task) {
+		this.task = task
+	}
 		
-}
-
-class SyncSubscription<T> extends Subscription<T> {
-	
-	new(Stream<T> stream) {
-		super(stream)
-	}
-	
-	override apply(Entry<T> it) {
-		try {
-			super.apply(it)
-		} finally {
-			stream.next
-		}
-	}
-
-}
-
-class AsyncSubscription<T> extends Subscription<T> {
-	
-	// set defaults to ask for the next, so that if no function is passed, 
-	// we don't block the stream processing
-	val nextFn = [ next ]
-	protected (Entry<T>)=>void onEntryFn = nextFn
-	protected (T)=>void onValueFn = nextFn
-	protected (Throwable)=>void onErrorFn = nextFn
-	protected =>void onFinish0Fn = [| next ]
-	protected (Finish<T>)=>void onFinishFn = nextFn
-	
-	new(Stream<T> stream) {
-		super(stream)
-	}
-	
-	def next() {
-		stream.next
-	}
-	
-	def skip() {
-		stream.skip
-	}
-	
-	def close() {
-		stream.close
-	}
-	
 }
 
 class CommandSubscription implements Procedure1<StreamCommand> {

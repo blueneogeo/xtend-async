@@ -118,18 +118,27 @@ class PromiseExtensions {
 
 	/** Flattens a promise of a promise to directly a promise. */
 	def static <R, P extends IPromise<R>> flatten(IPromise<P> promise) {
+		promise.resolve
+	}
+
+	/** 
+	 * Resolve a promise of a promise to directly a promise.
+	 * Alias for Promise.flatten, added for consistent syntax with streams 
+	 * */
+	def static <R, P extends IPromise<R>> resolve(IPromise<P> promise) {
 		val newPromise = new Promise<R>(promise)
 		promise.then [
 			onError [ newPromise.error(it) ] 
 			.then [ newPromise.set(it) ]
 		]
 		newPromise
-	}
+	}	
 
 	/**
 	 * Same as normal promise resolve, however this time for a pair of a key and a promise.
+	 * Similar to Stream.resolveValue.
 	 */
-	def static <K, R, P extends IPromise<R>> flattenPair(IPromise<Pair<K, P>> promise) {
+	def static <K, R, P extends IPromise<R>> resolveValue(IPromise<Pair<K, P>> promise) {
 		val newPromise = new Promise<Pair<K, R>>(promise)
 		promise.then [ pair |
 			pair.value
@@ -139,23 +148,15 @@ class PromiseExtensions {
 		newPromise
 	}
 
-	/** Performs a flatmap, which is a combination of map and flatten */	
+	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
 	def static <T, R, P extends IPromise<R>> IPromise<R> flatMap(IPromise<T> promise, (T)=>P promiseFn) {
-		promise.map [ promiseFn.apply(it) ].flatten
+		promise.map(promiseFn).flatten
 	}
 
 	def static <T, R, K, P extends IPromise<R>> IPromise<R> flatMap(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
-		promise.map [ promiseFn.apply(key, value) ].flatten
+		promise.map(promiseFn).flatten
 	}
 	
-	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
-		promise.map [ promiseFn.apply(key, value) ].flattenPair
-	}
-
-	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> flatMapPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
-		promise.map [ promiseFn.apply(it) ].flattenPair
-	}
-
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
 	
 	// Note: these are just aliases of flatmap, but used for nicer syntax and to indicate that the operations
@@ -178,21 +179,22 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <T, R, P extends IPromise<R>> IPromise<R> thenAsync(IPromise<T> promise, (T)=>P promiseFn) {
-		promise.flatMap(promiseFn)
+	def static <T, R, P extends IPromise<R>> IPromise<R> call(IPromise<T> promise, (T)=>P promiseFn) {
+		promise.map(promiseFn).resolve
 	}
 
-	def static <T, R, K, P extends IPromise<R>> IPromise<R> thenAsync(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
-		promise.flatMap(promiseFn)
+	def static <T, R, K, P extends IPromise<R>> IPromise<R> call(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
+		promise.map(promiseFn).resolve
 	}
 
-	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
-		promise.flatMapPair(promiseFn)
+	def static <T, R, K, P extends IPromise<R>, K2> IPromise<Pair<K, R>> call2(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
+		promise.map(promiseFn).resolveValue
 	}
 
-	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> thenAsyncPair(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
-		promise.flatMapPair(promiseFn)
+	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> call2(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
+		promise.map(promiseFn).resolveValue
 	}
+
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	

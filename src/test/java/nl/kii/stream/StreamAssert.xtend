@@ -13,11 +13,9 @@ class StreamAssert {
 	/** pull all queued data from a stream put it in a list, and print any error */
 	def static <T> List<Entry<T>> gather(Stream<T> stream) {
 		val data = new LinkedList<Entry<T>>
-		stream.on [
-			each [ data.add(value) ]
-			error [ printStackTrace ]
-			finish [ data.add(new Finish<T>(level)) ]
-		]
+		stream
+			.onFinish [ data.add(new Finish(level)) ]
+			.onEach [ data.add(value) ]
 		data
 	}
 

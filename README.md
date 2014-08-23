@@ -287,17 +287,11 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
 
-## Alternative Syntax
+## Controlling a Stream
 
-You can also listen to a stream like this:
+If you end a stream chain with .onEach [ .. ], this will automatically ask the source of the stream for a new value every time the closure processed the last value.
 
-	(1..10).stream.on [
-		each [ println(it) ]
-		error [ println('got error: ' + it) ]
-		finish [ println('we are done!') ]
-	]
-
-The result of .on[] is a subscription, which allows you to close the stream.
+However you can also control when the next item can be streamed. This is very practical 
 
 ## Observing a stream with multiple listeners
 

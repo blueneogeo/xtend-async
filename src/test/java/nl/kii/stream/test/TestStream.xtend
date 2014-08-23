@@ -55,7 +55,7 @@ class TestStream {
 	def void testControlledStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
-		s.onAsync [
+		s.on [
 			each [ counter.addAndGet(it) ]
 		]
 		s.next
@@ -81,7 +81,7 @@ class TestStream {
 		val result = new AtomicInteger(0)
 		val s1 = int.stream << 1 << 2 << 3
 		val s2 = s1.map[it] << 4 << 5 << 6
-		s2.onAsync [
+		s2.on [
 			each [ result.set(it) ]
 		]
 		s2.next
@@ -103,10 +103,9 @@ class TestStream {
 		val s = new Stream<Integer>
 		val e = new AtomicReference<Throwable>
 		// now try to catch the error
-		s.on [
-			each [ println(1/it)] // handler will throw /0 exception
-			error [ e.set(it) ]
-		]
+		s
+			.onError [ e.set(it) ]
+			.onEach [ println(1/it) ]
 		s << 0
 		assertNotNull(e.get)
 	}
@@ -118,7 +117,7 @@ class TestStream {
 		val s1 = int.stream << 1 << 2 << finish << 3
 		// substream, also has some stuff buffered, which needs to come out first
 		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
-		s2.onAsync [
+		s2.on [
 			each [ result.set(it) ]
 		]
 		s2.next // ask the next from the substream

@@ -12,7 +12,7 @@ import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SyncSubscription;
+import nl.kii.stream.Subscription;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -164,23 +164,18 @@ public class TestMultiThreadedProcessing {
       };
       Stream<IPromise<Integer>> _map_2 = StreamExtensions.<Integer, IPromise<Integer>>map(_map_1, _function_2);
       Stream<Integer> _resolve_1 = StreamExtensions.<Integer, Object>resolve(_map_2);
-      final Procedure1<SyncSubscription<Integer>> _function_3 = new Procedure1<SyncSubscription<Integer>>() {
-        public void apply(final SyncSubscription<Integer> it) {
-          final Procedure1<Integer> _function = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              Assert.fail("we should not end up here, since an error should be caught instead");
-            }
-          };
-          it.each(_function);
-          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              result.incrementAndGet();
-            }
-          };
-          it.error(_function_1);
+      final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          result.incrementAndGet();
         }
       };
-      StreamExtensions.<Integer>on(_resolve_1, _function_3);
+      Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_resolve_1, _function_3);
+      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          Assert.fail("we should not end up here, since an error should be caught instead");
+        }
+      };
+      StreamExtensions.<Integer>onEach(_onError, _function_4);
       Thread.sleep(500);
       int _get = result.get();
       Assert.assertEquals(3, _get);

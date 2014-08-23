@@ -19,10 +19,7 @@ class TestStreamPairExt {
 	@Test
 	def void testAsyncWithPairParams() {
 		val p = stream(1->2)
-		val asynced = p
-			.map [ a, b | power2(a + b) ]
-			.resolve
-//		val asynced = p.mapAsync [ a, b | power2(a + b) ]
+		val asynced = p.call [ a, b | power2(a + b) ]
 		asynced.assertStreamEquals(#[9.value, finish])
 	}
 	

@@ -1,5 +1,8 @@
 package nl.kii.stream;
 
+import java.util.concurrent.Executor;
+import nl.kii.async.annotation.Async;
+import nl.kii.promise.Task;
 import nl.kii.stream.Closed;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
@@ -9,8 +12,10 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public abstract class Subscription<T extends Object> implements Procedure1<Entry<T>> {
+public class Subscription<T extends Object> implements Procedure1<Entry<T>> {
   protected final Stream<T> stream;
+  
+  protected Task task;
   
   protected Procedure1<? super Entry<T>> onEntryFn;
   
@@ -53,6 +58,9 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
         if (this.onErrorFn!=null) {
           this.onErrorFn.apply(((nl.kii.stream.Error<T>)it).error);
         }
+        if (this.task!=null) {
+          this.task.error(((nl.kii.stream.Error<T>)it).error);
+        }
       }
     }
     if (!_matched) {
@@ -66,6 +74,9 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
             this.onFinish0Fn.apply();
           }
         }
+        if (this.task!=null) {
+          this.task.complete();
+        }
       }
     }
     if (!_matched) {
@@ -76,6 +87,10 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
         }
       }
     }
+  }
+  
+  public Stream<T> getStream() {
+    return this.stream;
   }
   
   public Procedure1<? super Entry<T>> entry(final Procedure1<? super Entry<T>> onEntryFn) {
@@ -106,5 +121,36 @@ public abstract class Subscription<T extends Object> implements Procedure1<Entry
   
   public Procedure0 closed(final Procedure0 onClosedFn) {
     return this.onClosedFn = onClosedFn;
+  }
+  
+  @Async
+  public Task toTask(final Task task) {
+    return this.task = task;
+  }
+  
+  public Task toTask() {
+    final Task task = new Task();
+    try {
+    	toTask(task);
+    } catch(Throwable t) {
+    	task.error(t);
+    } finally {
+    	return task;
+    }
+  }
+  
+  public Task toTask(final Executor executor) {
+    final Task task = new Task();
+    final Runnable toRun = new Runnable() {
+    	public void run() {
+    		try {
+    			toTask(task);
+    		} catch(Throwable t) {
+    			task.error(t);
+    		}
+    	}
+    };
+    executor.execute(toRun);
+    return task;
   }
 }

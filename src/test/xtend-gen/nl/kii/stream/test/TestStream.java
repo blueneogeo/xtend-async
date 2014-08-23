@@ -7,12 +7,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.stream.AsyncSubscription;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SyncSubscription;
+import nl.kii.stream.Subscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -106,8 +105,8 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<AsyncSubscription<Integer>> _function = new Procedure1<AsyncSubscription<Integer>>() {
-      public void apply(final AsyncSubscription<Integer> it) {
+    final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
+      public void apply(final Subscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             counter.addAndGet((it).intValue());
@@ -116,7 +115,7 @@ public class TestStream {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>onAsync(s, _function);
+    StreamExtensions.<Integer>on(s, _function);
     s.next();
     int _get = counter.get();
     Assert.assertEquals(1, _get);
@@ -160,8 +159,8 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_map, Integer.valueOf(4));
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(6));
-    final Procedure1<AsyncSubscription<Integer>> _function_1 = new Procedure1<AsyncSubscription<Integer>>() {
-      public void apply(final AsyncSubscription<Integer> it) {
+    final Procedure1<Subscription<Integer>> _function_1 = new Procedure1<Subscription<Integer>>() {
+      public void apply(final Subscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             result.set((it).intValue());
@@ -170,7 +169,7 @@ public class TestStream {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>onAsync(s2, _function_1);
+    StreamExtensions.<Integer>on(s2, _function_1);
     s2.next();
     int _get = result.get();
     Assert.assertEquals(4, _get);
@@ -195,23 +194,18 @@ public class TestStream {
   public void testStreamErrors() {
     final Stream<Integer> s = new Stream<Integer>();
     final AtomicReference<Throwable> e = new AtomicReference<Throwable>();
-    final Procedure1<SyncSubscription<Integer>> _function = new Procedure1<SyncSubscription<Integer>>() {
-      public void apply(final SyncSubscription<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
-          }
-        };
-        it.each(_function);
-        final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-          public void apply(final Throwable it) {
-            e.set(it);
-          }
-        };
-        it.error(_function_1);
+    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        e.set(it);
       }
     };
-    StreamExtensions.<Integer>on(s, _function);
+    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(s, _function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
+      }
+    };
+    StreamExtensions.<Integer>onEach(_onError, _function_1);
     StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(0));
     Throwable _get = e.get();
     Assert.assertNotNull(_get);
@@ -238,8 +232,8 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, _finish_1);
     Stream<Integer> _doubleLessThan_6 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(6));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(7));
-    final Procedure1<AsyncSubscription<Integer>> _function_1 = new Procedure1<AsyncSubscription<Integer>>() {
-      public void apply(final AsyncSubscription<Integer> it) {
+    final Procedure1<Subscription<Integer>> _function_1 = new Procedure1<Subscription<Integer>>() {
+      public void apply(final Subscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             result.set((it).intValue());
@@ -248,7 +242,7 @@ public class TestStream {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>onAsync(s2, _function_1);
+    StreamExtensions.<Integer>on(s2, _function_1);
     s2.next();
     int _get = result.get();
     Assert.assertEquals(4, _get);
