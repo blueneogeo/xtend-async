@@ -30,6 +30,7 @@ import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entries;
@@ -62,21 +63,6 @@ public class StreamExtensions {
     return new Stream<T>();
   }
   
-  public static <T extends Object> Stream<List<T>> streamList(final Class<T> type) {
-    return new Stream<List<T>>();
-  }
-  
-  public static <K extends Object, V extends Object> Stream<Map<K, V>> streamMap(final Pair<Class<K>, Class<V>> type) {
-    return new Stream<Map<K, V>>();
-  }
-  
-  /**
-   * create a stream of pairs
-   */
-  public static <K extends Object, V extends Object> Stream<Pair<K, V>> streamPair(final Pair<Class<K>, Class<V>> type) {
-    return new Stream<Pair<K, V>>();
-  }
-  
   /**
    * create a stream of a set of data and finish it
    */
@@ -99,6 +85,62 @@ public class StreamExtensions {
     };
     Iterable<Pair<K, V>> _map = IterableExtensions.<Map.Entry<K, V>, Pair<K, V>>map(_entrySet, _function);
     return StreamExtensions.<Pair<K, V>>stream(_map);
+  }
+  
+  /**
+   * Create a stream of values out of a Promise of a list. If the promise throws an error,
+   */
+  public static <T extends Object, T2 extends Iterable<T>> Stream<T> stream(final IPromise<T2> promise) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          newStream.error(it);
+        }
+      };
+      Promise<T2> _onError = promise.onError(_function);
+      final Procedure1<T2> _function_1 = new Procedure1<T2>() {
+        public void apply(final T2 it) {
+          Stream<T> _stream = StreamExtensions.<T>stream(it);
+          StreamExtensions.<T>forwardTo(_stream, newStream);
+        }
+      };
+      _onError.then(_function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create a stream of values out of a Promise of a list. If the promise throws an error,
+   */
+  public static <K extends Object, T extends Object, T2 extends Iterable<T>> Stream<Pair<K, T>> streamValue(final IPromise<Pair<K, T2>> promise) {
+    Stream<Pair<K, T>> _xblockexpression = null;
+    {
+      final Stream<Pair<K, T>> newStream = new Stream<Pair<K, T>>();
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          newStream.error(it);
+        }
+      };
+      Promise<Pair<K, T2>> _onError = promise.onError(_function);
+      final Procedure2<K, T2> _function_1 = new Procedure2<K, T2>() {
+        public void apply(final K key, final T2 value) {
+          Stream<T> _stream = StreamExtensions.<T>stream(value);
+          final Function1<T, Pair<K, T>> _function = new Function1<T, Pair<K, T>>() {
+            public Pair<K, T> apply(final T it) {
+              return Pair.<K, T>of(key, it);
+            }
+          };
+          Stream<Pair<K, T>> _map = StreamExtensions.<T, Pair<K, T>>map(_stream, _function);
+          StreamExtensions.<Pair<K, T>>forwardTo(_map, newStream);
+        }
+      };
+      PromiseExtensions.<K, T2>then(_onError, _function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -1358,9 +1400,9 @@ public class StreamExtensions {
   /**
    * Start the stream and and promise the first value from it.
    */
-  public static <T extends Object> void then(final Stream<T> stream, final Procedure1<T> listener) {
+  public static <T extends Object> Task then(final Stream<T> stream, final Procedure1<T> listener) {
     IPromise<T> _first = StreamExtensions.<T>first(stream);
-    _first.then(listener);
+    return _first.then(listener);
   }
   
   public static <T extends Object> Subscription<T> onClosed(final Stream<T> stream, final Procedure1<? super Stream<T>> listener) {

@@ -61,7 +61,7 @@ public class PromiseExtensions {
   /**
    * Distribute work using an asynchronous method
    */
-  public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<List<R>> distribute(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
+  public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<List<R>> call(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
     Stream<T> _stream = StreamExtensions.<T>stream(data);
     Stream<P> _map = StreamExtensions.<T, P>map(_stream, operationFn);
     Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
@@ -355,7 +355,7 @@ public class PromiseExtensions {
    * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
    * See chain2() for example of how to use.
    */
-  public static <K extends Object, V extends Object> void then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
+  public static <K extends Object, V extends Object> Task then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
     final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
       public void apply(final Pair<K, V> it) {
         K _key = it.getKey();
@@ -363,7 +363,7 @@ public class PromiseExtensions {
         listener.apply(_key, _value);
       }
     };
-    promise.then(_function);
+    return promise.then(_function);
   }
   
   /**
@@ -405,7 +405,7 @@ public class PromiseExtensions {
   /**
    * Forward the events from this promise to another promise of the same type
    */
-  public static <T extends Object> void forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
+  public static <T extends Object> Task forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
     final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
       public void apply(final Entry<T> it) {
         existingPromise.apply(it);
@@ -416,32 +416,7 @@ public class PromiseExtensions {
       public void apply(final T it) {
       }
     };
-    _always.then(_function_1);
-  }
-  
-  /**
-   * Create a stream of values out of a Promise of a list. If the promise throws an error,
-   */
-  public static <T extends Object, T2 extends Iterable<T>> Stream<T> stream(final IPromise<T2> promise) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          newStream.error(it);
-        }
-      };
-      Promise<T2> _onError = promise.onError(_function);
-      final Procedure1<T2> _function_1 = new Procedure1<T2>() {
-        public void apply(final T2 it) {
-          Stream<T> _stream = StreamExtensions.<T>stream(it);
-          StreamExtensions.<T>forwardTo(_stream, newStream);
-        }
-      };
-      _onError.then(_function_1);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    return _always.then(_function_1);
   }
   
   /**

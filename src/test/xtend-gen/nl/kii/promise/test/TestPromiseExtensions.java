@@ -93,7 +93,7 @@ public class TestPromiseExtensions {
   @Test
   public void testListPromiseToStream() {
     final Promise<List<Integer>> p = PromiseExtensions.<List<Integer>>promise(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
-    Stream<Integer> _stream = PromiseExtensions.<Integer, List<Integer>>stream(p);
+    Stream<Integer> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
     Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
       public void apply(final Double it) {

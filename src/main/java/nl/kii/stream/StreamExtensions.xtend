@@ -1,5 +1,6 @@
 package nl.kii.stream
 
+import static extension nl.kii.promise.PromiseExtensions.*
 import com.google.common.io.ByteProcessor
 import com.google.common.io.Files
 import com.google.common.util.concurrent.AtomicDouble
@@ -36,19 +37,6 @@ class StreamExtensions {
 		new Stream<T>
 	}
 	
-	def static <T> streamList(Class<T> type) {
-		new Stream<List<T>>
-	}
-
-	def static <K, V> streamMap(Pair<Class<K>, Class<V>> type) {
-		new Stream<Map<K, V>>
-	}
-	
-	/** create a stream of pairs */
-	def static <K, V> streamPair(Pair<Class<K>, Class<V>> type) {
-		new Stream<Pair<K, V>>
-	}
-	
 	/** create a stream of a set of data and finish it */
 	def static <T> stream(T... data) {
 		data.iterator.stream
@@ -57,6 +45,28 @@ class StreamExtensions {
 	/** stream the data of a map as a list of key->value pairs */
 	def static <K, V> stream(Map<K, V> data) {
 		data.entrySet.map [ key -> value ].stream
+	}
+
+	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
+	def static <T, T2 extends Iterable<T>> stream(IPromise<T2> promise) {
+		val newStream = new Stream<T>
+		promise
+			.onError[ newStream.error(it) ]
+			.then [	stream(it).forwardTo(newStream) ]
+		newStream
+	}
+
+	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
+	def static <K, T, T2 extends Iterable<T>> streamValue(IPromise<Pair<K, T2>> promise) {
+		val newStream = new Stream<Pair<K, T>>
+		promise
+			.onError[ newStream.error(it) ]
+			.then [	key, value |
+				stream(value)
+					.map [ key -> it ]
+					.forwardTo(newStream)
+			]
+		newStream
 	}
 
 	/** stream an interable, ending with a finish */	

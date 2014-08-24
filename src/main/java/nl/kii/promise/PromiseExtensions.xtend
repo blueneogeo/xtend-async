@@ -1,11 +1,12 @@
 package nl.kii.promise
-import static extension nl.kii.stream.StreamExtensions.*
+
 import java.util.List
 import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
-import nl.kii.stream.Stream
+
+import static extension nl.kii.stream.StreamExtensions.*
 
 class PromiseExtensions {
 	
@@ -43,7 +44,7 @@ class PromiseExtensions {
 	}
 
 	/** Distribute work using an asynchronous method */	
-	def static <T, R, P extends IPromise<R>> IPromise<List<R>> distribute(List<T> data, int concurrency, (T)=>P operationFn) {
+	def static <T, R, P extends IPromise<R>> IPromise<List<R>> call(List<T> data, int concurrency, (T)=>P operationFn) {
 		data.stream
 			.map(operationFn) // put each of them
 			.resolve(concurrency) // we get back a pair of the key->value used, and the done result
@@ -259,15 +260,6 @@ class PromiseExtensions {
 		promise
 			.always [ existingPromise.apply(it) ]
 			.then [ ] // starts listening
-	}
-
-	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
-	def static <T, T2 extends Iterable<T>> stream(IPromise<T2> promise) {
-		val newStream = new Stream<T>
-		promise
-			.onError[ newStream.error(it) ]
-			.then [	stream(it).forwardTo(newStream) ]
-		newStream
 	}
 
 	// BLOCKING ///////////////////////////////////////////////////////////////	

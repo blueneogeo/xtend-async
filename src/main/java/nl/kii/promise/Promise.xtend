@@ -15,7 +15,7 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 	
 	def Promise<T> onError(Procedure1<Throwable> errorFn)
 	def Promise<T> always(Procedure1<Entry<T>> resultFn)
-	def void then(Procedure1<T> valueFn)
+	def Task then(Procedure1<T> valueFn)
 	
 }
 
@@ -38,6 +38,9 @@ class Promise<T> implements IPromise<T> {
 
 	/** Lets others listen for errors occurring in the onValue listener */
 	@Atomic protected val Procedure1<Throwable> errorFn
+
+	/** This task gets created and returned when .then is called */	
+	@Atomic protected val Task onThen
 	
 	/** Create a new unfulfilled promise */
 	new() { }
@@ -82,7 +85,7 @@ class Promise<T> implements IPromise<T> {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** If the promise recieved or recieves an error, onError is called with the throwable */
-	override Promise<T> onError(Procedure1<Throwable> errorFn) {
+	override onError(Procedure1<Throwable> errorFn) {
 		this.errorFn = errorFn
 		this
 	}
@@ -95,10 +98,11 @@ class Promise<T> implements IPromise<T> {
 	}
 	
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
-	override void then(Procedure1<T> valueFn) {
+	override then(Procedure1<T> valueFn) {
 		if(this.valueFn != null) throw new PromiseException('cannot listen to promise.then more than once')
 		this.valueFn = valueFn
 		if(fulfilled) publish(entry)
+		this.onThen = new Task
 	}
 	
 	// OTHER //////////////////////////////////////////////////////////////////
@@ -119,24 +123,31 @@ class Promise<T> implements IPromise<T> {
 				if(errorFn != null) {
 					try {
 						valueFn.apply(value)
+						onThen?.complete
 					} catch(Throwable t) {
 						errorFn.apply(t)
+						onThen?.error(t)
 					} 
 				} else {
 					valueFn.apply(value)
+					onThen?.complete
 				} 
 				
 			}	
-			Error<T>: 
+			Error<T>: {
 				if(errorFn != null) errorFn.apply(error) 
 				else error.printStackTrace
+				onThen?.error(error)
+			}
 			// we do not process Finish<T>
 		}
 		if(resultFn != null) {
 			try {
 				resultFn.apply(it)
+				onThen?.complete
 			} catch(Throwable t) {
 				errorFn.apply(t)
+				onThen?.error(t)
 			}
 		}
 	}
