@@ -933,6 +933,41 @@ class StreamExtensions {
 		subscription.toTask
 	}	
 
+	// SIDEEFFECTS ////////////////////////////////////////////////////////////
+
+	/** 
+	 * Peek into what values going through the stream chain at this point.
+	 * It is meant as a debugging tool for inspecting the data flowing
+	 * through the stream.
+	 * <p>
+	 * The listener will not modify the stream and only get a view of the
+	 * data passing by. It should never modify the passed reference!
+	 * <p>
+	 * If the listener throws an error, it will be caught and printed,
+	 * and not interrupt the stream or throw an error on the stream.
+	 */
+	def static <T> peek(Stream<T> stream, (T)=>void listener) {
+		stream.map [
+			try {
+				listener.apply(it)
+			} catch(Throwable t) {
+				t.printStackTrace
+			}
+			it
+		]
+	}
+	
+	/**
+	 * Perform some side-effect action based on the stream. It will not
+	 * really affect the stream itself.
+	 */
+	def static <T> effect(Stream<T> stream, (T)=>void listener) {
+		stream.map [
+			listener.apply(it)
+			it
+		]
+	}
+
 	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////
 	
 	/** 
@@ -1232,26 +1267,4 @@ class StreamExtensions {
 			.onEach [ /* discard values */ ]
 	}
 		
-	/** 
-	 * Peek into what values going through the stream chain at this point.
-	 * It is meant as a debugging tool for inspecting the data flowing
-	 * through the stream.
-	 * <p>
-	 * The listener will not modify the stream and only get a view of the
-	 * data passing by. It should never modify the passed reference!
-	 * <p>
-	 * If the listener throws an error, it will be caught and printed,
-	 * and not interrupt the stream or throw an error on the stream.
-	 */
-	def static <T> peek(Stream<T> stream, (T)=>void listener) {
-		stream.map [
-			try {
-				listener.apply(it)
-			} catch(Throwable t) {
-				t.printStackTrace
-			}
-			it
-		]
-	}
-
 }

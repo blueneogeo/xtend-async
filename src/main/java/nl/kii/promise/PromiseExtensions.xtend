@@ -157,6 +157,41 @@ class PromiseExtensions {
 		promise.map(promiseFn).flatten
 	}
 	
+	// SIDEEFFECTS ////////////////////////////////////////////////////////////
+	
+	/** 
+	 * Peek into what values going through the promise chain at this point.
+	 * It is meant as a debugging tool for inspecting the data flowing
+	 * through the promise.
+	 * <p>
+	 * The listener will not modify the promise and only get a view of the
+	 * data passing by. It should never modify the passed reference!
+	 * <p>
+	 * If the listener throws an error, it will be caught and printed,
+	 * and not interrupt the promise or throw an error on the promise.
+	 */
+	def static <T> peek(IPromise<T> promise, (T)=>void listener) {
+		promise.map [
+			try {
+				listener.apply(it)
+			} catch(Throwable t) {
+				t.printStackTrace
+			}
+			it
+		]
+	}
+	
+	/**
+	 * Perform some side-effect action based on the promise. It will not
+	 * really affect the promise itself.
+	 */
+	def static <T> effect(IPromise<T> promise, (T)=>void listener) {
+		promise.map [
+			listener.apply(it)
+			it
+		]
+	}
+	
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
 	
 	// Note: these are just aliases of flatmap, but used for nicer syntax and to indicate that the operations

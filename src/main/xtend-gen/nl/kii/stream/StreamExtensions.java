@@ -1526,6 +1526,58 @@ public class StreamExtensions {
   }
   
   /**
+   * Peek into what values going through the stream chain at this point.
+   * It is meant as a debugging tool for inspecting the data flowing
+   * through the stream.
+   * <p>
+   * The listener will not modify the stream and only get a view of the
+   * data passing by. It should never modify the passed reference!
+   * <p>
+   * If the listener throws an error, it will be caught and printed,
+   * and not interrupt the stream or throw an error on the stream.
+   */
+  public static <T extends Object> Stream<T> peek(final Stream<T> stream, final Procedure1<? super T> listener) {
+    final Function1<T, T> _function = new Function1<T, T>() {
+      public T apply(final T it) {
+        T _xblockexpression = null;
+        {
+          try {
+            listener.apply(it);
+          } catch (final Throwable _t) {
+            if (_t instanceof Throwable) {
+              final Throwable t = (Throwable)_t;
+              t.printStackTrace();
+            } else {
+              throw Exceptions.sneakyThrow(_t);
+            }
+          }
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    return StreamExtensions.<T, T>map(stream, _function);
+  }
+  
+  /**
+   * Perform some side-effect action based on the stream. It will not
+   * really affect the stream itself.
+   */
+  public static <T extends Object> Stream<T> effect(final Stream<T> stream, final Procedure1<? super T> listener) {
+    final Function1<T, T> _function = new Function1<T, T>() {
+      public T apply(final T it) {
+        T _xblockexpression = null;
+        {
+          listener.apply(it);
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    return StreamExtensions.<T, T>map(stream, _function);
+  }
+  
+  /**
    * Opposite of collect, separate each list in the stream into separate
    * stream entries and streams those separately.
    */
@@ -2067,40 +2119,6 @@ public class StreamExtensions {
       }
     };
     return StreamExtensions.onEach(_onFinish, _function_2);
-  }
-  
-  /**
-   * Peek into what values going through the stream chain at this point.
-   * It is meant as a debugging tool for inspecting the data flowing
-   * through the stream.
-   * <p>
-   * The listener will not modify the stream and only get a view of the
-   * data passing by. It should never modify the passed reference!
-   * <p>
-   * If the listener throws an error, it will be caught and printed,
-   * and not interrupt the stream or throw an error on the stream.
-   */
-  public static <T extends Object> Stream<T> peek(final Stream<T> stream, final Procedure1<? super T> listener) {
-    final Function1<T, T> _function = new Function1<T, T>() {
-      public T apply(final T it) {
-        T _xblockexpression = null;
-        {
-          try {
-            listener.apply(it);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              t.printStackTrace();
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
-      }
-    };
-    return StreamExtensions.<T, T>map(stream, _function);
   }
   
   /**
