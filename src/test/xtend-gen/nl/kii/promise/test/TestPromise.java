@@ -1,7 +1,6 @@
 package nl.kii.promise.test;
 
 import com.google.common.base.Objects;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -377,21 +376,6 @@ public class TestPromise {
     }
   }
   
-  public Promise<Integer> addOne(final Executor executor, final int n) {
-    final Promise<Integer> promise = new Promise<Integer>();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			addOne(n,promise);
-    		} catch(Throwable t) {
-    			promise.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return promise;
-  }
-  
   public Task sayHello() {
     final Task task = new Task();
     try {
@@ -401,20 +385,5 @@ public class TestPromise {
     } finally {
     	return task;
     }
-  }
-  
-  public Task sayHello(final Executor executor) {
-    final Task task = new Task();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			sayHello(task);
-    		} catch(Throwable t) {
-    			task.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return task;
   }
 }

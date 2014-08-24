@@ -52,7 +52,7 @@ class TestAsyncAnnotation {
 		promise << number + 1 
 	}
 
-	@Async def printHello(Task task, String name) {
+	@Async(true) def printHello(Task task, String name) {
 		if(name == null) throw new Exception('name cannot be empty')
 		println('hello ' + name)
 		task.complete

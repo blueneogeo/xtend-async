@@ -92,7 +92,7 @@ public class TestAsyncAnnotation {
     return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
-  @Async
+  @Async(true)
   public Task printHello(final Task task, final String name) {
     try {
       Task _xblockexpression = null;
@@ -119,21 +119,6 @@ public class TestAsyncAnnotation {
     } finally {
     	return promise;
     }
-  }
-  
-  public Promise<Integer> increment(final Executor executor, final int number) {
-    final Promise<Integer> promise = new Promise<Integer>();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			increment(number,promise);
-    		} catch(Throwable t) {
-    			promise.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return promise;
   }
   
   public Task printHello(final String name) {

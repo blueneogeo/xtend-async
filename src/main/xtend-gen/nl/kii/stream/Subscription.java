@@ -1,6 +1,5 @@
 package nl.kii.stream;
 
-import java.util.concurrent.Executor;
 import nl.kii.async.annotation.Async;
 import nl.kii.promise.Task;
 import nl.kii.stream.Closed;
@@ -137,20 +136,5 @@ public class Subscription<T extends Object> implements Procedure1<Entry<T>> {
     } finally {
     	return task;
     }
-  }
-  
-  public Task toTask(final Executor executor) {
-    final Task task = new Task();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			toTask(task);
-    		} catch(Throwable t) {
-    			task.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return task;
   }
 }

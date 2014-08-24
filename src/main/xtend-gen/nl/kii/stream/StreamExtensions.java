@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -2178,24 +2177,6 @@ public class StreamExtensions {
   }
   
   /**
-   * write a buffered bytestream to an standard java outputstream
-   */
-  public static Task writeTo(final Executor executor, final Stream<List<Byte>> stream, final OutputStream out) {
-    final Task task = new Task();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			writeTo(stream,out,task);
-    		} catch(Throwable t) {
-    			task.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return task;
-  }
-  
-  /**
    * write a buffered bytestream to a file
    */
   public static Task writeTo(final Stream<List<Byte>> stream, final File file) {
@@ -2210,24 +2191,6 @@ public class StreamExtensions {
   }
   
   /**
-   * write a buffered bytestream to a file
-   */
-  public static Task writeTo(final Executor executor, final Stream<List<Byte>> stream, final File file) {
-    final Task task = new Task();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			writeTo(stream,file,task);
-    		} catch(Throwable t) {
-    			task.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return task;
-  }
-  
-  /**
    * Complete a task when the stream finishes or closes
    */
   public static Task toTask(final Stream<?> stream) {
@@ -2239,23 +2202,5 @@ public class StreamExtensions {
     } finally {
     	return task;
     }
-  }
-  
-  /**
-   * Complete a task when the stream finishes or closes
-   */
-  public static Task toTask(final Executor executor, final Stream<?> stream) {
-    final Task task = new Task();
-    final Runnable toRun = new Runnable() {
-    	public void run() {
-    		try {
-    			toTask(stream,task);
-    		} catch(Throwable t) {
-    			task.error(t);
-    		}
-    	}
-    };
-    executor.execute(toRun);
-    return task;
   }
 }
