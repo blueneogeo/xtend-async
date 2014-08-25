@@ -1399,7 +1399,7 @@ public class StreamExtensions {
   /**
    * Start the stream and and promise the first value from it.
    */
-  public static <T extends Object> Task then(final Stream<T> stream, final Procedure1<T> listener) {
+  public static <T extends Object> Promise<T> then(final Stream<T> stream, final Procedure1<T> listener) {
     IPromise<T> _first = StreamExtensions.<T>first(stream);
     return _first.then(listener);
   }

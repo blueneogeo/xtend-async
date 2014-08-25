@@ -81,6 +81,19 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     done.apply();
   }
   
+  public int getSubscriptionCount() {
+    int _xifexpression = (int) 0;
+    List<Procedure1<T>> _observers = this.getObservers();
+    boolean _notEquals = (!Objects.equal(_observers, null));
+    if (_notEquals) {
+      List<Procedure1<T>> _observers_1 = this.getObservers();
+      _xifexpression = _observers_1.size();
+    } else {
+      _xifexpression = 0;
+    }
+    return _xifexpression;
+  }
+  
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Publisher { publishing: ");

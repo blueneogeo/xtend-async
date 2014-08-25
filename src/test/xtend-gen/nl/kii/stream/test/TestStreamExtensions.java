@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
@@ -160,6 +161,39 @@ public class TestStreamExtensions {
     Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get_1));
     int _get_2 = count.get();
     Assert.assertEquals(9, _get_2);
+  }
+  
+  @Atomic
+  private final AtomicBoolean _calledThen = new AtomicBoolean();
+  
+  @Atomic
+  private final AtomicInteger _counter = new AtomicInteger();
+  
+  @Test
+  public void testTaskReturning() {
+    IntegerRange _upTo = new IntegerRange(1, 3);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Procedure1<Finish<Integer>> _function = new Procedure1<Finish<Integer>>() {
+      public void apply(final Finish<Integer> it) {
+      }
+    };
+    Subscription<Integer> _onFinish = StreamExtensions.<Integer>onFinish(_stream, _function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        TestStreamExtensions.this.incCounter();
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer>onEach(_onFinish, _function_1);
+    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestStreamExtensions.this.setCalledThen(Boolean.valueOf(true));
+      }
+    };
+    _onEach.then(_function_2);
+    Boolean _calledThen = this.getCalledThen();
+    Assert.assertTrue((_calledThen).booleanValue());
+    Integer _counter = this.getCounter();
+    Assert.assertEquals(3, (_counter).intValue());
   }
   
   @Test
@@ -704,7 +738,7 @@ public class TestStreamExtensions {
       Stream<String> _doubleLessThan_16 = StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_15, "c");
       Finish<String> _finish_6 = StreamExtensions.<String>finish();
       StreamExtensions.<String>operator_doubleLessThan(_doubleLessThan_16, _finish_6);
-      Thread.sleep(1000);
+      Thread.sleep(100);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
@@ -813,5 +847,33 @@ public class TestStreamExtensions {
       }
     };
     _writeTo.then(_function);
+  }
+  
+  private Boolean setCalledThen(final Boolean value) {
+    return this._calledThen.getAndSet(value);
+  }
+  
+  private Boolean getCalledThen() {
+    return this._calledThen.get();
+  }
+  
+  private Integer setCounter(final Integer value) {
+    return this._counter.getAndSet(value);
+  }
+  
+  private Integer getCounter() {
+    return this._counter.get();
+  }
+  
+  private Integer incCounter() {
+    return this._counter.incrementAndGet();
+  }
+  
+  private Integer decCounter() {
+    return this._counter.decrementAndGet();
+  }
+  
+  private Integer incCounter(final Integer value) {
+    return this._counter.addAndGet(value);
   }
 }

@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Async;
+import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
@@ -190,7 +191,7 @@ public class TestPromise {
         alwaysDone.set(true);
       }
     };
-    Promise<Integer> _always = _onError.always(_function_9);
+    IPromise<Integer> _always = PromiseExtensions.<Integer>always(_onError, _function_9);
     StreamAssert.<Integer>assertPromiseEquals(_always, Integer.valueOf(10));
     boolean _get = alwaysDone.get();
     Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
@@ -292,7 +293,7 @@ public class TestPromise {
         alwaysDone.set(true);
       }
     };
-    Promise<Integer> _always = _onError.always(_function_12);
+    IPromise<Integer> _always = PromiseExtensions.<Integer>always(_onError, _function_12);
     final Procedure1<Integer> _function_13 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         Assert.fail(("should not get here" + it));
@@ -365,6 +366,70 @@ public class TestPromise {
     StreamAssert.<Boolean>assertPromiseEquals(p2, Boolean.valueOf(true));
   }
   
+  @Test
+  public void testPromiseChain() {
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(int.class);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() + 1));
+      }
+    };
+    Promise<Integer> _map = PromiseExtensions.<Integer, Integer>map(p, _function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    Promise<Integer> _then = _map.then(_function_1);
+    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    Promise<Integer> _then_1 = _then.then(_function_2);
+    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    _then_1.then(_function_3);
+    p.set(Integer.valueOf(1));
+  }
+  
+  @Atomic
+  private final AtomicBoolean _foundError = new AtomicBoolean();
+  
+  @Test
+  public void testPromiseWithLaterError2() {
+    final Promise<Integer> p = PromiseExtensions.<Integer>promise(int.class);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() / 0));
+      }
+    };
+    Promise<Integer> _map = PromiseExtensions.<Integer, Integer>map(p, _function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        TestPromise.this.setFoundError(Boolean.valueOf(false));
+      }
+    };
+    Promise<Integer> _then = _map.then(_function_1);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        TestPromise.this.setFoundError(Boolean.valueOf(true));
+      }
+    };
+    Promise<Integer> _onError = _then.onError(_function_2);
+    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+      }
+    };
+    _onError.then(_function_3);
+    p.set(Integer.valueOf(1));
+    Boolean _foundError = this.getFoundError();
+    Assert.assertTrue((_foundError).booleanValue());
+  }
+  
   public Promise<Integer> addOne(final int n) {
     final Promise<Integer> promise = new Promise<Integer>();
     try {
@@ -385,5 +450,13 @@ public class TestPromise {
     } finally {
     	return task;
     }
+  }
+  
+  private Boolean setFoundError(final Boolean value) {
+    return this._foundError.getAndSet(value);
+  }
+  
+  private Boolean getFoundError() {
+    return this._foundError.get();
   }
 }

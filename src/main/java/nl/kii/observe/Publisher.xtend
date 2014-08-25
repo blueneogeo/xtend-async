@@ -43,6 +43,8 @@ class Publisher<T> extends Actor<T> implements Procedure1<T>, Observable<T> {
 		done.apply
 	}
 	
+	def getSubscriptionCount() { if(observers != null) observers.size else 0 }
+	
 	override toString() '''Publisher { publishing: «publishing», observers: «observers.size», inbox: «inbox.size» } '''
 	
 }

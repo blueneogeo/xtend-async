@@ -2,6 +2,7 @@ package nl.kii.promise;
 
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
+import nl.kii.stream.Entry;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -36,6 +37,15 @@ public class Task extends Promise<Boolean> {
     _builder.append("Task { fulfilled: ");
     Boolean _fulfilled = this.getFulfilled();
     _builder.append(_fulfilled, "");
+    _builder.append(" ");
+    {
+      Entry<Boolean> _get = this.get();
+      if ((_get instanceof nl.kii.stream.Error<?>)) {
+        _builder.append(", error: ");
+        Entry<Boolean> _get_1 = this.get();
+        _builder.append(((nl.kii.stream.Error<?>) _get_1).error, "");
+      }
+    }
     _builder.append(" }");
     return _builder.toString();
   }

@@ -1,9 +1,12 @@
 package nl.kii.promise
 
+import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Atomic
+import nl.kii.observe.Publisher
 import nl.kii.stream.Entry
 import nl.kii.stream.Error
 import nl.kii.stream.Value
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 interface IPromise<T> extends Procedure1<Entry<T>> {
@@ -14,8 +17,7 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 	def Promise<T> error(Throwable t)
 	
 	def Promise<T> onError(Procedure1<Throwable> errorFn)
-	def Promise<T> always(Procedure1<Entry<T>> resultFn)
-	def Task then(Procedure1<T> valueFn)
+	def Promise<T> then(Procedure1<T> valueFn)
 	
 }
 
@@ -24,24 +26,15 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
  */
 class Promise<T> implements IPromise<T> {
 	
+	val publisher = new Publisher<Entry<T>>
+	
+	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
 
 	/** The result of the promise, if any, otherwise null */
 	@Atomic protected val Entry<T> entry
 
-	/** Lets others listen for the arrival of a value */
-	@Atomic protected val Procedure1<T> valueFn
-	
-	/** Always called, both when there is a value and when there is an error */
-	@Atomic protected val Procedure1<Entry<T>> resultFn
-
-	/** Lets others listen for errors occurring in the onValue listener */
-	@Atomic protected val Procedure1<Throwable> errorFn
-
-	/** This task gets created and returned when .then is called */	
-	@Atomic protected val Task onThen
-	
 	/** Create a new unfulfilled promise */
 	new() { }
 	
@@ -59,8 +52,6 @@ class Promise<T> implements IPromise<T> {
 	override get() {
 		entry
 	}
-	
-	// PUSH ///////////////////////////////////////////////////////////////////
 
 	/** set the promised value */
 	override set(T value) {
@@ -76,82 +67,58 @@ class Promise<T> implements IPromise<T> {
 	}
 	
 	override apply(Entry<T> it) {
-		if(fulfilled) return;
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
+		val allowed = switch it { 
+			case !fulfilled: true
+			Error<T> case fulfilled: true
+			default: false
+		}
+		if(!allowed) return;
 		fulfilled = true
-		if(valueFn != null) publish(it) else entry = it
+		entry = it
+		publisher.apply(it)
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** If the promise recieved or recieves an error, onError is called with the throwable */
 	override onError(Procedure1<Throwable> errorFn) {
-		this.errorFn = errorFn
+		// register for a new value being applied
+		val sub = new AtomicReference<Procedure0>
+		sub.set(publisher.onChange [
+			switch it { 
+				Error<T>: { 
+					sub.get.apply // unsubscribe, so this handler will not be called again
+					errorFn.apply(error)
+				} 
+			}
+		])
+		// if there is an entry, push it so this handler will get it
+		if(entry != null) publisher.apply(entry)
 		this
 	}
-	
-	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
-	override always(Procedure1<Entry<T>> resultFn) {
-		if(this.resultFn != null) throw new PromiseException('cannot listen to promise.always more than once')
-		this.resultFn = resultFn
-		this
-	}
-	
+
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
 	override then(Procedure1<T> valueFn) {
-		if(this.valueFn != null) throw new PromiseException('cannot listen to promise.then more than once')
-		this.valueFn = valueFn
-		if(fulfilled) publish(entry)
-		this.onThen = new Task
-	}
-	
-	// OTHER //////////////////////////////////////////////////////////////////
-	
-	protected def buffer(Entry<T> value) {
-		if(entry == null) entry = value
-	}
-	
-	/** 
-	 * Send an entry directly (no queue) to the listeners
-	 * (onValue, onError, onFinish). If a value was processed,
-	 * ready is set to false again, since the value was published.
-	 */
-	protected def publish(Entry<T> it) {
-		switch it {
-			Value<T>: {
-				// duplicate code on purpose, so that without an error, it is thrown without a wrapper
-				if(errorFn != null) {
-					try {
-						valueFn.apply(value)
-						onThen?.complete
-					} catch(Throwable t) {
-						errorFn.apply(t)
-						onThen?.error(t)
-					} 
-				} else {
-					valueFn.apply(value)
-					onThen?.complete
-				} 
-				
-			}	
-			Error<T>: {
-				if(errorFn != null) errorFn.apply(error) 
-				else error.printStackTrace
-				onThen?.error(error)
-			}
-			// we do not process Finish<T>
-		}
-		if(resultFn != null) {
+		// register for a new value being applied
+		val sub = new AtomicReference<Procedure0>
+		sub.set(publisher.onChange [
 			try {
-				resultFn.apply(it)
-				onThen?.complete
-			} catch(Throwable t) {
-				errorFn.apply(t)
-				onThen?.error(t)
+				switch it { 
+					Value<T>: { 
+						sub.get.apply // unsubscribe, so this handler will not be called again
+						valueFn.apply(value) 
+					}
+				}
+			} catch(Exception e) {
+				error(e)
 			}
-		}
+		])
+		// if there is an entry, push it so this handler will get it
+		if(entry != null) publisher.apply(entry)
+		this
 	}
-	
+
 	override toString() '''Promise { fulfilled: «fulfilled», entry: «get» }'''
 	
 }
@@ -170,7 +137,7 @@ class Task extends Promise<Boolean> {
 		this
 	}
 	
-	override toString() '''Task { fulfilled: «fulfilled» }'''
+	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?>», error: «(get as Error<?>).error»«ENDIF» }'''
 
 }
 

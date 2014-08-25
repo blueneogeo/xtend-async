@@ -5,6 +5,9 @@ import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import nl.kii.stream.Entry
+import nl.kii.stream.Error
+import nl.kii.stream.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
 
@@ -53,6 +56,13 @@ class PromiseExtensions {
 	}
 	
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
+
+	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
+	def static <T> always(IPromise<T> promise, Procedures.Procedure1<Entry<T>> resultFn) {
+		promise.onError [ resultFn.apply(new Error(it)) ]
+		promise.then [ resultFn.apply(new Value(it)) ]
+		promise
+	}
 	
 	/** Tell the promise it went wrong */
 	def static <T> error(IPromise<T> promise, String message) {

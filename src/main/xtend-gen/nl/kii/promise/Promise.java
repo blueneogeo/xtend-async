@@ -4,13 +4,13 @@ import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
-import nl.kii.promise.PromiseException;
-import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
@@ -18,6 +18,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public class Promise<T extends Object> implements IPromise<T> {
+  private final Publisher<Entry<T>> publisher = new Publisher<Entry<T>>();
+  
   /**
    * Property to see if the promise is fulfulled
    */
@@ -29,30 +31,6 @@ public class Promise<T extends Object> implements IPromise<T> {
    */
   @Atomic
   private final AtomicReference<Entry<T>> _entry = new AtomicReference<Entry<T>>();
-  
-  /**
-   * Lets others listen for the arrival of a value
-   */
-  @Atomic
-  private final AtomicReference<Procedure1<T>> _valueFn = new AtomicReference<Procedure1<T>>();
-  
-  /**
-   * Always called, both when there is a value and when there is an error
-   */
-  @Atomic
-  private final AtomicReference<Procedure1<Entry<T>>> _resultFn = new AtomicReference<Procedure1<Entry<T>>>();
-  
-  /**
-   * Lets others listen for errors occurring in the onValue listener
-   */
-  @Atomic
-  private final AtomicReference<Procedure1<Throwable>> _errorFn = new AtomicReference<Procedure1<Throwable>>();
-  
-  /**
-   * This task gets created and returned when .then is called
-   */
-  @Atomic
-  private final AtomicReference<Task> _onThen = new AtomicReference<Task>();
   
   /**
    * Create a new unfulfilled promise
@@ -117,22 +95,39 @@ public class Promise<T extends Object> implements IPromise<T> {
   }
   
   public void apply(final Entry<T> it) {
-    Boolean _fulfilled = this.getFulfilled();
-    if ((_fulfilled).booleanValue()) {
-      return;
-    }
     boolean _equals = Objects.equal(it, null);
     if (_equals) {
       throw new NullPointerException("cannot promise a null entry");
     }
-    this.setFulfilled(Boolean.valueOf(true));
-    Procedure1<T> _valueFn = this.getValueFn();
-    boolean _notEquals = (!Objects.equal(_valueFn, null));
-    if (_notEquals) {
-      this.publish(it);
-    } else {
-      this.setEntry(it);
+    boolean _switchResult = false;
+    boolean _matched = false;
+    if (!_matched) {
+      Boolean _fulfilled = this.getFulfilled();
+      boolean _not = (!(_fulfilled).booleanValue());
+      if (_not) {
+        _matched=true;
+        _switchResult = true;
+      }
     }
+    if (!_matched) {
+      if (it instanceof nl.kii.stream.Error) {
+        Boolean _fulfilled_1 = this.getFulfilled();
+        if (_fulfilled_1) {
+          _matched=true;
+          _switchResult = true;
+        }
+      }
+    }
+    if (!_matched) {
+      _switchResult = false;
+    }
+    final boolean allowed = _switchResult;
+    if ((!allowed)) {
+      return;
+    }
+    this.setFulfilled(Boolean.valueOf(true));
+    this.setEntry(it);
+    this.publisher.apply(it);
   }
   
   /**
@@ -141,172 +136,71 @@ public class Promise<T extends Object> implements IPromise<T> {
   public Promise<T> onError(final Procedure1<Throwable> errorFn) {
     Promise<T> _xblockexpression = null;
     {
-      this.setErrorFn(errorFn);
+      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
+      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+        public void apply(final Entry<T> it) {
+          boolean _matched = false;
+          if (!_matched) {
+            if (it instanceof nl.kii.stream.Error) {
+              _matched=true;
+              Procedure0 _get = sub.get();
+              _get.apply();
+              errorFn.apply(((nl.kii.stream.Error<T>)it).error);
+            }
+          }
+        }
+      };
+      Procedure0 _onChange = this.publisher.onChange(_function);
+      sub.set(_onChange);
+      Entry<T> _entry = this.getEntry();
+      boolean _notEquals = (!Objects.equal(_entry, null));
+      if (_notEquals) {
+        Entry<T> _entry_1 = this.getEntry();
+        this.publisher.apply(_entry_1);
+      }
       _xblockexpression = this;
     }
     return _xblockexpression;
   }
   
   /**
-   * Always call onResult, whether the promise has been either fulfilled or had an error.
-   */
-  public Promise<T> always(final Procedure1<Entry<T>> resultFn) {
-    try {
-      Promise<T> _xblockexpression = null;
-      {
-        Procedure1<Entry<T>> _resultFn = this.getResultFn();
-        boolean _notEquals = (!Objects.equal(_resultFn, null));
-        if (_notEquals) {
-          throw new PromiseException("cannot listen to promise.always more than once");
-        }
-        this.setResultFn(resultFn);
-        _xblockexpression = this;
-      }
-      return _xblockexpression;
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
-  }
-  
-  /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
-  public Task then(final Procedure1<T> valueFn) {
-    try {
-      Task _xblockexpression = null;
-      {
-        Procedure1<T> _valueFn = this.getValueFn();
-        boolean _notEquals = (!Objects.equal(_valueFn, null));
-        if (_notEquals) {
-          throw new PromiseException("cannot listen to promise.then more than once");
-        }
-        this.setValueFn(valueFn);
-        Boolean _fulfilled = this.getFulfilled();
-        if ((_fulfilled).booleanValue()) {
-          Entry<T> _entry = this.getEntry();
-          this.publish(_entry);
-        }
-        Task _task = new Task();
-        _xblockexpression = this.setOnThen(_task);
-      }
-      return _xblockexpression;
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
-  }
-  
-  protected Entry<T> buffer(final Entry<T> value) {
-    Entry<T> _xifexpression = null;
-    Entry<T> _entry = this.getEntry();
-    boolean _equals = Objects.equal(_entry, null);
-    if (_equals) {
-      _xifexpression = this.setEntry(value);
-    }
-    return _xifexpression;
-  }
-  
-  /**
-   * Send an entry directly (no queue) to the listeners
-   * (onValue, onError, onFinish). If a value was processed,
-   * ready is set to false again, since the value was published.
-   */
-  protected Promise<Boolean> publish(final Entry<T> it) {
-    Promise<Boolean> _xblockexpression = null;
+  public Promise<T> then(final Procedure1<T> valueFn) {
+    Promise<T> _xblockexpression = null;
     {
-      boolean _matched = false;
-      if (!_matched) {
-        if (it instanceof Value) {
-          _matched=true;
-          Procedure1<Throwable> _errorFn = this.getErrorFn();
-          boolean _notEquals = (!Objects.equal(_errorFn, null));
-          if (_notEquals) {
-            try {
-              Procedure1<T> _valueFn = this.getValueFn();
-              _valueFn.apply(((Value<T>)it).value);
-              Task _onThen = this.getOnThen();
-              if (_onThen!=null) {
-                _onThen.complete();
-              }
-            } catch (final Throwable _t) {
-              if (_t instanceof Throwable) {
-                final Throwable t = (Throwable)_t;
-                Procedure1<Throwable> _errorFn_1 = this.getErrorFn();
-                _errorFn_1.apply(t);
-                Task _onThen_1 = this.getOnThen();
-                if (_onThen_1!=null) {
-                  _onThen_1.error(t);
-                }
-              } else {
-                throw Exceptions.sneakyThrow(_t);
+      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
+      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+        public void apply(final Entry<T> it) {
+          try {
+            boolean _matched = false;
+            if (!_matched) {
+              if (it instanceof Value) {
+                _matched=true;
+                Procedure0 _get = sub.get();
+                _get.apply();
+                valueFn.apply(((Value<T>)it).value);
               }
             }
-          } else {
-            Procedure1<T> _valueFn_1 = this.getValueFn();
-            _valueFn_1.apply(((Value<T>)it).value);
-            Task _onThen_2 = this.getOnThen();
-            if (_onThen_2!=null) {
-              _onThen_2.complete();
+          } catch (final Throwable _t) {
+            if (_t instanceof Exception) {
+              final Exception e = (Exception)_t;
+              Promise.this.error(e);
+            } else {
+              throw Exceptions.sneakyThrow(_t);
             }
           }
         }
-      }
-      if (!_matched) {
-        if (it instanceof nl.kii.stream.Error) {
-          _matched=true;
-          Procedure1<Throwable> _errorFn = this.getErrorFn();
-          boolean _notEquals = (!Objects.equal(_errorFn, null));
-          if (_notEquals) {
-            Procedure1<Throwable> _errorFn_1 = this.getErrorFn();
-            _errorFn_1.apply(((nl.kii.stream.Error<T>)it).error);
-          } else {
-            ((nl.kii.stream.Error<T>)it).error.printStackTrace();
-          }
-          Task _onThen = this.getOnThen();
-          if (_onThen!=null) {
-            _onThen.error(((nl.kii.stream.Error<T>)it).error);
-          }
-        }
-      }
-      Promise<Boolean> _xifexpression = null;
-      Procedure1<Entry<T>> _resultFn = this.getResultFn();
-      boolean _notEquals = (!Objects.equal(_resultFn, null));
+      };
+      Procedure0 _onChange = this.publisher.onChange(_function);
+      sub.set(_onChange);
+      Entry<T> _entry = this.getEntry();
+      boolean _notEquals = (!Objects.equal(_entry, null));
       if (_notEquals) {
-        Promise<Boolean> _xtrycatchfinallyexpression = null;
-        try {
-          Task _xblockexpression_1 = null;
-          {
-            Procedure1<Entry<T>> _resultFn_1 = this.getResultFn();
-            _resultFn_1.apply(it);
-            Task _onThen = this.getOnThen();
-            Task _complete = null;
-            if (_onThen!=null) {
-              _complete=_onThen.complete();
-            }
-            _xblockexpression_1 = _complete;
-          }
-          _xtrycatchfinallyexpression = _xblockexpression_1;
-        } catch (final Throwable _t) {
-          if (_t instanceof Throwable) {
-            final Throwable t = (Throwable)_t;
-            Promise<Boolean> _xblockexpression_2 = null;
-            {
-              Procedure1<Throwable> _errorFn = this.getErrorFn();
-              _errorFn.apply(t);
-              Task _onThen = this.getOnThen();
-              Promise<Boolean> _error = null;
-              if (_onThen!=null) {
-                _error=_onThen.error(t);
-              }
-              _xblockexpression_2 = _error;
-            }
-            _xtrycatchfinallyexpression = _xblockexpression_2;
-          } else {
-            throw Exceptions.sneakyThrow(_t);
-          }
-        }
-        _xifexpression = _xtrycatchfinallyexpression;
+        Entry<T> _entry_1 = this.getEntry();
+        this.publisher.apply(_entry_1);
       }
-      _xblockexpression = _xifexpression;
+      _xblockexpression = this;
     }
     return _xblockexpression;
   }
@@ -337,37 +231,5 @@ public class Promise<T extends Object> implements IPromise<T> {
   
   protected Entry<T> getEntry() {
     return this._entry.get();
-  }
-  
-  protected Procedure1<T> setValueFn(final Procedure1<T> value) {
-    return this._valueFn.getAndSet(value);
-  }
-  
-  protected Procedure1<T> getValueFn() {
-    return this._valueFn.get();
-  }
-  
-  protected Procedure1<Entry<T>> setResultFn(final Procedure1<Entry<T>> value) {
-    return this._resultFn.getAndSet(value);
-  }
-  
-  protected Procedure1<Entry<T>> getResultFn() {
-    return this._resultFn.get();
-  }
-  
-  protected Procedure1<Throwable> setErrorFn(final Procedure1<Throwable> value) {
-    return this._errorFn.getAndSet(value);
-  }
-  
-  protected Procedure1<Throwable> getErrorFn() {
-    return this._errorFn.get();
-  }
-  
-  protected Task setOnThen(final Task value) {
-    return this._onThen.getAndSet(value);
-  }
-  
-  protected Task getOnThen() {
-    return this._onThen.get();
   }
 }

@@ -12,6 +12,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import nl.kii.async.annotation.Atomic
 
 class TestPromise {
 	
@@ -144,6 +145,31 @@ class TestPromise {
 			.onError [ true >> p2 ]
 			.then [ println(it) ]
 		p2.assertPromiseEquals(true)
+	}
+	
+	@Test
+	def void testPromiseChain() {
+		val p = int.promise
+		p
+			.map [ it + 1 ]
+			.then [ println(it) ]
+			.then [ println(it) ]
+			.then [ println(it) ]
+		p.set(1)
+	}
+
+	@Atomic boolean foundError
+
+	@Test
+	def void testPromiseWithLaterError2() {
+		val p = int.promise
+		p
+			.map [ it / 0 ]
+			.then [ foundError = false ]
+			.onError [ foundError = true  ]
+			.then [ ]
+		p.set(1)
+		assertTrue(foundError)
 	}
 
 }

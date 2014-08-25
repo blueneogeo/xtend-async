@@ -12,6 +12,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -67,6 +68,31 @@ public class PromiseExtensions {
     Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
     Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
     return StreamExtensions.<List<R>>first(_collect);
+  }
+  
+  /**
+   * Always call onResult, whether the promise has been either fulfilled or had an error.
+   */
+  public static <T extends Object> IPromise<T> always(final IPromise<T> promise, final Procedure1<Entry<T>> resultFn) {
+    IPromise<T> _xblockexpression = null;
+    {
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(it);
+          resultFn.apply(_error);
+        }
+      };
+      promise.onError(_function);
+      final Procedure1<T> _function_1 = new Procedure1<T>() {
+        public void apply(final T it) {
+          Value<T> _value = new Value<T>(it);
+          resultFn.apply(_value);
+        }
+      };
+      promise.then(_function_1);
+      _xblockexpression = promise;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -355,7 +381,7 @@ public class PromiseExtensions {
    * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
    * See chain2() for example of how to use.
    */
-  public static <K extends Object, V extends Object> Task then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
+  public static <K extends Object, V extends Object> Promise<Pair<K, V>> then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
     final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
       public void apply(final Pair<K, V> it) {
         K _key = it.getKey();
@@ -405,13 +431,13 @@ public class PromiseExtensions {
   /**
    * Forward the events from this promise to another promise of the same type
    */
-  public static <T extends Object> Task forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
+  public static <T extends Object> Promise<T> forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
     final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
       public void apply(final Entry<T> it) {
         existingPromise.apply(it);
       }
     };
-    Promise<T> _always = promise.always(_function);
+    IPromise<T> _always = PromiseExtensions.<T>always(promise, _function);
     final Procedure1<T> _function_1 = new Procedure1<T>() {
       public void apply(final T it) {
       }

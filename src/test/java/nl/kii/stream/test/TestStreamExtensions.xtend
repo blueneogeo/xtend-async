@@ -11,6 +11,7 @@ import static nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import nl.kii.async.annotation.Atomic
 
 class TestStreamExtensions {
 
@@ -68,6 +69,19 @@ class TestStreamExtensions {
 		assertEquals(true, finished.get) // end of iteration
 		assertEquals(true, errored.get) // because of the 10
 		assertEquals(9, count.get) // 10 gave the error
+	}
+	
+	@Atomic boolean calledThen
+	@Atomic int counter
+	
+	@Test
+	def void testTaskReturning() {
+		(1..3).stream
+			.onFinish [ ]
+			.onEach [ incCounter ]
+			.then [ calledThen = true ]
+		assertTrue(calledThen)
+		assertEquals(3, counter)
 	}
 	
 	// OBSERVABLE /////////////////////////////////////////////////////////////
@@ -318,7 +332,7 @@ class TestStreamExtensions {
 		s << 'f' << 'g' << finish << 'h' << finish
 		s << 'd' << 'e' << finish
 		s << 'a' << 'b' << 'c' << finish
-		Thread.sleep(1000)
+		Thread.sleep(100)
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////

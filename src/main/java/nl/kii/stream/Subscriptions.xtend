@@ -1,19 +1,21 @@
 package nl.kii.stream
 
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-import nl.kii.async.annotation.Async
+import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Task
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 class Subscription<T> implements Procedure1<Entry<T>> {
 	
 	val protected Stream<T> stream
-	protected Task task
-	protected (Entry<T>)=>void onEntryFn
-	protected (T)=>void onValueFn
-	protected (Throwable)=>void onErrorFn
-	protected =>void onFinish0Fn
-	protected (Finish<T>)=>void onFinishFn
-	protected =>void onClosedFn
+	
+	val task = new Task
+	@Atomic Procedure1<Entry<T>> onEntryFn
+	@Atomic Procedure1<T> onValueFn
+	@Atomic Procedure1<Throwable> onErrorFn
+	@Atomic Procedure0 onFinish0Fn
+	@Atomic Procedure1<Finish<T>> onFinishFn
+	@Atomic Procedure0 onClosedFn
 	
 	new(Stream<T> stream) {
 		this.stream = stream
@@ -26,15 +28,18 @@ class Subscription<T> implements Procedure1<Entry<T>> {
 			Value<T>: onValueFn?.apply(value)
 			Error<T>: {
 				onErrorFn?.apply(error)
-				task?.error(error)
+				task.error(error)
 			}
 			Finish<T>: {
 				onFinishFn?.apply(it)
 				if(level == 0)
 					onFinish0Fn?.apply
-				task?.complete
+				task.complete
 			}
-			Closed<T>: onClosedFn?.apply
+			Closed<T>: {
+				onClosedFn?.apply
+				task.complete
+			}
 		}
 	}
 	
@@ -68,8 +73,8 @@ class Subscription<T> implements Procedure1<Entry<T>> {
 		this.onClosedFn = onClosedFn
 	}
 	
-	@Async def toTask(Task task) {
-		this.task = task
+	def Task toTask() {
+		task
 	}
 		
 }
@@ -77,9 +82,10 @@ class Subscription<T> implements Procedure1<Entry<T>> {
 class CommandSubscription implements Procedure1<StreamCommand> {
 	
 	val Stream<?> stream
-	var (Void)=>void onNextFn
-	var (Void)=>void onSkipFn
-	var (Void)=>void onCloseFn
+	
+	@Atomic Procedure1<Void> onNextFn
+	@Atomic Procedure1<Void> onSkipFn
+	@Atomic Procedure1<Void> onCloseFn
 	
 	new(Stream<?> stream) {
 		this.stream = stream
