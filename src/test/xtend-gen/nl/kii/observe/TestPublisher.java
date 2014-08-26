@@ -39,8 +39,8 @@ public class TestPublisher {
     Stream<List<List<String>>> _collect_1 = StreamExtensions.<List<String>>collect(_collect);
     final Procedure1<List<List<String>>> _function_2 = new Procedure1<List<List<String>>>() {
       public void apply(final List<List<String>> it) {
-        Assert.assertEquals(it, 
-          Collections.<List<String>>unmodifiableList(CollectionLiterals.<List<String>>newArrayList(Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("1:A", "2:A")), Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("1:B")))));
+        Assert.assertEquals(
+          Collections.<List<String>>unmodifiableList(CollectionLiterals.<List<String>>newArrayList(Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("1:A", "2:A")), Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("1:B")))), it);
       }
     };
     StreamExtensions.<List<List<String>>>then(_collect_1, _function_2);

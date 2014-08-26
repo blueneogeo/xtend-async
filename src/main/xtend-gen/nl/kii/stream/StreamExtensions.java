@@ -1,6 +1,8 @@
 package nl.kii.stream;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.io.ByteProcessor;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
@@ -140,6 +142,15 @@ public class StreamExtensions {
       _xblockexpression = newStream;
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * stream an list, ending with a finish. makes an immutable copy internally.
+   */
+  public static <T extends Object> Stream<T> stream(final List<T> list) {
+    ImmutableList<T> _copyOf = ImmutableList.<T>copyOf(list);
+    UnmodifiableIterator<T> _iterator = _copyOf.iterator();
+    return StreamExtensions.<T>stream(_iterator);
   }
   
   /**
@@ -1616,6 +1627,26 @@ public class StreamExtensions {
       }
     };
     return StreamExtensions.<T, T>map(stream, _function);
+  }
+  
+  /**
+   * Perform some side-effect action based on the stream. It will not
+   * really affect the stream itself.
+   */
+  public static <K extends Object, T extends Object> Stream<Pair<K, T>> effect(final Stream<Pair<K, T>> stream, final Procedure2<? super K, ? super T> listener) {
+    final Function1<Pair<K, T>, Pair<K, T>> _function = new Function1<Pair<K, T>, Pair<K, T>>() {
+      public Pair<K, T> apply(final Pair<K, T> it) {
+        Pair<K, T> _xblockexpression = null;
+        {
+          K _key = it.getKey();
+          T _value = it.getValue();
+          listener.apply(_key, _value);
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    return StreamExtensions.<Pair<K, T>, Pair<K, T>>map(stream, _function);
   }
   
   /**

@@ -2,20 +2,19 @@ package nl.kii.observe;
 
 import com.google.common.base.Objects;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Observable;
 import org.eclipse.xtend2.lib.StringConcatenation;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
- * A threadsafe distributor of events to its registered listeners.
+ * A threadsafe non-blocking distributor of events to its registered listeners.
  * <p>
  * A Publisher is more lightweight than a stream with a streamobserver.
  * It does not have any flow control or async support, and has only
@@ -43,16 +42,15 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
   /**
    * Listen for publications from the publisher
    */
-  public synchronized Procedure0 onChange(final Procedure1<? super T> observeFn) {
+  public Procedure0 onChange(final Procedure1<? super T> observeFn) {
     List<Procedure1<T>> _observers = this.getObservers();
     boolean _equals = Objects.equal(_observers, null);
     if (_equals) {
-      LinkedList<Procedure1<T>> _newLinkedList = CollectionLiterals.<Procedure1<T>>newLinkedList(((Procedure1<T>)observeFn));
-      this.setObservers(_newLinkedList);
-    } else {
-      List<Procedure1<T>> _observers_1 = this.getObservers();
-      _observers_1.add(((Procedure1<T>)observeFn));
+      CopyOnWriteArrayList<Procedure1<T>> _copyOnWriteArrayList = new CopyOnWriteArrayList<Procedure1<T>>();
+      this.setObservers(_copyOnWriteArrayList);
     }
+    List<Procedure1<T>> _observers_1 = this.getObservers();
+    _observers_1.add(((Procedure1<T>)observeFn));
     final Procedure0 _function = new Procedure0() {
       public void apply() {
         List<Procedure1<T>> _observers = Publisher.this.getObservers();

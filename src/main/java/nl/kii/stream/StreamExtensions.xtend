@@ -27,6 +27,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.stream.StreamExtensions.*
+import com.google.common.collect.ImmutableList
 
 class StreamExtensions {
 	
@@ -68,6 +69,12 @@ class StreamExtensions {
 			]
 		newStream
 	}
+
+	/** stream an list, ending with a finish. makes an immutable copy internally. */	
+	def static <T> stream(List<T> list) {
+		ImmutableList.copyOf(list).iterator.stream
+	}
+
 
 	/** stream an interable, ending with a finish */	
 	def static <T> stream(Iterable<T> iterable) {
@@ -974,6 +981,17 @@ class StreamExtensions {
 	def static <T> effect(Stream<T> stream, (T)=>void listener) {
 		stream.map [
 			listener.apply(it)
+			it
+		]
+	}
+
+	/**
+	 * Perform some side-effect action based on the stream. It will not
+	 * really affect the stream itself.
+	 */
+	def static <K, T> effect(Stream<Pair<K, T>> stream, (K, T)=>void listener) {
+		stream.map [
+			listener.apply(key, value)
 			it
 		]
 	}

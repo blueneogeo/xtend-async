@@ -28,7 +28,7 @@ class TestPublisher {
 			assertEquals(#[
 				#['1:A', '2:A'], // first result from both listeners
 				#['1:B'] // second result from only listener 1, since 2 stopped
-			])
+			], it)
 		]
 	}
 	
