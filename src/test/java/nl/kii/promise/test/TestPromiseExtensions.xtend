@@ -8,6 +8,8 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import nl.kii.promise.Task
+import nl.kii.async.annotation.Atomic
 
 class TestPromiseExtensions {
 	
@@ -66,6 +68,47 @@ class TestPromiseExtensions {
 	def void testListPromiseToStream() {
 		val p = #[1, 2, 3].promise
 		p.stream.sum.then [ assertEquals(6, it, 0) ]
+	}
+	
+	@Atomic boolean allDone = false
+	@Atomic boolean t2Done = false
+	
+	@Test
+	def void testAll() {
+		val t1 = new Task
+		val t2 = new Task
+		val t3 = new Task
+		val a = all(t1, t2, t3)
+		t2.then [ t2Done = true ]
+		a.then [ allDone = true ]
+		assertFalse(allDone)
+		assertFalse(t2Done)
+		t1.complete 
+		assertFalse(allDone)
+		assertFalse(t2Done)
+		t2.complete 
+		assertFalse(allDone)
+		assertTrue(t2Done)
+		t3.complete 
+		assertTrue(allDone)
+	}
+	
+	@Atomic boolean anyDone = false
+
+	@Test
+	def void testAny() {
+		val t1 = new Task
+		val t2 = new Task
+		val t3 = new Task
+		val a = any(t1, t2, t3)
+		a.then [ anyDone = true ]
+		assertFalse(anyDone)
+		t1.complete 
+		assertTrue(anyDone)
+		t2.complete 
+		assertTrue(anyDone)
+		t3.complete 
+		assertTrue(anyDone)
 	}
 	
 	private def power2(int i) { (i*i).promise }

@@ -18,6 +18,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -68,6 +69,57 @@ public class PromiseExtensions {
     Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
     Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
     return StreamExtensions.<List<R>>first(_collect);
+  }
+  
+  /**
+   * Create a new Task that completes when all wrapped tasks are completed.
+   * Errors created by the tasks are propagated into the resulting task.
+   */
+  public static Task all(final IPromise<?>... promises) {
+    final Function1<IPromise<?>, Task> _function = new Function1<IPromise<?>, Task>() {
+      public Task apply(final IPromise<?> it) {
+        return PromiseExtensions.toTask(it);
+      }
+    };
+    List<Task> _map = ListExtensions.<IPromise<?>, Task>map(((List<IPromise<?>>)Conversions.doWrapArray(promises)), _function);
+    Stream<Task> _stream = StreamExtensions.<Task>stream(_map);
+    final Function1<Task, Task> _function_1 = new Function1<Task, Task>() {
+      public Task apply(final Task it) {
+        return it;
+      }
+    };
+    Stream<Boolean> _call = StreamExtensions.<Task, Boolean, Task>call(_stream, _function_1);
+    Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_call);
+    IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
+    return PromiseExtensions.<List<Boolean>>toTask(_first);
+  }
+  
+  /**
+   * Create a new Task that completes when any of the wrapped tasks are completed
+   * Errors created by the promises are propagated into the resulting task
+   */
+  public static Task any(final IPromise<?>... promises) {
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      for (final IPromise<?> promise : promises) {
+        Task _task = PromiseExtensions.toTask(promise);
+        final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+          public void apply(final Throwable it) {
+            task.error(it);
+          }
+        };
+        Promise<Boolean> _onError = _task.onError(_function);
+        final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+          public void apply(final Boolean it) {
+            task.complete();
+          }
+        };
+        _onError.then(_function_1);
+      }
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
   }
   
   /**

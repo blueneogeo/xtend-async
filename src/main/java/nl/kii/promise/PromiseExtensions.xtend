@@ -35,12 +35,6 @@ class PromiseExtensions {
 		new Promise<T>(value)
 	}
 	
-//	@Async(false) def static onAny(Promise<?>[] promises, Task task) {
-//		promises.forEach [
-//			it.fork
-//		]
-//	}
-
 	/** Create a promise of a pair */
 	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
 		new Promise<Pair<K, V>>
@@ -55,6 +49,28 @@ class PromiseExtensions {
 			.first
 	}
 	
+	/** 
+	 * Create a new Task that completes when all wrapped tasks are completed.
+	 * Errors created by the tasks are propagated into the resulting task.
+	 */
+	def static Task all(IPromise<?>... promises) {
+		promises.map[toTask].stream.call[it].collect.first.toTask
+	}
+	
+	/** 
+	 * Create a new Task that completes when any of the wrapped tasks are completed
+	 * Errors created by the promises are propagated into the resulting task
+	 */
+	def static Task any(IPromise<?>... promises) {
+		val Task task = new Task
+		for(promise : promises) {
+			promise.toTask
+				.onError [ task.error(it) ]
+				.then [ task.complete ]
+		}
+		task
+	}
+
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
