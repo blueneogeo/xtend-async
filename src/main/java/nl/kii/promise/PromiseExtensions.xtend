@@ -48,6 +48,11 @@ class PromiseExtensions {
 			.collect // see it as a list of results
 			.first
 	}
+
+	/** Shortcut for quickly creating a completed task */	
+	def static Task complete() {
+		new Task => [ complete ]
+	}
 	
 	/** 
 	 * Create a new Task that completes when all wrapped tasks are completed.

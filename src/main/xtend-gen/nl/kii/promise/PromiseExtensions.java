@@ -19,6 +19,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
+import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -69,6 +70,19 @@ public class PromiseExtensions {
     Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
     Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
     return StreamExtensions.<List<R>>first(_collect);
+  }
+  
+  /**
+   * Shortcut for quickly creating a completed task
+   */
+  public static Task complete() {
+    Task _task = new Task();
+    final Procedure1<Task> _function = new Procedure1<Task>() {
+      public void apply(final Task it) {
+        it.complete();
+      }
+    };
+    return ObjectExtensions.<Task>operator_doubleArrow(_task, _function);
   }
   
   /**
