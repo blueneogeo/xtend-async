@@ -408,7 +408,7 @@ class TestStreamExtensions {
 	def void testLatest() {
 		// val scheduler = newSingleThreadScheduledExecutor;
 		// (5..10).streamRandom.every(1000, scheduler).latest.onEach [ println(it) ]
-		Thread.sleep(5000)
+		// Thread.sleep(5000)
 	}
 	
 	// TEST FILE STREAMING ////////////////////////////////////////////////////

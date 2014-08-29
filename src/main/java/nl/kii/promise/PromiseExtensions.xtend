@@ -2,8 +2,6 @@ package nl.kii.promise
 
 import java.util.List
 import java.util.Map
-import java.util.concurrent.Callable
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import nl.kii.stream.Entry
 import nl.kii.stream.Error

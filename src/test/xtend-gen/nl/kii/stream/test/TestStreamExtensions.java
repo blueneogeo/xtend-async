@@ -850,11 +850,6 @@ public class TestStreamExtensions {
   }
   
   public void testLatest() {
-    try {
-      Thread.sleep(5000);
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
   }
   
   @Test
