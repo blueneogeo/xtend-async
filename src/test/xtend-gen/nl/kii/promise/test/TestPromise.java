@@ -1,10 +1,12 @@
 package nl.kii.promise.test;
 
 import com.google.common.base.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Async;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
@@ -309,24 +311,28 @@ public class TestPromise {
   private final ExecutorService threads = Executors.newCachedThreadPool();
   
   @Async
-  public Task addOne(final int n, final Promise<Integer> promise) {
-    final Runnable _function = new Runnable() {
-      public void run() {
-        PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((n + 1)));
+  public IPromise<IPromise<Integer>> addOne(final int n, final Promise<Integer> promise) {
+    final Callable<IPromise<Integer>> _function = new Callable<IPromise<Integer>>() {
+      public IPromise<Integer> call() throws Exception {
+        return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((n + 1)));
       }
     };
-    return PromiseExtensions.run(this.threads, _function);
+    return ExecutorExtensions.<IPromise<Integer>>promise(this.threads, _function);
   }
   
   @Async
-  public Task sayHello(final Task task) {
-    final Runnable _function = new Runnable() {
-      public void run() {
-        InputOutput.<String>println("hello");
-        task.complete();
+  public IPromise<Task> sayHello(final Task task) {
+    final Callable<Task> _function = new Callable<Task>() {
+      public Task call() throws Exception {
+        Task _xblockexpression = null;
+        {
+          InputOutput.<String>println("hello");
+          _xblockexpression = task.complete();
+        }
+        return _xblockexpression;
       }
     };
-    return PromiseExtensions.run(this.threads, _function);
+    return ExecutorExtensions.<Task>promise(this.threads, _function);
   }
   
   @Test

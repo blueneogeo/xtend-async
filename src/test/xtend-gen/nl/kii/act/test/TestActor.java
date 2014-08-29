@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
-import nl.kii.promise.PromiseExtensions;
+import nl.kii.async.ExecutorExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
@@ -58,7 +58,7 @@ public class TestActor {
               }
             }
           };
-          PromiseExtensions.run(threads, _function);
+          ExecutorExtensions.task(threads, _function);
         }
       };
       final Actor<Integer> checkDone = ActorExtensions.<Integer>actor(_function);
@@ -69,7 +69,7 @@ public class TestActor {
               ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf((value - 1)), checkDone);
             }
           };
-          PromiseExtensions.run(threads, _function);
+          ExecutorExtensions.task(threads, _function);
         }
       };
       Actor<Integer> _actor = ActorExtensions.<Integer>actor(_function_1);
@@ -99,7 +99,7 @@ public class TestActor {
               done.apply();
             }
           };
-          PromiseExtensions.run(threads, _function);
+          ExecutorExtensions.task(threads, _function);
         }
       };
       final Actor<Integer> a = ActorExtensions.<Integer>actor(_function);

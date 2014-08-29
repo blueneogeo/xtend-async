@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
@@ -191,7 +192,7 @@ public class TestMultiThreadedProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>async(this.threads, _function);
+    return ExecutorExtensions.<Integer>promise(this.threads, _function);
   }
   
   public IPromise<Integer> throwsError(final int i) {
@@ -205,6 +206,6 @@ public class TestMultiThreadedProcessing {
         return Integer.valueOf((i * i));
       }
     };
-    return PromiseExtensions.<Integer>async(this.threads, _function);
+    return ExecutorExtensions.<Integer>promise(this.threads, _function);
   }
 }

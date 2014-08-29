@@ -2,8 +2,6 @@ package nl.kii.promise;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
@@ -534,71 +532,5 @@ public class PromiseExtensions {
    */
   public static <T extends Object> Future<T> future(final IPromise<T> promise) {
     return new PromiseFuture<T>(promise);
-  }
-  
-  /**
-   * Execute the callable in the background and return as a promise.
-   * Lets you specify the executorservice to run on.
-   * <pre>
-   * val service = Executors.newSingleThreadExecutor
-   * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
-   */
-  public static <T extends Object> IPromise<T> async(final ExecutorService service, final Callable<T> callable) {
-    Promise<T> _xblockexpression = null;
-    {
-      final Promise<T> promise = new Promise<T>();
-      final Runnable _function = new Runnable() {
-        public void run() {
-          try {
-            final T result = callable.call();
-            promise.set(result);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              promise.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        }
-      };
-      final Runnable processor = _function;
-      service.submit(processor);
-      _xblockexpression = promise;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Execute the runnable in the background and return as a promise.
-   * Lets you specify the executorservice to run on.
-   * <pre>
-   * val service = Executors.newSingleThreadExecutor
-   * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
-   */
-  public static Task run(final ExecutorService service, final Runnable runnable) {
-    Task _xblockexpression = null;
-    {
-      final Task task = new Task();
-      final Runnable _function = new Runnable() {
-        public void run() {
-          try {
-            runnable.run();
-            task.complete();
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              task.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        }
-      };
-      final Runnable processor = _function;
-      service.submit(processor);
-      _xblockexpression = task;
-    }
-    return _xblockexpression;
   }
 }

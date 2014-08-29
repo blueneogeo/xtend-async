@@ -22,9 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -333,53 +330,6 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<Integer>monitor(newStream, _function);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
-   * Note: this breaks the single threaded model!
-   */
-  public static Stream<Long> streamEvery(final ScheduledExecutorService scheduler, final int periodMs) {
-    return StreamExtensions.streamEvery(scheduler, periodMs, (-1));
-  }
-  
-  /**
-   * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
-   * It will keep doing this for forPeriodMs time. Set forPeriodMs to -1 to stream forever.
-   * Note: this breaks the single threaded model!
-   */
-  public static Stream<Long> streamEvery(final ScheduledExecutorService scheduler, final int periodMs, final int forPeriodMs) {
-    Stream<Long> _xblockexpression = null;
-    {
-      final AtomicReference<ScheduledFuture<?>> task = new AtomicReference<ScheduledFuture<?>>();
-      final Stream<Long> newStream = StreamExtensions.<Long>stream(long.class);
-      final long start = System.currentTimeMillis();
-      final Runnable _function = new Runnable() {
-        public void run() {
-          final long now = System.currentTimeMillis();
-          final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
-          boolean _and = false;
-          Stream<Object> _stream = StreamExtensions.<Object>stream();
-          Boolean _open = _stream.getOpen();
-          if (!(_open).booleanValue()) {
-            _and = false;
-          } else {
-            _and = (!expired);
-          }
-          if (_and) {
-            newStream.push(Long.valueOf((now - start)));
-          } else {
-            ScheduledFuture<?> _get = task.get();
-            _get.cancel(false);
-          }
-        }
-      };
-      final Runnable pusher = _function;
-      ScheduledFuture<?> _scheduleAtFixedRate = scheduler.scheduleAtFixedRate(pusher, 0, periodMs, TimeUnit.MILLISECONDS);
-      task.set(_scheduleAtFixedRate);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1098,22 +1048,12 @@ public class StreamExtensions {
   }
   
   /**
-   * Push a value onto the stream from the parent stream every periodMs milliseconds.
-   * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
-   */
-  public static <T extends Object> Stream<T> every(final Stream<T> stream, final int periodMs, final ScheduledExecutorService executor) {
-    Stream<Long> _streamEvery = StreamExtensions.streamEvery(executor, periodMs);
-    return StreamExtensions.<T>forEvery(stream, _streamEvery);
-  }
-  
-  /**
    * Push a value onto the stream from the parent stream every time the timerstream pushes a new value.
    */
   public static <T extends Object> Stream<T> forEvery(final Stream<T> stream, final Stream<?> timerStream) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final AtomicReference<ScheduledFuture<?>> task = new AtomicReference<ScheduledFuture<?>>();
       final Procedure1<Finish<?>> _function = new Procedure1<Finish<?>>() {
         public void apply(final Finish<?> it) {
           newStream.finish();
@@ -1126,8 +1066,7 @@ public class StreamExtensions {
           if ((_open).booleanValue()) {
             stream.next();
           } else {
-            ScheduledFuture<?> _get = task.get();
-            _get.cancel(false);
+            timerStream.close();
           }
         }
       };

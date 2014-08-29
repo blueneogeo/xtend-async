@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
@@ -719,7 +720,7 @@ public class TestStreamExtensions {
               return _xblockexpression;
             }
           };
-          return PromiseExtensions.<String>async(TestStreamExtensions.this.threads, _function);
+          return ExecutorExtensions.<String>promise(TestStreamExtensions.this.threads, _function);
         }
       };
       final Function1<String, IPromise<String>> doSomethingAsync = _function;

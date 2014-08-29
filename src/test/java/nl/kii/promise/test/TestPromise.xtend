@@ -3,6 +3,7 @@ package nl.kii.promise.test
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Async
+import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
 import org.junit.Test
@@ -10,9 +11,9 @@ import org.junit.Test
 import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
 
+import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
-import nl.kii.async.annotation.Atomic
 
 class TestPromise {
 	
@@ -121,14 +122,14 @@ class TestPromise {
 
 	@Async
 	def addOne(int n, Promise<Integer> promise) {
-		threads.run [|
+		threads.promise [|
 			promise << n + 1
 		]
 	}
 	
 	@Async
 	def sayHello(Task task) {
-		threads.run [| 
+		threads.promise [| 
 			println('hello')
 			task.complete
 		]

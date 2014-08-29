@@ -1,15 +1,15 @@
 package nl.kii.act.test
 
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.act.Actor
 import org.junit.Test
 
-import static nl.kii.promise.PromiseExtensions.*
+import static java.util.concurrent.Executors.*
+import static org.junit.Assert.*
 
 import static extension nl.kii.act.ActorExtensions.*
-import nl.kii.act.Actor
-import static extension java.util.concurrent.Executors.*
-import java.util.concurrent.atomic.AtomicInteger
-import static extension org.junit.Assert.*
+import static extension nl.kii.async.ExecutorExtensions.*
 
 class TestActor {
 	
@@ -32,7 +32,7 @@ class TestActor {
 		val decrease = new AtomicReference<Actor<Integer>>
 		val threads = newCachedThreadPool
 		val checkDone = actor [ int y |
-			run(threads) [|
+			threads.task [|
 				Thread.sleep(5)
 				if(y <= 0) doneCounter.incrementAndGet
 				else {
@@ -41,7 +41,7 @@ class TestActor {
 			]
 		]
 		decrease.set(actor [ int value |
-			run(threads) [|
+			threads.task [|
 				(value - 1) >> checkDone
 			]
 		])
@@ -58,7 +58,7 @@ class TestActor {
 		val counter = new AtomicInteger(0)
 		val ref = new AtomicReference<Actor<Integer>> 
 		val a = actor [ int i, done |
-			run(threads) [|
+			threads.task [|
 				// Thread.sleep(1)
 				counter.incrementAndGet
 				done.apply

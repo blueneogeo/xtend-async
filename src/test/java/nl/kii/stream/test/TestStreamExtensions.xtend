@@ -9,6 +9,7 @@ import org.junit.Test
 
 import static java.util.concurrent.Executors.*
 
+import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
@@ -334,7 +335,7 @@ class TestStreamExtensions {
 	@Test
 	def void testResolving() {
 		val doSomethingAsync = [ String x |
-			async(threads) [|
+			threads.promise [|
 				for(i : 1..5) {
 					Thread.sleep(10)
 					println(x + i)

@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import nl.kii.promise.PromiseExtensions;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
@@ -277,7 +277,7 @@ public class TestStream {
           }
         }
       };
-      PromiseExtensions.run(this.threads, _function_1);
+      ExecutorExtensions.task(this.threads, _function_1);
       final Runnable _function_2 = new Runnable() {
         public void run() {
           IntegerRange _upTo = new IntegerRange(1000, 1999);
@@ -287,7 +287,7 @@ public class TestStream {
           }
         }
       };
-      PromiseExtensions.run(this.threads, _function_2);
+      ExecutorExtensions.task(this.threads, _function_2);
       final Runnable _function_3 = new Runnable() {
         public void run() {
           IntegerRange _upTo = new IntegerRange(2000, 2999);
@@ -297,7 +297,7 @@ public class TestStream {
           }
         }
       };
-      PromiseExtensions.run(this.threads, _function_3);
+      ExecutorExtensions.task(this.threads, _function_3);
       final AtomicInteger sum = new AtomicInteger();
       final Procedure1<Entry<Integer>> _function_4 = new Procedure1<Entry<Integer>>() {
         public void apply(final Entry<Integer> it) {

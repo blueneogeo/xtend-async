@@ -9,9 +9,9 @@ import org.junit.Assert
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
-import static nl.kii.promise.PromiseExtensions.*
 import static org.junit.Assert.*
 
+import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStream {
@@ -136,17 +136,17 @@ class TestStream {
 	def void testParallelHighThroughputStreaming() {
 		val s = Integer.stream
 		val s2 = s.map [ it * 2 ]
-		run(threads) [|
+		threads.task [|
 			for(i : 0..999) {
 				s.apply(new Value(1))
 			}
 		]
-		run(threads) [|
+		threads.task [|
 			for(i : 1000..1999) {
 				s.apply(new Value(2))
 			}
 		]
-		run(threads) [|
+		threads.task [|
 			for(i : 2000..2999) {
 				s.apply(new Value(3))
 			}

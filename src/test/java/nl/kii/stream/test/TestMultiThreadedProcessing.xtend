@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
+import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
@@ -69,14 +70,14 @@ class TestMultiThreadedProcessing {
 	}
 	
 	def power2(int i) {
-		async(threads) [|
+		threads.promise [|
 			Thread.sleep(100)
 			return i * i
 		]
 	}
 
 	def throwsError(int i) {
-		async(threads) [|
+		threads.promise [|
 			Thread.sleep(100)
 			if(threads != null) throw new Exception('something went wrong')
 			return i * i

@@ -316,48 +316,4 @@ class PromiseExtensions {
 		new PromiseFuture(promise)
 	}
 
-	// THREADED PROMISES //////////////////////////////////////////////////////
-
-	/** 
-	 * Execute the callable in the background and return as a promise.
-	 * Lets you specify the executorservice to run on.
-	 * <pre>
-	 * val service = Executors.newSingleThreadExecutor
-	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
-	 */
-	def static <T> IPromise<T> async(ExecutorService service, Callable<T> callable) {
-		val promise = new Promise<T>
-		val Runnable processor = [|
-			try {
-				val result = callable.call
-				promise.set(result)
-			} catch(Throwable t) {
-				promise.error(t)
-			}
-		]
-		service.submit(processor)
-		promise
-	}	
-
-	/** 
-	 * Execute the runnable in the background and return as a promise.
-	 * Lets you specify the executorservice to run on.
-	 * <pre>
-	 * val service = Executors.newSingleThreadExecutor
-	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
-	 */
-	def static Task run(ExecutorService service, Runnable runnable) {
-		val task = new Task
-		val Runnable processor = [|
-			try {
-				runnable.run
-				task.complete
-			} catch(Throwable t) {
-				task.error(t)
-			}
-		]
-		service.submit(processor)
-		task
-	}	
-	
 }

@@ -13,8 +13,6 @@ import java.util.LinkedList
 import java.util.List
 import java.util.Map
 import java.util.Random
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -26,8 +24,6 @@ import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-
-import static java.util.concurrent.TimeUnit.*
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
@@ -151,34 +147,6 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream
-	}
-
-	/** 
-	 * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
-	 * Note: this breaks the single threaded model!
-	 */	
-	def static Stream<Long> streamEvery(ScheduledExecutorService scheduler, int periodMs) {
-		streamEvery(scheduler, periodMs, -1)
-	}
-	
-	/** 
-	 * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
-	 * It will keep doing this for forPeriodMs time. Set forPeriodMs to -1 to stream forever.
-	 * Note: this breaks the single threaded model!
-	 */	
-	def static Stream<Long> streamEvery(ScheduledExecutorService scheduler, int periodMs, int forPeriodMs) {
-		val task = new AtomicReference<ScheduledFuture<?>>
-		val newStream = long.stream
-		val start = System.currentTimeMillis
-		val Runnable pusher = [|
-			val now = System.currentTimeMillis
-			val expired = forPeriodMs > 0 && now - start > forPeriodMs 
-			if(stream.open && !expired) {
-				newStream.push(now - start)
-			} else task.get.cancel(false)
-		]
-		task.set(scheduler.scheduleAtFixedRate(pusher, 0, periodMs, MILLISECONDS))
 		newStream
 	}
 
@@ -616,24 +584,15 @@ class StreamExtensions {
 	}
 	
 	/** 
-	 * Push a value onto the stream from the parent stream every periodMs milliseconds.
-	 * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
-	 */
-	def static <T> Stream<T> every(Stream<T> stream, int periodMs, ScheduledExecutorService executor) {
-		stream.forEvery(executor.streamEvery(periodMs))
-	}
-
-	/** 
 	 * Push a value onto the stream from the parent stream every time the timerstream pushes a new value.
 	 */
 	def static <T> Stream<T> forEvery(Stream<T> stream, Stream<?> timerStream) {
 		val newStream = new Stream<T>
-		val task = new AtomicReference<ScheduledFuture<?>>
 		timerStream
 			.onFinish [ newStream.finish ]
 			.onEach [
 				if(stream.open) stream.next
-				else task.get.cancel(false)
+				else timerStream.close
 			]
 		stream.on [
 			each [ newStream.push(it) ]
