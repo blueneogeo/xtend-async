@@ -95,13 +95,8 @@ public class TestActor {
         public void apply(final Integer i, final Procedure0 done) {
           final Runnable _function = new Runnable() {
             public void run() {
-              try {
-                Thread.sleep(1);
-                counter.incrementAndGet();
-                done.apply();
-              } catch (Throwable _e) {
-                throw Exceptions.sneakyThrow(_e);
-              }
+              counter.incrementAndGet();
+              done.apply();
             }
           };
           PromiseExtensions.run(threads, _function);
@@ -113,7 +108,7 @@ public class TestActor {
       for (final Integer i : _upTo) {
         ActorExtensions.<Integer>operator_doubleLessThan(a, i);
       }
-      Thread.sleep(4000);
+      Thread.sleep(1000);
       int _get = counter.get();
       Assert.assertEquals(100000, _get);
     } catch (Throwable _e) {

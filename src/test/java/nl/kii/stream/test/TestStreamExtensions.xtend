@@ -3,15 +3,16 @@ package nl.kii.stream.test
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.async.annotation.Atomic
+import nl.kii.stream.Value
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
-import static nl.kii.promise.PromiseExtensions.*
 
+import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import nl.kii.async.annotation.Atomic
 
 class TestStreamExtensions {
 
@@ -43,7 +44,7 @@ class TestStreamExtensions {
 	@Test
 	def void testRandomStream() {
 		// generate numbers between 1 and 3 (1 and 3 inclusive)
-		val s = (1..3).randomStream
+		val s = (1..3).streamRandom
 		// process each buffered number
 		s.on [ each [ assertTrue(it >= 1 && it <= 3) ] ]
 		// generate 1000 numbers 
@@ -302,6 +303,33 @@ class TestStreamExtensions {
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
+	@Test
+	def void testResolve() {
+		val t1 = int.promise
+		val t2 = int.promise
+		val s = #[t1, t2].stream.resolve
+		s.onChange [
+			switch it {
+				Value<Integer>: {
+					println(value)
+					s.next
+				}
+			}
+		]
+		println('start') 
+		s.next
+		println('A') 
+		t1.set(1)
+		println('B') 
+		// s.next
+		println('C')
+		t2.set(2)
+		println('D')
+		println('E')
+	}
+	
+	
+	
 	// TODO: use assertions here instead of printing
 	@Test
 	def void testResolving() {
@@ -368,6 +396,18 @@ class TestStreamExtensions {
 		val s2 = int.stream
 		s1.forwardTo(s2)
 		s2.count.then [ assertEquals(1000000, it, 0) ]
+	}
+	
+	@Test
+	def void testThrottle() {
+		(1..1000).stream.throttle(1).onEach [ println(it) ]
+	}
+	
+	// @Test FIX: latest does not work yet
+	def void testLatest() {
+		// val scheduler = newSingleThreadScheduledExecutor;
+		// (5..10).streamRandom.every(1000, scheduler).latest.onEach [ println(it) ]
+		Thread.sleep(5000)
 	}
 	
 	// TEST FILE STREAMING ////////////////////////////////////////////////////

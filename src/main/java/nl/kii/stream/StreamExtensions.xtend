@@ -1,6 +1,6 @@
 package nl.kii.stream
 
-import static extension nl.kii.promise.PromiseExtensions.*
+import com.google.common.collect.ImmutableList
 import com.google.common.io.ByteProcessor
 import com.google.common.io.Files
 import com.google.common.util.concurrent.AtomicDouble
@@ -13,6 +13,8 @@ import java.util.LinkedList
 import java.util.List
 import java.util.Map
 import java.util.Random
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -25,9 +27,11 @@ import nl.kii.promise.Promise
 import nl.kii.promise.Task
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
+import static java.util.concurrent.TimeUnit.*
+
 import static extension com.google.common.io.ByteStreams.*
+import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import com.google.common.collect.ImmutableList
 
 class StreamExtensions {
 	
@@ -130,15 +134,51 @@ class StreamExtensions {
 	}
 	
 	/** create an unending stream of random integers in the range you have given */
-	def static Stream<Integer> randomStream(IntegerRange range) {
+	def static Stream<Integer> streamRandom(IntegerRange range) {
 		val randomizer = new Random
 		val newStream = int.stream
 		newStream.monitor [
 			onNext [
-				val next = range.start + randomizer.nextInt(range.size)
-				newStream.push(next)
+				if(newStream.open) {
+					val next = range.start + randomizer.nextInt(range.size)
+					newStream.push(next)
+				}
+			]
+			onSkip [
+				newStream.close
+			]
+			onClose [
+				newStream.close
 			]
 		]
+		newStream
+	}
+
+	/** 
+	 * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
+	 * Note: this breaks the single threaded model!
+	 */	
+	def static Stream<Long> streamEvery(ScheduledExecutorService scheduler, int periodMs) {
+		streamEvery(scheduler, periodMs, -1)
+	}
+	
+	/** 
+	 * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
+	 * It will keep doing this for forPeriodMs time. Set forPeriodMs to -1 to stream forever.
+	 * Note: this breaks the single threaded model!
+	 */	
+	def static Stream<Long> streamEvery(ScheduledExecutorService scheduler, int periodMs, int forPeriodMs) {
+		val task = new AtomicReference<ScheduledFuture<?>>
+		val newStream = long.stream
+		val start = System.currentTimeMillis
+		val Runnable pusher = [|
+			val now = System.currentTimeMillis
+			val expired = forPeriodMs > 0 && now - start > forPeriodMs 
+			if(stream.open && !expired) {
+				newStream.push(now - start)
+			} else task.get.cancel(false)
+		]
+		task.set(scheduler.scheduleAtFixedRate(pusher, 0, periodMs, MILLISECONDS))
 		newStream
 	}
 
@@ -230,19 +270,30 @@ class StreamExtensions {
 		new Finish<T>(level)
 	}
 
-	def package static <T, R> controls(Stream<T> newStream, Subscription<?> parent) {
+	def package static <T, R> controls(Stream<T> newStream, Stream<?> parent) {
 		newStream.monitor [
 			onNext [ 
-				parent.stream.next
+				parent.next
 			]
 			onSkip [ 
-				parent.stream.skip
+				parent.skip
 			]
 			onClose [ 
-				parent.stream.close
+				parent.close
 			]
 		]		
 	}
+	
+	/** Tell the stream something went wrong */
+	def static <T> error(Stream<T> stream, String message) {
+		stream.error(new Exception(message))
+	}
+
+	/** Tell the stream something went wrong, with the cause throwable */
+	def static <T> error(Stream<T> stream, String message, Throwable cause) {
+		stream.error(new Exception(message, cause))
+	}
+	
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
@@ -251,7 +302,7 @@ class StreamExtensions {
 	 */
 	def static <T, R> Stream<R> map(Stream<T> stream, (T)=>R mappingFn) {
 		val newStream = new Stream<R>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				val mapped = mappingFn.apply(it)
 				newStream.push(mapped)
@@ -266,7 +317,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -297,7 +348,7 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)
-		val subscription = stream.on [
+		stream.on [
 			each [
 				val i = index.incrementAndGet
 				if(filterFn.apply(it, i, passed.get)) {
@@ -319,7 +370,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -397,7 +448,7 @@ class StreamExtensions {
 	def static <T> Stream<T> split(Stream<T> stream, (T)=>boolean splitConditionFn) {
 		val newStream = new Stream<T>
 		val justPostedFinish0 = new AtomicBoolean(false)
-		val subscription = stream.on [
+		stream.on [
 			each [
 				if(splitConditionFn.apply(it)) {
 					// apply multiple entries at once for a single next
@@ -427,7 +478,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -437,7 +488,7 @@ class StreamExtensions {
 	 */
 	def static <T> Stream<T> merge(Stream<T> stream) {
 		val newStream = new Stream<T>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				newStream.apply(new Value(it))
 			]
@@ -453,7 +504,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -482,7 +533,7 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)	
-		val subscription = stream.on [
+		stream.on [
 			each [
 				val i = index.incrementAndGet
 				if(untilFn.apply(it, i, passed.get)) {
@@ -505,7 +556,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -516,7 +567,7 @@ class StreamExtensions {
 	def static <T> Stream<T> until(Stream<T> stream, (T, Long)=>boolean untilFn) {
 		val count = new AtomicLong(0)
 		val newStream = new Stream<T>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				if(untilFn.apply(it, count.incrementAndGet)) {
 					stream.skip
@@ -536,7 +587,89 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
+		newStream
+	}
+	
+	// FLOW CONTROL ///////////////////////////////////////////////////////////
+	
+	/**
+	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
+	 * All other values are dropped.
+	 */
+	def static <T> Stream<T> throttle(Stream<T> stream, int periodMs) {
+		// -1 means allow, we want to allow the first incoming value
+		val startTime = new AtomicLong(-1) 
+		stream.filter [
+			val now = System.currentTimeMillis
+			if(startTime.get == -1 || now - startTime.get > periodMs) {
+				// period has expired, reset the period and pass one
+				startTime.set(now)
+				true
+			} else false
+		]
+	}
+	
+	// TODO: implement
+	def static <T> Stream<T> ratelimit(Stream<T> stream, int periodMs) {
+		
+	}
+	
+	/** 
+	 * Push a value onto the stream from the parent stream every periodMs milliseconds.
+	 * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
+	 */
+	def static <T> Stream<T> every(Stream<T> stream, int periodMs, ScheduledExecutorService executor) {
+		stream.forEvery(executor.streamEvery(periodMs))
+	}
+
+	/** 
+	 * Push a value onto the stream from the parent stream every time the timerstream pushes a new value.
+	 */
+	def static <T> Stream<T> forEvery(Stream<T> stream, Stream<?> timerStream) {
+		val newStream = new Stream<T>
+		val task = new AtomicReference<ScheduledFuture<?>>
+		timerStream
+			.onFinish [ newStream.finish ]
+			.onEach [
+				if(stream.open) stream.next
+				else task.get.cancel(false)
+			]
+		stream.on [
+			each [ newStream.push(it) ]
+			finish [ newStream.finish(level) ]
+			error [ newStream.error(it) ]
+			closed [ newStream.close ]
+		]
+		newStream.monitor [
+			onSkip [ stream.skip ]
+			onClose [ stream.close ]
+		]
+		newStream
+	}
+	
+	/**
+	 * Always get the latest value that was on the stream.
+	 * FIX: does not work yet. Will require streams to allow multiple listeners
+	 */
+	@Deprecated
+	def static <T> Stream<T> latest(Stream<T> stream) {
+		val latest = new AtomicReference<T>
+		val newStream = new Stream<T>
+		stream.on [
+			each [
+				latest.set(it)
+				stream.next
+			]
+			error [ newStream.error(it) stream.next ]
+			finish [ newStream.finish(level) stream.next ]
+			closed [ newStream.close ]			
+		]
+		// the new stream is not coupled at all to the source stream
+		newStream.monitor [
+			onNext [ newStream.push(latest.get) ]
+			onClose [ stream.close ]
+		]
 		newStream
 	}
 	
@@ -555,44 +688,33 @@ class StreamExtensions {
 	 * Resolves a stream of processes, meaning it waits for promises to finish and return their
 	 * values, and builds a stream of that.
 	 * <p>
-	 * Allows concurrency promises to be resolved in parallel.
-	 * <p>
-	 * note: resolving breaks flow control. 
+	 * Allows concurrent promises to be resolved in parallel.
 	 */
 	def static <T, R> Stream<T> resolve(Stream<? extends IPromise<T>> stream, int concurrency) {
 		val newStream = new Stream<T>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
-		val =>void onProcessComplete = [|
-			val open = processes.decrementAndGet
-			if(isFinished.get) {
-				newStream.finish
-			}
-			if(concurrency > open) {
-				stream.next
-			}
-		]
 		stream.on [
 			each [ promise |
 				processes.incrementAndGet
 				promise
 					.onError [
+						processes.decrementAndGet
 						newStream.error(it)
-						stream.next
+						if(isFinished.get) newStream.finish
 					]
 					.then [
+						processes.decrementAndGet
 						newStream.push(it)
-						onProcessComplete.apply 
+						if(isFinished.get) newStream.finish
 					]
 			]
 			error [
 				newStream.error(it)
-				stream.next
 			]
 			finish [ 
 				if(processes.get == 0) {
 					newStream.finish(level)
-					stream.next
 				} else {
 					// we are still processing, so finish when we are done processing instead
 					isFinished.set(true)
@@ -602,7 +724,18 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		stream.next
+		newStream.monitor [
+			onNext [ 
+				if(concurrency > processes.get) 
+					stream.next
+			]
+			onSkip [
+				stream.skip
+			]
+			onClose [
+				stream.close
+			]
+		]
 		newStream
 	}
 	
@@ -622,38 +755,29 @@ class StreamExtensions {
 		val newStream = new Stream<Pair<K, V>>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
-		val =>void onProcessComplete = [|
-			val open = processes.decrementAndGet
-			if(isFinished.get) {
-				newStream.finish
-			}
-			if(concurrency > open) {
-				stream.next
-			}
-		]
 		stream.on [
 			each [ result |
 				val key = result.key
-				val promise = result.value
+				val promise = result.value				
 				processes.incrementAndGet
 				promise
 					.onError [
+						processes.decrementAndGet
 						newStream.error(it)
-						stream.next
+						if(isFinished.get) newStream.finish
 					]
 					.then [
+						processes.decrementAndGet
 						newStream.push(key -> it)
-						onProcessComplete.apply 
+						if(isFinished.get) newStream.finish
 					]
 			]
 			error [
 				newStream.error(it)
-				stream.next
 			]
 			finish [ 
 				if(processes.get == 0) {
 					newStream.finish(level)
-					stream.next
 				} else {
 					// we are still processing, so finish when we are done processing instead
 					isFinished.set(true)
@@ -663,7 +787,18 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		stream.next
+		newStream.monitor [
+			onNext [ 
+				if(concurrency > processes.get) 
+					stream.next
+			]
+			onSkip [
+				stream.skip
+			]
+			onClose [
+				stream.close
+			]
+		]
 		newStream
 	}
 	
@@ -727,7 +862,7 @@ class StreamExtensions {
 
 	/** 
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
-	 * note: onEach swallows exceptions in your listener. If you needs error detection/handling, use .on[] instead.
+	 * Returns a task that completes once the stream finishes or closes.
 	 */
 	def static <T> Task onEach(Stream<T> stream, (T)=>void listener) {
 		stream
@@ -736,14 +871,17 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
+	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
+	 * Returns a task that completes once the stream finishes or closes.
 	 */
 	def static <K, V> Task onEach(Stream<Pair<K, V>> stream, (K, V)=>void listener) {
 		stream.onEach [ listener.apply(key, value) ]
 	}
 
 	/**
-	 * Performs a task for every incoming value.
+	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
+	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
+	 * Returns a task that completes once the stream finishes or closes.
 	 */
 	def static <T> Task onEachAsync(Stream<T> stream, (T)=>Task listener) {
 		stream.map(listener).resolve.onEach [
@@ -752,71 +890,54 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Asynchronous listener to the stream. It will create an Subscription which you use to control the stream.
-	 * By just calling this to listen, values will not arrive. Instead, you need to call next on the subscription
-	 * to ask for the next message.
-	 * <p>
-	 * Note that this is a very manual way of listening, usually you are better off by creating asynchronous methods
-	 * and mapping to these methods.
+	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
+	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
+	 * Returns a task that completes once the stream finishes or closes.
 	 */
-//	def static <T> Subscription<T> onEachAsync(Stream<T> stream, (T, Subscription<T>)=>void listener) {
-//		stream.on [ sub |
-//			sub.each [
-//				listener.apply(it, sub)
-//			]
-//			sub.error [ throw it ]
-//		]
-//	}
-	
-	/**
-	 * Responds to a stream pair with a listener that takes the key and value of the stream result pair.
-	 * This version is controlled: the listener gets passed the stream and must indicate when it is ready 
-	 * for the next value. It also allows you to skip to the next finish.
-	 */
-//	def static <K, V> void onEachAsync(Stream<Pair<K, V>> stream, (K, V, Stream<Pair<K, V>>)=>void listener) {
-//		stream.on [ 
-//			each [ 
-//				listener.apply(key, value, stream)
-//			]
-//		]
-//	}
+	def static <K, V> Task onEachAsync(Stream<Pair<K, V>> stream, (K, V)=>Task listener) {
+		stream.map(listener).resolve.onEach [
+			// just ask for the next 
+		]
+	}
 
 	/**
 	 * Forward the results of the stream to another stream and start that stream. 
 	 */
 	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
-		val subscription = stream.on [
-			each [ 
-				otherStream.push(it)
-			]
-			error [ 
-				otherStream.error(it)
-			]
-			finish [ 
-				otherStream.finish
-			]
-			closed [
-				otherStream.close
-			]
+		stream.on [
+			each [ otherStream.push(it) ]
+			error [ otherStream.error(it) ]
+			finish [ otherStream.finish	]
+			closed [ otherStream.close ]
 		]
-		otherStream.controls(subscription)
-		subscription.stream.next
+		otherStream.controls(stream)
+		stream.next
 	}
 	
 	 /**
 	  * Start the stream and promise the first value coming from the stream.
+	  * Closes the stream once it has the value or an error.
 	  */
 	def static <T> IPromise<T> first(Stream<T> stream) {
 		val promise = new Promise<T>
-		val subscription = stream.on [
-			each [
-				if(!promise.fulfilled) promise.set(it)
+		stream.on [
+			each [ 
+				if(!promise.fulfilled) {
+					promise.set(it) 
+				} 
+				stream.close 
 			]
-			error [
-				if(!promise.fulfilled) promise.error(it)
+			error [ 
+				if(!promise.fulfilled) {
+					promise.error(it) 
+				}
+				stream.close
+			]
+			finish [
+				stream.error('stream finished without returning a value')
 			]
 		]
-	 	subscription.stream.next
+	 	stream.next
 		promise
 	}
 	
@@ -1004,7 +1125,7 @@ class StreamExtensions {
 	 */
 	def static <T> Stream<T> separate(Stream<List<T>> stream) {
 		val newStream = new Stream<T>
-		val subscription = stream.on [
+		stream.on [
 			each [ list |
 				// apply multiple entries at once for a single next
 				val entries = list.map [ new Value(it) ]
@@ -1020,7 +1141,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -1032,7 +1153,7 @@ class StreamExtensions {
 	def static <T> Stream<List<T>> collect(Stream<T> stream) {
 		val list = new AtomicReference(new LinkedList<T>)
 		val newStream = new Stream<List<T>>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				list.get.add(it)
 				stream.next
@@ -1053,7 +1174,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -1063,7 +1184,7 @@ class StreamExtensions {
 	def static <T extends Number> sum(Stream<T> stream) {
 		val sum = new AtomicDouble(0)
 		val newStream = new Stream<Double>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				sum.addAndGet(doubleValue)
 				stream.next
@@ -1084,7 +1205,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -1095,7 +1216,7 @@ class StreamExtensions {
 		val avg = new AtomicDouble
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Double>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				avg.addAndGet(doubleValue)
 				count.incrementAndGet
@@ -1117,7 +1238,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	
@@ -1127,7 +1248,7 @@ class StreamExtensions {
 	def static <T> count(Stream<T> stream) {
 		val count = new AtomicLong(0)
 		val newStream = new Stream<Long>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				count.incrementAndGet
 				stream.next
@@ -1146,7 +1267,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -1156,7 +1277,7 @@ class StreamExtensions {
 	def static <T> Stream<T> reduce(Stream<T> stream, T initial, (T, T)=>T reducerFn) {
 		val reduced = new AtomicReference<T>(initial)
 		val newStream = new Stream<T>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				reduced.set(reducerFn.apply(reduced.get, it))
 				stream.next
@@ -1175,7 +1296,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -1187,7 +1308,7 @@ class StreamExtensions {
 		val reduced = new AtomicReference<T>(initial)
 		val count = new AtomicLong(0)
 		val newStream = new Stream<T>
-		val subscription = stream.on [
+		stream.on [
 			each [
 				reduced.set(reducerFn.apply(reduced.get, it, count.getAndIncrement))
 				stream.next
@@ -1208,7 +1329,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 
@@ -1218,7 +1339,7 @@ class StreamExtensions {
 	 def static <T> Stream<Boolean> anyMatch(Stream<T> stream, (T)=>boolean testFn) {
 	 	val anyMatch = new AtomicBoolean(false)
 	 	val newStream = new Stream<Boolean>
-		val subscription = stream.on [
+		stream.on [
 			each [
 			 	// if we get a match, we communicate directly and tell the stream we are done
 		 		if(testFn.apply(it)) {	
@@ -1244,7 +1365,7 @@ class StreamExtensions {
 				newStream.close
 			]
 		]
-		newStream.controls(subscription)
+		newStream.controls(stream)
 		newStream
 	}
 	

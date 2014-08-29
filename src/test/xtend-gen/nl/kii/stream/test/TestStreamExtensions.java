@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
@@ -100,7 +101,7 @@ public class TestStreamExtensions {
   @Test
   public void testRandomStream() {
     IntegerRange _upTo = new IntegerRange(1, 3);
-    final Stream<Integer> s = StreamExtensions.randomStream(_upTo);
+    final Stream<Integer> s = StreamExtensions.streamRandom(_upTo);
     final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
       public void apply(final Subscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
@@ -668,6 +669,36 @@ public class TestStreamExtensions {
   }
   
   @Test
+  public void testResolve() {
+    final Promise<Integer> t1 = PromiseExtensions.<Integer>promise(int.class);
+    final Promise<Integer> t2 = PromiseExtensions.<Integer>promise(int.class);
+    Stream<Promise<Integer>> _stream = StreamExtensions.<Promise<Integer>>stream(Collections.<Promise<Integer>>unmodifiableList(CollectionLiterals.<Promise<Integer>>newArrayList(t1, t2)));
+    final Stream<Integer> s = StreamExtensions.<Integer, Object>resolve(_stream);
+    final Procedure1<Entry<Integer>> _function = new Procedure1<Entry<Integer>>() {
+      public void apply(final Entry<Integer> it) {
+        boolean _matched = false;
+        if (!_matched) {
+          if (it instanceof Value) {
+            _matched=true;
+            InputOutput.<Integer>println(((Value<Integer>)it).value);
+            s.next();
+          }
+        }
+      }
+    };
+    s.onChange(_function);
+    InputOutput.<String>println("start");
+    s.next();
+    InputOutput.<String>println("A");
+    t1.set(Integer.valueOf(1));
+    InputOutput.<String>println("B");
+    InputOutput.<String>println("C");
+    t2.set(Integer.valueOf(2));
+    InputOutput.<String>println("D");
+    InputOutput.<String>println("E");
+  }
+  
+  @Test
   public void testResolving() {
     try {
       final Function1<String, IPromise<String>> _function = new Function1<String, IPromise<String>>() {
@@ -802,6 +833,27 @@ public class TestStreamExtensions {
       }
     };
     StreamExtensions.<Long>then(_count, _function);
+  }
+  
+  @Test
+  public void testThrottle() {
+    IntegerRange _upTo = new IntegerRange(1, 1000);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    Stream<Integer> _throttle = StreamExtensions.<Integer>throttle(_stream, 1);
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    StreamExtensions.<Integer>onEach(_throttle, _function);
+  }
+  
+  public void testLatest() {
+    try {
+      Thread.sleep(5000);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   @Test

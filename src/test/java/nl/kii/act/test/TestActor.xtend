@@ -59,7 +59,7 @@ class TestActor {
 		val ref = new AtomicReference<Actor<Integer>> 
 		val a = actor [ int i, done |
 			run(threads) [|
-				Thread.sleep(1)
+				// Thread.sleep(1)
 				counter.incrementAndGet
 				done.apply
 			]
@@ -68,7 +68,7 @@ class TestActor {
 		for(i : 1..100000) {
 			a << i
 		}
-		Thread.sleep(4000)
+		Thread.sleep(1000)
 		assertEquals(100000, counter.get)
 	}
 	

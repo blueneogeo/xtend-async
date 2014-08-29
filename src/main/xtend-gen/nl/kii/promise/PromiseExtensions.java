@@ -202,6 +202,20 @@ public class PromiseExtensions {
   }
   
   /**
+   * All/And
+   */
+  public static Task operator_and(final IPromise<?> p1, final IPromise<?> p2) {
+    return PromiseExtensions.all(p1, p2);
+  }
+  
+  /**
+   * Any/Or
+   */
+  public static Task operator_or(final IPromise<?> p1, final IPromise<?> p2) {
+    return PromiseExtensions.any(p1, p2);
+  }
+  
+  /**
    * Convert a promise into a task
    */
   public static <T extends Object> Task toTask(final IPromise<T> promise) {

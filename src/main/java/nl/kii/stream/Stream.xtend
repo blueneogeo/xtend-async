@@ -73,7 +73,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	/** 
 	 * listen for changes on the stream. There can only be a single listener.
 	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
-	 * instead. If you need more than one listener, use a StreamObserver by calling stream.observe.
+	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
 	 */
 	override synchronized def =>void onChange((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener

@@ -75,10 +75,34 @@ class TestPromiseExtensions {
 	
 	@Test
 	def void testAll() {
+		allDone = false
+		t2Done = false
 		val t1 = new Task
 		val t2 = new Task
 		val t3 = new Task
 		val a = all(t1, t2, t3)
+		t2.then [ t2Done = true ]
+		a.then [ allDone = true ]
+		assertFalse(allDone)
+		assertFalse(t2Done)
+		t1.complete 
+		assertFalse(allDone)
+		assertFalse(t2Done)
+		t2.complete 
+		assertFalse(allDone)
+		assertTrue(t2Done)
+		t3.complete 
+		assertTrue(allDone)
+	}
+
+	@Test
+	def void testAllOperator() {
+		allDone = false
+		t2Done = false
+		val t1 = new Task
+		val t2 = new Task
+		val t3 = new Task
+		val a = t1 && t2 && t3
 		t2.then [ t2Done = true ]
 		a.then [ allDone = true ]
 		assertFalse(allDone)
@@ -111,6 +135,22 @@ class TestPromiseExtensions {
 		assertTrue(anyDone)
 	}
 	
+	@Test
+	def void testAnyOperator() {
+		val t1 = new Task
+		val t2 = new Task
+		val t3 = new Task
+		val a = t1 || t2 || t3
+		a.then [ anyDone = true ]
+		assertFalse(anyDone)
+		t1.complete 
+		assertTrue(anyDone)
+		t2.complete 
+		assertTrue(anyDone)
+		t3.complete 
+		assertTrue(anyDone)
+	}
+
 	private def power2(int i) { (i*i).promise }
 	
 }

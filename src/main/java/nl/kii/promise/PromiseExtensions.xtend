@@ -98,17 +98,27 @@ class PromiseExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
-	def static <T> operator_doubleGreaterThan(T value, IPromise<T> promise) {
+	def static <T> >> (T value, IPromise<T> promise) {
 		promise.set(value)
 		promise
 	}
 	
 	/** Fulfill a promise */
-	def static <T> operator_doubleLessThan(IPromise<T> promise, T value) {
+	def static <T> << (IPromise<T> promise, T value) {
 		promise.set(value)
 		promise
 	}
 	
+	/** All/And */
+	def static Task operator_and(IPromise<?> p1, IPromise<?> p2) {
+		all(p1, p2)
+	}
+	
+	/** Any/Or */
+	def static Task operator_or(IPromise<?> p1, IPromise<?> p2) {
+		any(p1, p2)
+	}
+
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 
 	/** Convert a promise into a task */	

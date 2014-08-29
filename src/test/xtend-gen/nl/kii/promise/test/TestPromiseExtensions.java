@@ -114,10 +114,52 @@ public class TestPromiseExtensions {
   
   @Test
   public void testAll() {
+    this.setAllDone(Boolean.valueOf(false));
+    this.setT2Done(Boolean.valueOf(false));
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
     final Task a = PromiseExtensions.all(t1, t2, t3);
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
+      }
+    };
+    t2.then(_function);
+    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
+      }
+    };
+    a.then(_function_1);
+    Boolean _allDone = this.getAllDone();
+    Assert.assertFalse((_allDone).booleanValue());
+    Boolean _t2Done = this.getT2Done();
+    Assert.assertFalse((_t2Done).booleanValue());
+    t1.complete();
+    Boolean _allDone_1 = this.getAllDone();
+    Assert.assertFalse((_allDone_1).booleanValue());
+    Boolean _t2Done_1 = this.getT2Done();
+    Assert.assertFalse((_t2Done_1).booleanValue());
+    t2.complete();
+    Boolean _allDone_2 = this.getAllDone();
+    Assert.assertFalse((_allDone_2).booleanValue());
+    Boolean _t2Done_2 = this.getT2Done();
+    Assert.assertTrue((_t2Done_2).booleanValue());
+    t3.complete();
+    Boolean _allDone_3 = this.getAllDone();
+    Assert.assertTrue((_allDone_3).booleanValue());
+  }
+  
+  @Test
+  public void testAllOperator() {
+    this.setAllDone(Boolean.valueOf(false));
+    this.setT2Done(Boolean.valueOf(false));
+    final Task t1 = new Task();
+    final Task t2 = new Task();
+    final Task t3 = new Task();
+    Task _and = PromiseExtensions.operator_and(t1, t2);
+    final Task a = PromiseExtensions.operator_and(_and, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
@@ -158,6 +200,32 @@ public class TestPromiseExtensions {
     final Task t2 = new Task();
     final Task t3 = new Task();
     final Task a = PromiseExtensions.any(t1, t2, t3);
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
+      }
+    };
+    a.then(_function);
+    Boolean _anyDone = this.getAnyDone();
+    Assert.assertFalse((_anyDone).booleanValue());
+    t1.complete();
+    Boolean _anyDone_1 = this.getAnyDone();
+    Assert.assertTrue((_anyDone_1).booleanValue());
+    t2.complete();
+    Boolean _anyDone_2 = this.getAnyDone();
+    Assert.assertTrue((_anyDone_2).booleanValue());
+    t3.complete();
+    Boolean _anyDone_3 = this.getAnyDone();
+    Assert.assertTrue((_anyDone_3).booleanValue());
+  }
+  
+  @Test
+  public void testAnyOperator() {
+    final Task t1 = new Task();
+    final Task t2 = new Task();
+    final Task t3 = new Task();
+    Task _or = PromiseExtensions.operator_or(t1, t2);
+    final Task a = PromiseExtensions.operator_or(_or, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
