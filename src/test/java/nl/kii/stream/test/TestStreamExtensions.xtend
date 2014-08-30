@@ -228,10 +228,45 @@ class TestStreamExtensions {
 	}
 	
 	@Test
+	def void testMax() {
+		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
+		val avg = s.max
+		avg.assertStreamEquals(#[8.value, 7.value])
+	}
+	
+	@Test
+	def void testMin() {
+		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
+		val avg = s.min
+		avg.assertStreamEquals(#[1.value, 4.value])
+	}
+	
+	@Test
+	def void testAll() {
+		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
+		val avg = s.all [ it > 3 ]
+		avg.assertStreamEquals(#[false.value, true.value])
+	}
+
+	@Test
+	def void testNone() {
+		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
+		val avg = s.none [ it < 3 ]
+		avg.assertStreamEquals(#[false.value, true.value])
+	}
+
+	@Test
+	def void testFirstMatch() {
+		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish << 1 << 10 // note no finish here
+		val first = s.first [ it % 2 == 0 ]
+		first.assertStreamEquals(#[8.value, 4.value, 10.value]) // 10 is still streamed
+	}
+
+	@Test
 	def void testCount() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val counted = s.count
-		counted.assertStreamEquals(#[3L.value, 2L.value])
+		counted.assertStreamEquals(#[3.value, 2.value])
 	}
 	
 	@Test
@@ -242,13 +277,12 @@ class TestStreamExtensions {
 	}
 
 	@Test
-	def void testReduceWithCounter() {
-		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
-		val summed = s.reduce(0L) [ a, b, c | a + c ]
-		// #[0 + 1 + 2 , 0 + 1]
-		summed.assertStreamEquals(#[3L.value, 1L.value])
+	def void testScan() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val summed = s.scan(1) [ a, b | a + b ] // starting at 1!
+		summed.assertStreamEquals(#[2.value, 4.value, 7.value, finish, 5.value, 10.value, finish])
 	}
-	
+
 	@Test
 	def void testLimit() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
@@ -280,14 +314,14 @@ class TestStreamExtensions {
 	@Test
 	def void testAnyMatchNoFinish() {
 		val s = Boolean.stream << false << false << true << false
-		val matches = s.anyMatch[it].first
+		val matches = s.any[it].first
 		matches.assertPromiseEquals(true)
 	}
 
 	@Test
 	def void testAnyMatchWithFinish() {
 		val s = Boolean.stream << false << false << false << finish
-		val matches = s.anyMatch[it].first
+		val matches = s.any[it].first
 		matches.assertPromiseEquals(false)
 	}
 	
@@ -393,10 +427,10 @@ class TestStreamExtensions {
 	@Test
 	def void testStreamForwardTo() {
 		// since we use flow control, we can stream forward a lot without using much memory
-		val s1 = (1..1000000).stream
+		val s1 = (1..1_000_000).stream
 		val s2 = int.stream
 		s1.forwardTo(s2)
-		s2.count.then [ assertEquals(1000000, it, 0) ]
+		s2.count.then [ assertEquals(1_000_000, it, 0) ]
 	}
 	
 	@Test

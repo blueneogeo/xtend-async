@@ -15,9 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -817,7 +817,7 @@ public class StreamExtensions {
   
   /**
    * Merges one level of finishes.
-   * @See StreamExtensions.split
+   * @see StreamExtensions.split
    */
   public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
     Stream<T> _xblockexpression = null;
@@ -1698,6 +1698,26 @@ public class StreamExtensions {
     return _first.then(listener);
   }
   
+  public static <T extends Object> Subscription<T> on(final Stream<T> stream, final Procedure1<? super Subscription<T>> subscriptionFn) {
+    Subscription<T> _xblockexpression = null;
+    {
+      final Subscription<T> subscription = new Subscription<T>(stream);
+      subscriptionFn.apply(subscription);
+      _xblockexpression = subscription;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
+    CommandSubscription _xblockexpression = null;
+    {
+      final CommandSubscription handler = new CommandSubscription(stream);
+      subscriptionFn.apply(handler);
+      _xblockexpression = handler;
+    }
+    return _xblockexpression;
+  }
+  
   public static <T extends Object> Subscription<T> onClosed(final Stream<T> stream, final Procedure1<? super Stream<T>> listener) {
     final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
       public void apply(final Subscription<T> subscription) {
@@ -1770,26 +1790,6 @@ public class StreamExtensions {
       };
       subscription.finish(_function);
       _xblockexpression = subscription;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> Subscription<T> on(final Stream<T> stream, final Procedure1<? super Subscription<T>> subscriptionFn) {
-    Subscription<T> _xblockexpression = null;
-    {
-      final Subscription<T> subscription = new Subscription<T>(stream);
-      subscriptionFn.apply(subscription);
-      _xblockexpression = subscription;
-    }
-    return _xblockexpression;
-  }
-  
-  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
-    CommandSubscription _xblockexpression = null;
-    {
-      final CommandSubscription handler = new CommandSubscription(stream);
-      subscriptionFn.apply(handler);
-      _xblockexpression = handler;
     }
     return _xblockexpression;
   }
@@ -1986,104 +1986,26 @@ public class StreamExtensions {
    * Collect all items from a stream, separated by finishes
    */
   public static <T extends Object> Stream<List<T>> collect(final Stream<T> stream) {
-    Stream<List<T>> _xblockexpression = null;
-    {
-      LinkedList<T> _linkedList = new LinkedList<T>();
-      final AtomicReference<LinkedList<T>> list = new AtomicReference<LinkedList<T>>(_linkedList);
-      final Stream<List<T>> newStream = new Stream<List<T>>();
-      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
-        public void apply(final Subscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              LinkedList<T> _get = list.get();
-              _get.add(it);
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                final LinkedList<T> collected = list.get();
-                LinkedList<T> _linkedList = new LinkedList<T>();
-                list.set(_linkedList);
-                newStream.push(collected);
-              } else {
-                newStream.finish((it.level - 1));
-              }
-            }
-          };
-          it.finish(_function_1);
-          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      StreamExtensions.<List<T>, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    ArrayList<T> _newArrayList = CollectionLiterals.<T>newArrayList();
+    final Function2<List<T>, T, List<T>> _function = new Function2<List<T>, T, List<T>>() {
+      public List<T> apply(final List<T> list, final T it) {
+        return StreamExtensions.<T>concat(list, it);
+      }
+    };
+    return StreamExtensions.<T, List<T>>reduce(stream, _newArrayList, _function);
   }
   
   /**
    * Add the value of all the items in the stream until a finish.
    */
   public static <T extends Number> Stream<Double> sum(final Stream<T> stream) {
-    Stream<Double> _xblockexpression = null;
-    {
-      final AtomicDouble sum = new AtomicDouble(0);
-      final Stream<Double> newStream = new Stream<Double>();
-      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
-        public void apply(final Subscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              double _doubleValue = it.doubleValue();
-              sum.addAndGet(_doubleValue);
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                final double collected = sum.doubleValue();
-                sum.set(0);
-                newStream.push(Double.valueOf(collected));
-              } else {
-                newStream.finish((it.level - 1));
-              }
-            }
-          };
-          it.finish(_function_1);
-          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      StreamExtensions.<Double, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    final Function2<Double, T, Double> _function = new Function2<Double, T, Double>() {
+      public Double apply(final Double acc, final T it) {
+        double _doubleValue = it.doubleValue();
+        return Double.valueOf(((acc).doubleValue() + _doubleValue));
+      }
+    };
+    return StreamExtensions.<T, Double>reduce(stream, Double.valueOf(0D), _function);
   }
   
   /**
@@ -2092,10 +2014,16 @@ public class StreamExtensions {
   public static <T extends Number> Stream<Double> average(final Stream<T> stream) {
     Stream<Double> _xblockexpression = null;
     {
+      final Function2<Integer, T, Integer> _function = new Function2<Integer, T, Integer>() {
+        public Integer apply(final Integer acc, final T it) {
+          return null;
+        }
+      };
+      StreamExtensions.<T, Integer>reduce(stream, Integer.valueOf(0), _function);
       final AtomicDouble avg = new AtomicDouble();
       final AtomicLong count = new AtomicLong(0);
       final Stream<Double> newStream = new Stream<Double>();
-      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+      final Procedure1<Subscription<T>> _function_1 = new Procedure1<Subscription<T>>() {
         public void apply(final Subscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
@@ -2134,7 +2062,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T>on(stream, _function_1);
       StreamExtensions.<Double, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
@@ -2144,120 +2072,86 @@ public class StreamExtensions {
   /**
    * Count the number of items passed in the stream until a finish.
    */
-  public static <T extends Object> Stream<Long> count(final Stream<T> stream) {
-    Stream<Long> _xblockexpression = null;
-    {
-      final AtomicLong count = new AtomicLong(0);
-      final Stream<Long> newStream = new Stream<Long>();
-      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
-        public void apply(final Subscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              count.incrementAndGet();
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                long _andSet = count.getAndSet(0);
-                newStream.push(Long.valueOf(_andSet));
-              } else {
-                newStream.finish((it.level - 1));
-              }
-            }
-          };
-          it.finish(_function_1);
-          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      StreamExtensions.<Long, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+  public static <T extends Object> Stream<Integer> count(final Stream<T> stream) {
+    final Function2<Integer, T, Integer> _function = new Function2<Integer, T, Integer>() {
+      public Integer apply(final Integer acc, final T it) {
+        return Integer.valueOf(((acc).intValue() + 1));
+      }
+    };
+    return StreamExtensions.<T, Integer>reduce(stream, Integer.valueOf(0), _function);
   }
   
   /**
-   * Reduce a stream of values to a single value until a finish.
+   * Gives the maximum value found on the stream.
+   * Values must implement Comparable
    */
-  public static <T extends Object> Stream<T> reduce(final Stream<T> stream, final T initial, final Function2<? super T, ? super T, ? extends T> reducerFn) {
-    Stream<T> _xblockexpression = null;
-    {
-      final AtomicReference<T> reduced = new AtomicReference<T>(initial);
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
-        public void apply(final Subscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              T _get = reduced.get();
-              T _apply = reducerFn.apply(_get, it);
-              reduced.set(_apply);
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                T _andSet = reduced.getAndSet(initial);
-                newStream.push(_andSet);
-              } else {
-                newStream.finish((it.level - 1));
-              }
-            }
-          };
-          it.finish(_function_1);
-          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
+  public static <T extends Comparable<T>> Stream<T> max(final Stream<T> stream) {
+    final Function2<T, T, T> _function = new Function2<T, T, T>() {
+      public T apply(final T acc, final T it) {
+        T _xifexpression = null;
+        boolean _and = false;
+        boolean _notEquals = (!Objects.equal(acc, null));
+        if (!_notEquals) {
+          _and = false;
+        } else {
+          int _compareTo = acc.compareTo(it);
+          boolean _greaterThan = (_compareTo > 0);
+          _and = _greaterThan;
         }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      StreamExtensions.<T, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+        if (_and) {
+          _xifexpression = acc;
+        } else {
+          _xifexpression = it;
+        }
+        return _xifexpression;
+      }
+    };
+    return StreamExtensions.<T, T>reduce(stream, null, _function);
+  }
+  
+  /**
+   * Gives the minimum value found on the stream.
+   * Values must implement Comparable
+   */
+  public static <T extends Comparable<T>> Stream<T> min(final Stream<T> stream) {
+    final Function2<T, T, T> _function = new Function2<T, T, T>() {
+      public T apply(final T acc, final T it) {
+        T _xifexpression = null;
+        boolean _and = false;
+        boolean _notEquals = (!Objects.equal(acc, null));
+        if (!_notEquals) {
+          _and = false;
+        } else {
+          int _compareTo = acc.compareTo(it);
+          boolean _lessThan = (_compareTo < 0);
+          _and = _lessThan;
+        }
+        if (_and) {
+          _xifexpression = acc;
+        } else {
+          _xifexpression = it;
+        }
+        return _xifexpression;
+      }
+    };
+    return StreamExtensions.<T, T>reduce(stream, null, _function);
   }
   
   /**
    * Reduce a stream of values to a single value, and pass a counter in the function.
    * The counter is the count of the incoming stream entry (since the start or the last finish)
    */
-  public static <T extends Object> Stream<T> reduce(final Stream<T> stream, final T initial, final Function3<? super T, ? super T, ? super Long, ? extends T> reducerFn) {
-    Stream<T> _xblockexpression = null;
+  public static <T extends Object, R extends Object> Stream<R> reduce(final Stream<T> stream, final R initial, final Function2<? super R, ? super T, ? extends R> reducerFn) {
+    Stream<R> _xblockexpression = null;
     {
-      final AtomicReference<T> reduced = new AtomicReference<T>(initial);
-      final AtomicLong count = new AtomicLong(0);
-      final Stream<T> newStream = new Stream<T>();
+      final AtomicReference<R> reduced = new AtomicReference<R>(initial);
+      final Stream<R> newStream = new Stream<R>();
       final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
         public void apply(final Subscription<T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
-              T _get = reduced.get();
-              long _andIncrement = count.getAndIncrement();
-              T _apply = reducerFn.apply(_get, it, Long.valueOf(_andIncrement));
+              R _get = reduced.get();
+              R _apply = reducerFn.apply(_get, it);
               reduced.set(_apply);
               stream.next();
             }
@@ -2266,9 +2160,13 @@ public class StreamExtensions {
           final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
               if ((it.level == 0)) {
-                final T result = reduced.getAndSet(initial);
-                count.set(0);
-                newStream.push(result);
+                final R result = reduced.getAndSet(initial);
+                boolean _notEquals = (!Objects.equal(result, null));
+                if (_notEquals) {
+                  newStream.push(result);
+                } else {
+                  StreamExtensions.<R>error(newStream, "no result found when reducing");
+                }
               } else {
                 newStream.finish((it.level - 1));
               }
@@ -2290,16 +2188,107 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<T>on(stream, _function);
-      StreamExtensions.<T, Object>controls(newStream, stream);
+      StreamExtensions.<R, Object>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <T extends Object, R extends Object> Stream<R> scan(final Stream<T> stream, final R initial, final Function2<? super R, ? super T, ? extends R> reducerFn) {
+    Stream<R> _xblockexpression = null;
+    {
+      final AtomicReference<R> reduced = new AtomicReference<R>(initial);
+      final Stream<R> newStream = new Stream<R>();
+      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+        public void apply(final Subscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              R _get = reduced.get();
+              final R result = reducerFn.apply(_get, it);
+              reduced.set(result);
+              boolean _notEquals = (!Objects.equal(result, null));
+              if (_notEquals) {
+                newStream.push(result);
+              }
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              reduced.set(initial);
+              newStream.finish(it.level);
+            }
+          };
+          it.finish(_function_1);
+          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<R, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
   }
   
   /**
-   * True if any of the values match the passed testFn
+   * Streams true if all stream values match the test function
    */
-  public static <T extends Object> Stream<Boolean> anyMatch(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
+  public static <T extends Object> Stream<Boolean> all(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
+    final Function2<Boolean, T, Boolean> _function = new Function2<Boolean, T, Boolean>() {
+      public Boolean apply(final Boolean acc, final T it) {
+        boolean _and = false;
+        if (!(acc).booleanValue()) {
+          _and = false;
+        } else {
+          Boolean _apply = testFn.apply(it);
+          _and = (_apply).booleanValue();
+        }
+        return Boolean.valueOf(_and);
+      }
+    };
+    return StreamExtensions.<T, Boolean>reduce(stream, Boolean.valueOf(true), _function);
+  }
+  
+  /**
+   * Streams true if no stream values match the test function
+   */
+  public static <T extends Object> Stream<Boolean> none(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
+    final Function2<Boolean, T, Boolean> _function = new Function2<Boolean, T, Boolean>() {
+      public Boolean apply(final Boolean acc, final T it) {
+        boolean _and = false;
+        if (!(acc).booleanValue()) {
+          _and = false;
+        } else {
+          Boolean _apply = testFn.apply(it);
+          boolean _not = (!(_apply).booleanValue());
+          _and = _not;
+        }
+        return Boolean.valueOf(_and);
+      }
+    };
+    return StreamExtensions.<T, Boolean>reduce(stream, Boolean.valueOf(true), _function);
+  }
+  
+  /**
+   * Streams true if any of the values match the passed testFn.
+   * <p>
+   * Note that this is not a normal reduction, since no finish is needed
+   * for any to fire true. The moment testFn gives off true, true is streamed
+   * and the rest of the incoming values are skipped.
+   */
+  public static <T extends Object> Stream<Boolean> any(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
     Stream<Boolean> _xblockexpression = null;
     {
       final AtomicBoolean anyMatch = new AtomicBoolean(false);
@@ -2348,6 +2337,63 @@ public class StreamExtensions {
       };
       StreamExtensions.<T>on(stream, _function);
       StreamExtensions.<Boolean, Object>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Streams the first value that matches the testFn
+   * <p>
+   * Note that this is not a normal reduction, since no finish is needed to fire a value.
+   * The moment testFn gives off true, the value is streamed and the rest of the incoming
+   * values are skipped.
+   */
+  public static <T extends Object> Stream<T> first(final Stream<T> stream, final Function1<? super T, ? extends Boolean> testFn) {
+    Stream<T> _xblockexpression = null;
+    {
+      final AtomicReference<T> match = new AtomicReference<T>();
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+        public void apply(final Subscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              Boolean _apply = testFn.apply(it);
+              if ((_apply).booleanValue()) {
+                match.set(it);
+                newStream.push(it);
+                stream.skip();
+              }
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level == 0)) {
+                match.set(null);
+              } else {
+                newStream.finish((it.level - 1));
+              }
+            }
+          };
+          it.finish(_function_1);
+          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -2474,6 +2520,27 @@ public class StreamExtensions {
       }
     };
     return StreamExtensions.onEach(_onFinish, _function_2);
+  }
+  
+  private static <T extends Object> List<T> concat(final Iterable<? extends T> list, final T value) {
+    ImmutableList<T> _xblockexpression = null;
+    {
+      boolean _notEquals = (!Objects.equal(value, null));
+      if (_notEquals) {
+        ImmutableList.Builder<Object> _builder = ImmutableList.<Object>builder();
+        _builder.add();
+      }
+      ImmutableList<T> _xifexpression = null;
+      boolean _notEquals_1 = (!Objects.equal(value, null));
+      if (_notEquals_1) {
+        ImmutableList.Builder<T> _builder_1 = ImmutableList.<T>builder();
+        ImmutableList.Builder<T> _addAll = _builder_1.addAll(list);
+        ImmutableList.Builder<T> _add = _addAll.add(value);
+        _xifexpression = _add.build();
+      }
+      _xblockexpression = _xifexpression;
+    }
+    return _xblockexpression;
   }
   
   /**
