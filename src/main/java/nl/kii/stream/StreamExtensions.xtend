@@ -552,11 +552,18 @@ class StreamExtensions {
 	 * <p>
 	 * Note: breaks finishes and flow control!
 	 */
-	def static <T, R> Stream<T> flatMap(Stream<T> stream, (T)=>Stream<T> mapFn) {
+	def static <T, R> Stream<R> flatMap(Stream<T> stream, (T)=>Stream<R> mapFn) {
 		stream.map(mapFn).flatten
 	}
 	
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
+	
+	/** 
+	 * Creates a new stream that listenes to the existing stream
+	 */
+	def static <T> Stream<T> fork(Stream<T> stream) {
+		 
+	}
 	
 	/**
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
@@ -576,8 +583,21 @@ class StreamExtensions {
 	}
 	
 	// TODO: implement
-	def static <T> Stream<T> ratelimit(Stream<T> stream, int periodMs) {
-		
+	/** 
+	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
+	 * All other values are buffered, and dropped only after the buffer has reached a given size.
+	 */
+	def static <T> Stream<T> ratelimit(Stream<T> stream, int periodMs, int bufferSize) {
+		// -1 means allow, we want to allow the first incoming value
+		val startTime = new AtomicLong(-1) 
+		stream.filter [
+			val now = System.currentTimeMillis
+			if(startTime.get == -1 || now - startTime.get > periodMs) {
+				// period has expired, reset the period and pass one
+				startTime.set(now)
+				true
+			} else false
+		]
 	}
 	
 	/** 

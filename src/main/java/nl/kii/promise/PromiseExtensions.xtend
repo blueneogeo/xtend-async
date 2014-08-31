@@ -57,6 +57,14 @@ class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(IPromise<?>... promises) {
+		all(promises.toList)
+	}
+
+	/** 
+	 * Create a new Task that completes when all wrapped tasks are completed.
+	 * Errors created by the tasks are propagated into the resulting task.
+	 */
+	def static Task all(Iterable<? extends IPromise<?>> promises) {
 		promises.map[toTask].stream.call[it].collect.first.toTask
 	}
 	
@@ -65,6 +73,14 @@ class PromiseExtensions {
 	 * Errors created by the promises are propagated into the resulting task
 	 */
 	def static Task any(IPromise<?>... promises) {
+		any(promises.toList)
+	}
+	
+	/** 
+	 * Create a new Task that completes when any of the wrapped tasks are completed
+	 * Errors created by the promises are propagated into the resulting task
+	 */
+	def static Task any(Iterable<? extends IPromise<?>> promises) {
 		val Task task = new Task
 		for(promise : promises) {
 			promise.toTask

@@ -14,7 +14,6 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.Executors
 
 class TestStreamExtensions {
 
@@ -286,21 +285,18 @@ class TestStreamExtensions {
 
 	@Test
 	def void testFlatten() {
-		val exec = Executors.newCachedThreadPool
-		val s1 = int.stream
-		val s2 = int.stream
-		val s3 = int.stream
 		#[1..10, 11..20, 21..30]
-			.map[stream]
-			.stream
-			.flatten
-			.assertStreamContains((1..30).map[value].toList)
-		stream.onEach [ println(it) ]
-		(1..10).stream.forwardTo(s1)
-		(11..20).stream.forwardTo(s2)
-		(21..30).stream.forwardTo(s3)
-		exec.task [| s1.next ]
-		Thread.sleep(1000)
+			.map[stream(it)] // create a list of 3 streams
+			.stream // create a stream of 3 streams
+			.flatten // flatten into a single stream
+			.assertStreamContains((1..30).map[value])
+	}
+
+	@Test
+	def void testFlatMap() {
+		#[1..10, 11..20, 21..30].stream
+			.flatMap [ stream(it) ]
+			.assertStreamContains((1..30).map[value])
 	}
 
 	@Test

@@ -1,5 +1,5 @@
 package nl.kii.act.test
-
+import static extension nl.kii.promise.PromiseExtensions.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.act.Actor
@@ -54,22 +54,23 @@ class TestActor {
 	
 	@Test
 	def void testActorLoad() {
-		val threads = newCachedThreadPool
-		val counter = new AtomicInteger(0)
-		val ref = new AtomicReference<Actor<Integer>> 
-		val a = actor [ int i, done |
-			threads.task [|
-				// Thread.sleep(1)
-				counter.incrementAndGet
+		// a simple actor that just adds all incoming numbers
+		val actor = new Actor<Integer> {
+			public var counter = 0
+			override protected act(Integer message, ()=>void done) {
+				counter += message
 				done.apply
-			]
-		]
-		ref.set(a)
-		for(i : 1..100000) {
-			a << i
+			}
 		}
-		Thread.sleep(1000)
-		assertEquals(100000, counter.get)
+		// start 10 tasks in parallel, each pushing in 100000 messages
+		val threads = newCachedThreadPool;
+		(1..10)
+			.map [ threads.task [| for(i : 1..100_000) { actor << 1 } ] ]
+			.all
+			.onError [ fail(message) ]
+			.then [ println('done') ]
+		Thread.sleep(500)
+		assertEquals(1_000_000, actor.counter)
 	}
 	
 }

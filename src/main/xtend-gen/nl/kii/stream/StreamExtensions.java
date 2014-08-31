@@ -231,8 +231,8 @@ public class StreamExtensions {
           public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
             boolean _xblockexpression = false;
             {
-              Boolean _open = newStream.getOpen();
-              boolean _not = (!(_open).booleanValue());
+              Boolean _isOpen = newStream.isOpen();
+              boolean _not = (!(_isOpen).booleanValue());
               if (_not) {
                 return false;
               }
@@ -304,8 +304,8 @@ public class StreamExtensions {
         public void apply(final CommandSubscription it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
-              Boolean _open = newStream.getOpen();
-              if ((_open).booleanValue()) {
+              Boolean _isOpen = newStream.isOpen();
+              if ((_isOpen).booleanValue()) {
                 int _start = range.getStart();
                 int _size = range.getSize();
                 int _nextInt = randomizer.nextInt(_size);
@@ -1063,9 +1063,16 @@ public class StreamExtensions {
    * <p>
    * Note: breaks finishes and flow control!
    */
-  public static <T extends Object, R extends Object> Stream<T> flatMap(final Stream<T> stream, final Function1<? super T, ? extends Stream<T>> mapFn) {
-    Stream<Stream<T>> _map = StreamExtensions.<T, Stream<T>>map(stream, mapFn);
-    return StreamExtensions.<T>flatten(_map);
+  public static <T extends Object, R extends Object> Stream<R> flatMap(final Stream<T> stream, final Function1<? super T, ? extends Stream<R>> mapFn) {
+    Stream<Stream<R>> _map = StreamExtensions.<T, Stream<R>>map(stream, mapFn);
+    return StreamExtensions.<R>flatten(_map);
+  }
+  
+  /**
+   * Creates a new stream that listenes to the existing stream
+   */
+  public static <T extends Object> Stream<T> fork(final Stream<T> stream) {
+    return null;
   }
   
   /**
@@ -1113,8 +1120,49 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final int periodMs) {
-    return null;
+  /**
+   * Only allows one value for every timeInMs milliseconds to pass through the stream.
+   * All other values are buffered, and dropped only after the buffer has reached a given size.
+   */
+  public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final int periodMs, final int bufferSize) {
+    Stream<T> _xblockexpression = null;
+    {
+      final AtomicLong startTime = new AtomicLong((-1));
+      final Function1<T, Boolean> _function = new Function1<T, Boolean>() {
+        public Boolean apply(final T it) {
+          boolean _xblockexpression = false;
+          {
+            final long now = System.currentTimeMillis();
+            boolean _xifexpression = false;
+            boolean _or = false;
+            long _get = startTime.get();
+            boolean _equals = (_get == (-1));
+            if (_equals) {
+              _or = true;
+            } else {
+              long _get_1 = startTime.get();
+              long _minus = (now - _get_1);
+              boolean _greaterThan = (_minus > periodMs);
+              _or = _greaterThan;
+            }
+            if (_or) {
+              boolean _xblockexpression_1 = false;
+              {
+                startTime.set(now);
+                _xblockexpression_1 = true;
+              }
+              _xifexpression = _xblockexpression_1;
+            } else {
+              _xifexpression = false;
+            }
+            _xblockexpression = _xifexpression;
+          }
+          return Boolean.valueOf(_xblockexpression);
+        }
+      };
+      _xblockexpression = StreamExtensions.<T>filter(stream, _function);
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -1132,8 +1180,8 @@ public class StreamExtensions {
       Subscription<?> _onFinish = StreamExtensions.onFinish(timerStream, _function);
       final Procedure1<Object> _function_1 = new Procedure1<Object>() {
         public void apply(final Object it) {
-          Boolean _open = stream.getOpen();
-          if ((_open).booleanValue()) {
+          Boolean _isOpen = stream.isOpen();
+          if ((_isOpen).booleanValue()) {
             stream.next();
           } else {
             timerStream.close();

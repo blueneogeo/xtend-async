@@ -16,7 +16,6 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -88,12 +87,21 @@ public class PromiseExtensions {
    * Errors created by the tasks are propagated into the resulting task.
    */
   public static Task all(final IPromise<?>... promises) {
+    List<IPromise<?>> _list = IterableExtensions.<IPromise<?>>toList(((Iterable<IPromise<?>>)Conversions.doWrapArray(promises)));
+    return PromiseExtensions.all(_list);
+  }
+  
+  /**
+   * Create a new Task that completes when all wrapped tasks are completed.
+   * Errors created by the tasks are propagated into the resulting task.
+   */
+  public static Task all(final Iterable<? extends IPromise<?>> promises) {
     final Function1<IPromise<?>, Task> _function = new Function1<IPromise<?>, Task>() {
       public Task apply(final IPromise<?> it) {
         return PromiseExtensions.toTask(it);
       }
     };
-    List<Task> _map = ListExtensions.<IPromise<?>, Task>map(((List<IPromise<?>>)Conversions.doWrapArray(promises)), _function);
+    Iterable<Task> _map = IterableExtensions.map(promises, _function);
     Stream<Task> _stream = StreamExtensions.<Task>stream(_map);
     final Function1<Task, Task> _function_1 = new Function1<Task, Task>() {
       public Task apply(final Task it) {
@@ -111,6 +119,15 @@ public class PromiseExtensions {
    * Errors created by the promises are propagated into the resulting task
    */
   public static Task any(final IPromise<?>... promises) {
+    List<IPromise<?>> _list = IterableExtensions.<IPromise<?>>toList(((Iterable<IPromise<?>>)Conversions.doWrapArray(promises)));
+    return PromiseExtensions.any(_list);
+  }
+  
+  /**
+   * Create a new Task that completes when any of the wrapped tasks are completed
+   * Errors created by the promises are propagated into the resulting task
+   */
+  public static Task any(final Iterable<? extends IPromise<?>> promises) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();

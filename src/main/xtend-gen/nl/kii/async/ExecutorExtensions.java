@@ -119,8 +119,8 @@ public class ExecutorExtensions {
           final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
           boolean _and = false;
           Stream<Object> _stream = StreamExtensions.<Object>stream();
-          Boolean _open = _stream.getOpen();
-          if (!(_open).booleanValue()) {
+          Boolean _isOpen = _stream.isOpen();
+          if (!(_isOpen).booleanValue()) {
             _and = false;
           } else {
             _and = (!expired);

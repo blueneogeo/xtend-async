@@ -7,9 +7,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
+import nl.kii.promise.Promise;
+import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.Task;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -87,30 +92,53 @@ public class TestActor {
   
   @Test
   public void testActorLoad() {
+    abstract class __TestActor_1 extends Actor<Integer> {
+      int counter;
+    }
+    
     try {
-      final ExecutorService threads = Executors.newCachedThreadPool();
-      final AtomicInteger counter = new AtomicInteger(0);
-      final AtomicReference<Actor<Integer>> ref = new AtomicReference<Actor<Integer>>();
-      final Procedure2<Integer, Procedure0> _function = new Procedure2<Integer, Procedure0>() {
-        public void apply(final Integer i, final Procedure0 done) {
-          final Runnable _function = new Runnable() {
-            public void run() {
-              counter.incrementAndGet();
-              done.apply();
-            }
-          };
-          ExecutorExtensions.task(threads, _function);
+      final __TestActor_1 actor = new __TestActor_1() {
+        {
+          counter = 0;
+        }
+        protected void act(final Integer message, final Procedure0 done) {
+          int _counter = this.counter;
+          this.counter = (_counter + (message).intValue());
+          done.apply();
         }
       };
-      final Actor<Integer> a = ActorExtensions.<Integer>actor(_function);
-      ref.set(a);
-      IntegerRange _upTo = new IntegerRange(1, 100000);
-      for (final Integer i : _upTo) {
-        ActorExtensions.<Integer>operator_doubleLessThan(a, i);
-      }
-      Thread.sleep(1000);
-      int _get = counter.get();
-      Assert.assertEquals(100000, _get);
+      final ExecutorService threads = Executors.newCachedThreadPool();
+      IntegerRange _upTo = new IntegerRange(1, 10);
+      final Function1<Integer, Task> _function = new Function1<Integer, Task>() {
+        public Task apply(final Integer it) {
+          final Runnable _function = new Runnable() {
+            public void run() {
+              IntegerRange _upTo = new IntegerRange(1, 100000);
+              for (final Integer i : _upTo) {
+                ActorExtensions.<Integer>operator_doubleLessThan(actor, Integer.valueOf(1));
+              }
+            }
+          };
+          return ExecutorExtensions.task(threads, _function);
+        }
+      };
+      Iterable<Task> _map = IterableExtensions.<Integer, Task>map(_upTo, _function);
+      Task _all = PromiseExtensions.all(_map);
+      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          String _message = it.getMessage();
+          Assert.fail(_message);
+        }
+      };
+      Promise<Boolean> _onError = _all.onError(_function_1);
+      final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+        public void apply(final Boolean it) {
+          InputOutput.<String>println("done");
+        }
+      };
+      _onError.then(_function_2);
+      Thread.sleep(500);
+      Assert.assertEquals(1000000, actor.counter);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }

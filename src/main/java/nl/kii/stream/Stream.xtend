@@ -2,10 +2,10 @@ package nl.kii.stream
 
 import java.util.Queue
 import nl.kii.act.Actor
+import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
 
 import static com.google.common.collect.Queues.*
-import nl.kii.async.annotation.Atomic
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -24,21 +24,25 @@ import nl.kii.async.annotation.Atomic
  */
 class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 
-	@Atomic public val boolean open = true
+	@Atomic val boolean opened = true
 	var listenerReady = false
 	var skipping = false
 
 	val Queue<Entry<T>> queue
-	var (Entry<T>)=>void entryListener
-	var (StreamCommand)=>void notifyListener
+	@Atomic val (Entry<T>)=>void entryListener
+	@Atomic val (StreamCommand)=>void notifyListener
 
+	/** create the stream with a memory concurrent queue */
 	new() { this(newConcurrentLinkedQueue) }
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue) {
-		this.queue = queue
-	}
+	new(Queue<Entry<T>> queue) { this.queue = queue }
 	
+	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
+	def getQueue() { queue.unmodifiableView	}
+
+	def isOpen() { opened }
+
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
 	/** ask for the next value in the buffer to be delivered to the change listener */
@@ -65,9 +69,6 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	/** tell the stream a batch of the given level has finished. */
 	def finish(int level) { apply(new Finish(level)) }	
 	
-	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
-	def getQueue() { queue.unmodifiableView	}
-
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
 	/** 
@@ -75,7 +76,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
 	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
 	 */
-	override synchronized def =>void onChange((Entry<T>)=>void entryListener) {
+	override =>void onChange((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener
 		return [| this.entryListener = null ]
 	}
@@ -84,7 +85,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	 * listen for notifications from the stream. This is used mostly when chaining streams
 	 * together and allows streams to inform eachother on actions taken.
 	 */
-	synchronized def void onNotification((StreamCommand)=>void notifyListener) {
+	def void onNotification((StreamCommand)=>void notifyListener) {
 		this.notifyListener = notifyListener
 	}
 
@@ -130,7 +131,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 					queue.add(new Closed)
 					publishNext
 					notify(entry)
-					open = false
+					opened = false
 				}
 			}
 		} else {
@@ -143,7 +144,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	
 	/** take an entry from the queue and pass it to the listener */
 	def protected boolean publishNext() {
-		if(listenerReady && entryListener != null && !queue.empty) {
+		if(opened && listenerReady && entryListener != null && !queue.empty) {
 			listenerReady = false
 			val entry = queue.poll
 			if(entry instanceof Finish<?>)

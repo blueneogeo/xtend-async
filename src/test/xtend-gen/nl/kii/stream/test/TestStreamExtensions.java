@@ -652,57 +652,47 @@ public class TestStreamExtensions {
   
   @Test
   public void testFlatten() {
-    try {
-      final ExecutorService exec = Executors.newCachedThreadPool();
-      final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
-      final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-      final Stream<Integer> s3 = StreamExtensions.<Integer>stream(int.class);
-      IntegerRange _upTo = new IntegerRange(1, 10);
-      IntegerRange _upTo_1 = new IntegerRange(11, 20);
-      IntegerRange _upTo_2 = new IntegerRange(21, 30);
-      final Function1<IntegerRange, Stream<Integer>> _function = new Function1<IntegerRange, Stream<Integer>>() {
-        public Stream<Integer> apply(final IntegerRange it) {
-          return StreamExtensions.<Integer>stream();
-        }
-      };
-      List<Stream<Integer>> _map = ListExtensions.<IntegerRange, Stream<Integer>>map(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)), _function);
-      Stream<Stream<Integer>> _stream = StreamExtensions.<Stream<Integer>>stream(_map);
-      Stream<Integer> _flatten = StreamExtensions.<Integer>flatten(_stream);
-      IntegerRange _upTo_3 = new IntegerRange(1, 30);
-      final Function1<Integer, Value<Integer>> _function_1 = new Function1<Integer, Value<Integer>>() {
-        public Value<Integer> apply(final Integer it) {
-          return StreamAssert.<Integer>value(it);
-        }
-      };
-      Iterable<Value<Integer>> _map_1 = IterableExtensions.<Integer, Value<Integer>>map(_upTo_3, _function_1);
-      List<Value<Integer>> _list = IterableExtensions.<Value<Integer>>toList(_map_1);
-      StreamAssert.<Integer>assertStreamContains(_flatten, ((Entry<Integer>[])Conversions.unwrapArray(_list, Entry.class)));
-      Stream<Object> _stream_1 = StreamExtensions.<Object>stream();
-      final Procedure1<Object> _function_2 = new Procedure1<Object>() {
-        public void apply(final Object it) {
-          InputOutput.<Object>println(it);
-        }
-      };
-      StreamExtensions.<Object>onEach(_stream_1, _function_2);
-      IntegerRange _upTo_4 = new IntegerRange(1, 10);
-      Stream<Integer> _stream_2 = StreamExtensions.<Integer>stream(_upTo_4);
-      StreamExtensions.<Integer>forwardTo(_stream_2, s1);
-      IntegerRange _upTo_5 = new IntegerRange(11, 20);
-      Stream<Integer> _stream_3 = StreamExtensions.<Integer>stream(_upTo_5);
-      StreamExtensions.<Integer>forwardTo(_stream_3, s2);
-      IntegerRange _upTo_6 = new IntegerRange(21, 30);
-      Stream<Integer> _stream_4 = StreamExtensions.<Integer>stream(_upTo_6);
-      StreamExtensions.<Integer>forwardTo(_stream_4, s3);
-      final Runnable _function_3 = new Runnable() {
-        public void run() {
-          s1.next();
-        }
-      };
-      ExecutorExtensions.task(exec, _function_3);
-      Thread.sleep(1000);
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    IntegerRange _upTo_1 = new IntegerRange(11, 20);
+    IntegerRange _upTo_2 = new IntegerRange(21, 30);
+    final Function1<IntegerRange, Stream<Integer>> _function = new Function1<IntegerRange, Stream<Integer>>() {
+      public Stream<Integer> apply(final IntegerRange it) {
+        return StreamExtensions.<Integer>stream(it);
+      }
+    };
+    List<Stream<Integer>> _map = ListExtensions.<IntegerRange, Stream<Integer>>map(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)), _function);
+    Stream<Stream<Integer>> _stream = StreamExtensions.<Stream<Integer>>stream(_map);
+    Stream<Integer> _flatten = StreamExtensions.<Integer>flatten(_stream);
+    IntegerRange _upTo_3 = new IntegerRange(1, 30);
+    final Function1<Integer, Value<Integer>> _function_1 = new Function1<Integer, Value<Integer>>() {
+      public Value<Integer> apply(final Integer it) {
+        return StreamAssert.<Integer>value(it);
+      }
+    };
+    Iterable<Value<Integer>> _map_1 = IterableExtensions.<Integer, Value<Integer>>map(_upTo_3, _function_1);
+    StreamAssert.<Integer>assertStreamContains(_flatten, ((Entry<Integer>[])Conversions.unwrapArray(_map_1, Entry.class)));
+  }
+  
+  @Test
+  public void testFlatMap() {
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    IntegerRange _upTo_1 = new IntegerRange(11, 20);
+    IntegerRange _upTo_2 = new IntegerRange(21, 30);
+    Stream<IntegerRange> _stream = StreamExtensions.<IntegerRange>stream(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)));
+    final Function1<IntegerRange, Stream<Integer>> _function = new Function1<IntegerRange, Stream<Integer>>() {
+      public Stream<Integer> apply(final IntegerRange it) {
+        return StreamExtensions.<Integer>stream(it);
+      }
+    };
+    Stream<Integer> _flatMap = StreamExtensions.<IntegerRange, Integer>flatMap(_stream, _function);
+    IntegerRange _upTo_3 = new IntegerRange(1, 30);
+    final Function1<Integer, Value<Integer>> _function_1 = new Function1<Integer, Value<Integer>>() {
+      public Value<Integer> apply(final Integer it) {
+        return StreamAssert.<Integer>value(it);
+      }
+    };
+    Iterable<Value<Integer>> _map = IterableExtensions.<Integer, Value<Integer>>map(_upTo_3, _function_1);
+    StreamAssert.<Integer>assertStreamContains(_flatMap, ((Entry<Integer>[])Conversions.unwrapArray(_map, Entry.class)));
   }
   
   @Test
