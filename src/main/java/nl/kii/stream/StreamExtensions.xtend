@@ -522,6 +522,40 @@ class StreamExtensions {
 		newStream
 	}
 	
+	/**
+	 * Flatten a stream of streams into a single stream.
+	 * <p>
+	 * Note: breaks finishes and flow control!
+	 */
+	def static <T> Stream<T> flatten(Stream<Stream<T>> stream) {
+		val newStream = new Stream<T>
+		stream.on [ 
+			each [ s |
+				s.on [
+					each [ newStream.push(it) s.next ]
+					error [ newStream.error(it) s.next ]
+				]
+				s.next
+			]
+			error [ newStream.error(it) ]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+	
+	/**
+	 * Performs a flatmap operation on the stream using the passed mapping function.
+	 * <p>
+	 * Flatmapping allows you to transform the values of the stream to multiple streams, 
+	 * which are then merged to a single stream.
+	 * <p>
+	 * Note: breaks finishes and flow control!
+	 */
+	def static <T, R> Stream<T> flatMap(Stream<T> stream, (T)=>Stream<T> mapFn) {
+		stream.map(mapFn).flatten
+	}
+	
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
 	
 	/**

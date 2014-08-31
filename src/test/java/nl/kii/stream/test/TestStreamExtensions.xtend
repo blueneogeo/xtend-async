@@ -14,6 +14,7 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import java.util.concurrent.Executors
 
 class TestStreamExtensions {
 
@@ -23,7 +24,7 @@ class TestStreamExtensions {
 	def void testRangeStream() {
 		val s = (5..7).stream
 		val s2 = s.map[it]
-		s2.assertStreamEquals(#[5.value, 6.value, 7.value, finish])
+		s2.assertStreamContains(5.value, 6.value, 7.value, finish)
 	}
 
 	@Test
@@ -31,7 +32,7 @@ class TestStreamExtensions {
 		val s = #[1, 2, 3].stream
 		println(s.queue)
 		val s2 = s.map[it+1]
-		s2.assertStreamEquals(#[2.value, 3.value, 4.value, finish])
+		s2.assertStreamContains(2.value, 3.value, 4.value, finish)
 	}
 	
 	@Test
@@ -39,7 +40,7 @@ class TestStreamExtensions {
 		val map = #{1->'a', 2->'b'}
 		val s = map.stream
 		val s2 = s.map[key+1->value]
-		s2.assertStreamEquals(#[value(2->'a'), value(3->'b'), finish])
+		s2.assertStreamContains(value(2->'a'), value(3->'b'), finish)
 	}
 	
 	@Test
@@ -121,28 +122,28 @@ class TestStreamExtensions {
 	def void testMap() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		val mapped = s.map [ it + 1 ]
-		mapped.assertStreamEquals(#[2.value, 3.value, 4.value, finish, 5.value, 6.value])
+		mapped.assertStreamContains(2.value, 3.value, 4.value, finish, 5.value, 6.value)
 	}
 	
 	@Test
 	def void testFilter() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		val filtered = s.filter [ it % 2 == 0]
-		filtered.assertStreamEquals(#[2.value, finish, 4.value])
+		filtered.assertStreamContains(2.value, finish, 4.value)
 	}
 	
 	@Test
 	def void testSplit() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val split = s.split [ it % 2 == 0]
-		split.assertStreamEquals(#[1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1)])
+		split.assertStreamContains(1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1))
 	}
 	
 	@Test
 	def void testMerge() {
 		val s = Integer.stream << 1 << 2 << finish(0) << 3 << finish(1) << 4 << finish(0) << 5 
 		val merged = s.merge
-		merged.assertStreamEquals(#[1.value, 2.value, 3.value, finish, 4.value, 5.value])
+		merged.assertStreamContains(1.value, 2.value, 3.value, finish, 4.value, 5.value)
 	}
 	
 	// REDUCTIONS /////////////////////////////////////////////////////////////
@@ -152,7 +153,7 @@ class TestStreamExtensions {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
 		val collected = s.collect
 		// 5 is missing below because there is no finish to collect 5
-		collected.assertStreamEquals(#[#[1, 2, 3].value, #[4, 5].value])
+		collected.assertStreamContains(#[1, 2, 3].value, #[4, 5].value)
 	}
 	
 	@Test
@@ -217,98 +218,117 @@ class TestStreamExtensions {
 	def void testSum() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val summed = s.sum
-		summed.assertStreamEquals(#[6D.value, 9D.value])
+		summed.assertStreamContains(6D.value, 9D.value)
 	}
 
 	@Test
 	def void testAvg() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val avg = s.average
-		avg.assertStreamEquals(#[2D.value, 4.5D.value])
+		avg.assertStreamContains(2D.value, 4.5D.value)
 	}
 	
 	@Test
 	def void testMax() {
 		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
 		val avg = s.max
-		avg.assertStreamEquals(#[8.value, 7.value])
+		avg.assertStreamContains(8.value, 7.value)
 	}
 	
 	@Test
 	def void testMin() {
 		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
 		val avg = s.min
-		avg.assertStreamEquals(#[1.value, 4.value])
+		avg.assertStreamContains(1.value, 4.value)
 	}
 	
 	@Test
 	def void testAll() {
 		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
 		val avg = s.all [ it > 3 ]
-		avg.assertStreamEquals(#[false.value, true.value])
+		avg.assertStreamContains(false.value, true.value)
 	}
 
 	@Test
 	def void testNone() {
 		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
 		val avg = s.none [ it < 3 ]
-		avg.assertStreamEquals(#[false.value, true.value])
+		avg.assertStreamContains(false.value, true.value)
 	}
 
 	@Test
 	def void testFirstMatch() {
 		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish << 1 << 10 // note no finish here
 		val first = s.first [ it % 2 == 0 ]
-		first.assertStreamEquals(#[8.value, 4.value, 10.value]) // 10 is still streamed
+		first.assertStreamContains(8.value, 4.value, 10.value) // 10 is still streamed
 	}
 
 	@Test
 	def void testCount() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val counted = s.count
-		counted.assertStreamEquals(#[3.value, 2.value])
+		counted.assertStreamContains(3.value, 2.value)
 	}
 	
 	@Test
 	def void testReduce() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val summed = s.reduce(1) [ a, b | a + b ] // starting at 1!
-		summed.assertStreamEquals(#[7.value, 10.value])
+		summed.assertStreamContains(7.value, 10.value)
 	}
 
 	@Test
 	def void testScan() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
 		val summed = s.scan(1) [ a, b | a + b ] // starting at 1!
-		summed.assertStreamEquals(#[2.value, 4.value, 7.value, finish, 5.value, 10.value, finish])
+		summed.assertStreamContains(2.value, 4.value, 7.value, finish, 5.value, 10.value, finish)
+	}
+
+	@Test
+	def void testFlatten() {
+		val exec = Executors.newCachedThreadPool
+		val s1 = int.stream
+		val s2 = int.stream
+		val s3 = int.stream
+		#[1..10, 11..20, 21..30]
+			.map[stream]
+			.stream
+			.flatten
+			.assertStreamContains((1..30).map[value].toList)
+		stream.onEach [ println(it) ]
+		(1..10).stream.forwardTo(s1)
+		(11..20).stream.forwardTo(s2)
+		(21..30).stream.forwardTo(s3)
+		exec.task [| s1.next ]
+		Thread.sleep(1000)
 	}
 
 	@Test
 	def void testLimit() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val limited = s.limit(1)
-		limited.assertStreamEquals(#[1L.value, finish, 4L.value, finish])		
+		limited.assertStreamContains(1L.value, finish, 4L.value, finish)		
 	}
 	
 	@Test
 	def void testLimitBeforeCollect() {
 		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
 		val limited = s.limit(1).collect
-		limited.assertStreamEquals(#[#[1L].value, #[4L].value])		
+		limited.assertStreamContains(#[1L].value, #[4L].value)		
 	}
 	
 	@Test
 	def void testUntil() {
 		val s = Long.stream << 1L << 2L << 3L << 4L << finish << 4L << 2L << 5L << 6L << finish
 		val untilled = s.until [ it == 2L ]
-		untilled.assertStreamEquals(#[1L.value, finish, 4L.value, finish])
+		untilled.assertStreamContains(1L.value, finish, 4L.value, finish)
 	}
 
 	@Test
 	def void testUntil2() {
 		val s = Long.stream << 1L << 2L << 3L << 4L << finish << 4L << 2L << 5L << 6L << finish
 		val untilled = s.until [ it == 2L ].collect
-		untilled.assertStreamEquals(#[#[1L].value, #[4L].value])
+		untilled.assertStreamContains(#[1L].value, #[4L].value)
 	}
 	
 	@Test

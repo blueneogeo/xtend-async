@@ -999,6 +999,76 @@ public class StreamExtensions {
   }
   
   /**
+   * Flatten a stream of streams into a single stream.
+   * <p>
+   * Note: breaks finishes and flow control!
+   */
+  public static <T extends Object> Stream<T> flatten(final Stream<Stream<T>> stream) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Subscription<Stream<T>>> _function = new Procedure1<Subscription<Stream<T>>>() {
+        public void apply(final Subscription<Stream<T>> it) {
+          final Procedure1<Stream<T>> _function = new Procedure1<Stream<T>>() {
+            public void apply(final Stream<T> s) {
+              final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+                public void apply(final Subscription<T> it) {
+                  final Procedure1<T> _function = new Procedure1<T>() {
+                    public void apply(final T it) {
+                      newStream.push(it);
+                      s.next();
+                    }
+                  };
+                  it.each(_function);
+                  final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+                    public void apply(final Throwable it) {
+                      newStream.error(it);
+                      s.next();
+                    }
+                  };
+                  it.error(_function_1);
+                }
+              };
+              StreamExtensions.<T>on(s, _function);
+              s.next();
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_1);
+          final Procedure0 _function_2 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_2);
+        }
+      };
+      StreamExtensions.<Stream<T>>on(stream, _function);
+      StreamExtensions.<T, Object>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Performs a flatmap operation on the stream using the passed mapping function.
+   * <p>
+   * Flatmapping allows you to transform the values of the stream to multiple streams,
+   * which are then merged to a single stream.
+   * <p>
+   * Note: breaks finishes and flow control!
+   */
+  public static <T extends Object, R extends Object> Stream<T> flatMap(final Stream<T> stream, final Function1<? super T, ? extends Stream<T>> mapFn) {
+    Stream<Stream<T>> _map = StreamExtensions.<T, Stream<T>>map(stream, mapFn);
+    return StreamExtensions.<T>flatten(_map);
+  }
+  
+  /**
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are dropped.
    */

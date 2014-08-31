@@ -43,10 +43,10 @@ public class StreamAssert {
     return _xblockexpression;
   }
   
-  public static <T extends Object> void assertStreamEquals(final Stream<T> stream, final List<? extends Entry<T>> entries) {
+  public static <T extends Object> void assertStreamContains(final Stream<T> stream, final Entry<T>... entries) {
     final List<Entry<T>> data = StreamAssert.<T>gather(stream);
     InputOutput.<List<Entry<T>>>println(data);
-    Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(entries, Object.class)), ((Object[])Conversions.unwrapArray(data, Object.class)));
+    Assert.assertArrayEquals(entries, ((Object[])Conversions.unwrapArray(data, Object.class)));
   }
   
   public static void assertFulfilled(final IPromise<Boolean> promise) {
