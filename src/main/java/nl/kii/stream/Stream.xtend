@@ -1,11 +1,13 @@
 package nl.kii.stream
 
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
-
 import static com.google.common.collect.Queues.*
+import java.util.List
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -22,26 +24,32 @@ import static com.google.common.collect.Queues.*
  * <li>wraps errors and lets you listen for them at the end of the stream chain
  * </ul>
  */
-class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
+class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 
-	@Atomic val boolean opened = true
 	var listenerReady = false
 	var skipping = false
-
 	val Queue<Entry<T>> queue
+
+	@Atomic val boolean publishing = true
+	@Atomic val List<Procedure1<Entry<T>>> observers
 	@Atomic val (Entry<T>)=>void entryListener
 	@Atomic val (StreamCommand)=>void notifyListener
 
 	/** create the stream with a memory concurrent queue */
-	new() { this(newConcurrentLinkedQueue) }
+	new() { 
+		this(newConcurrentLinkedQueue)
+	}
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue) { this.queue = queue }
+	new(Queue<Entry<T>> queue) { 
+		this.queue = queue
+		this.observers = new CopyOnWriteArrayList
+	}
 	
 	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
 	def getQueue() { queue.unmodifiableView	}
 
-	def isOpen() { opened }
+	def isOpen() { publishing }
 
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
@@ -76,9 +84,9 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
 	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
 	 */
-	override =>void onChange((Entry<T>)=>void entryListener) {
-		this.entryListener = entryListener
-		return [| this.entryListener = null ]
+	synchronized override =>void onChange((Entry<T>)=>void entryListener) {
+		observers.add(entryListener)
+		return [| observers.remove(entryListener) ]
 	}
 	
 	/**
@@ -131,7 +139,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 					queue.add(new Closed)
 					publishNext
 					notify(entry)
-					opened = false
+					publishing = false
 				}
 			}
 		} else {
@@ -144,7 +152,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	
 	/** take an entry from the queue and pass it to the listener */
 	def protected boolean publishNext() {
-		if(opened && listenerReady && entryListener != null && !queue.empty) {
+		if(publishing && listenerReady && entryListener != null && !queue.empty) {
 			listenerReady = false
 			val entry = queue.poll
 			if(entry instanceof Finish<?>)
@@ -171,3 +179,48 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	override toString() '''Stream { open: «open», ready: «listenerReady», skipping: «skipping», queue: «queue.size», hasListener: «entryListener != null» }'''
 	
 }
+
+
+
+interface AsyncObserver<T> {
+	
+	def void next()
+	def void skip()
+	def void finish()
+	def void close()
+	
+}
+
+
+
+class StreamSubscription<T> implements Observable<StreamCommand> {
+
+	
+
+	@Atomic boolean open = true
+	@Atomic boolean ready = false
+	@Atomic boolean finish = false
+	@Atomic boolean skip = false
+	
+	def void next() { ready = true }
+	def void skip() { skip = true }
+	def void finish() { finish = true }
+	def void close() { open = false }
+	
+	override onChange((StreamCommand)=>void observeFn) {
+		
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+

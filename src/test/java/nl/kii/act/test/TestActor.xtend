@@ -67,8 +67,8 @@ class TestActor {
 		(1..10)
 			.map [ threads.task [| for(i : 1..100_000) { actor << 1 } ] ]
 			.all
-			.onError [ fail(message) ]
 			.then [ println('done') ]
+			.onError [ fail(message) ]
 		Thread.sleep(500)
 		assertEquals(1_000_000, actor.counter)
 	}

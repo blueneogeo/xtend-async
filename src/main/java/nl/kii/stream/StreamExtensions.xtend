@@ -928,9 +928,9 @@ class StreamExtensions {
 	/**
 	 * Start the stream and and promise the first value from it.
 	 */
-	 def static <T> then(Stream<T> stream, Procedure1<T> listener) {
-	 	stream.first.then(listener)
-	 }
+	def static <T> then(Stream<T> stream, Procedure1<T> listener) {
+		stream.first.then(listener)
+	}
 	
 	// SUBSCRIPTION BUILDERS //////////////////////////////////////////////////
 

@@ -96,3 +96,7 @@
 /StreamPairExtensions.java
 /Subscription.java
 /SyncSubscription.java
+/.StreamCopy.java._trace
+/.AsyncObserver.java._trace
+/.NewStream.java._trace
+/.StreamSubscription.java._trace

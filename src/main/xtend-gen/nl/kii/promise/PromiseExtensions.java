@@ -82,6 +82,16 @@ public class PromiseExtensions {
     return ObjectExtensions.<Task>operator_doubleArrow(_task, _function);
   }
   
+  public static Task error(final String message) {
+    Task _task = new Task();
+    final Procedure1<Task> _function = new Procedure1<Task>() {
+      public void apply(final Task it) {
+        PromiseExtensions.error(message);
+      }
+    };
+    return ObjectExtensions.<Task>operator_doubleArrow(_task, _function);
+  }
+  
   /**
    * Create a new Task that completes when all wrapped tasks are completed.
    * Errors created by the tasks are propagated into the resulting task.

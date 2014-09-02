@@ -124,19 +124,19 @@ public class TestActor {
       };
       Iterable<Task> _map = IterableExtensions.<Integer, Task>map(_upTo, _function);
       Task _all = PromiseExtensions.all(_map);
-      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+        public void apply(final Boolean it) {
+          InputOutput.<String>println("done");
+        }
+      };
+      Promise<Boolean> _then = _all.then(_function_1);
+      final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
           String _message = it.getMessage();
           Assert.fail(_message);
         }
       };
-      Promise<Boolean> _onError = _all.onError(_function_1);
-      final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
-        public void apply(final Boolean it) {
-          InputOutput.<String>println("done");
-        }
-      };
-      _onError.then(_function_2);
+      _then.onError(_function_2);
       Thread.sleep(500);
       Assert.assertEquals(1000000, actor.counter);
     } catch (Throwable _e) {

@@ -52,6 +52,10 @@ class PromiseExtensions {
 		new Task => [ complete ]
 	}
 	
+	def static Task error(String message) {
+		new Task => [ error(message) ]
+	}
+	
 	/** 
 	 * Create a new Task that completes when all wrapped tasks are completed.
 	 * Errors created by the tasks are propagated into the resulting task.
