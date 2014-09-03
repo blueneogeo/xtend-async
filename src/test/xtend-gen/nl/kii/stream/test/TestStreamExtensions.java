@@ -1000,7 +1000,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 1000000);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(_upTo);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    StreamExtensions.<Integer>forwardTo(s1, s2);
+    StreamExtensions.<Integer>pipe(s1, s2);
     Stream<Integer> _count = StreamExtensions.<Integer>count(s2);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {

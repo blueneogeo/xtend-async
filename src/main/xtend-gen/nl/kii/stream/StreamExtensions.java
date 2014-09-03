@@ -104,7 +104,7 @@ public class StreamExtensions {
       final Procedure1<T2> _function_1 = new Procedure1<T2>() {
         public void apply(final T2 it) {
           Stream<T> _stream = StreamExtensions.<T>stream(it);
-          StreamExtensions.<T>forwardTo(_stream, newStream);
+          StreamExtensions.<T>pipe(_stream, newStream);
         }
       };
       _onError.then(_function_1);
@@ -135,7 +135,7 @@ public class StreamExtensions {
             }
           };
           Stream<Pair<K, T>> _map = StreamExtensions.<T, Pair<K, T>>map(_stream, _function);
-          StreamExtensions.<Pair<K, T>>forwardTo(_map, newStream);
+          StreamExtensions.<Pair<K, T>>pipe(_map, newStream);
         }
       };
       PromiseExtensions.<K, T2>then(_onError, _function_1);
@@ -1648,7 +1648,7 @@ public class StreamExtensions {
   /**
    * Forward the results of the stream to another stream and start that stream.
    */
-  public static <T extends Object> void forwardTo(final Stream<T> stream, final Stream<T> otherStream) {
+  public static <T extends Object> void pipe(final Stream<T> stream, final Stream<T> otherStream) {
     final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
       public void apply(final Subscription<T> it) {
         final Procedure1<T> _function = new Procedure1<T>() {

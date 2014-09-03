@@ -52,7 +52,7 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		promise
 			.onError[ newStream.error(it) ]
-			.then [	stream(it).forwardTo(newStream) ]
+			.then [	stream(it).pipe(newStream) ]
 		newStream
 	}
 
@@ -64,7 +64,7 @@ class StreamExtensions {
 			.then [	key, value |
 				stream(value)
 					.map [ key -> it ]
-					.forwardTo(newStream)
+					.pipe(newStream)
 			]
 		newStream
 	}
@@ -857,7 +857,7 @@ class StreamExtensions {
 	/**
 	 * Forward the results of the stream to another stream and start that stream. 
 	 */
-	def static <T> void forwardTo(Stream<T> stream, Stream<T> otherStream) {
+	def static <T> void pipe(Stream<T> stream, Stream<T> otherStream) {
 		stream.on [
 			each [ otherStream.push(it) ]
 			error [ otherStream.error(it) ]

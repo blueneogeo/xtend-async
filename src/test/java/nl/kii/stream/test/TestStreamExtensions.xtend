@@ -445,7 +445,7 @@ class TestStreamExtensions {
 		// since we use flow control, we can stream forward a lot without using much memory
 		val s1 = (1..1_000_000).stream
 		val s2 = int.stream
-		s1.forwardTo(s2)
+		s1.pipe(s2)
 		s2.count.then [ assertEquals(1_000_000, it, 0) ]
 	}
 	
