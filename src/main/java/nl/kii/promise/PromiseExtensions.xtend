@@ -8,7 +8,6 @@ import nl.kii.stream.Error
 import nl.kii.stream.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.async.annotation.Async
 
 class PromiseExtensions {
 	
@@ -71,14 +70,14 @@ class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends IPromise<?>> promises) {
-		promises.map[toTask].stream.call[it].collect.first.toTask
+		promises.map[asTask].stream.call[it].collect.first.asTask
 	}
 	
 	/** 
 	 * Create a new Task that completes when any of the wrapped tasks are completed
 	 * Errors created by the promises are propagated into the resulting task
 	 */
-	def static Task any(IPromise<?>... promises) {
+	def static <T, P extends IPromise<T>> Task any(P... promises) {
 		any(promises.toList)
 	}
 	
@@ -86,10 +85,10 @@ class PromiseExtensions {
 	 * Create a new Task that completes when any of the wrapped tasks are completed
 	 * Errors created by the promises are propagated into the resulting task
 	 */
-	def static Task any(Iterable<? extends IPromise<?>> promises) {
+	def static <T> Task any(List<? extends IPromise<T>> promises) {
 		val Task task = new Task
 		for(promise : promises) {
-			promise.toTask
+			promise
 				.onError [ task.error(it) ]
 				.then [ task.complete ]
 		}
@@ -135,7 +134,7 @@ class PromiseExtensions {
 	}
 	
 	/** Any/Or */
-	def static Task operator_or(IPromise<?> p1, IPromise<?> p2) {
+	def static <T> Task operator_or(IPromise<T> p1, IPromise<T> p2) {
 		any(p1, p2)
 	}
 
@@ -310,15 +309,24 @@ class PromiseExtensions {
 	}
 
 	/** Convert or forward a promise to a task */	
-	@Async def static toTask(IPromise<?> promise, Task task) {
-		promise.map[true].forwardTo(task)
+	def static asTask(IPromise<?> promise) {
+		val task = new Task
+		promise.completes(task)
+		task
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <T> forwardTo(IPromise<T> promise, IPromise<T> existingPromise) {
+	def static <T> pipe(IPromise<T> promise, IPromise<T> target) {
 		promise
-			.always [ existingPromise.apply(it) ]
+			.always [ target.apply(it) ]
 			.then [ ] // starts listening
+	}
+
+	/** Forward the events from this promise to another promise of the same type */
+	def static <T> completes(IPromise<T> promise, Task task) {
+		promise
+			.onError[ task.error(it) ]
+			.then [ task.complete ]
 	}
 
 	// BLOCKING ///////////////////////////////////////////////////////////////	

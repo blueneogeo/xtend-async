@@ -187,7 +187,7 @@ public class TestPromise {
         caughtError.set(it);
       }
     };
-    Promise<Integer> _onError = _call_7.onError(_function_8);
+    IPromise<Integer> _onError = _call_7.onError(_function_8);
     final Procedure1<Entry<Integer>> _function_9 = new Procedure1<Entry<Integer>>() {
       public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);
@@ -289,7 +289,7 @@ public class TestPromise {
         caughtError.set(it);
       }
     };
-    Promise<Integer> _onError = _call_10.onError(_function_11);
+    IPromise<Integer> _onError = _call_10.onError(_function_11);
     final Procedure1<Entry<Integer>> _function_12 = new Procedure1<Entry<Integer>>() {
       public void apply(final Entry<Integer> it) {
         alwaysDone.set(true);
@@ -362,7 +362,7 @@ public class TestPromise {
         PromiseExtensions.<Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
-    Promise<Integer> _onError = _map_2.onError(_function_3);
+    IPromise<Integer> _onError = _map_2.onError(_function_3);
     final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
@@ -386,13 +386,13 @@ public class TestPromise {
         InputOutput.<Integer>println(it);
       }
     };
-    Promise<Integer> _then = _map.then(_function_1);
+    IPromise<Integer> _then = _map.then(_function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
-    Promise<Integer> _then_1 = _then.then(_function_2);
+    IPromise<Integer> _then_1 = _then.then(_function_2);
     final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
@@ -407,6 +407,7 @@ public class TestPromise {
   
   @Test
   public void testPromiseWithLaterError2() {
+    this.setFoundError(Boolean.valueOf(false));
     final Promise<Integer> p = PromiseExtensions.<Integer>promise(int.class);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
@@ -416,21 +417,16 @@ public class TestPromise {
     Promise<Integer> _map = PromiseExtensions.<Integer, Integer>map(p, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
-        TestPromise.this.setFoundError(Boolean.valueOf(false));
+        Assert.fail("it/0 should not succeed");
       }
     };
-    Promise<Integer> _then = _map.then(_function_1);
+    IPromise<Integer> _then = _map.then(_function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         TestPromise.this.setFoundError(Boolean.valueOf(true));
       }
     };
-    Promise<Integer> _onError = _then.onError(_function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-      }
-    };
-    _onError.then(_function_3);
+    _then.onError(_function_2);
     p.set(Integer.valueOf(1));
     Boolean _foundError = this.getFoundError();
     Assert.assertTrue((_foundError).booleanValue());

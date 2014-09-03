@@ -1,6 +1,5 @@
 package nl.kii.promise;
 
-import nl.kii.promise.Promise;
 import nl.kii.stream.Entry;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -10,11 +9,11 @@ public interface IPromise<T extends Object> extends Procedure1<Entry<T>> {
   
   public abstract Entry<T> get();
   
-  public abstract Promise<T> set(final T value);
+  public abstract void set(final T value);
   
-  public abstract Promise<T> error(final Throwable t);
+  public abstract IPromise<T> error(final Throwable t);
   
-  public abstract Promise<T> onError(final Procedure1<Throwable> errorFn);
+  public abstract IPromise<T> onError(final Procedure1<Throwable> errorFn);
   
-  public abstract Promise<T> then(final Procedure1<T> valueFn);
+  public abstract IPromise<T> then(final Procedure1<T> valueFn);
 }

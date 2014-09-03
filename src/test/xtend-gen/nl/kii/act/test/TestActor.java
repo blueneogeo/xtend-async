@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
-import nl.kii.promise.Promise;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -129,7 +129,7 @@ public class TestActor {
           InputOutput.<String>println("done");
         }
       };
-      Promise<Boolean> _then = _all.then(_function_1);
+      IPromise<Boolean> _then = _all.then(_function_1);
       final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
           String _message = it.getMessage();

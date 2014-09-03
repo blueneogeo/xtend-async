@@ -199,7 +199,7 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    final Task a = PromiseExtensions.any(t1, t2, t3);
+    final Task a = PromiseExtensions.<Boolean, Task>any(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
@@ -224,8 +224,8 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    Task _or = PromiseExtensions.operator_or(t1, t2);
-    final Task a = PromiseExtensions.operator_or(_or, t3);
+    Task _or = PromiseExtensions.<Boolean>operator_or(t1, t2);
+    final Task a = PromiseExtensions.<Boolean>operator_or(_or, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));

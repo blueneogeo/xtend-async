@@ -67,24 +67,19 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * set the promised value
    */
-  public Promise<T> set(final T value) {
-    Promise<T> _xblockexpression = null;
-    {
-      boolean _equals = Objects.equal(value, null);
-      if (_equals) {
-        throw new NullPointerException("cannot promise a null value");
-      }
-      Value<T> _value = new Value<T>(value);
-      this.apply(_value);
-      _xblockexpression = this;
+  public void set(final T value) {
+    boolean _equals = Objects.equal(value, null);
+    if (_equals) {
+      throw new NullPointerException("cannot promise a null value");
     }
-    return _xblockexpression;
+    Value<T> _value = new Value<T>(value);
+    this.apply(_value);
   }
   
   /**
    * report an error to the listener of the promise.
    */
-  public Promise<T> error(final Throwable t) {
+  public IPromise<T> error(final Throwable t) {
     Promise<T> _xblockexpression = null;
     {
       nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
@@ -133,7 +128,7 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * If the promise recieved or recieves an error, onError is called with the throwable
    */
-  public Promise<T> onError(final Procedure1<Throwable> errorFn) {
+  public IPromise<T> onError(final Procedure1<Throwable> errorFn) {
     Promise<T> _xblockexpression = null;
     {
       final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
@@ -166,7 +161,7 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
-  public Promise<T> then(final Procedure1<T> valueFn) {
+  public IPromise<T> then(final Procedure1<T> valueFn) {
     Promise<T> _xblockexpression = null;
     {
       final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();

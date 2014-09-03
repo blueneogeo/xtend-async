@@ -56,7 +56,7 @@ public class TestAsyncAnnotation {
         isError.set(true);
       }
     };
-    Promise<Boolean> _onError = _printHello.onError(_function);
+    IPromise<Boolean> _onError = _printHello.onError(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         isError.set(false);

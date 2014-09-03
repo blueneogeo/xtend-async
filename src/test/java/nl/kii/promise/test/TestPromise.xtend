@@ -163,12 +163,12 @@ class TestPromise {
 
 	@Test
 	def void testPromiseWithLaterError2() {
+		foundError = false
 		val p = int.promise
 		p
 			.map [ it / 0 ]
-			.then [ foundError = false ]
+			.then [ fail('it/0 should not succeed') ]
 			.onError [ foundError = true  ]
-			.then [ ]
 		p.set(1)
 		assertTrue(foundError)
 	}

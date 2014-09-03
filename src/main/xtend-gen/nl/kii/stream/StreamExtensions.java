@@ -100,7 +100,7 @@ public class StreamExtensions {
           newStream.error(it);
         }
       };
-      Promise<T2> _onError = promise.onError(_function);
+      IPromise<T2> _onError = promise.onError(_function);
       final Procedure1<T2> _function_1 = new Procedure1<T2>() {
         public void apply(final T2 it) {
           Stream<T> _stream = StreamExtensions.<T>stream(it);
@@ -125,7 +125,7 @@ public class StreamExtensions {
           newStream.error(it);
         }
       };
-      Promise<Pair<K, T2>> _onError = promise.onError(_function);
+      IPromise<Pair<K, T2>> _onError = promise.onError(_function);
       final Procedure2<K, T2> _function_1 = new Procedure2<K, T2>() {
         public void apply(final K key, final T2 value) {
           Stream<T> _stream = StreamExtensions.<T>stream(value);
@@ -1341,7 +1341,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              Promise<T> _onError = promise.onError(_function);
+              IPromise<T> _onError = promise.onError(_function);
               final Procedure1<T> _function_1 = new Procedure1<T>() {
                 public void apply(final T it) {
                   processes.decrementAndGet();
@@ -1450,7 +1450,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              Promise<V> _onError = promise.onError(_function);
+              IPromise<V> _onError = promise.onError(_function);
               final Procedure1<V> _function_1 = new Procedure1<V>() {
                 public void apply(final V it) {
                   processes.decrementAndGet();
@@ -1811,7 +1811,7 @@ public class StreamExtensions {
   /**
    * Start the stream and and promise the first value from it.
    */
-  public static <T extends Object> Promise<T> then(final Stream<T> stream, final Procedure1<T> listener) {
+  public static <T extends Object> IPromise<T> then(final Stream<T> stream, final Procedure1<T> listener) {
     IPromise<T> _first = StreamExtensions.<T>first(stream);
     return _first.then(listener);
   }

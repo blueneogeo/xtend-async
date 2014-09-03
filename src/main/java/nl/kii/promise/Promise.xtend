@@ -13,11 +13,11 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 	
 	def Boolean getFulfilled()
 	def Entry<T> get()
-	def Promise<T> set(T value)
-	def Promise<T> error(Throwable t)
+	def void set(T value)
+	def IPromise<T> error(Throwable t)
 	
-	def Promise<T> onError(Procedure1<Throwable> errorFn)
-	def Promise<T> then(Procedure1<T> valueFn)
+	def IPromise<T> onError(Procedure1<Throwable> errorFn)
+	def IPromise<T> then(Procedure1<T> valueFn)
 	
 }
 
@@ -27,7 +27,6 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 class Promise<T> implements IPromise<T> {
 	
 	val publisher = new Publisher<Entry<T>>
-	
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
@@ -57,7 +56,6 @@ class Promise<T> implements IPromise<T> {
 	override set(T value) {
 		if(value == null) throw new NullPointerException('cannot promise a null value')
 		apply(new Value(value))
-		this
 	}
 
 	/** report an error to the listener of the promise. */
@@ -107,7 +105,7 @@ class Promise<T> implements IPromise<T> {
 				switch it { 
 					Value<T>: { 
 						sub.get.apply // unsubscribe, so this handler will not be called again
-						valueFn.apply(value) 
+						valueFn.apply(value)
 					}
 				}
 			} catch(Exception e) {

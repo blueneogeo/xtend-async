@@ -3,7 +3,6 @@ package nl.kii.promise;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-import nl.kii.async.annotation.Async;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
@@ -112,7 +111,7 @@ public class PromiseExtensions {
   public static Task all(final Iterable<? extends IPromise<?>> promises) {
     final Function1<IPromise<?>, Task> _function = new Function1<IPromise<?>, Task>() {
       public Task apply(final IPromise<?> it) {
-        return PromiseExtensions.toTask(it);
+        return PromiseExtensions.asTask(it);
       }
     };
     Iterable<Task> _map = IterableExtensions.map(promises, _function);
@@ -125,36 +124,35 @@ public class PromiseExtensions {
     Stream<Boolean> _call = StreamExtensions.<Task, Boolean, Task>call(_stream, _function_1);
     Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_call);
     IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
-    return PromiseExtensions.toTask(_first);
+    return PromiseExtensions.asTask(_first);
   }
   
   /**
    * Create a new Task that completes when any of the wrapped tasks are completed
    * Errors created by the promises are propagated into the resulting task
    */
-  public static Task any(final IPromise<?>... promises) {
-    List<IPromise<?>> _list = IterableExtensions.<IPromise<?>>toList(((Iterable<IPromise<?>>)Conversions.doWrapArray(promises)));
-    return PromiseExtensions.any(_list);
+  public static <T extends Object, P extends IPromise<T>> Task any(final P... promises) {
+    List<P> _list = IterableExtensions.<P>toList(((Iterable<P>)Conversions.doWrapArray(promises)));
+    return PromiseExtensions.<T>any(_list);
   }
   
   /**
    * Create a new Task that completes when any of the wrapped tasks are completed
    * Errors created by the promises are propagated into the resulting task
    */
-  public static Task any(final Iterable<? extends IPromise<?>> promises) {
+  public static <T extends Object> Task any(final List<? extends IPromise<T>> promises) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
-      for (final IPromise<?> promise : promises) {
-        Task _task = PromiseExtensions.toTask(promise);
+      for (final IPromise<T> promise : promises) {
         final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
           public void apply(final Throwable it) {
             task.error(it);
           }
         };
-        Promise<Boolean> _onError = _task.onError(_function);
-        final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-          public void apply(final Boolean it) {
+        IPromise<T> _onError = promise.onError(_function);
+        final Procedure1<T> _function_1 = new Procedure1<T>() {
+          public void apply(final T it) {
             task.complete();
           }
         };
@@ -193,7 +191,7 @@ public class PromiseExtensions {
   /**
    * Tell the promise it went wrong
    */
-  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message) {
+  public static <T extends Object> IPromise<T> error(final IPromise<T> promise, final String message) {
     Exception _exception = new Exception(message);
     return promise.error(_exception);
   }
@@ -201,7 +199,7 @@ public class PromiseExtensions {
   /**
    * Tell the promise it went wrong, with the cause throwable
    */
-  public static <T extends Object> Promise<T> error(final IPromise<T> promise, final String message, final Throwable cause) {
+  public static <T extends Object> IPromise<T> error(final IPromise<T> promise, final String message, final Throwable cause) {
     Exception _exception = new Exception(message, cause);
     return promise.error(_exception);
   }
@@ -240,8 +238,8 @@ public class PromiseExtensions {
   /**
    * Any/Or
    */
-  public static Task operator_or(final IPromise<?> p1, final IPromise<?> p2) {
-    return PromiseExtensions.any(p1, p2);
+  public static <T extends Object> Task operator_or(final IPromise<T> p1, final IPromise<T> p2) {
+    return PromiseExtensions.<T, IPromise<T>>any(p1, p2);
   }
   
   /**
@@ -317,7 +315,7 @@ public class PromiseExtensions {
               newPromise.error(it);
             }
           };
-          Promise<R> _onError = it.onError(_function);
+          IPromise<R> _onError = it.onError(_function);
           final Procedure1<R> _function_1 = new Procedure1<R>() {
             public void apply(final R it) {
               newPromise.set(it);
@@ -348,7 +346,7 @@ public class PromiseExtensions {
               newPromise.error(it);
             }
           };
-          Promise<R> _onError = _value.onError(_function);
+          IPromise<R> _onError = _value.onError(_function);
           final Procedure1<R> _function_1 = new Procedure1<R>() {
             public void apply(final R it) {
               K _key = pair.getKey();
@@ -471,7 +469,7 @@ public class PromiseExtensions {
    * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
    * See chain2() for example of how to use.
    */
-  public static <K extends Object, V extends Object> Promise<Pair<K, V>> then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
+  public static <K extends Object, V extends Object> IPromise<Pair<K, V>> then(final IPromise<Pair<K, V>> promise, final Procedure2<? super K, ? super V> listener) {
     final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
       public void apply(final Pair<K, V> it) {
         K _key = it.getKey();
@@ -501,7 +499,7 @@ public class PromiseExtensions {
           IterableExtensions.<IPromise<T>>forEach(((Iterable<IPromise<T>>)Conversions.doWrapArray(promises)), _function);
         }
       };
-      Promise<T> _onError = promise.onError(_function);
+      IPromise<T> _onError = promise.onError(_function);
       final Procedure1<T> _function_1 = new Procedure1<T>() {
         public void apply(final T value) {
           final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
@@ -521,24 +519,23 @@ public class PromiseExtensions {
   /**
    * Convert or forward a promise to a task
    */
-  @Async
-  public static Promise<Boolean> toTask(final IPromise<?> promise, final Task task) {
-    final Function1<Object, Boolean> _function = new Function1<Object, Boolean>() {
-      public Boolean apply(final Object it) {
-        return Boolean.valueOf(true);
-      }
-    };
-    Promise<Boolean> _map = PromiseExtensions.map(promise, _function);
-    return PromiseExtensions.<Boolean>forwardTo(_map, task);
+  public static Task asTask(final IPromise<?> promise) {
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      PromiseExtensions.completes(promise, task);
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
   }
   
   /**
    * Forward the events from this promise to another promise of the same type
    */
-  public static <T extends Object> Promise<T> forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
+  public static <T extends Object> IPromise<T> pipe(final IPromise<T> promise, final IPromise<T> target) {
     final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
       public void apply(final Entry<T> it) {
-        existingPromise.apply(it);
+        target.apply(it);
       }
     };
     IPromise<T> _always = PromiseExtensions.<T>always(promise, _function);
@@ -550,6 +547,24 @@ public class PromiseExtensions {
   }
   
   /**
+   * Forward the events from this promise to another promise of the same type
+   */
+  public static <T extends Object> IPromise<T> completes(final IPromise<T> promise, final Task task) {
+    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        task.error(it);
+      }
+    };
+    IPromise<T> _onError = promise.onError(_function);
+    final Procedure1<T> _function_1 = new Procedure1<T>() {
+      public void apply(final T it) {
+        task.complete();
+      }
+    };
+    return _onError.then(_function_1);
+  }
+  
+  /**
    * Convert a promise into a Future.
    * Promises are non-blocking. However you can convert to a Future
    * if you must block and wait for a promise to resolve.
@@ -558,19 +573,5 @@ public class PromiseExtensions {
    */
   public static <T extends Object> Future<T> future(final IPromise<T> promise) {
     return new PromiseFuture<T>(promise);
-  }
-  
-  /**
-   * Convert or forward a promise to a task
-   */
-  public static Task toTask(final IPromise<?> promise) {
-    final Task task = new Task();
-    try {
-    	toTask(promise,task);
-    } catch(Throwable t) {
-    	task.error(t);
-    } finally {
-    	return task;
-    }
   }
 }
