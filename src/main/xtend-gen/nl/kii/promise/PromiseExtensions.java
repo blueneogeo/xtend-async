@@ -3,6 +3,7 @@ package nl.kii.promise;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+import nl.kii.async.annotation.Async;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
@@ -82,14 +83,17 @@ public class PromiseExtensions {
     return ObjectExtensions.<Task>operator_doubleArrow(_task, _function);
   }
   
-  public static Task error(final String message) {
-    Task _task = new Task();
-    final Procedure1<Task> _function = new Procedure1<Task>() {
-      public void apply(final Task it) {
-        PromiseExtensions.error(message);
+  /**
+   * Shortcut for quickly creating a promise with an error
+   */
+  public static <T extends Object> IPromise<T> error(final String message) {
+    Promise<T> _promise = new Promise<T>();
+    final Procedure1<Promise<T>> _function = new Procedure1<Promise<T>>() {
+      public void apply(final Promise<T> it) {
+        PromiseExtensions.<T>error(message);
       }
     };
-    return ObjectExtensions.<Task>operator_doubleArrow(_task, _function);
+    return ObjectExtensions.<Promise<T>>operator_doubleArrow(_promise, _function);
   }
   
   /**
@@ -121,7 +125,7 @@ public class PromiseExtensions {
     Stream<Boolean> _call = StreamExtensions.<Task, Boolean, Task>call(_stream, _function_1);
     Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_call);
     IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
-    return PromiseExtensions.<List<Boolean>>toTask(_first);
+    return PromiseExtensions.toTask(_first);
   }
   
   /**
@@ -238,25 +242,6 @@ public class PromiseExtensions {
    */
   public static Task operator_or(final IPromise<?> p1, final IPromise<?> p2) {
     return PromiseExtensions.any(p1, p2);
-  }
-  
-  /**
-   * Convert a promise into a task
-   */
-  public static <T extends Object> Task toTask(final IPromise<T> promise) {
-    Task _xblockexpression = null;
-    {
-      final Task task = new Task();
-      final Function1<T, Boolean> _function = new Function1<T, Boolean>() {
-        public Boolean apply(final T it) {
-          return Boolean.valueOf(true);
-        }
-      };
-      Promise<Boolean> _map = PromiseExtensions.<T, Boolean>map(promise, _function);
-      PromiseExtensions.<Boolean>forwardTo(_map, task);
-      _xblockexpression = task;
-    }
-    return _xblockexpression;
   }
   
   /**
@@ -534,6 +519,20 @@ public class PromiseExtensions {
   }
   
   /**
+   * Convert or forward a promise to a task
+   */
+  @Async
+  public static Promise<Boolean> toTask(final IPromise<?> promise, final Task task) {
+    final Function1<Object, Boolean> _function = new Function1<Object, Boolean>() {
+      public Boolean apply(final Object it) {
+        return Boolean.valueOf(true);
+      }
+    };
+    Promise<Boolean> _map = PromiseExtensions.map(promise, _function);
+    return PromiseExtensions.<Boolean>forwardTo(_map, task);
+  }
+  
+  /**
    * Forward the events from this promise to another promise of the same type
    */
   public static <T extends Object> Promise<T> forwardTo(final IPromise<T> promise, final IPromise<T> existingPromise) {
@@ -559,5 +558,19 @@ public class PromiseExtensions {
    */
   public static <T extends Object> Future<T> future(final IPromise<T> promise) {
     return new PromiseFuture<T>(promise);
+  }
+  
+  /**
+   * Convert or forward a promise to a task
+   */
+  public static Task toTask(final IPromise<?> promise) {
+    final Task task = new Task();
+    try {
+    	toTask(promise,task);
+    } catch(Throwable t) {
+    	task.error(t);
+    } finally {
+    	return task;
+    }
   }
 }

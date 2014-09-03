@@ -8,6 +8,7 @@ import nl.kii.stream.Error
 import nl.kii.stream.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.async.annotation.Async
 
 class PromiseExtensions {
 	
@@ -51,9 +52,10 @@ class PromiseExtensions {
 	def static Task complete() {
 		new Task => [ complete ]
 	}
-	
-	def static Task error(String message) {
-		new Task => [ error(message) ]
+
+	/** Shortcut for quickly creating a promise with an error */	
+	def static <T> IPromise<T> error(String message) {
+		new Promise<T> => [ error(message) ]
 	}
 	
 	/** 
@@ -139,13 +141,6 @@ class PromiseExtensions {
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 
-	/** Convert a promise into a task */	
-	def static <T> toTask(IPromise<T> promise) {
-		val task = new Task
-		promise.map[true].forwardTo(task)
-		task
-	}
-	
 	/** 
 	 * Create a new promise from an existing promise, 
 	 * that transforms the value of the promise
@@ -312,6 +307,11 @@ class PromiseExtensions {
 			.onError [ t | promises.forEach [ IPromise<T> p | p.error(t) ] ]
 			.then [ value | promises.forEach [ IPromise<T> p | p.set(value) ] ]
 		promises
+	}
+
+	/** Convert or forward a promise to a task */	
+	@Async def static toTask(IPromise<?> promise, Task task) {
+		promise.map[true].forwardTo(task)
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
