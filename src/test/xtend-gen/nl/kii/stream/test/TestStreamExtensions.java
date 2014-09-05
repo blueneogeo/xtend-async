@@ -844,6 +844,35 @@ public class TestStreamExtensions {
   }
   
   @Test
+  public void testErrorsDontStopStream() {
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        Integer _xblockexpression = null;
+        {
+          final int x = (1 / ((it).intValue() - 5));
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        InputOutput.<Throwable>println(it);
+      }
+    };
+    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_map, _function_1);
+    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<String>println(("val " + it));
+      }
+    };
+    StreamExtensions.<Integer>onEach(_onError, _function_2);
+  }
+  
+  @Test
   public void testResolve() {
     final Promise<Integer> t1 = PromiseExtensions.<Integer>promise(int.class);
     final Promise<Integer> t2 = PromiseExtensions.<Integer>promise(int.class);

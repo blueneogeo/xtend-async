@@ -3,7 +3,6 @@ package nl.kii.stream
 import com.google.common.collect.ImmutableList
 import com.google.common.io.ByteProcessor
 import com.google.common.io.Files
-import com.google.common.util.concurrent.AtomicDouble
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -556,6 +555,27 @@ class StreamExtensions {
 		stream.map(mapFn).flatten
 	}
 	
+	/**
+	 * Keep count of how many items have been streamed so far, and for each
+	 * value from the original stream, push a pair of count->value.
+	 * Finish(0) resets the count.
+	 */
+	def static <T> Stream<Pair<Integer, T>> index(Stream<T> stream) {
+		val newStream = new Stream<Pair<Integer, T>>
+		val counter = new AtomicInteger(0)
+		stream.on [
+			each [ newStream.push(counter.incrementAndGet -> it) ]
+			error [ newStream.error(it) ]
+			finish [
+				if(level == 0) counter.set(0)
+				newStream.finish(level)
+			]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
 	
 	/** 
@@ -819,9 +839,18 @@ class StreamExtensions {
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
 	def static <T> Task onEach(Stream<T> stream, (T)=>void listener) {
-		stream
-			.onError [ printStackTrace throw it ]
-			.onEach(listener)
+		val sub = stream.on [
+			error [
+				println(message)
+				// do nothing
+			]
+			each [
+				listener.apply(it)
+				stream.next
+			]
+		]
+		stream.next
+		sub.toTask
 	}
 
 	/**
@@ -889,6 +918,10 @@ class StreamExtensions {
 			]
 			finish [
 				stream.error('stream finished without returning a value')
+				stream.close
+			]
+			closed [
+				stream.error('stream finished without returning a value')
 			]
 		]
 	 	stream.next
@@ -897,15 +930,36 @@ class StreamExtensions {
 	
 	 /**
 	  * Start the stream and promise the first value coming from the stream.
-	  * Will keep asking on the stream until it gets to the last value.
+	  * Will keep asking next on the stream until it gets to the last value!
+	  * Skips any stream errors, and closes the stream when it is done.
 	  */
 	def static <T> IPromise<T> last(Stream<T> stream) {
 		val promise = new Promise<T>
 		val last = new AtomicReference<T>
-		stream
-			.onFinish [ if(!promise.fulfilled && last.get != null) promise.set(last.get) ]
-			.onError [ if(!promise.fulfilled) promise.error(it) ]
-			.onEach [ if(!promise.fulfilled) last.set(it) ]
+		stream.on [
+			each [ 
+				if(!promise.fulfilled) last.set(it) 
+				stream.next
+			]
+			finish [
+				if(level == 0) {
+					if(!promise.fulfilled && last.get != null) {
+						promise.set(last.get)
+						stream.close
+					} else promise.error('stream finished without passing a value, no last entry found.')
+				} else stream.next 
+			]
+			closed [ 
+				if(!promise.fulfilled && last.get != null) {
+					promise.set(last.get)
+					stream.close
+				} else promise.error('stream closed without passing a value, no last entry found.')
+			]
+			error [
+				stream.next
+			]
+		]
+		stream.next
 		promise
 	}
 
@@ -940,8 +994,8 @@ class StreamExtensions {
 		subscription
 	}
 	
-	def static <T> monitor(Stream<T> stream, (CommandSubscription)=>void subscriptionFn) {
-		val handler = new CommandSubscription(stream)
+	def static <T> monitor(Stream<T> stream, (StreamMonitor)=>void subscriptionFn) {
+		val handler = new StreamMonitor(stream)
 		subscriptionFn.apply(handler)
 		handler
 	}
@@ -1110,35 +1164,37 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Average the items in the stream until a finish
+	 * Average the items in the stream until a finish.
 	 */
 	def static <T extends Number> average(Stream<T> stream) {
-		stream.reduce(0) [ acc, it | ]
+		stream
+			.index
+			.reduce(0 -> 0D) [ acc, it | key -> (acc.value + value.doubleValue) ]
+			.map [ value / key ]
 		
-		
-		val avg = new AtomicDouble
-		val count = new AtomicLong(0)
-		val newStream = new Stream<Double>
-		stream.on [
-			each [
-				avg.addAndGet(doubleValue)
-				count.incrementAndGet
-				stream.next
-			]
-			finish [
-				if(level == 0) {
-					val collected = avg.doubleValue / count.getAndSet(0) 
-					avg.set(0)
-					newStream.push(collected)
-				} else {
-					newStream.finish(level - 1)
-				}
-			]
-			error [ newStream.error(it) ]
-			closed [ newStream.close ]
-		]
-		newStream.controls(stream)
-		newStream
+//		val avg = new AtomicDouble
+//		val count = new AtomicLong(0)
+//		val newStream = new Stream<Double>
+//		stream.on [
+//			each [
+//				avg.addAndGet(doubleValue)
+//				count.incrementAndGet
+//				stream.next
+//			]
+//			finish [
+//				if(level == 0) {
+//					val collected = avg.doubleValue / count.getAndSet(0) 
+//					avg.set(0)
+//					newStream.push(collected)
+//				} else {
+//					newStream.finish(level - 1)
+//				}
+//			]
+//			error [ newStream.error(it) ]
+//			closed [ newStream.close ]
+//		]
+//		newStream.controls(stream)
+//		newStream
 	}
 	
 	/**
@@ -1185,7 +1241,10 @@ class StreamExtensions {
 					newStream.finish(level - 1)
 				}
 			]
-			error [ newStream.error(it) ]
+			error [ 
+				newStream.error(it)
+				stream.next
+			]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -1234,24 +1293,24 @@ class StreamExtensions {
 	 * for any to fire true. The moment testFn gives off true, true is streamed
 	 * and the rest of the incoming values are skipped.
 	 */
-	 def static <T> Stream<Boolean> any(Stream<T> stream, (T)=>boolean testFn) {
-	 	val anyMatch = new AtomicBoolean(false)
-	 	val newStream = new Stream<Boolean>
+	def static <T> Stream<Boolean> any(Stream<T> stream, (T)=>boolean testFn) {
+		val anyMatch = new AtomicBoolean(false)
+		val newStream = new Stream<Boolean>
 		stream.on [
 			each [
-			 	// if we get a match, we communicate directly and tell the stream we are done
-		 		if(testFn.apply(it)) {	
-		 			anyMatch.set(true)
-		 			newStream.push(true)
-		 			stream.skip
-		 		}
-		 		stream.next
+				// if we get a match, we communicate directly and tell the stream we are done
+				if(testFn.apply(it)) {	
+					anyMatch.set(true)
+					newStream.push(true)
+					stream.skip
+				}
+				stream.next
 			]
 			finish [
 				if(level == 0) {
-			 		val matched = anyMatch.get
-			 		anyMatch.set(false)
-			 		if(!matched) newStream.push(false)
+					val matched = anyMatch.get
+					anyMatch.set(false)
+					if(!matched) newStream.push(false)
 				} else {
 					newStream.finish(level - 1)
 				}
@@ -1270,22 +1329,22 @@ class StreamExtensions {
 	 * The moment testFn gives off true, the value is streamed and the rest of the incoming 
 	 * values are skipped.
 	 */
-	 def static <T> Stream<T> first(Stream<T> stream, (T)=>boolean testFn) {
-	 	val match = new AtomicReference<T>
-	 	val newStream = new Stream<T>
+	def static <T> Stream<T> first(Stream<T> stream, (T)=>boolean testFn) {
+		val match = new AtomicReference<T>
+		val newStream = new Stream<T>
 		stream.on [
 			each [
-			 	// if we get a match, we communicate directly and tell the stream we are done
-		 		if(testFn.apply(it)) {	
-		 			match.set(it)
-		 			newStream.push(it)
-		 			stream.skip
-		 		}
-		 		stream.next
+				// if we get a match, we communicate directly and tell the stream we are done
+				if(testFn.apply(it)) {	
+					match.set(it)
+					newStream.push(it)
+					stream.skip
+				}
+				stream.next
 			]
 			finish [
 				if(level == 0) {
-			 		match.set(null)
+					match.set(null)
 				} else {
 					newStream.finish(level - 1)
 				}

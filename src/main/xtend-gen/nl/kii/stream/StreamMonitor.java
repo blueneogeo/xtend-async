@@ -10,7 +10,7 @@ import nl.kii.stream.StreamCommand;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public class CommandSubscription implements Procedure1<StreamCommand> {
+public class StreamMonitor implements Procedure1<StreamCommand> {
   private final Stream<?> stream;
   
   @Atomic
@@ -22,11 +22,11 @@ public class CommandSubscription implements Procedure1<StreamCommand> {
   @Atomic
   private final AtomicReference<Procedure1<Void>> _onCloseFn = new AtomicReference<Procedure1<Void>>();
   
-  public CommandSubscription(final Stream<?> stream) {
+  public StreamMonitor(final Stream<?> stream) {
     this.stream = stream;
     final Procedure1<StreamCommand> _function = new Procedure1<StreamCommand>() {
       public void apply(final StreamCommand it) {
-        CommandSubscription.this.apply(it);
+        StreamMonitor.this.apply(it);
       }
     };
     stream.onNotification(_function);

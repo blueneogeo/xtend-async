@@ -8,7 +8,6 @@ import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
-import com.google.common.util.concurrent.AtomicDouble;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,19 +32,21 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
-import nl.kii.stream.CommandSubscription;
 import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.Subscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.DoubleExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -186,8 +187,8 @@ public class StreamExtensions {
         }
       };
       final Procedure0 pushNext = _function;
-      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_1 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               pushNext.apply();
@@ -242,8 +243,8 @@ public class StreamExtensions {
             return _xblockexpression;
           }
         });
-        final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
-          public void apply(final CommandSubscription it) {
+        final Procedure1<StreamMonitor> _function = new Procedure1<StreamMonitor>() {
+          public void apply(final StreamMonitor it) {
             final Procedure1<Void> _function = new Procedure1<Void>() {
               public void apply(final Void it) {
                 try {
@@ -300,8 +301,8 @@ public class StreamExtensions {
     {
       final Random randomizer = new Random();
       final Stream<Integer> newStream = StreamExtensions.<Integer>stream(int.class);
-      final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               Boolean _isOpen = newStream.isOpen();
@@ -380,8 +381,8 @@ public class StreamExtensions {
         }
       };
       final Procedure0 stopObserving = observable.onChange(_function);
-      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_1 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stopObserving.apply();
@@ -503,9 +504,9 @@ public class StreamExtensions {
     return new Finish<T>(level);
   }
   
-  static <T extends Object, R extends Object> CommandSubscription controls(final Stream<T> newStream, final Stream<?> parent) {
-    final Procedure1<CommandSubscription> _function = new Procedure1<CommandSubscription>() {
-      public void apply(final CommandSubscription it) {
+  static <T extends Object, R extends Object> StreamMonitor controls(final Stream<T> newStream, final Stream<?> parent) {
+    final Procedure1<StreamMonitor> _function = new Procedure1<StreamMonitor>() {
+      public void apply(final StreamMonitor it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             parent.next();
@@ -1069,6 +1070,56 @@ public class StreamExtensions {
   }
   
   /**
+   * Keep count of how many items have been streamed so far, and for each
+   * value from the original stream, push a pair of count->value.
+   * Finish(0) resets the count.
+   */
+  public static <T extends Object> Stream<Pair<Integer, T>> index(final Stream<T> stream) {
+    Stream<Pair<Integer, T>> _xblockexpression = null;
+    {
+      final Stream<Pair<Integer, T>> newStream = new Stream<Pair<Integer, T>>();
+      final AtomicInteger counter = new AtomicInteger(0);
+      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+        public void apply(final Subscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              int _incrementAndGet = counter.incrementAndGet();
+              Pair<Integer, T> _mappedTo = Pair.<Integer, T>of(Integer.valueOf(_incrementAndGet), it);
+              newStream.push(_mappedTo);
+            }
+          };
+          it.each(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              newStream.error(it);
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level == 0)) {
+                counter.set(0);
+              }
+              newStream.finish(it.level);
+            }
+          };
+          it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<Pair<Integer, T>, Object>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Creates a new stream that listenes to the existing stream
    */
   public static <T extends Object> Stream<T> fork(final Stream<T> stream) {
@@ -1218,8 +1269,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<T>on(stream, _function_2);
-      final Procedure1<CommandSubscription> _function_3 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_3 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stream.skip();
@@ -1282,8 +1333,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<T>on(stream, _function);
-      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_1 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               T _get = latest.get();
@@ -1383,8 +1434,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.on(stream, _function);
-      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_1 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               int _get = processes.get();
@@ -1493,8 +1544,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<Pair<K, P>>on(stream, _function);
-      final Procedure1<CommandSubscription> _function_1 = new Procedure1<CommandSubscription>() {
-        public void apply(final CommandSubscription it) {
+      final Procedure1<StreamMonitor> _function_1 = new Procedure1<StreamMonitor>() {
+        public void apply(final StreamMonitor it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               int _get = processes.get();
@@ -1586,18 +1637,31 @@ public class StreamExtensions {
    * Returns a task that completes once the stream finishes or closes.
    */
   public static <T extends Object> Task onEach(final Stream<T> stream, final Procedure1<? super T> listener) {
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        try {
-          it.printStackTrace();
-          throw it;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+    Task _xblockexpression = null;
+    {
+      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+        public void apply(final Subscription<T> it) {
+          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              String _message = it.getMessage();
+              InputOutput.<String>println(_message);
+            }
+          };
+          it.error(_function);
+          final Procedure1<T> _function_1 = new Procedure1<T>() {
+            public void apply(final T it) {
+              listener.apply(it);
+              stream.next();
+            }
+          };
+          it.each(_function_1);
         }
-      }
-    };
-    Subscription<T> _onError = StreamExtensions.<T>onError(stream, _function);
-    return StreamExtensions.<T>onEach(_onError, listener);
+      };
+      final Subscription<T> sub = StreamExtensions.<T>on(stream, _function);
+      stream.next();
+      _xblockexpression = sub.toTask();
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -1717,9 +1781,16 @@ public class StreamExtensions {
           final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
             public void apply(final Finish<T> it) {
               StreamExtensions.<T>error(stream, "stream finished without returning a value");
+              stream.close();
             }
           };
           it.finish(_function_2);
+          final Procedure0 _function_3 = new Procedure0() {
+            public void apply() {
+              StreamExtensions.<T>error(stream, "stream finished without returning a value");
+            }
+          };
+          it.closed(_function_3);
         }
       };
       StreamExtensions.<T>on(stream, _function);
@@ -1731,52 +1802,85 @@ public class StreamExtensions {
   
   /**
    * Start the stream and promise the first value coming from the stream.
-   * Will keep asking on the stream until it gets to the last value.
+   * Will keep asking next on the stream until it gets to the last value!
+   * Skips any stream errors, and closes the stream when it is done.
    */
   public static <T extends Object> IPromise<T> last(final Stream<T> stream) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
       final AtomicReference<T> last = new AtomicReference<T>();
-      final Procedure1<Finish<T>> _function = new Procedure1<Finish<T>>() {
-        public void apply(final Finish<T> it) {
-          boolean _and = false;
-          Boolean _fulfilled = promise.getFulfilled();
-          boolean _not = (!(_fulfilled).booleanValue());
-          if (!_not) {
-            _and = false;
-          } else {
-            T _get = last.get();
-            boolean _notEquals = (!Objects.equal(_get, null));
-            _and = _notEquals;
-          }
-          if (_and) {
-            T _get_1 = last.get();
-            promise.set(_get_1);
-          }
+      final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
+        public void apply(final Subscription<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
+              if (_not) {
+                last.set(it);
+              }
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              if ((it.level == 0)) {
+                boolean _and = false;
+                Boolean _fulfilled = promise.getFulfilled();
+                boolean _not = (!(_fulfilled).booleanValue());
+                if (!_not) {
+                  _and = false;
+                } else {
+                  T _get = last.get();
+                  boolean _notEquals = (!Objects.equal(_get, null));
+                  _and = _notEquals;
+                }
+                if (_and) {
+                  T _get_1 = last.get();
+                  promise.set(_get_1);
+                  stream.close();
+                } else {
+                  PromiseExtensions.<T>error(promise, "stream finished without passing a value, no last entry found.");
+                }
+              } else {
+                stream.next();
+              }
+            }
+          };
+          it.finish(_function_1);
+          final Procedure0 _function_2 = new Procedure0() {
+            public void apply() {
+              boolean _and = false;
+              Boolean _fulfilled = promise.getFulfilled();
+              boolean _not = (!(_fulfilled).booleanValue());
+              if (!_not) {
+                _and = false;
+              } else {
+                T _get = last.get();
+                boolean _notEquals = (!Objects.equal(_get, null));
+                _and = _notEquals;
+              }
+              if (_and) {
+                T _get_1 = last.get();
+                promise.set(_get_1);
+                stream.close();
+              } else {
+                PromiseExtensions.<T>error(promise, "stream closed without passing a value, no last entry found.");
+              }
+            }
+          };
+          it.closed(_function_2);
+          final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              stream.next();
+            }
+          };
+          it.error(_function_3);
         }
       };
-      Subscription<T> _onFinish = StreamExtensions.<T>onFinish(stream, _function);
-      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          Boolean _fulfilled = promise.getFulfilled();
-          boolean _not = (!(_fulfilled).booleanValue());
-          if (_not) {
-            promise.error(it);
-          }
-        }
-      };
-      Subscription<T> _onError = StreamExtensions.<T>onError(_onFinish, _function_1);
-      final Procedure1<T> _function_2 = new Procedure1<T>() {
-        public void apply(final T it) {
-          Boolean _fulfilled = promise.getFulfilled();
-          boolean _not = (!(_fulfilled).booleanValue());
-          if (_not) {
-            last.set(it);
-          }
-        }
-      };
-      StreamExtensions.<T>onEach(_onError, _function_2);
+      StreamExtensions.<T>on(stream, _function);
+      stream.next();
       _xblockexpression = promise;
     }
     return _xblockexpression;
@@ -1826,10 +1930,10 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> CommandSubscription monitor(final Stream<T> stream, final Procedure1<? super CommandSubscription> subscriptionFn) {
-    CommandSubscription _xblockexpression = null;
+  public static <T extends Object> StreamMonitor monitor(final Stream<T> stream, final Procedure1<? super StreamMonitor> subscriptionFn) {
+    StreamMonitor _xblockexpression = null;
     {
-      final CommandSubscription handler = new CommandSubscription(stream);
+      final StreamMonitor handler = new StreamMonitor(stream);
       subscriptionFn.apply(handler);
       _xblockexpression = handler;
     }
@@ -2127,64 +2231,30 @@ public class StreamExtensions {
   }
   
   /**
-   * Average the items in the stream until a finish
+   * Average the items in the stream until a finish.
    */
   public static <T extends Number> Stream<Double> average(final Stream<T> stream) {
-    Stream<Double> _xblockexpression = null;
-    {
-      final Function2<Integer, T, Integer> _function = new Function2<Integer, T, Integer>() {
-        public Integer apply(final Integer acc, final T it) {
-          return null;
-        }
-      };
-      StreamExtensions.<T, Integer>reduce(stream, Integer.valueOf(0), _function);
-      final AtomicDouble avg = new AtomicDouble();
-      final AtomicLong count = new AtomicLong(0);
-      final Stream<Double> newStream = new Stream<Double>();
-      final Procedure1<Subscription<T>> _function_1 = new Procedure1<Subscription<T>>() {
-        public void apply(final Subscription<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              double _doubleValue = it.doubleValue();
-              avg.addAndGet(_doubleValue);
-              count.incrementAndGet();
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              if ((it.level == 0)) {
-                double _doubleValue = avg.doubleValue();
-                long _andSet = count.getAndSet(0);
-                final double collected = (_doubleValue / _andSet);
-                avg.set(0);
-                newStream.push(Double.valueOf(collected));
-              } else {
-                newStream.finish((it.level - 1));
-              }
-            }
-          };
-          it.finish(_function_1);
-          final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              newStream.error(it);
-            }
-          };
-          it.error(_function_2);
-          final Procedure0 _function_3 = new Procedure0() {
-            public void apply() {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function_1);
-      StreamExtensions.<Double, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    Stream<Pair<Integer, T>> _index = StreamExtensions.<T>index(stream);
+    Pair<Integer, Double> _mappedTo = Pair.<Integer, Double>of(Integer.valueOf(0), Double.valueOf(0D));
+    final Function2<Pair<Integer, Double>, Pair<Integer, T>, Pair<Integer, Double>> _function = new Function2<Pair<Integer, Double>, Pair<Integer, T>, Pair<Integer, Double>>() {
+      public Pair<Integer, Double> apply(final Pair<Integer, Double> acc, final Pair<Integer, T> it) {
+        Integer _key = it.getKey();
+        Double _value = acc.getValue();
+        T _value_1 = it.getValue();
+        double _doubleValue = _value_1.doubleValue();
+        double _plus = ((_value).doubleValue() + _doubleValue);
+        return Pair.<Integer, Double>of(_key, Double.valueOf(_plus));
+      }
+    };
+    Stream<Pair<Integer, Double>> _reduce = StreamExtensions.<Pair<Integer, T>, Pair<Integer, Double>>reduce(_index, _mappedTo, _function);
+    final Function1<Pair<Integer, Double>, Double> _function_1 = new Function1<Pair<Integer, Double>, Double>() {
+      public Double apply(final Pair<Integer, Double> it) {
+        Double _value = it.getValue();
+        Integer _key = it.getKey();
+        return Double.valueOf(DoubleExtensions.operator_divide(_value, _key));
+      }
+    };
+    return StreamExtensions.<Pair<Integer, Double>, Double>map(_reduce, _function_1);
   }
   
   /**
@@ -2294,6 +2364,7 @@ public class StreamExtensions {
           final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
               newStream.error(it);
+              stream.next();
             }
           };
           it.error(_function_2);

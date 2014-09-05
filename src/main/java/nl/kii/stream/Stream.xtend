@@ -1,13 +1,11 @@
 package nl.kii.stream
 
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
+
 import static com.google.common.collect.Queues.*
-import java.util.List
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -24,32 +22,31 @@ import java.util.concurrent.CopyOnWriteArrayList
  * <li>wraps errors and lets you listen for them at the end of the stream chain
  * </ul>
  */
-class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
+class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 
-	var listenerReady = false
-	var skipping = false
 	val Queue<Entry<T>> queue
 
-	@Atomic val boolean publishing = true
-	@Atomic val List<Procedure1<Entry<T>>> observers
+	@Atomic val boolean open = true
+	@Atomic val boolean ready = false
+	@Atomic val boolean skipping = false
+
 	@Atomic val (Entry<T>)=>void entryListener
 	@Atomic val (StreamCommand)=>void notifyListener
 
 	/** create the stream with a memory concurrent queue */
-	new() { 
-		this(newConcurrentLinkedQueue)
-	}
+	new() { this(newConcurrentLinkedQueue) }
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue) { 
-		this.queue = queue
-		this.observers = new CopyOnWriteArrayList
-	}
+	new(Queue<Entry<T>> queue) { this.queue = queue }
 	
 	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
 	def getQueue() { queue.unmodifiableView	}
 
-	def isOpen() { publishing }
+	def isOpen() { getOpen }
+	
+	def isReady() { getReady }
+	
+	def isSkipping() { getSkipping }
 
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
@@ -84,9 +81,9 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
 	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
 	 */
-	synchronized override =>void onChange((Entry<T>)=>void entryListener) {
-		observers.add(entryListener)
-		return [| observers.remove(entryListener) ]
+	override =>void onChange((Entry<T>)=>void entryListener) {
+		this.entryListener = entryListener
+		return [| this.entryListener = null ]
 	}
 	
 	/**
@@ -104,7 +101,7 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 	 * Since the stream extends Actor, there is no more than one thread active.
 	 */
 	override protected act(StreamMessage entry, =>void done) {
-		if(open) {
+		if(isOpen) {
 			switch entry {
 				Value<T>, Finish<T>, Error<T>: {
 					queue.add(entry)
@@ -115,31 +112,31 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 					publishNext
 				}
 				Next: {
-					listenerReady = true
+					ready = true
 					// try to publish the next from the queue
 					val published = publishNext
 					// if nothing was published, notify there parent stream we need a next entry
 					if(!published) notify(entry)			
 				}
 				Skip: {
-					if(skipping) return 
+					if(isSkipping) return 
 					else skipping = true		
 					// discard everything up to finish from the queue
-					while(skipping && !queue.empty) {
+					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
 							Finish<T> case level==0: skipping = false
 							default: queue.poll
 						}
 					}
 					// if we are still skipping, notify the parent stream it needs to skip
-					if(skipping) notify(entry)			
+					if(isSkipping) notify(entry)			
 				}
 				Close: {
 					// and publish the closed command downwards
 					queue.add(new Closed)
 					publishNext
 					notify(entry)
-					publishing = false
+					setOpen = false
 				}
 			}
 		} else {
@@ -152,8 +149,8 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 	
 	/** take an entry from the queue and pass it to the listener */
 	def protected boolean publishNext() {
-		if(publishing && listenerReady && entryListener != null && !queue.empty) {
-			listenerReady = false
+		if(isOpen && isReady && entryListener != null && !queue.empty) {
+			ready = false
 			val entry = queue.poll
 			if(entry instanceof Finish<?>)
 				if(entry.level == 0)
@@ -163,7 +160,7 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 				true
 			} catch (Throwable t) {
 				if(entry instanceof Error<?>) throw t
-				listenerReady = true
+				ready = true
 				apply(new Error(t))
 				false
 			}
@@ -176,51 +173,6 @@ class NewStream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> 
 			notifyListener.apply(notification)
 	}
 	
-	override toString() '''Stream { open: «open», ready: «listenerReady», skipping: «skipping», queue: «queue.size», hasListener: «entryListener != null» }'''
+	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''
 	
 }
-
-
-
-interface AsyncObserver<T> {
-	
-	def void next()
-	def void skip()
-	def void finish()
-	def void close()
-	
-}
-
-
-
-class StreamSubscription<T> implements Observable<StreamCommand> {
-
-	
-
-	@Atomic boolean open = true
-	@Atomic boolean ready = false
-	@Atomic boolean finish = false
-	@Atomic boolean skip = false
-	
-	def void next() { ready = true }
-	def void skip() { skip = true }
-	def void finish() { finish = true }
-	def void close() { open = false }
-	
-	override onChange((StreamCommand)=>void observeFn) {
-		
-	}
-
-}
-
-
-
-
-
-
-
-
-
-
-
-

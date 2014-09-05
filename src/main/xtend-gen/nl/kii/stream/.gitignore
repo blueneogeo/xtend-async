@@ -100,3 +100,10 @@
 /.AsyncObserver.java._trace
 /.NewStream.java._trace
 /.StreamSubscription.java._trace
+/.StreamMonitor.java._trace
+/.Splitter.java._trace
+/.Fork.java._trace
+/.AbstractSplitter.java._trace
+/.CopySplitter.java._trace
+/.Source.java._trace
+/.AbstractSource.java._trace

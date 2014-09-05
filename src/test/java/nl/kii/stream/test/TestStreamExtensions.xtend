@@ -351,6 +351,23 @@ class TestStreamExtensions {
 			.first
 			.assertPromiseEquals((1..10).toList)
 	}
+	
+	// ERRORS /////////////////////////////////////////////////////////////////
+	
+	@Test
+	def void testErrorsDontStopStream() {
+		(1..10).stream
+			.map [ val x = 1/(it-5) it ] // 5 gives a /0 exception
+//			.map [ val x = 1/(it-7) it ] // 7 also gives the exception
+//			.onFinish [ println('fin') ]
+			//.collect
+			.onError [ println(it) ]
+			.onEach [ println('val ' + it) ]
+//			.first
+//			.then [
+//				println('done!')
+//			]
+	}
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	
