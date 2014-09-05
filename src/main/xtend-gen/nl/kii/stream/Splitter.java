@@ -9,7 +9,6 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Source;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
-import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
@@ -79,7 +78,7 @@ public abstract class Splitter<T extends Object> implements Source<T> {
   /**
    * Handle a message coming from a piped stream
    */
-  protected abstract void onCommand(@Extension final StreamCommand msg);
+  protected abstract void onCommand(final StreamCommand msg);
   
   /**
    * Utility method that only returns true if all members match the condition

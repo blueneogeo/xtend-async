@@ -50,7 +50,7 @@ abstract class Splitter<T> implements Source<T> {
 	abstract protected def void onEntry(Entry<T> entry)
 
 	/** Handle a message coming from a piped stream */
-	abstract protected def void onCommand(extension StreamCommand msg)
+	abstract protected def void onCommand(StreamCommand msg)
 
 	/** Utility method that only returns true if all members match the condition */	
 	protected static def <T> boolean all(Iterable<T> list, (T)=>boolean conditionFn) {
