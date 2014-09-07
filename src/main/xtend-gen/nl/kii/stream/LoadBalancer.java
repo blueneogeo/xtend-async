@@ -3,28 +3,23 @@ package nl.kii.stream;
 import java.util.List;
 import nl.kii.stream.Close;
 import nl.kii.stream.Entry;
+import nl.kii.stream.Finish;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Splitter;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
+import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 
 /**
- * This splitter simply tries to pass all incoming values
- * from the source stream to the piped streams.
- * <p>
- * Flow control is maintained by only allowing the next
- * entry from the source stream if all piped streams are ready.
- * This means that you need to make sure that all connected
- * streams do not block their flow, since one blocking stream
- * will block all streams from flowing.
+ * This splitter sends each message to the first stream that is ready.
+ * This means that each attached stream receives different messages.
  */
 @SuppressWarnings("all")
-public class CopySplitter<T extends Object> extends Splitter<T> {
-  public CopySplitter(final Stream<T> source) {
+public class LoadBalancer<T extends Object> extends Splitter<T> {
+  public LoadBalancer(final Stream<T> source) {
     super(source);
   }
   
@@ -32,20 +27,37 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
    * Handle an entry coming in from the source stream
    */
   protected void onEntry(final Entry<T> entry) {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isReady();
+    boolean _matched = false;
+    if (!_matched) {
+      if (entry instanceof Value) {
+        _matched=true;
+        List<Stream<T>> _streams = this.getStreams();
+        for (final Stream<T> stream : _streams) {
+          Boolean _isReady = stream.isReady();
+          if ((_isReady).booleanValue()) {
+            stream.apply(entry);
+            return;
+          }
+        }
       }
-    };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
-    boolean _not = (!_all);
-    if (_not) {
-      return;
     }
-    List<Stream<T>> _streams_1 = this.getStreams();
-    for (final Stream<T> it : _streams_1) {
-      it.apply(entry);
+    if (!_matched) {
+      if (entry instanceof Finish) {
+        _matched=true;
+        List<Stream<T>> _streams = this.getStreams();
+        for (final Stream<T> stream : _streams) {
+          stream.finish();
+        }
+      }
+    }
+    if (!_matched) {
+      if (entry instanceof nl.kii.stream.Error) {
+        _matched=true;
+        List<Stream<T>> _streams = this.getStreams();
+        for (final Stream<T> stream : _streams) {
+          stream.error(((nl.kii.stream.Error<T>)entry).error);
+        }
+      }
     }
   }
   
@@ -72,19 +84,6 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
   }
   
   protected void next() {
-    List<Stream<T>> _streams = this.getStreams();
-    InputOutput.<List<Stream<T>>>println(_streams);
-    List<Stream<T>> _streams_1 = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isReady();
-      }
-    };
-    boolean _all = Splitter.<Stream<T>>all(_streams_1, _function);
-    boolean _not = (!_all);
-    if (_not) {
-      return;
-    }
     this.source.next();
   }
   

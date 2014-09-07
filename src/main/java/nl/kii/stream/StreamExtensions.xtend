@@ -575,15 +575,18 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+	
+	// SPLITTING //////////////////////////////////////////////////////////////
+	
+	def static <T> Source<T> split(Stream<T> stream) {
+		new CopySplitter(stream)
+	}
+
+	def static <T> Source<T> balance(Stream<T> stream) {
+		new LoadBalancer(stream)
+	}
 
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
-	
-	/** 
-	 * Creates a new stream that listenes to the existing stream
-	 */
-	def static <T> Stream<T> fork(Stream<T> stream) {
-		 
-	}
 	
 	/**
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
@@ -832,7 +835,7 @@ class StreamExtensions {
 		stream.map(promiseFn).resolveValue(concurrency)
 	}
 
-	// STREAM ENDPOINTS ////////////////////////////////////////////////////
+	// ENDPOINTS //////////////////////////////////////////////////////////////
 
 	/** 
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.

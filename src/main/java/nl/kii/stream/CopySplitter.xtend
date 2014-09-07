@@ -35,19 +35,16 @@ class CopySplitter<T> extends Splitter<T> {
 	protected def next() {
 		println(streams)
 		if(!streams.all[ready]) return;
-		println('next!')
 		source.next
 	}
 	
 	protected def skip() {
 		if(!streams.all[skipping]) return;
-		println('skip!')
 		source.skip
 	}
 	
 	protected def close() {
 		if(!streams.all[!open]) return;
-		println('close!')
 		source.close
 	}
 	

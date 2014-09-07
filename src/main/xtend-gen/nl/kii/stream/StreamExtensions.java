@@ -32,9 +32,12 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
+import nl.kii.stream.CopySplitter;
 import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
+import nl.kii.stream.LoadBalancer;
+import nl.kii.stream.Source;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.Subscription;
@@ -1119,11 +1122,12 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  /**
-   * Creates a new stream that listenes to the existing stream
-   */
-  public static <T extends Object> Stream<T> fork(final Stream<T> stream) {
-    return null;
+  public static <T extends Object> Source<T> split(final Stream<T> stream) {
+    return new CopySplitter<T>(stream);
+  }
+  
+  public static <T extends Object> Source<T> balance(final Stream<T> stream) {
+    return new LoadBalancer<T>(stream);
   }
   
   /**

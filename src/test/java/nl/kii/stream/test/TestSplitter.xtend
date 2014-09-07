@@ -1,10 +1,11 @@
 package nl.kii.stream.test
-import static extension org.junit.Assert.*
-import nl.kii.stream.CopySplitter
+
+import nl.kii.async.annotation.Atomic
 import org.junit.Test
 
+import static org.junit.Assert.*
+
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.async.annotation.Atomic
 
 class TestSplitter {
 	
@@ -14,9 +15,11 @@ class TestSplitter {
 	@Test
 	def void testCopySplitter() {
 		val source = int.stream
-		val splitter = new CopySplitter(source)
-		val s1 = splitter.stream
-		val s2 = splitter.stream
+		val s1 = int.stream
+		val s2 = int.stream
+		source.split
+			.pipe(s1)
+			.pipe(s2)
 		s1.on [ each [ did1 = true ] ]
 		s2.on [ each [ did2 = true ] ]
 
@@ -54,4 +57,46 @@ class TestSplitter {
 		assertTrue(did2)
 	}
 	
+	@Test
+	def void testBalancer() {
+		
+		val source = int.stream
+		val s1 = int.stream
+		val s2 = int.stream
+		source.balance
+			.pipe(s1)
+			.pipe(s2)
+		s1.on [ each [ did1 = true ] ]
+		s2.on [ each [ did2 = true ] ]
+
+		did1 = false
+		did2 = false
+		
+		source << 1 << 2 << 3 << finish
+		assertFalse(did1)
+		assertFalse(did2)
+		
+		s1.next		
+		assertTrue(did1)
+		assertFalse(did2)
+		
+		s2.next		
+		assertTrue(did1)
+		assertTrue(did2)
+
+		did1 = false
+		did2 = false
+		
+		s2.next		
+		assertFalse(did1)
+		assertTrue(did2)
+
+		s2.next
+
+	}
+	
 }
+
+
+
+
