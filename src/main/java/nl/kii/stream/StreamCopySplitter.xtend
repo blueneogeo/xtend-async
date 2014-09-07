@@ -10,7 +10,7 @@ package nl.kii.stream
  * streams do not block their flow, since one blocking stream
  * will block all streams from flowing.
  */
-class CopySplitter<T> extends Splitter<T> {
+class StreamCopySplitter<T> extends StreamSplitter<T> {
 	
 	new(Stream<T> source) {
 		super(source)

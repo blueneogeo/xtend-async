@@ -356,17 +356,15 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testErrorsDontStopStream() {
+		val errors = String.stream;
 		(1..10).stream
 			.map [ val x = 1/(it-5) it ] // 5 gives a /0 exception
-//			.map [ val x = 1/(it-7) it ] // 7 also gives the exception
-//			.onFinish [ println('fin') ]
-			//.collect
-			.onError [ println(it) ]
-			.onEach [ println('val ' + it) ]
-//			.first
-//			.then [
-//				println('done!')
-//			]
+			.map [ val x = 1/(it-7) it ] // 7 also gives the exception
+			.onError [ message >> errors ] // must listen for errors here
+			.collect
+			.first
+			.assertPromiseEquals(#[1, 2, 3, 4, 6, 8, 9, 10]) // 5 and 7 are missing
+		assertEquals(2, errors.queue.size)
 	}
 
 	// PARALLEL ///////////////////////////////////////////////////////////////

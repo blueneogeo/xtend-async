@@ -4,7 +4,7 @@ package nl.kii.stream
  * This splitter sends each message to the first stream that is ready.
  * This means that each attached stream receives different messages. 
  */
-class LoadBalancer<T> extends Splitter<T> {
+class LoadBalancer<T> extends StreamSplitter<T> {
 	
 	new(Stream<T> source) {
 		super(source)

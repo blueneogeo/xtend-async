@@ -31,6 +31,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	@Atomic val boolean skipping = false
 
 	@Atomic val (Entry<T>)=>void entryListener
+	@Atomic val (Throwable)=>void errorListener
 	@Atomic val (StreamCommand)=>void notifyListener
 
 	/** create the stream with a memory concurrent queue */
@@ -50,36 +51,37 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
-	/** ask for the next value in the buffer to be delivered to the change listener */
+	/** Ask for the next value in the buffer to be delivered to the change listener */
 	def next() { apply(new Next) }
 	
-	/** tell the stream to stop sending values until the next Finish(0) */
+	/** Tell the stream to stop sending values until the next Finish(0) */
 	def skip() { apply(new Skip) }
 	
-	/** close the stream, which will stop the listener from recieving values */
+	/** Close the stream, which will stop the listener from recieving values */
 	def close() { apply(new Close) }
 	
-	/** queue a value on the stream for pushing to the listener */
+	/** Queue a value on the stream for pushing to the listener */
 	def push(T value) { apply(new Value(value)) }
 	
 	/** 
-	 * tell the stream an error occurred. the error will not be thrown directly,
+	 * Tell the stream an error occurred. the error will not be thrown directly,
 	 * but passed and can be listened for down the stream.
 	 */
 	def error(Throwable error) { apply(new Error(error)) }
 	
-	/** tell the stream the current batch of data is finished. The same as finish(0). */
+	/** Tell the stream the current batch of data is finished. The same as finish(0). */
 	def finish() { apply(new Finish(0)) }	
 
-	/** tell the stream a batch of the given level has finished. */
+	/** Tell the stream a batch of the given level has finished. */
 	def finish(int level) { apply(new Finish(level)) }	
 	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
 	/** 
-	 * listen for changes on the stream. There can only be a single listener.
+	 * Listen for changes on the stream. There can only be a single change listener.
 	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
 	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
+	 * The entryListener must be non blocking.
 	 */
 	override =>void onChange((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener
@@ -87,7 +89,16 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	}
 	
 	/**
-	 * listen for notifications from the stream. This is used mostly when chaining streams
+	 * Listen for errors on the stream. There can only be a single error listener.
+	 * The errorListener must be non blocking.
+	 */
+	def Stream<T> onError((Throwable)=>void errorListener) {
+		this.errorListener = errorListener
+		this
+	}
+	
+	/**
+	 * Listen for notifications from the stream. This is used mostly when chaining streams
 	 * together and allows streams to inform eachother on actions taken.
 	 */
 	def void onNotification((StreamCommand)=>void notifyListener) {
@@ -151,17 +162,25 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	def protected boolean publishNext() {
 		if(isOpen && isReady && entryListener != null && !queue.empty) {
 			ready = false
+			// get the next entry from the queue
 			val entry = queue.poll
-			if(entry instanceof Finish<?>)
-				if(entry.level == 0)
-					skipping = false
 			try {
+				// check for some exceptional cases
+				switch entry {
+					// a finish of level 0 stops the skipping
+					Finish<T>: if(entry.level == 0) skipping = false
+					// errors also trigger the errorlistener
+					Error<T>: if(errorListener != null) errorListener.apply(entry.error)
+				}
+				// publish the value on the entryListener
 				entryListener.apply(entry)
 				true
 			} catch (Throwable t) {
-				if(entry instanceof Error<?>) throw t
+				// if we were already processing an error, throw and exit
+				if(entry instanceof Error<?>) throw new StreamException('error handler gave error when handling ', entry, t)
+				// otherwise push the error on the stream
 				ready = true
-				apply(new Error(t))
+				apply(new Error(new StreamException('when handling ', entry, t)))
 				false
 			}
 		} else false
@@ -174,5 +193,16 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	}
 	
 	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''
+	
+}
+
+class StreamException extends Exception {
+	
+	public val Entry<?> entry
+	
+	new(String message, Entry<?> entry, Throwable cause) {
+		super(message + ': ' + entry, cause)
+		this.entry = entry
+	}
 	
 }

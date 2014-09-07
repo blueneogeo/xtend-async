@@ -7,13 +7,13 @@ import nl.kii.async.annotation.Atomic
 /**
  * A source is a streamable source of information.
  */
-interface Source<T> {
+interface StreamSource<T> {
 
 	/** Create a new stream and pipe source stream to this stream */	
 	def Stream<T> stream()
 	
 	/** Connect an existing stream as a listener to the source stream */
-	def Source<T> pipe(Stream<T> stream)
+	def StreamSource<T> pipe(Stream<T> stream)
 
 }
 
@@ -22,7 +22,7 @@ interface Source<T> {
  * for other streams. It usually implements a specific value
  * distribution system.
  */
-abstract class Splitter<T> implements Source<T> {
+abstract class StreamSplitter<T> implements StreamSource<T> {
 	
 	/** the source stream that gets distributed */
 	protected val Stream<T> source
@@ -40,7 +40,7 @@ abstract class Splitter<T> implements Source<T> {
 		new Stream<T> => [ pipe ]
 	}
 	
-	override Source<T> pipe(Stream<T> stream) {
+	override StreamSource<T> pipe(Stream<T> stream) {
 		streams += stream
 		stream.onNotification [ onCommand ]
 		this

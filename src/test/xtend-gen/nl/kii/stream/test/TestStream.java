@@ -199,7 +199,7 @@ public class TestStream {
         e.set(it);
       }
     };
-    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(s, _function);
+    Stream<Integer> _onError = s.onError(_function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));

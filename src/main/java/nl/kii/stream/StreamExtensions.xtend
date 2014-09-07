@@ -578,11 +578,11 @@ class StreamExtensions {
 	
 	// SPLITTING //////////////////////////////////////////////////////////////
 	
-	def static <T> Source<T> split(Stream<T> stream) {
-		new CopySplitter(stream)
+	def static <T> StreamSource<T> split(Stream<T> stream) {
+		new StreamCopySplitter(stream)
 	}
 
-	def static <T> Source<T> balance(Stream<T> stream) {
+	def static <T> StreamSource<T> balance(Stream<T> stream) {
 		new LoadBalancer(stream)
 	}
 
@@ -844,8 +844,10 @@ class StreamExtensions {
 	def static <T> Task onEach(Stream<T> stream, (T)=>void listener) {
 		val sub = stream.on [
 			error [
-				println(message)
-				// do nothing
+//				println('Uncaught stream.onEach error:')
+//				printStackTrace
+				// do nothing, just get the next
+				stream.next
 			]
 			each [
 				listener.apply(it)
@@ -887,17 +889,20 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Forward the results of the stream to another stream and start that stream. 
+	 * Shortcut for splitting a stream and then performing a pipe to another stream.
+	 * @return a CopySplitter source that you can connect more streams to. 
 	 */
-	def static <T> void pipe(Stream<T> stream, Stream<T> otherStream) {
-		stream.on [
-			each [ otherStream.push(it) ]
-			error [ otherStream.error(it) ]
-			finish [ otherStream.finish	]
-			closed [ otherStream.close ]
-		]
-		otherStream.controls(stream)
+	def static <T> StreamSource<T> pipe(Stream<T> stream, Stream<T> otherStream) {
+//		stream.on [
+//			each [ otherStream.push(it) ]
+//			error [ otherStream.error(it) ]
+//			finish [ otherStream.finish	]
+//			closed [ otherStream.close ]
+//		]
+//		otherStream.controls(stream)
+		val source = stream.split.pipe(otherStream)
 		stream.next
+		source
 	}
 	
 	 /**
@@ -913,11 +918,11 @@ class StreamExtensions {
 				} 
 				stream.close 
 			]
-			error [ 
+			error [
 				if(!promise.fulfilled) {
 					promise.error(it) 
 				}
-				stream.close
+				 stream.close
 			]
 			finish [
 				stream.error('stream finished without returning a value')
@@ -1226,6 +1231,7 @@ class StreamExtensions {
 	/**
 	 * Reduce a stream of values to a single value, and pass a counter in the function.
 	 * The counter is the count of the incoming stream entry (since the start or the last finish)
+	 * Errors in the stream are suppressed.
 	 */
 	def static <T, R> Stream<R> reduce(Stream<T> stream, R initial, (R, T)=>R reducerFn) {
 		val reduced = new AtomicReference<R>(initial)
@@ -1244,8 +1250,9 @@ class StreamExtensions {
 					newStream.finish(level - 1)
 				}
 			]
-			error [ 
-				newStream.error(it)
+			error [
+				// newStream.error(it)
+				// just process the next
 				stream.next
 			]
 			closed [ newStream.close ]

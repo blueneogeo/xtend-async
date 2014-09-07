@@ -145,7 +145,7 @@ public class TestStreamExtensions {
         errored.set(true);
       }
     };
-    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_2);
+    Stream<Integer> _onError = _map_1.onError(_function_2);
     final Procedure1<Finish<Integer>> _function_3 = new Procedure1<Finish<Integer>>() {
       public void apply(final Finish<Integer> it) {
         finished.set(true);
@@ -845,6 +845,7 @@ public class TestStreamExtensions {
   
   @Test
   public void testErrorsDontStopStream() {
+    final Stream<String> errors = StreamExtensions.<String>stream(String.class);
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
@@ -858,18 +859,30 @@ public class TestStreamExtensions {
       }
     };
     Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        Integer _xblockexpression = null;
+        {
+          final int x = (1 / ((it).intValue() - 7));
+          _xblockexpression = it;
+        }
+        return _xblockexpression;
+      }
+    };
+    Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_map, _function_1);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
-        InputOutput.<Throwable>println(it);
+        String _message = it.getMessage();
+        StreamExtensions.<String>operator_doubleGreaterThan(_message, errors);
       }
     };
-    Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_map, _function_1);
-    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-        InputOutput.<String>println(("val " + it));
-      }
-    };
-    StreamExtensions.<Integer>onEach(_onError, _function_2);
+    Stream<Integer> _onError = _map_1.onError(_function_2);
+    Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_onError);
+    IPromise<List<Integer>> _first = StreamExtensions.<List<Integer>>first(_collect);
+    StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(6), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
+    Collection<Entry<String>> _queue = errors.getQueue();
+    int _size = _queue.size();
+    Assert.assertEquals(2, _size);
   }
   
   @Test

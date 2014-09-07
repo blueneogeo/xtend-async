@@ -32,14 +32,14 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
-import nl.kii.stream.CopySplitter;
 import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.LoadBalancer;
-import nl.kii.stream.Source;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamCopySplitter;
 import nl.kii.stream.StreamMonitor;
+import nl.kii.stream.StreamSource;
 import nl.kii.stream.Subscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
@@ -49,7 +49,6 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -1122,11 +1121,11 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> Source<T> split(final Stream<T> stream) {
-    return new CopySplitter<T>(stream);
+  public static <T extends Object> StreamSource<T> split(final Stream<T> stream) {
+    return new StreamCopySplitter<T>(stream);
   }
   
-  public static <T extends Object> Source<T> balance(final Stream<T> stream) {
+  public static <T extends Object> StreamSource<T> balance(final Stream<T> stream) {
     return new LoadBalancer<T>(stream);
   }
   
@@ -1647,8 +1646,7 @@ public class StreamExtensions {
         public void apply(final Subscription<T> it) {
           final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
-              String _message = it.getMessage();
-              InputOutput.<String>println(_message);
+              stream.next();
             }
           };
           it.error(_function);
@@ -1714,40 +1712,18 @@ public class StreamExtensions {
   }
   
   /**
-   * Forward the results of the stream to another stream and start that stream.
+   * Shortcut for splitting a stream and then performing a pipe to another stream.
+   * @return a CopySplitter source that you can connect more streams to.
    */
-  public static <T extends Object> void pipe(final Stream<T> stream, final Stream<T> otherStream) {
-    final Procedure1<Subscription<T>> _function = new Procedure1<Subscription<T>>() {
-      public void apply(final Subscription<T> it) {
-        final Procedure1<T> _function = new Procedure1<T>() {
-          public void apply(final T it) {
-            otherStream.push(it);
-          }
-        };
-        it.each(_function);
-        final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-          public void apply(final Throwable it) {
-            otherStream.error(it);
-          }
-        };
-        it.error(_function_1);
-        final Procedure1<Finish<T>> _function_2 = new Procedure1<Finish<T>>() {
-          public void apply(final Finish<T> it) {
-            otherStream.finish();
-          }
-        };
-        it.finish(_function_2);
-        final Procedure0 _function_3 = new Procedure0() {
-          public void apply() {
-            otherStream.close();
-          }
-        };
-        it.closed(_function_3);
-      }
-    };
-    StreamExtensions.<T>on(stream, _function);
-    StreamExtensions.<T, Object>controls(otherStream, stream);
-    stream.next();
+  public static <T extends Object> StreamSource<T> pipe(final Stream<T> stream, final Stream<T> otherStream) {
+    StreamSource<T> _xblockexpression = null;
+    {
+      StreamSource<T> _split = StreamExtensions.<T>split(stream);
+      final StreamSource<T> source = _split.pipe(otherStream);
+      stream.next();
+      _xblockexpression = source;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -2332,6 +2308,7 @@ public class StreamExtensions {
   /**
    * Reduce a stream of values to a single value, and pass a counter in the function.
    * The counter is the count of the incoming stream entry (since the start or the last finish)
+   * Errors in the stream are suppressed.
    */
   public static <T extends Object, R extends Object> Stream<R> reduce(final Stream<T> stream, final R initial, final Function2<? super R, ? super T, ? extends R> reducerFn) {
     Stream<R> _xblockexpression = null;
@@ -2367,7 +2344,6 @@ public class StreamExtensions {
           it.finish(_function_1);
           final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
             public void apply(final Throwable it) {
-              newStream.error(it);
               stream.next();
             }
           };

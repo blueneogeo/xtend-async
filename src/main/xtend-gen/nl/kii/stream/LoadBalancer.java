@@ -6,9 +6,9 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
-import nl.kii.stream.Splitter;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
+import nl.kii.stream.StreamSplitter;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -18,7 +18,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
  * This means that each attached stream receives different messages.
  */
 @SuppressWarnings("all")
-public class LoadBalancer<T extends Object> extends Splitter<T> {
+public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
   public LoadBalancer(final Stream<T> source) {
     super(source);
   }
@@ -94,7 +94,7 @@ public class LoadBalancer<T extends Object> extends Splitter<T> {
         return it.isSkipping();
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -110,7 +110,7 @@ public class LoadBalancer<T extends Object> extends Splitter<T> {
         return Boolean.valueOf((!(_isOpen).booleanValue()));
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;

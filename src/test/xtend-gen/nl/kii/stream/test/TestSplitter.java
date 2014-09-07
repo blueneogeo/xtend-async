@@ -3,9 +3,9 @@ package nl.kii.stream.test;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Finish;
-import nl.kii.stream.Source;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamSource;
 import nl.kii.stream.Subscription;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
@@ -24,8 +24,8 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    Source<Integer> _split = StreamExtensions.<Integer>split(source);
-    Source<Integer> _pipe = _split.pipe(s1);
+    StreamSource<Integer> _split = StreamExtensions.<Integer>split(source);
+    StreamSource<Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
       public void apply(final Subscription<Integer> it) {
@@ -88,8 +88,8 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    Source<Integer> _balance = StreamExtensions.<Integer>balance(source);
-    Source<Integer> _pipe = _balance.pipe(s1);
+    StreamSource<Integer> _balance = StreamExtensions.<Integer>balance(source);
+    StreamSource<Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
       public void apply(final Subscription<Integer> it) {

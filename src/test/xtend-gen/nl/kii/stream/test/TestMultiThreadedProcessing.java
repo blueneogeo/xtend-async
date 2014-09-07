@@ -13,7 +13,6 @@ import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.Subscription;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -170,7 +169,7 @@ public class TestMultiThreadedProcessing {
           result.incrementAndGet();
         }
       };
-      Subscription<Integer> _onError = StreamExtensions.<Integer>onError(_resolve_1, _function_3);
+      Stream<Integer> _onError = _resolve_1.onError(_function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           Assert.fail("we should not end up here, since an error should be caught instead");

@@ -5,9 +5,9 @@ import nl.kii.stream.Close;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
-import nl.kii.stream.Splitter;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
+import nl.kii.stream.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -23,8 +23,8 @@ import org.eclipse.xtext.xbase.lib.InputOutput;
  * will block all streams from flowing.
  */
 @SuppressWarnings("all")
-public class CopySplitter<T extends Object> extends Splitter<T> {
-  public CopySplitter(final Stream<T> source) {
+public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
+  public StreamCopySplitter(final Stream<T> source) {
     super(source);
   }
   
@@ -38,7 +38,7 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
         return it.isReady();
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -80,7 +80,7 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
         return it.isReady();
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams_1, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams_1, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -95,7 +95,7 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
         return it.isSkipping();
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -111,7 +111,7 @@ public class CopySplitter<T extends Object> extends Splitter<T> {
         return Boolean.valueOf((!(_isOpen).booleanValue()));
       }
     };
-    boolean _all = Splitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
