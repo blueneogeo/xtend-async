@@ -6,96 +6,97 @@ import nl.kii.stream.Close;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamCommand;
+import nl.kii.stream.StreamNotification;
+import nl.kii.stream.StreamNotificationObserver;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public class StreamMonitor implements Procedure1<StreamCommand> {
+public class StreamMonitor implements StreamNotificationObserver {
   private final Stream<?> stream;
   
   @Atomic
-  private final AtomicReference<Procedure1<Void>> _onNextFn = new AtomicReference<Procedure1<Void>>();
+  private final AtomicReference<Procedure1<Void>> _nextFn = new AtomicReference<Procedure1<Void>>();
   
   @Atomic
-  private final AtomicReference<Procedure1<Void>> _onSkipFn = new AtomicReference<Procedure1<Void>>();
+  private final AtomicReference<Procedure1<Void>> _skipFn = new AtomicReference<Procedure1<Void>>();
   
   @Atomic
-  private final AtomicReference<Procedure1<Void>> _onCloseFn = new AtomicReference<Procedure1<Void>>();
+  private final AtomicReference<Procedure1<Void>> _closeFn = new AtomicReference<Procedure1<Void>>();
   
   public StreamMonitor(final Stream<?> stream) {
     this.stream = stream;
-    final Procedure1<StreamCommand> _function = new Procedure1<StreamCommand>() {
-      public void apply(final StreamCommand it) {
+    final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
+      public void apply(final StreamNotification it) {
         StreamMonitor.this.apply(it);
       }
     };
     stream.onNotification(_function);
   }
   
-  public void apply(final StreamCommand it) {
+  public void apply(final StreamNotification it) {
     boolean _matched = false;
     if (!_matched) {
       if (it instanceof Next) {
         _matched=true;
-        Procedure1<Void> _onNextFn = this.getOnNextFn();
-        if (_onNextFn!=null) {
-          _onNextFn.apply(null);
+        Procedure1<Void> _nextFn = this.getNextFn();
+        if (_nextFn!=null) {
+          _nextFn.apply(null);
         }
       }
     }
     if (!_matched) {
       if (it instanceof Skip) {
         _matched=true;
-        Procedure1<Void> _onSkipFn = this.getOnSkipFn();
-        if (_onSkipFn!=null) {
-          _onSkipFn.apply(null);
+        Procedure1<Void> _skipFn = this.getSkipFn();
+        if (_skipFn!=null) {
+          _skipFn.apply(null);
         }
       }
     }
     if (!_matched) {
       if (it instanceof Close) {
         _matched=true;
-        Procedure1<Void> _onCloseFn = this.getOnCloseFn();
-        if (_onCloseFn!=null) {
-          _onCloseFn.apply(null);
+        Procedure1<Void> _closeFn = this.getCloseFn();
+        if (_closeFn!=null) {
+          _closeFn.apply(null);
         }
       }
     }
   }
   
-  public Procedure1<Void> onNext(final Procedure1<? super Void> onNextFn) {
-    return this.setOnNextFn(((Procedure1<Void>)onNextFn));
+  public void next(final Procedure1<? super Void> handler) {
+    this.setNextFn(((Procedure1<Void>)handler));
   }
   
-  public Procedure1<Void> onSkip(final Procedure1<? super Void> onSkipFn) {
-    return this.setOnSkipFn(((Procedure1<Void>)onSkipFn));
+  public void skip(final Procedure1<? super Void> handler) {
+    this.setSkipFn(((Procedure1<Void>)handler));
   }
   
-  public Procedure1<Void> onClose(final Procedure1<? super Void> onCloseFn) {
-    return this.setOnCloseFn(((Procedure1<Void>)onCloseFn));
+  public void close(final Procedure1<? super Void> handler) {
+    this.setCloseFn(((Procedure1<Void>)handler));
   }
   
-  private Procedure1<Void> setOnNextFn(final Procedure1<Void> value) {
-    return this._onNextFn.getAndSet(value);
+  private Procedure1<Void> setNextFn(final Procedure1<Void> value) {
+    return this._nextFn.getAndSet(value);
   }
   
-  private Procedure1<Void> getOnNextFn() {
-    return this._onNextFn.get();
+  private Procedure1<Void> getNextFn() {
+    return this._nextFn.get();
   }
   
-  private Procedure1<Void> setOnSkipFn(final Procedure1<Void> value) {
-    return this._onSkipFn.getAndSet(value);
+  private Procedure1<Void> setSkipFn(final Procedure1<Void> value) {
+    return this._skipFn.getAndSet(value);
   }
   
-  private Procedure1<Void> getOnSkipFn() {
-    return this._onSkipFn.get();
+  private Procedure1<Void> getSkipFn() {
+    return this._skipFn.get();
   }
   
-  private Procedure1<Void> setOnCloseFn(final Procedure1<Void> value) {
-    return this._onCloseFn.getAndSet(value);
+  private Procedure1<Void> setCloseFn(final Procedure1<Void> value) {
+    return this._closeFn.getAndSet(value);
   }
   
-  private Procedure1<Void> getOnCloseFn() {
-    return this._onCloseFn.get();
+  private Procedure1<Void> getCloseFn() {
+    return this._closeFn.get();
   }
 }

@@ -111,3 +111,10 @@
 /.StreamSource.java._trace
 /.StreamSplitter.java._trace
 /.StreamCopySplitter.java._trace
+/.AbstractStreamListener.java._trace
+/.AbstractStreamObserver.java._trace
+/.AsyncStreamObserver.java._trace
+/.StreamCommander.java._trace
+/.StreamControlObserver.java._trace
+/.StreamNotificationObserver.java._trace
+/.StreamNotification.java._trace

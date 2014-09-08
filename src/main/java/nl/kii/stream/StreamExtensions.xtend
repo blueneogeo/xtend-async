@@ -21,6 +21,9 @@ import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
+import nl.stream.source.LoadBalancer
+import nl.stream.source.StreamCopySplitter
+import nl.stream.source.StreamSource
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static extension com.google.common.io.ByteStreams.*
@@ -93,8 +96,8 @@ class StreamExtensions {
 			}
 		]
 		stream.monitor [
-			onNext [ pushNext.apply ]
-			onSkip [ finished.set(true) stream.finish ]
+			next [ pushNext.apply ]
+			skip [ finished.set(true) stream.finish ]
 		]
 		pushNext.apply
 		stream
@@ -115,8 +118,8 @@ class StreamExtensions {
 			
 		})
 		newStream.monitor [
-			onSkip [ stream.close]
-			onClose [ stream.close ]
+			skip [ stream.close]
+			close [ stream.close ]
 		]
 		newStream
 	}
@@ -132,14 +135,14 @@ class StreamExtensions {
 		val randomizer = new Random
 		val newStream = int.stream
 		newStream.monitor [
-			onNext [
+			next [
 				if(newStream.open) {
 					val next = range.start + randomizer.nextInt(range.size)
 					newStream.push(next)
 				}
 			]
-			onSkip [ newStream.close ]
-			onClose [ newStream.close ]
+			skip [ newStream.close ]
+			close [ newStream.close ]
 		]
 		newStream
 	}
@@ -174,7 +177,7 @@ class StreamExtensions {
 			newStream.push(it)
 		]
 		newStream.monitor [
-			onClose [ stopObserving.apply ]
+			close [ stopObserving.apply ]
 		]
 		newStream
 	}
@@ -234,9 +237,9 @@ class StreamExtensions {
 
 	def package static <T, R> controls(Stream<T> newStream, Stream<?> parent) {
 		newStream.monitor [
-			onNext [ parent.next ]
-			onSkip [ parent.skip ]
-			onClose [ parent.close ]
+			next [ parent.next ]
+			skip [ parent.skip ]
+			close [ parent.close ]
 		]		
 	}
 	
@@ -264,9 +267,7 @@ class StreamExtensions {
 				newStream.push(mapped)
 			]
 			error [	newStream.error(it)	]
-			finish [ 
-				newStream.finish(level)
-			]
+			finish [ newStream.finish(level) ]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -625,15 +626,21 @@ class StreamExtensions {
 	
 	/** 
 	 * Push a value onto the stream from the parent stream every time the timerstream pushes a new value.
+	 * <p>
+	 * Errors on the timerstream are put onto the stream. Closing the timerstream also closes the stream.
 	 */
 	def static <T> Stream<T> forEvery(Stream<T> stream, Stream<?> timerStream) {
 		val newStream = new Stream<T>
-		timerStream
-			.onFinish [ newStream.finish ]
-			.onEach [
+		timerStream.on [
+			error [ stream.error(it) timerStream.next ]
+			finish [ newStream.finish timerStream.next ]
+			each [ 
 				if(stream.open) stream.next
 				else timerStream.close
+				timerStream.next
 			]
+			closed [ stream.close ]
+		]
 		stream.on [
 			each [ newStream.push(it) ]
 			finish [ newStream.finish(level) ]
@@ -641,9 +648,10 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		newStream.monitor [
-			onSkip [ stream.skip ]
-			onClose [ stream.close ]
+			skip [ stream.skip ]
+			close [ stream.close ]
 		]
+		timerStream.next
 		newStream
 	}
 	
@@ -666,8 +674,8 @@ class StreamExtensions {
 		]
 		// the new stream is not coupled at all to the source stream
 		newStream.monitor [
-			onNext [ newStream.push(latest.get) ]
-			onClose [ stream.close ]
+			next [ newStream.push(latest.get) ]
+			close [ stream.close ]
 		]
 		newStream
 	}
@@ -720,9 +728,9 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		newStream.monitor [
-			onNext [ if(concurrency > processes.get) stream.next ]
-			onSkip [ stream.skip ]
-			onClose [ stream.close ]
+			next [ if(concurrency > processes.get) stream.next ]
+			skip [ stream.skip ]
+			close [ stream.close ]
 		]
 		newStream
 	}
@@ -772,9 +780,9 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		newStream.monitor [
-			onNext [ if(concurrency > processes.get) stream.next ]
-			onSkip [ stream.skip ]
-			onClose [ stream.close ]
+			next [ if(concurrency > processes.get) stream.next ]
+			skip [ stream.skip ]
+			close [ stream.close ]
 		]
 		newStream
 	}
@@ -837,25 +845,53 @@ class StreamExtensions {
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
+	/**
+	 * Handle errors on the stream.  This will swallow the error from the stream.
+	 * @return a new stream like the incoming stream but without the caught errors.
+	 */
+	def static <T> Stream<T> onError(Stream<T> stream, (Throwable)=>void handler) {
+		val newStream = new Stream<T>
+		stream.on [
+			each [ newStream.push(it) ]
+			error [ handler.apply(it) stream.next ]
+			finish [ newStream.finish(level) ]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+
+	def static <T> Stream<T> onClosed(Stream<T> stream, (Void)=>void handler) {
+		val newStream = new Stream<T>
+		stream.on [
+			each [ newStream.push(it) ]
+			error [ newStream.error(it) ]
+			finish [ newStream.finish(level) ]
+			closed [ 
+				try {
+					handler.apply(null)
+				} finally {
+					newStream.close
+				}
+			]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+
 	/** 
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <T> Task onEach(Stream<T> stream, (T)=>void listener) {
-		val sub = stream.on [
-			error [
-//				println('Uncaught stream.onEach error:')
-//				printStackTrace
-				// do nothing, just get the next
-				stream.next
-			]
-			each [
-				listener.apply(it)
-				stream.next
-			]
+	def static <T> Task onEach(Stream<T> stream, (T)=>void handler) {
+		stream.on [
+			each [ handler.apply(it) stream.next ]
+			error [ stream.next ]
+			finish [ stream.next ]
+			closed [ stream.close ]
+			stream.next
 		]
-		stream.next
-		sub.toTask
+		.toTask
 	}
 
 	/**
@@ -913,23 +949,21 @@ class StreamExtensions {
 		val promise = new Promise<T>
 		stream.on [
 			each [ 
-				if(!promise.fulfilled) {
+				if(!promise.fulfilled)
 					promise.set(it) 
-				} 
 				stream.close 
 			]
 			error [
-				if(!promise.fulfilled) {
+				if(!promise.fulfilled)
 					promise.error(it) 
-				}
 				 stream.close
 			]
 			finish [
-				stream.error('stream finished without returning a value')
+				promise.error('Stream.first: stream finished without returning a value')
 				stream.close
 			]
 			closed [
-				stream.error('stream finished without returning a value')
+				promise.error('Stream.first: stream closed without returning a value')
 			]
 		]
 	 	stream.next
@@ -994,10 +1028,10 @@ class StreamExtensions {
 		stream.first.then(listener)
 	}
 	
-	// SUBSCRIPTION BUILDERS //////////////////////////////////////////////////
+	// LISTENER BUILDERS //////////////////////////////////////////////////////
 
-	def static <T> on(Stream<T> stream, (Subscription<T>)=>void subscriptionFn) {
-		val subscription = new Subscription<T>(stream)
+	def static <T> on(Stream<T> stream, (StreamSubscription<T>)=>void subscriptionFn) {
+		val subscription = new StreamSubscription<T>(stream)
 		subscriptionFn.apply(subscription)
 		subscription
 	}
@@ -1007,85 +1041,6 @@ class StreamExtensions {
 		subscriptionFn.apply(handler)
 		handler
 	}
-
-	def static <T> onClosed(Stream<T> stream, (Stream<T>)=>void listener) {
-		stream.on [ subscription | 
-			subscription.closed [
-				listener.apply(stream)
-				subscription.stream.next
-			]
-		]
-	}
-
-	def static <T> onError(Stream<T> stream, (Throwable)=>void listener) {
-		stream.on [ subscription | 
-			subscription.error [
-				listener.apply(it)
-				subscription.stream.next
-			]
-		]
-	}
-
-	def static <T> onFinish(Stream<T> stream, (Finish<T>)=>void listener) {
-		stream.on [ subscription | 
-			subscription.finish [
-				listener.apply(it)
-				subscription.stream.next
-			]
-		]
-	}
-	
-	def static <T> onError(Subscription<T> subscription, (Throwable)=>void listener) {
-		subscription.error [
-			listener.apply(it)
-			subscription.stream.next
-		]
-		subscription
-	}
-
-	def static <T> onFinish(Subscription<T> subscription, (Finish<T>)=>void listener) {
-		subscription.finish [
-			listener.apply(it)
-			subscription.stream.next
-		]
-		subscription
-	}
-	
-	// SUBSCRIPTION ENDPOINTS /////////////////////////////////////////////////
-
-	def static <T> Task onEach(Subscription<T> subscription, (T)=>void listener) {
-		subscription.each [
-			listener.apply(it)
-			subscription.stream.next
-		]
-		subscription.stream.next
-		subscription.toTask
-	}
-
-	def static <T> Task onEachAsync(Subscription<T> subscription, (T, Subscription<T>)=>void listener) {
-		subscription.each [
-			listener.apply(it, subscription)
-		]
-		subscription.stream.next
-		subscription.toTask
-	}
-
-	def static <K, V> Task onEach(Subscription<Pair<K, V>> subscription, (K, V)=>void listener) {
-		subscription.each [
-			listener.apply(key, value)
-			subscription.stream.next
-		]
-		subscription.stream.next
-		subscription.toTask
-	}
-
-	def static <K, V> Task onEachAsync(Subscription<Pair<K, V>> subscription, (K, V, Subscription<Pair<K, V>>)=>void listener) {
-		subscription.each [
-			listener.apply(key, value, subscription)
-		]
-		subscription.stream.next
-		subscription.toTask
-	}	
 
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 
@@ -1389,11 +1344,21 @@ class StreamExtensions {
 
 	/** write a buffered bytestream to an standard java outputstream */
 	@Async def static void writeTo(Stream<List<Byte>> stream, OutputStream out, Task task) {
-		stream
-			.onClosed [ out.close task.complete ]
-			.onFinish [ if(level == 0) out.close task.complete ]
-			.onError [ task.error(it) ]
-			.onEach [ out.write(it) ]
+		stream.on [
+			closed [ out.close task.complete ]
+			finish [ 
+				if(level == 0) out.close task.complete 
+				stream.next
+			]
+			error [ 
+				task.error(it)
+				stream.close
+			]
+			each [
+				out.write(it)
+				stream.next
+			]
+		]
 	}
 
 	/** write a buffered bytestream to a file */
@@ -1405,12 +1370,17 @@ class StreamExtensions {
 
 	// OTHER //////////////////////////////////////////////////////////////////
 
-	/** Complete a task when the stream finishes or closes */	
+	/** 
+	 * Complete a task when the stream finishes or closes, 
+	 * or give an error on the task when the stream gives an error.
+	 */	
 	@Async def static toTask(Stream<?> stream, Task task) {
-		stream
-			.onClosed [ task.complete ]
-			.onFinish [ task.complete ]
-			.onEach [ /* discard values */ ]
+		stream.on [
+			closed [ task.complete ]
+			finish [ stream.close task.complete ]
+			error [ stream.close task.error(it) ]
+			each [ /* discard values */]
+		]
 	}
 	
 	// From Xtend-tools

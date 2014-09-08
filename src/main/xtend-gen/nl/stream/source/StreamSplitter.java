@@ -1,4 +1,4 @@
-package nl.kii.stream;
+package nl.stream.source;
 
 import com.google.common.base.Objects;
 import java.util.List;
@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamCommand;
-import nl.kii.stream.StreamSource;
+import nl.kii.stream.StreamNotification;
+import nl.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
@@ -44,6 +44,22 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
     source.onChange(_function);
   }
   
+  public StreamSource<T> pipe(final Stream<T> stream) {
+    StreamSplitter<T> _xblockexpression = null;
+    {
+      List<Stream<T>> _streams = this.getStreams();
+      _streams.add(stream);
+      final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
+        public void apply(final StreamNotification it) {
+          StreamSplitter.this.onCommand(it);
+        }
+      };
+      stream.onNotification(_function);
+      _xblockexpression = this;
+    }
+    return _xblockexpression;
+  }
+  
   public Stream<T> stream() {
     Stream<T> _stream = new Stream<T>();
     final Procedure1<Stream<T>> _function = new Procedure1<Stream<T>>() {
@@ -54,22 +70,6 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
     return ObjectExtensions.<Stream<T>>operator_doubleArrow(_stream, _function);
   }
   
-  public StreamSource<T> pipe(final Stream<T> stream) {
-    StreamSplitter<T> _xblockexpression = null;
-    {
-      List<Stream<T>> _streams = this.getStreams();
-      _streams.add(stream);
-      final Procedure1<StreamCommand> _function = new Procedure1<StreamCommand>() {
-        public void apply(final StreamCommand it) {
-          StreamSplitter.this.onCommand(it);
-        }
-      };
-      stream.onNotification(_function);
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
-  }
-  
   /**
    * Handle an entry coming in from the source stream
    */
@@ -78,7 +78,7 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
   /**
    * Handle a message coming from a piped stream
    */
-  protected abstract void onCommand(final StreamCommand msg);
+  protected abstract void onCommand(final StreamNotification msg);
   
   /**
    * Utility method that only returns true if all members match the condition

@@ -22,7 +22,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.Subscription;
+import nl.kii.stream.StreamSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
@@ -104,8 +104,8 @@ public class TestStreamExtensions {
   public void testRandomStream() {
     IntegerRange _upTo = new IntegerRange(1, 3);
     final Stream<Integer> s = StreamExtensions.streamRandom(_upTo);
-    final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
-      public void apply(final Subscription<Integer> it) {
+    final Procedure1<StreamSubscription<Integer>> _function = new Procedure1<StreamSubscription<Integer>>() {
+      public void apply(final StreamSubscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             Assert.assertTrue((((it).intValue() >= 1) && ((it).intValue() <= 3)));
@@ -121,16 +121,25 @@ public class TestStreamExtensions {
     }
   }
   
+  @Atomic
+  private final AtomicBoolean _finished = new AtomicBoolean();
+  
+  @Atomic
+  private final AtomicInteger _errorCount = new AtomicInteger();
+  
+  @Atomic
+  private final AtomicInteger _count = new AtomicInteger();
+  
   @Test
-  public void testSubscriptionBuilding() {
-    final AtomicBoolean finished = new AtomicBoolean();
-    final AtomicBoolean errored = new AtomicBoolean();
-    final AtomicInteger count = new AtomicInteger();
+  public void testErrorHandlingBeforeCollect() {
+    this.setFinished(Boolean.valueOf(false));
+    this.setErrorCount(Integer.valueOf(0));
+    this.setCount(Integer.valueOf(0));
     IntegerRange _upTo = new IntegerRange(1, 10);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() - 10));
+        return Integer.valueOf(((it).intValue() % 3));
       }
     };
     Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(s, _function);
@@ -142,28 +151,73 @@ public class TestStreamExtensions {
     Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_map, _function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
-        errored.set(true);
+        TestStreamExtensions.this.incErrorCount();
       }
     };
-    Stream<Integer> _onError = _map_1.onError(_function_2);
-    final Procedure1<Finish<Integer>> _function_3 = new Procedure1<Finish<Integer>>() {
-      public void apply(final Finish<Integer> it) {
-        finished.set(true);
-      }
-    };
-    Subscription<Integer> _onFinish = StreamExtensions.<Integer>onFinish(_onError, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+    Stream<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_2);
+    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
-        count.incrementAndGet();
+        TestStreamExtensions.this.incCount();
       }
     };
-    StreamExtensions.<Integer>onEach(_onFinish, _function_4);
-    boolean _get = finished.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
-    boolean _get_1 = errored.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get_1));
-    int _get_2 = count.get();
-    Assert.assertEquals(9, _get_2);
+    Task _onEach = StreamExtensions.<Integer>onEach(_onError, _function_3);
+    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestStreamExtensions.this.setFinished(Boolean.valueOf(true));
+      }
+    };
+    _onEach.then(_function_4);
+    Integer _count = this.getCount();
+    Assert.assertEquals(7, (_count).intValue());
+    Integer _errorCount = this.getErrorCount();
+    Assert.assertEquals(3, (_errorCount).intValue());
+    Boolean _finished = this.getFinished();
+    Assert.assertTrue((_finished).booleanValue());
+  }
+  
+  @Test
+  public void testErrorHandlingAfterCollect() {
+    this.setFinished(Boolean.valueOf(false));
+    this.setErrorCount(Integer.valueOf(0));
+    this.setCount(Integer.valueOf(0));
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() % 3));
+      }
+    };
+    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(s, _function);
+    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return Integer.valueOf((100 / (it).intValue()));
+      }
+    };
+    Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_map, _function_1);
+    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        TestStreamExtensions.this.incCount();
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer>onEach(_map_1, _function_2);
+    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        TestStreamExtensions.this.incErrorCount();
+      }
+    };
+    IPromise<Boolean> _onError = _onEach.onError(_function_3);
+    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        TestStreamExtensions.this.setFinished(Boolean.valueOf(true));
+      }
+    };
+    _onError.then(_function_4);
+    Integer _count = this.getCount();
+    Assert.assertEquals(7, (_count).intValue());
+    Boolean _finished = this.getFinished();
+    Assert.assertFalse((_finished).booleanValue());
+    Integer _errorCount = this.getErrorCount();
+    Assert.assertEquals(1, (_errorCount).intValue());
   }
   
   @Atomic
@@ -176,23 +230,18 @@ public class TestStreamExtensions {
   public void testTaskReturning() {
     IntegerRange _upTo = new IntegerRange(1, 3);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    final Procedure1<Finish<Integer>> _function = new Procedure1<Finish<Integer>>() {
-      public void apply(final Finish<Integer> it) {
-      }
-    };
-    Subscription<Integer> _onFinish = StreamExtensions.<Integer>onFinish(_stream, _function);
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         TestStreamExtensions.this.incCounter();
       }
     };
-    Task _onEach = StreamExtensions.<Integer>onEach(_onFinish, _function_1);
-    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+    Task _onEach = StreamExtensions.<Integer>onEach(_stream, _function);
+    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestStreamExtensions.this.setCalledThen(Boolean.valueOf(true));
       }
     };
-    _onEach.then(_function_2);
+    _onEach.then(_function_1);
     Boolean _calledThen = this.getCalledThen();
     Assert.assertTrue((_calledThen).booleanValue());
     Integer _counter = this.getCounter();
@@ -876,7 +925,7 @@ public class TestStreamExtensions {
         StreamExtensions.<String>operator_doubleGreaterThan(_message, errors);
       }
     };
-    Stream<Integer> _onError = _map_1.onError(_function_2);
+    Stream<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_2);
     Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_onError);
     IPromise<List<Integer>> _first = StreamExtensions.<List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(6), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
@@ -1079,18 +1128,18 @@ public class TestStreamExtensions {
       }
     };
     Stream<String> _map = StreamExtensions.<String, String>map(_text, _function);
-    final Procedure1<Finish<String>> _function_1 = new Procedure1<Finish<String>>() {
-      public void apply(final Finish<String> it) {
-        InputOutput.<String>println("finish");
-      }
-    };
-    Subscription<String> _onFinish = StreamExtensions.<String>onFinish(_map, _function_1);
-    final Procedure1<String> _function_2 = new Procedure1<String>() {
+    final Procedure1<String> _function_1 = new Procedure1<String>() {
       public void apply(final String it) {
         InputOutput.<String>println(it);
       }
     };
-    StreamExtensions.<String>onEach(_onFinish, _function_2);
+    Task _onEach = StreamExtensions.<String>onEach(_map, _function_1);
+    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<String>println("finish");
+      }
+    };
+    _onEach.then(_function_2);
   }
   
   @Test
@@ -1111,6 +1160,54 @@ public class TestStreamExtensions {
       }
     };
     _writeTo.then(_function);
+  }
+  
+  private Boolean setFinished(final Boolean value) {
+    return this._finished.getAndSet(value);
+  }
+  
+  private Boolean getFinished() {
+    return this._finished.get();
+  }
+  
+  private Integer setErrorCount(final Integer value) {
+    return this._errorCount.getAndSet(value);
+  }
+  
+  private Integer getErrorCount() {
+    return this._errorCount.get();
+  }
+  
+  private Integer incErrorCount() {
+    return this._errorCount.incrementAndGet();
+  }
+  
+  private Integer decErrorCount() {
+    return this._errorCount.decrementAndGet();
+  }
+  
+  private Integer incErrorCount(final Integer value) {
+    return this._errorCount.addAndGet(value);
+  }
+  
+  private Integer setCount(final Integer value) {
+    return this._count.getAndSet(value);
+  }
+  
+  private Integer getCount() {
+    return this._count.get();
+  }
+  
+  private Integer incCount() {
+    return this._count.incrementAndGet();
+  }
+  
+  private Integer decCount() {
+    return this._count.decrementAndGet();
+  }
+  
+  private Integer incCount(final Integer value) {
+    return this._count.addAndGet(value);
   }
   
   private Boolean setCalledThen(final Boolean value) {

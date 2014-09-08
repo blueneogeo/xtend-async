@@ -7,11 +7,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
+import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.Subscription;
+import nl.kii.stream.StreamSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -94,9 +96,11 @@ public class TestStream {
     Assert.assertEquals(6, _get);
   }
   
+  @Atomic
+  private final AtomicInteger _counter = new AtomicInteger();
+  
   @Test
   public void testControlledStream() {
-    final AtomicInteger counter = new AtomicInteger(0);
     Stream<Integer> _stream = new Stream<Integer>();
     Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
     Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
@@ -105,11 +109,11 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<Subscription<Integer>> _function = new Procedure1<Subscription<Integer>>() {
-      public void apply(final Subscription<Integer> it) {
+    final Procedure1<StreamSubscription<Integer>> _function = new Procedure1<StreamSubscription<Integer>>() {
+      public void apply(final StreamSubscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
-            counter.addAndGet((it).intValue());
+            TestStream.this.incCounter(it);
           }
         };
         it.each(_function);
@@ -117,35 +121,37 @@ public class TestStream {
     };
     StreamExtensions.<Integer>on(s, _function);
     s.next();
-    int _get = counter.get();
-    Assert.assertEquals(1, _get);
+    Integer _counter = this.getCounter();
+    Assert.assertEquals(1, (_counter).intValue());
     s.skip();
-    int _get_1 = counter.get();
-    Assert.assertEquals(1, _get_1);
+    Integer _counter_1 = this.getCounter();
+    Assert.assertEquals(1, (_counter_1).intValue());
     s.next();
-    int _get_2 = counter.get();
-    Assert.assertEquals(1, _get_2);
+    Integer _counter_2 = this.getCounter();
+    Assert.assertEquals(1, (_counter_2).intValue());
     s.next();
-    int _get_3 = counter.get();
-    Assert.assertEquals(5, _get_3);
+    Integer _counter_3 = this.getCounter();
+    Assert.assertEquals(5, (_counter_3).intValue());
     s.next();
-    int _get_4 = counter.get();
-    Assert.assertEquals(10, _get_4);
+    Integer _counter_4 = this.getCounter();
+    Assert.assertEquals(10, (_counter_4).intValue());
     s.next();
-    int _get_5 = counter.get();
-    Assert.assertEquals(10, _get_5);
+    Integer _counter_5 = this.getCounter();
+    Assert.assertEquals(10, (_counter_5).intValue());
     Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(4));
-    int _get_6 = counter.get();
-    Assert.assertEquals(11, _get_6);
+    Integer _counter_6 = this.getCounter();
+    Assert.assertEquals(11, (_counter_6).intValue());
     s.next();
-    int _get_7 = counter.get();
-    Assert.assertEquals(15, _get_7);
+    Integer _counter_7 = this.getCounter();
+    Assert.assertEquals(15, (_counter_7).intValue());
   }
+  
+  @Atomic
+  private final AtomicInteger _result = new AtomicInteger();
   
   @Test
   public void testControlledChainedBufferedStream() {
-    final AtomicInteger result = new AtomicInteger(0);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
     Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
     Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
@@ -159,11 +165,11 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_map, Integer.valueOf(4));
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(6));
-    final Procedure1<Subscription<Integer>> _function_1 = new Procedure1<Subscription<Integer>>() {
-      public void apply(final Subscription<Integer> it) {
+    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
+      public void apply(final StreamSubscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
-            result.set((it).intValue());
+            TestStream.this.setResult(it);
           }
         };
         it.each(_function);
@@ -171,44 +177,46 @@ public class TestStream {
     };
     StreamExtensions.<Integer>on(s2, _function_1);
     s2.next();
-    int _get = result.get();
-    Assert.assertEquals(4, _get);
+    Integer _result = this.getResult();
+    Assert.assertEquals(4, (_result).intValue());
     s2.next();
-    int _get_1 = result.get();
-    Assert.assertEquals(5, _get_1);
+    Integer _result_1 = this.getResult();
+    Assert.assertEquals(5, (_result_1).intValue());
     s2.next();
-    int _get_2 = result.get();
-    Assert.assertEquals(6, _get_2);
+    Integer _result_2 = this.getResult();
+    Assert.assertEquals(6, (_result_2).intValue());
     s2.next();
-    int _get_3 = result.get();
-    Assert.assertEquals(1, _get_3);
+    Integer _result_3 = this.getResult();
+    Assert.assertEquals(1, (_result_3).intValue());
     s2.next();
-    int _get_4 = result.get();
-    Assert.assertEquals(2, _get_4);
+    Integer _result_4 = this.getResult();
+    Assert.assertEquals(2, (_result_4).intValue());
     s2.next();
-    int _get_5 = result.get();
-    Assert.assertEquals(3, _get_5);
+    Integer _result_5 = this.getResult();
+    Assert.assertEquals(3, (_result_5).intValue());
   }
+  
+  @Atomic
+  private final AtomicReference<Throwable> _error = new AtomicReference<Throwable>();
   
   @Test
   public void testStreamErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final AtomicReference<Throwable> e = new AtomicReference<Throwable>();
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        e.set(it);
-      }
-    };
-    Stream<Integer> _onError = s.onError(_function);
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
       }
     };
-    StreamExtensions.<Integer>onEach(_onError, _function_1);
+    Task _onEach = StreamExtensions.<Integer>onEach(s, _function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        TestStream.this.setError(it);
+      }
+    };
+    _onEach.onError(_function_1);
     StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(0));
-    Throwable _get = e.get();
-    Assert.assertNotNull(_get);
+    Throwable _error = this.getError();
+    Assert.assertNotNull(_error);
   }
   
   @Test
@@ -232,8 +240,8 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, _finish_1);
     Stream<Integer> _doubleLessThan_6 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(6));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(7));
-    final Procedure1<Subscription<Integer>> _function_1 = new Procedure1<Subscription<Integer>>() {
-      public void apply(final Subscription<Integer> it) {
+    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
+      public void apply(final StreamSubscription<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             result.set((it).intValue());
@@ -325,5 +333,53 @@ public class TestStream {
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
+  }
+  
+  private Integer setCounter(final Integer value) {
+    return this._counter.getAndSet(value);
+  }
+  
+  private Integer getCounter() {
+    return this._counter.get();
+  }
+  
+  private Integer incCounter() {
+    return this._counter.incrementAndGet();
+  }
+  
+  private Integer decCounter() {
+    return this._counter.decrementAndGet();
+  }
+  
+  private Integer incCounter(final Integer value) {
+    return this._counter.addAndGet(value);
+  }
+  
+  private Integer setResult(final Integer value) {
+    return this._result.getAndSet(value);
+  }
+  
+  private Integer getResult() {
+    return this._result.get();
+  }
+  
+  private Integer incResult() {
+    return this._result.incrementAndGet();
+  }
+  
+  private Integer decResult() {
+    return this._result.decrementAndGet();
+  }
+  
+  private Integer incResult(final Integer value) {
+    return this._result.addAndGet(value);
+  }
+  
+  private Throwable setError(final Throwable value) {
+    return this._error.getAndSet(value);
+  }
+  
+  private Throwable getError() {
+    return this._error.get();
   }
 }

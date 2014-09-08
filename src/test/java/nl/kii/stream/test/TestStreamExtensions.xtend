@@ -1,7 +1,6 @@
 package nl.kii.stream.test
 
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Value
@@ -53,33 +52,56 @@ class TestStreamExtensions {
 	}
 	
 	// SUBSCRIPTION BUILDING //////////////////////////////////////////////////
+
+	@Atomic boolean finished
+	@Atomic int errorCount
+	@Atomic int count
 	
 	@Test
-	def void testSubscriptionBuilding() {
-		val finished = new AtomicBoolean
-		val errored = new AtomicBoolean
-		val count = new AtomicInteger
-		
+	def void testErrorHandlingBeforeCollect() {
+		finished = false
+		errorCount = 0
+		count = 0
 		val s = (1..10).stream
 		s
-			.map [ it - 10 ]
-			.map [ 100 / it ] // division by 10 for s = 10
-			.onError [ errored.set(true) ]
-			.onFinish [ finished.set(true) ]
-			.onEach [ count.incrementAndGet ]
+			.map [ it % 3 ]
+			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
+			.onError [ incErrorCount ] 
+			.onEach [ incCount ]
+			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
+			.then [ finished = true ]
 			
-		assertEquals(true, finished.get) // end of iteration
-		assertEquals(true, errored.get) // because of the 10
-		assertEquals(9, count.get) // 10 gave the error
+		assertEquals(7, count) // 3, 6 and 9 had an error, so 10-3 were successful
+		assertEquals(3, errorCount) // because of the 10
+		assertTrue(finished) // end of iteration
 	}
 	
+	@Test
+	def void testErrorHandlingAfterCollect() {
+		finished = false
+		errorCount = 0
+		count = 0
+		val s = (1..10).stream
+		s
+			.map [ it % 3 ]
+			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
+			.onEach [ incCount ]
+			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
+			// in other words, putting onError after onEach means break stream on error
+			.onError [ incErrorCount ] 
+			.then [ finished = true ]
+			
+		assertEquals(7, count) // only two values passed, and then we got the 3
+		assertFalse(finished) // we did not catch the error in the loop, so the loop has an error and did not finish
+		assertEquals(1, errorCount) // only one error because after the onEach task
+	}
+
 	@Atomic boolean calledThen
 	@Atomic int counter
 	
 	@Test
 	def void testTaskReturning() {
 		(1..3).stream
-			.onFinish [ ]
 			.onEach [ incCounter ]
 			.then [ calledThen = true ]
 		assertTrue(calledThen)
@@ -484,8 +506,8 @@ class TestStreamExtensions {
 		file.stream
 			.toText
 			.map [ '- ' + it ]
-			.onFinish [ println('finish') ]
 			.onEach [ println(it) ]
+			.then [ println('finish') ]
 	}
 	
 	@Test

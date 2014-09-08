@@ -7,5 +7,5 @@ import nl.kii.stream.StreamMessage;
  * Commands travel upwards towards the source of a stream, to control the stream.
  */
 @SuppressWarnings("all")
-public interface StreamCommand extends StreamMessage {
+public interface StreamNotification extends StreamMessage {
 }

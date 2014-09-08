@@ -1,16 +1,18 @@
-package nl.kii.stream;
+package nl.stream.source;
 
+import com.google.common.base.Objects;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Close;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamCommand;
-import nl.kii.stream.StreamSplitter;
+import nl.kii.stream.StreamNotification;
+import nl.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 
 /**
  * This splitter simply tries to pass all incoming values
@@ -24,6 +26,9 @@ import org.eclipse.xtext.xbase.lib.InputOutput;
  */
 @SuppressWarnings("all")
 public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
+  @Atomic
+  private final AtomicReference<Entry<T>> _buffer = new AtomicReference<Entry<T>>();
+  
   public StreamCopySplitter(final Stream<T> source) {
     super(source);
   }
@@ -32,6 +37,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
    * Handle an entry coming in from the source stream
    */
   protected void onEntry(final Entry<T> entry) {
+    this.setBuffer(entry);
     List<Stream<T>> _streams = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
@@ -41,15 +47,11 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
-      return;
-    }
-    List<Stream<T>> _streams_1 = this.getStreams();
-    for (final Stream<T> it : _streams_1) {
-      it.apply(entry);
+      this.publish();
     }
   }
   
-  protected void onCommand(@Extension final StreamCommand msg) {
+  protected void onCommand(@Extension final StreamNotification msg) {
     boolean _matched = false;
     if (!_matched) {
       if (msg instanceof Next) {
@@ -71,21 +73,39 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     }
   }
   
+  protected Entry<T> publish() {
+    Entry<T> _xifexpression = null;
+    Entry<T> _buffer = this.getBuffer();
+    boolean _notEquals = (!Objects.equal(_buffer, null));
+    if (_notEquals) {
+      Entry<T> _xblockexpression = null;
+      {
+        List<Stream<T>> _streams = this.getStreams();
+        for (final Stream<T> it : _streams) {
+          Entry<T> _buffer_1 = this.getBuffer();
+          it.apply(_buffer_1);
+        }
+        _xblockexpression = this.setBuffer(null);
+      }
+      _xifexpression = _xblockexpression;
+    }
+    return _xifexpression;
+  }
+  
   protected void next() {
     List<Stream<T>> _streams = this.getStreams();
-    InputOutput.<List<Stream<T>>>println(_streams);
-    List<Stream<T>> _streams_1 = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
         return it.isReady();
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams_1, _function);
+    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
     }
     this.source.next();
+    this.publish();
   }
   
   protected void skip() {
@@ -100,6 +120,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     if (_not) {
       return;
     }
+    this.publish();
     this.source.skip();
   }
   
@@ -116,6 +137,15 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     if (_not) {
       return;
     }
+    this.publish();
     this.source.close();
+  }
+  
+  private Entry<T> setBuffer(final Entry<T> value) {
+    return this._buffer.getAndSet(value);
+  }
+  
+  private Entry<T> getBuffer() {
+    return this._buffer.get();
   }
 }

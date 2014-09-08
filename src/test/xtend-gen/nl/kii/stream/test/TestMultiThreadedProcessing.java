@@ -169,7 +169,7 @@ public class TestMultiThreadedProcessing {
           result.incrementAndGet();
         }
       };
-      Stream<Integer> _onError = _resolve_1.onError(_function_3);
+      Stream<Integer> _onError = StreamExtensions.<Integer>onError(_resolve_1, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           Assert.fail("we should not end up here, since an error should be caught instead");

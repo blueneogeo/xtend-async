@@ -31,8 +31,7 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	@Atomic val boolean skipping = false
 
 	@Atomic val (Entry<T>)=>void entryListener
-	@Atomic val (Throwable)=>void errorListener
-	@Atomic val (StreamCommand)=>void notifyListener
+	@Atomic val (StreamNotification)=>void notifyListener
 
 	/** create the stream with a memory concurrent queue */
 	new() { this(newConcurrentLinkedQueue) }
@@ -89,19 +88,10 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	}
 	
 	/**
-	 * Listen for errors on the stream. There can only be a single error listener.
-	 * The errorListener must be non blocking.
-	 */
-	def Stream<T> onError((Throwable)=>void errorListener) {
-		this.errorListener = errorListener
-		this
-	}
-	
-	/**
 	 * Listen for notifications from the stream. This is used mostly when chaining streams
 	 * together and allows streams to inform eachother on actions taken.
 	 */
-	def void onNotification((StreamCommand)=>void notifyListener) {
+	def void onNotification((StreamNotification)=>void notifyListener) {
 		this.notifyListener = notifyListener
 	}
 
@@ -166,28 +156,26 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 			val entry = queue.poll
 			try {
 				// check for some exceptional cases
-				switch entry {
+				switch it: entry {
 					// a finish of level 0 stops the skipping
-					Finish<T>: if(entry.level == 0) skipping = false
-					// errors also trigger the errorlistener
-					Error<T>: if(errorListener != null) errorListener.apply(entry.error)
+					Finish<T>: if(level == 0) skipping = false
 				}
 				// publish the value on the entryListener
 				entryListener.apply(entry)
 				true
 			} catch (Throwable t) {
 				// if we were already processing an error, throw and exit
-				if(entry instanceof Error<?>) throw new StreamException('error handler gave error when handling ', entry, t)
+				if(entry instanceof Error<?>) throw new StreamException('error handler gave error ' + t.message + ' when handling', entry, t)
 				// otherwise push the error on the stream
 				ready = true
-				apply(new Error(new StreamException('when handling ', entry, t)))
+				apply(new Error(new StreamException(t.message + ', when handling', entry, t)))
 				false
 			}
 		} else false
 	}
 
 	/** helper function for informing the notify listener */
-	def protected notify(StreamCommand notification) {
+	def protected notify(StreamNotification notification) {
 		if(notifyListener != null)
 			notifyListener.apply(notification)
 	}

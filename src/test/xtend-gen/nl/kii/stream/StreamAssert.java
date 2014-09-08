@@ -8,7 +8,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.Subscription;
+import nl.kii.stream.StreamSubscription;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -24,20 +24,36 @@ public class StreamAssert {
     LinkedList<Entry<T>> _xblockexpression = null;
     {
       final LinkedList<Entry<T>> data = new LinkedList<Entry<T>>();
-      final Procedure1<Finish<T>> _function = new Procedure1<Finish<T>>() {
-        public void apply(final Finish<T> it) {
-          Finish<T> _finish = new Finish<T>(it.level);
-          data.add(_finish);
+      final Procedure1<StreamSubscription<T>> _function = new Procedure1<StreamSubscription<T>>() {
+        public void apply(final StreamSubscription<T> it) {
+          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+            public void apply(final Throwable it) {
+              nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(it);
+              data.add(_error);
+              stream.next();
+            }
+          };
+          it.error(_function);
+          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
+            public void apply(final Finish<T> it) {
+              Finish<T> _finish = new Finish<T>(it.level);
+              data.add(_finish);
+              stream.next();
+            }
+          };
+          it.finish(_function_1);
+          final Procedure1<T> _function_2 = new Procedure1<T>() {
+            public void apply(final T it) {
+              Value<T> _value = StreamAssert.<T>value(it);
+              data.add(_value);
+              stream.next();
+            }
+          };
+          it.each(_function_2);
         }
       };
-      Subscription<T> _onFinish = StreamExtensions.<T>onFinish(stream, _function);
-      final Procedure1<T> _function_1 = new Procedure1<T>() {
-        public void apply(final T it) {
-          Value<T> _value = StreamAssert.<T>value(it);
-          data.add(_value);
-        }
-      };
-      StreamExtensions.<T>onEach(_onFinish, _function_1);
+      StreamExtensions.<T>on(stream, _function);
+      stream.next();
       _xblockexpression = data;
     }
     return _xblockexpression;
