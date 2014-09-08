@@ -45,7 +45,7 @@ public class PromiseExtensions {
   }
   
   /**
-   * Create a promise that immediately resolves to the passed value
+   * Create a promise that immediately resolves to the passed value.
    */
   public static <T extends Object> Promise<T> promise(final T value) {
     return new Promise<T>(value);
@@ -298,6 +298,30 @@ public class PromiseExtensions {
    */
   public static <R extends Object, P extends IPromise<R>> Promise<R> flatten(final IPromise<P> promise) {
     return PromiseExtensions.<R, P>resolve(promise);
+  }
+  
+  /**
+   * Create a stream out of a promise of a stream.
+   */
+  public static <P extends IPromise<Stream<T>>, T extends Object> Stream<T> toStream(final P promise) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          newStream.error(it);
+        }
+      };
+      IPromise<Stream<T>> _onError = promise.onError(_function);
+      final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
+        public void apply(final Stream<T> s) {
+          StreamExtensions.<T>pipe(s, newStream);
+        }
+      };
+      _onError.then(_function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
   }
   
   /**

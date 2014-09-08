@@ -34,13 +34,18 @@ class StreamExtensions {
 	
 	// CREATION ///////////////////////////////////////////////////////////////
 	
-	/** create a stream of the given type */
+	/** Create a stream of the given type */
 	def static <T> stream(Class<T> type) {
 		new Stream<T>
 	}
 	
-	/** create a stream of a set of data and finish it */
-	def static <T> stream(T... data) {
+	/** 
+	 * Create a stream of a set of data and finish it.
+	 * Note: the reason this method is called datastream instead of stream, is that
+	 * the type binds to anything, even void. That means that datastream() becomes a valid expression
+	 * which is errorprone.
+	 */
+	def static <T> datastream(T... data) {
 		data.iterator.stream
 	}
 
@@ -891,7 +896,6 @@ class StreamExtensions {
 			closed [ stream.close ]
 			stream.next
 		]
-		.toTask
 	}
 
 	/**
@@ -1030,10 +1034,10 @@ class StreamExtensions {
 	
 	// LISTENER BUILDERS //////////////////////////////////////////////////////
 
-	def static <T> on(Stream<T> stream, (StreamSubscription<T>)=>void subscriptionFn) {
+	def static <T> Task on(Stream<T> stream, (StreamSubscription<T>)=>void subscriptionFn) {
 		val subscription = new StreamSubscription<T>(stream)
 		subscriptionFn.apply(subscription)
-		subscription
+		subscription.toTask
 	}
 	
 	def static <T> monitor(Stream<T> stream, (StreamMonitor)=>void subscriptionFn) {

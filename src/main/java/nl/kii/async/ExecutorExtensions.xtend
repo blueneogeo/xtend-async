@@ -90,7 +90,7 @@ class ExecutorExtensions {
 		val Runnable pusher = [|
 			val now = System.currentTimeMillis
 			val expired = forPeriodMs > 0 && now - start > forPeriodMs 
-			if(stream.open && !expired) {
+			if(newStream.open && !expired) {
 				newStream.push(now - start)
 			} else task.get.cancel(false)
 		]

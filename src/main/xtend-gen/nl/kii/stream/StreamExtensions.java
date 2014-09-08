@@ -60,16 +60,19 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 @SuppressWarnings("all")
 public class StreamExtensions {
   /**
-   * create a stream of the given type
+   * Create a stream of the given type
    */
   public static <T extends Object> Stream<T> stream(final Class<T> type) {
     return new Stream<T>();
   }
   
   /**
-   * create a stream of a set of data and finish it
+   * Create a stream of a set of data and finish it.
+   * Note: the reason this method is called datastream instead of stream, is that
+   * the type binds to anything, even void. That means that datastream() becomes a valid expression
+   * which is errorprone.
    */
-  public static <T extends Object> Stream<T> stream(final T... data) {
+  public static <T extends Object> Stream<T> datastream(final T... data) {
     Iterator<T> _iterator = ((List<T>)Conversions.doWrapArray(data)).iterator();
     return StreamExtensions.<T>stream(_iterator);
   }
@@ -1779,8 +1782,7 @@ public class StreamExtensions {
         stream.next();
       }
     };
-    StreamSubscription<T> _on = StreamExtensions.<T>on(stream, _function);
-    return _on.toTask();
+    return StreamExtensions.<T>on(stream, _function);
   }
   
   /**
@@ -2017,12 +2019,12 @@ public class StreamExtensions {
     return _first.then(listener);
   }
   
-  public static <T extends Object> StreamSubscription<T> on(final Stream<T> stream, final Procedure1<? super StreamSubscription<T>> subscriptionFn) {
-    StreamSubscription<T> _xblockexpression = null;
+  public static <T extends Object> Task on(final Stream<T> stream, final Procedure1<? super StreamSubscription<T>> subscriptionFn) {
+    Task _xblockexpression = null;
     {
       final StreamSubscription<T> subscription = new StreamSubscription<T>(stream);
       subscriptionFn.apply(subscription);
-      _xblockexpression = subscription;
+      _xblockexpression = subscription.toTask();
     }
     return _xblockexpression;
   }
@@ -2655,7 +2657,7 @@ public class StreamExtensions {
    * or give an error on the task when the stream gives an error.
    */
   @Async
-  public static StreamSubscription<?> toTask(final Stream<?> stream, final Task task) {
+  public static Task toTask(final Stream<?> stream, final Task task) {
     final Procedure1<StreamSubscription<?>> _function = new Procedure1<StreamSubscription<?>>() {
       public void apply(final StreamSubscription<?> it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {

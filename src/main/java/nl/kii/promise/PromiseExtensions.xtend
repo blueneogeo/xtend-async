@@ -8,6 +8,7 @@ import nl.kii.stream.Error
 import nl.kii.stream.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.stream.Stream
 
 class PromiseExtensions {
 	
@@ -28,7 +29,9 @@ class PromiseExtensions {
 		new Promise<Map<K, V>>
 	}
 	
-	/** Create a promise that immediately resolves to the passed value */
+	/** 
+	 * Create a promise that immediately resolves to the passed value. 
+	 */
 	def static <T> promise(T value) {
 		new Promise<T>(value)
 	}
@@ -175,6 +178,15 @@ class PromiseExtensions {
 		promise.resolve
 	}
 
+	/** Create a stream out of a promise of a stream. */
+	def static <P extends IPromise<Stream<T>>, T> toStream(P promise) {
+		val newStream = new Stream<T>
+		promise
+			.onError [ newStream.error(it)]
+			.then [ s | s.pipe(newStream) ] 
+		newStream
+	}
+
 	/** 
 	 * Resolve a promise of a promise to directly a promise.
 	 * Alias for Promise.flatten, added for consistent syntax with streams 
@@ -319,6 +331,7 @@ class PromiseExtensions {
 	def static <T> pipe(IPromise<T> promise, IPromise<T> target) {
 		promise
 			.always [ target.apply(it) ]
+			// TODO: necessary?
 			.then [ ] // starts listening
 	}
 

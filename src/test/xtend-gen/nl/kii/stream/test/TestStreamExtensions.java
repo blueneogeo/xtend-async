@@ -899,23 +899,13 @@ public class TestStreamExtensions {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
-        Integer _xblockexpression = null;
-        {
-          final int x = (1 / ((it).intValue() - 5));
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
+        return Integer.valueOf((((1 / ((it).intValue() - 5)) * 0) + (it).intValue()));
       }
     };
     Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
-        Integer _xblockexpression = null;
-        {
-          final int x = (1 / ((it).intValue() - 7));
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
+        return Integer.valueOf((((1 / ((it).intValue() - 7)) * 0) + (it).intValue()));
       }
     };
     Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_map, _function_1);

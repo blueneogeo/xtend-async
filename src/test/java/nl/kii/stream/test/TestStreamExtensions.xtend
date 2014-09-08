@@ -380,8 +380,8 @@ class TestStreamExtensions {
 	def void testErrorsDontStopStream() {
 		val errors = String.stream;
 		(1..10).stream
-			.map [ val x = 1/(it-5) it ] // 5 gives a /0 exception
-			.map [ val x = 1/(it-7) it ] // 7 also gives the exception
+			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
+			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.onError [ message >> errors ] // must listen for errors here
 			.collect
 			.first

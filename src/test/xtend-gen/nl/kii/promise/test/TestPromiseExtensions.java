@@ -61,7 +61,7 @@ public class TestPromiseExtensions {
   
   @Test
   public void testMap() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(4));
+    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(4));
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 10));
@@ -73,7 +73,7 @@ public class TestPromiseExtensions {
   
   @Test
   public void testFlatten() {
-    final Promise<Integer> p1 = PromiseExtensions.<Integer>promise(Integer.valueOf(3));
+    final Promise<Integer> p1 = new Promise<Integer>(Integer.valueOf(3));
     Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
     final IPromise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
     final Promise<Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>>flatten(p2);
@@ -82,7 +82,7 @@ public class TestPromiseExtensions {
   
   @Test
   public void testAsync() {
-    final Promise<Integer> s = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+    final Promise<Integer> s = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromiseExtensions.this.power2((it).intValue());
@@ -95,7 +95,7 @@ public class TestPromiseExtensions {
   
   @Test
   public void testListPromiseToStream() {
-    final Promise<List<Integer>> p = PromiseExtensions.<List<Integer>>promise(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
+    final Promise<List<Integer>> p = new Promise<List<Integer>>(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
     Stream<Integer> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
     Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
@@ -246,7 +246,7 @@ public class TestPromiseExtensions {
   }
   
   private Promise<Integer> power2(final int i) {
-    return PromiseExtensions.<Integer>promise(Integer.valueOf((i * i)));
+    return new Promise<Integer>(Integer.valueOf((i * i)));
   }
   
   private Boolean setAllDone(final Boolean value) {

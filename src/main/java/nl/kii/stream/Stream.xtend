@@ -33,6 +33,12 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	@Atomic val (Entry<T>)=>void entryListener
 	@Atomic val (StreamNotification)=>void notifyListener
 
+	/** create the stream with a memory concurrent queue and the given initial values */
+	new(T... initalValues) {
+		this(newConcurrentLinkedQueue)
+		initalValues.forEach [ push ]
+	}
+
 	/** create the stream with a memory concurrent queue */
 	new() { this(newConcurrentLinkedQueue) }
 

@@ -37,7 +37,7 @@ class TestPromise {
 	
 	@Test
 	def void testPromiseErrorHandling() {
-		val p = 0.promise
+		val p = new Promise(0)
 		val p2 = boolean.promise
 		p.onError [ true >> p2 ]
 		p.then [ println(1/it) ] // should create /0 exception
@@ -46,7 +46,7 @@ class TestPromise {
 
 	@Test
 	def void testPromiseNoHandling() {
-		val p = 0.promise
+		val p = new Promise(0)
 		try {
 			// no onError handler specified
 			p.then [ println(1/it) ] // should create /0 exception
@@ -58,8 +58,8 @@ class TestPromise {
 	
 	@Test
 	def void testPromiseChaining() {
-		val p = 1.promise
-		val p2 = p.map [ return 2.promise ].resolve
+		val p = new Promise(1)
+		val p2 = p.map [ return new Promise(2) ].resolve
 		p2.assertPromiseEquals(2)
 	}
 
@@ -137,7 +137,7 @@ class TestPromise {
 	
 	@Test
 	def void testPromiseErrorChaining() {
-		val p = 1.promise
+		val p = new Promise(1)
 		val p2 = boolean.promise
 		p
 			.map [it - 1]

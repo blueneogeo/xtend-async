@@ -1,7 +1,6 @@
 package nl.kii.stream.test;
 
 import nl.kii.promise.Promise;
-import nl.kii.promise.PromiseExtensions;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
@@ -18,7 +17,7 @@ public class TestStreamPairExt {
   @Test
   public void testEachWithPairParams() {
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(1), Integer.valueOf(2));
-    final Stream<Pair<Integer, Integer>> p = StreamExtensions.<Pair<Integer, Integer>>stream(_mappedTo);
+    final Stream<Pair<Integer, Integer>> p = StreamExtensions.<Pair<Integer, Integer>>datastream(_mappedTo);
     final Stream<Integer> p2 = StreamExtensions.<Integer>stream(int.class);
     final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
       public void apply(final Integer k, final Integer v) {
@@ -33,7 +32,7 @@ public class TestStreamPairExt {
   @Test
   public void testAsyncWithPairParams() {
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(1), Integer.valueOf(2));
-    final Stream<Pair<Integer, Integer>> p = StreamExtensions.<Pair<Integer, Integer>>stream(_mappedTo);
+    final Stream<Pair<Integer, Integer>> p = StreamExtensions.<Pair<Integer, Integer>>datastream(_mappedTo);
     final Function2<Integer, Integer, Promise<Integer>> _function = new Function2<Integer, Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer a, final Integer b) {
         return TestStreamPairExt.this.power2(((a).intValue() + (b).intValue()));
@@ -47,7 +46,7 @@ public class TestStreamPairExt {
   
   @Test
   public void testMapWithPairs() {
-    final Stream<Integer> p = StreamExtensions.<Integer>stream(Integer.valueOf(2));
+    final Stream<Integer> p = StreamExtensions.<Integer>datastream(Integer.valueOf(2));
     final Function1<Integer, Pair<Integer, Integer>> _function = new Function1<Integer, Pair<Integer, Integer>>() {
       public Pair<Integer, Integer> apply(final Integer it) {
         return Pair.<Integer, Integer>of(it, Integer.valueOf(((it).intValue() * (it).intValue())));
@@ -68,10 +67,10 @@ public class TestStreamPairExt {
   
   @Test
   public void testAsyncPair() {
-    final Stream<Integer> p = StreamExtensions.<Integer>stream(Integer.valueOf(2));
+    final Stream<Integer> p = StreamExtensions.<Integer>datastream(Integer.valueOf(2));
     final Function1<Integer, Pair<Integer, Promise<Integer>>> _function = new Function1<Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer it) {
-        Promise<Integer> _promise = PromiseExtensions.<Integer>promise(it);
+        Promise<Integer> _promise = new Promise<Integer>(it);
         return Pair.<Integer, Promise<Integer>>of(it, _promise);
       }
     };
@@ -92,6 +91,6 @@ public class TestStreamPairExt {
   }
   
   private Promise<Integer> power2(final int i) {
-    return PromiseExtensions.<Integer>promise(Integer.valueOf((i * i)));
+    return new Promise<Integer>(Integer.valueOf((i * i)));
   }
 }

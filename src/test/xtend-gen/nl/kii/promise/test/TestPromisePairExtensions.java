@@ -45,7 +45,7 @@ public class TestPromisePairExtensions {
   
   @Test
   public void testMapWithPairs() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Pair<Integer, Integer>> _function = new Function1<Integer, Pair<Integer, Integer>>() {
       public Pair<Integer, Integer> apply(final Integer it) {
         return Pair.<Integer, Integer>of(it, Integer.valueOf(((it).intValue() * (it).intValue())));
@@ -64,10 +64,10 @@ public class TestPromisePairExtensions {
   
   @Test
   public void testAsyncPair() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Pair<Integer, Promise<Integer>>> _function = new Function1<Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer it) {
-        Promise<Integer> _promise = PromiseExtensions.<Integer>promise(it);
+        Promise<Integer> _promise = new Promise<Integer>(it);
         return Pair.<Integer, Promise<Integer>>of(it, _promise);
       }
     };
@@ -85,10 +85,10 @@ public class TestPromisePairExtensions {
   
   @Test
   public void testAsyncPairUsingFlatmap() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.valueOf(2));
+    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Pair<Integer, Promise<Integer>>> _function = new Function1<Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer it) {
-        Promise<Integer> _promise = PromiseExtensions.<Integer>promise(it);
+        Promise<Integer> _promise = new Promise<Integer>(it);
         return Pair.<Integer, Promise<Integer>>of(it, _promise);
       }
     };
@@ -105,6 +105,6 @@ public class TestPromisePairExtensions {
   }
   
   private Promise<Integer> power2(final int i) {
-    return PromiseExtensions.<Integer>promise(Integer.valueOf((i * i)));
+    return new Promise<Integer>(Integer.valueOf((i * i)));
   }
 }

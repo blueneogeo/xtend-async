@@ -4,6 +4,7 @@ import org.junit.Test
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import nl.kii.promise.Promise
 
 class TestPromisePairExtensions {
 
@@ -24,7 +25,7 @@ class TestPromisePairExtensions {
 	
 	@Test
 	def void testMapWithPairs() {
-		val p = promise(2)
+		val p = new Promise(2)
 		val asynced = p
 			.map [ it -> it * it ] // returns promise(2->4)
 			.map [ key, value | key -> (key + value) * (key + value) ] // returns promise(2->36)
@@ -33,22 +34,22 @@ class TestPromisePairExtensions {
 	
 	@Test
 	def void testAsyncPair() {
-		val p = promise(2)
+		val p = new Promise(2)
 		val asynced = p
-			.call2 [ it -> promise(it) ]
+			.call2 [ it -> new Promise(it) ]
 			.call2 [ key, value | key -> power2(value) ]
 		asynced.assertPromiseEquals(2 -> 4)
 	}
 
 	@Test
 	def void testAsyncPairUsingFlatmap() {
-		val p = promise(2)
+		val p = new Promise(2)
 		val asynced = p
-			.call2 [ it -> promise(it) ]
+			.call2 [ it -> new Promise(it) ]
 			.call2 [ key, value | key -> power2(value) ]
 		asynced.assertPromiseEquals(2 -> 4)
 	}
 
-	private def power2(int i) { (i*i).promise }
+	private def power2(int i) { new Promise(i*i) }
 	
 }

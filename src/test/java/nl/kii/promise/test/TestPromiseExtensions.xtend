@@ -41,14 +41,14 @@ class TestPromiseExtensions {
 	
 	@Test
 	def void testMap() {
-		val p = 4.promise
+		val p = new Promise(4)
 		val mapped = p.map [ it + 10 ]
 		mapped.assertPromiseEquals(14)
 	}
 	
 	@Test
 	def void testFlatten() {
-		val p1 = 3.promise
+		val p1 = new Promise(3)
 		val p2 = new Promise<Promise<Integer>> << p1
 		val flattened = p2.flatten
 		flattened.assertPromiseEquals(3)
@@ -59,14 +59,14 @@ class TestPromiseExtensions {
 	// TODO: needs better test that uses multithreading
 	@Test
 	def void testAsync() {
-		val s = 2.promise
+		val s = new Promise(2)
 		val asynced = s.map [ power2(it) ].flatten
 		asynced.assertPromiseEquals(4)
 	}
 	
 	@Test
 	def void testListPromiseToStream() {
-		val p = #[1, 2, 3].promise
+		val p = new Promise(#[1, 2, 3])
 		p.stream.sum.then [ assertEquals(6, it, 0) ]
 	}
 	
@@ -151,6 +151,6 @@ class TestPromiseExtensions {
 		assertTrue(anyDone)
 	}
 
-	private def power2(int i) { (i*i).promise }
+	private def power2(int i) { new Promise(i*i) }
 	
 }
