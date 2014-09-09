@@ -13,6 +13,8 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import nl.kii.stream.Stream
+import nl.kii.promise.Promise
 
 class TestStreamExtensions {
 
@@ -484,6 +486,30 @@ class TestStreamExtensions {
 		val s2 = int.stream
 		s1.pipe(s2)
 		s2.count.then [ assertEquals(1_000_000, it, 0) ]
+	}
+	
+	@Test
+	def void testStreamPromise() {
+		val s = int.stream
+		val p = s.promise
+		s << 1 << 2 << finish
+		val s2 = p.toStream
+		s2
+			.onError [ fail(message) ]
+			.onEach [ println(it) ]
+			.assertPromiseEquals(true)
+	}
+
+	@Test
+	def void testStreamPromiseLater() {
+		val p = new Promise<Stream<Integer>>
+		val s = int.stream
+		p.set(s)
+		s << 1 << 2 << finish
+		val s2 = p.toStream
+		s2
+			.onEach [ println(it) ]
+			.assertPromiseEquals(true)
 	}
 	
 	@Test

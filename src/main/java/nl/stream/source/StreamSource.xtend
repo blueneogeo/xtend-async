@@ -6,6 +6,8 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
 import nl.kii.stream.Stream
 import nl.kii.stream.StreamNotification
+import nl.kii.act.Actor
+import nl.kii.stream.StreamMessage
 
 /**
  * A source is a streamable source of information.
@@ -25,7 +27,7 @@ interface StreamSource<T> {
  * for other streams. It usually implements a specific value
  * distribution system.
  */
-abstract class StreamSplitter<T> implements StreamSource<T> {
+abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamSource<T> {
 	
 	/** the source stream that gets distributed */
 	protected val Stream<T> source
@@ -36,17 +38,26 @@ abstract class StreamSplitter<T> implements StreamSource<T> {
 	new(Stream<T> source) {
 		this.source = source
 		this.streams = new CopyOnWriteArrayList
-		source.onChange [ onEntry ]
+		source.onChange [ apply ]
 	}
 	
 	override StreamSource<T> pipe(Stream<T> stream) {
 		streams += stream
-		stream.onNotification [ onCommand ]
+		stream.onNotification [ apply ]
 		this
 	}
 	
 	override Stream<T> stream() {
 		new Stream<T> => [ pipe ]
+	}
+	
+	/** we are wrapping in an actor to make things threadsafe */
+	override protected act(StreamMessage message, =>void done) {
+		switch message {
+			Entry<T>: onEntry(message)
+			StreamNotification: onCommand(message)
+		}
+		done.apply
 	}
 	
 	/** Handle an entry coming in from the source stream */

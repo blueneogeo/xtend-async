@@ -30,7 +30,7 @@ class StreamCopySplitter<T> extends StreamSplitter<T> {
 	protected override onEntry(Entry<T> entry) {
 		buffer = entry
 		// only proceed if all streams are ready
-		if(!streams.all[ready]) publish
+		if(streams.all[ready]) publish
 	}
 	
 	protected override onCommand(extension StreamNotification msg) {

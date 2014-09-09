@@ -4,14 +4,17 @@ import com.google.common.base.Objects;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamMessage;
 import nl.kii.stream.StreamNotification;
 import nl.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
@@ -20,7 +23,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * distribution system.
  */
 @SuppressWarnings("all")
-public abstract class StreamSplitter<T extends Object> implements StreamSource<T> {
+public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessage> implements StreamSource<T> {
   /**
    * the source stream that gets distributed
    */
@@ -38,7 +41,7 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
     this.setStreams(_copyOnWriteArrayList);
     final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
       public void apply(final Entry<T> it) {
-        StreamSplitter.this.onEntry(it);
+        StreamSplitter.this.apply(it);
       }
     };
     source.onChange(_function);
@@ -51,7 +54,7 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
       _streams.add(stream);
       final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
         public void apply(final StreamNotification it) {
-          StreamSplitter.this.onCommand(it);
+          StreamSplitter.this.apply(it);
         }
       };
       stream.onNotification(_function);
@@ -68,6 +71,26 @@ public abstract class StreamSplitter<T extends Object> implements StreamSource<T
       }
     };
     return ObjectExtensions.<Stream<T>>operator_doubleArrow(_stream, _function);
+  }
+  
+  /**
+   * we are wrapping in an actor to make things threadsafe
+   */
+  protected void act(final StreamMessage message, final Procedure0 done) {
+    boolean _matched = false;
+    if (!_matched) {
+      if (message instanceof Entry) {
+        _matched=true;
+        this.onEntry(((Entry<T>)message));
+      }
+    }
+    if (!_matched) {
+      if (message instanceof StreamNotification) {
+        _matched=true;
+        this.onCommand(((StreamNotification)message));
+      }
+    }
+    done.apply();
   }
   
   /**

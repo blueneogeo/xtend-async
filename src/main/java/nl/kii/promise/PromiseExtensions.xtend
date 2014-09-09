@@ -5,10 +5,10 @@ import java.util.Map
 import java.util.concurrent.Future
 import nl.kii.stream.Entry
 import nl.kii.stream.Error
+import nl.kii.stream.Stream
 import nl.kii.stream.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.Stream
 
 class PromiseExtensions {
 	
@@ -182,8 +182,19 @@ class PromiseExtensions {
 	def static <P extends IPromise<Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
 		promise
-			.onError [ newStream.error(it)]
-			.then [ s | s.pipe(newStream) ] 
+			.onError [ newStream.error(it) ]
+			.then [ s |
+				s.pipe(newStream)
+				if(newStream.ready) s.next
+//				s.on [
+//					each [ newStream.push(it) ]
+//					finish [ newStream.finish(level) ]
+//					closed [ newStream.close ]
+//					error [ newStream.error(it) ]
+//				]
+//				newStream.controls(s)
+//				if(newStream.ready) s.next
+			] 
 		newStream
 	}
 

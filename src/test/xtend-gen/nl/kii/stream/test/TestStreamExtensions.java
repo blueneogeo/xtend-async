@@ -1092,6 +1092,50 @@ public class TestStreamExtensions {
   }
   
   @Test
+  public void testStreamPromise() {
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+    final Promise<Stream<Integer>> p = PromiseExtensions.<Stream<Integer>>promise(s);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
+    final Stream<Integer> s2 = PromiseExtensions.<Promise<Stream<Integer>>, Integer>toStream(p);
+    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        String _message = it.getMessage();
+        Assert.fail(_message);
+      }
+    };
+    Stream<Integer> _onError = StreamExtensions.<Integer>onError(s2, _function);
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer>onEach(_onError, _function_1);
+    StreamAssert.<Boolean>assertPromiseEquals(_onEach, Boolean.valueOf(true));
+  }
+  
+  @Test
+  public void testStreamPromiseLater() {
+    final Promise<Stream<Integer>> p = new Promise<Stream<Integer>>();
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+    p.set(s);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
+    final Stream<Integer> s2 = PromiseExtensions.<Promise<Stream<Integer>>, Integer>toStream(p);
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer>onEach(s2, _function);
+    StreamAssert.<Boolean>assertPromiseEquals(_onEach, Boolean.valueOf(true));
+  }
+  
+  @Test
   public void testThrottle() {
     IntegerRange _upTo = new IntegerRange(1, 1000);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);

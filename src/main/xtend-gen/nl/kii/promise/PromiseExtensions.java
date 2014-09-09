@@ -316,6 +316,10 @@ public class PromiseExtensions {
       final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> s) {
           StreamExtensions.<T>pipe(s, newStream);
+          Boolean _isReady = newStream.isReady();
+          if ((_isReady).booleanValue()) {
+            s.next();
+          }
         }
       };
       _onError.then(_function_1);

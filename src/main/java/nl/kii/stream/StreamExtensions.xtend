@@ -240,7 +240,7 @@ class StreamExtensions {
 		new Finish<T>(level)
 	}
 
-	def package static <T, R> controls(Stream<T> newStream, Stream<?> parent) {
+	def static <T, R> controls(Stream<T> newStream, Stream<?> parent) {
 		newStream.monitor [
 			next [ parent.next ]
 			skip [ parent.skip ]
@@ -932,16 +932,8 @@ class StreamExtensions {
 	 * Shortcut for splitting a stream and then performing a pipe to another stream.
 	 * @return a CopySplitter source that you can connect more streams to. 
 	 */
-	def static <T> StreamSource<T> pipe(Stream<T> stream, Stream<T> otherStream) {
-//		stream.on [
-//			each [ otherStream.push(it) ]
-//			error [ otherStream.error(it) ]
-//			finish [ otherStream.finish	]
-//			closed [ otherStream.close ]
-//		]
-//		otherStream.controls(stream)
-		val source = stream.split.pipe(otherStream)
-		stream.next
+	def static <T> StreamSource<T> pipe(Stream<T> stream, Stream<T> target) {
+		val source = stream.split.pipe(target)
 		source
 	}
 	
@@ -1048,32 +1040,7 @@ class StreamExtensions {
 
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 
-	/** 
-	 * Peek into what values going through the stream chain at this point.
-	 * It is meant as a debugging tool for inspecting the data flowing
-	 * through the stream.
-	 * <p>
-	 * The listener will not modify the stream and only get a view of the
-	 * data passing by. It should never modify the passed reference!
-	 * <p>
-	 * If the listener throws an error, it will be caught and printed,
-	 * and not interrupt the stream or throw an error on the stream.
-	 */
-	def static <T> peek(Stream<T> stream, (T)=>void listener) {
-		stream.map [
-			try {
-				listener.apply(it)
-			} catch(Throwable t) {
-				t.printStackTrace
-			}
-			it
-		]
-	}
-	
-	/**
-	 * Perform some side-effect action based on the stream. It will not
-	 * really affect the stream itself.
-	 */
+	/** Perform some side-effect action based on the stream. */
 	def static <T> effect(Stream<T> stream, (T)=>void listener) {
 		stream.map [
 			listener.apply(it)
@@ -1081,10 +1048,7 @@ class StreamExtensions {
 		]
 	}
 
-	/**
-	 * Perform some side-effect action based on the stream. It will not
-	 * really affect the stream itself.
-	 */
+	/** Perform some side-effect action based on the stream. */
 	def static <K, T> effect(Stream<Pair<K, T>> stream, (K, T)=>void listener) {
 		stream.map [
 			listener.apply(key, value)

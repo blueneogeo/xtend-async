@@ -8,14 +8,15 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamException;
-import nl.kii.stream.StreamObserver;
+import nl.kii.stream.StreamHandler;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
- * A builder for stream listening. Combine with StreamExtensions.on like this:
+ * A basic builder for asynchronous stream listening.
+ * Combine with StreamExtensions.on like this:
  * <p>
  * <pre>
  * stream.on [
@@ -24,9 +25,12 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  *    error [ ... ]
  * ]
  * stream.next
+ * </pre>
+ * <p>
+ * Remember to call stream.next to start the stream!
  */
 @SuppressWarnings("all")
-public class StreamSubscription<T extends Object> implements StreamObserver<T> {
+public class StreamSubscription<T extends Object> implements StreamHandler<T> {
   protected final Stream<T> stream;
   
   private final Task task = new Task();

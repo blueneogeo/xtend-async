@@ -5,27 +5,26 @@ import nl.kii.promise.Task
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-interface StreamObserver<T> extends Procedure1<Entry<T>> {
+/** Lets you create builders for handling the entries coming from a stream */
+interface StreamHandler<T> extends Procedure1<Entry<T>> {
 	
-	/** handle each incoming value */
+	/** handle each incoming value. remember to call stream.next after handling a value! */
 	def void each((T)=>void handler)
 	
-	/** handle each incoming error */
+	/** handle each incoming error. remember to call stream.next after handling an error! */
 	def void error((Throwable)=>void handler)
 	
-	/** handle each incoming finish */
+	/** handle each incoming finish. remember to call stream.next after handling a finish! */
 	def void finish((Finish<T>)=>void handler)
 	
-	/** handled that the stream has closed */
+	/** handled that the stream has closed. */
 	def void closed((Void)=>void stream)
-	
-	def Stream<T> getStream()
-	def Task toTask()
 	
 }
 
 /**
- * A builder for stream listening. Combine with StreamExtensions.on like this:
+ * A basic builder for asynchronous stream listening.
+ * Combine with StreamExtensions.on like this:
  * <p>
  * <pre>
  * stream.on [
@@ -34,8 +33,11 @@ interface StreamObserver<T> extends Procedure1<Entry<T>> {
  *    error [ ... ]
  * ]
  * stream.next
+ * </pre>
+ * <p>
+ * Remember to call stream.next to start the stream!
  */
-class StreamSubscription<T> implements StreamObserver<T> {
+class StreamSubscription<T> implements StreamHandler<T> {
 	
 	val protected Stream<T> stream
 	
@@ -116,12 +118,12 @@ class StreamSubscription<T> implements StreamObserver<T> {
 	}
 	
 	/** get the stream the subscription is subscribed to */
-	override getStream() {
+	def getStream() {
 		stream
 	}
 	
 	/** get the result of the subscription  */
-	override Task toTask() {
+	def Task toTask() {
 		task
 	}
 	

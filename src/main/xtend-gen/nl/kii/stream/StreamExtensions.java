@@ -508,7 +508,7 @@ public class StreamExtensions {
     return new Finish<T>(level);
   }
   
-  static <T extends Object, R extends Object> StreamMonitor controls(final Stream<T> newStream, final Stream<?> parent) {
+  public static <T extends Object, R extends Object> StreamMonitor controls(final Stream<T> newStream, final Stream<?> parent) {
     final Procedure1<StreamMonitor> _function = new Procedure1<StreamMonitor>() {
       public void apply(final StreamMonitor it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
@@ -1834,12 +1834,11 @@ public class StreamExtensions {
    * Shortcut for splitting a stream and then performing a pipe to another stream.
    * @return a CopySplitter source that you can connect more streams to.
    */
-  public static <T extends Object> StreamSource<T> pipe(final Stream<T> stream, final Stream<T> otherStream) {
+  public static <T extends Object> StreamSource<T> pipe(final Stream<T> stream, final Stream<T> target) {
     StreamSource<T> _xblockexpression = null;
     {
       StreamSource<T> _split = StreamExtensions.<T>split(stream);
-      final StreamSource<T> source = _split.pipe(otherStream);
-      stream.next();
+      final StreamSource<T> source = _split.pipe(target);
       _xblockexpression = source;
     }
     return _xblockexpression;
@@ -2040,42 +2039,7 @@ public class StreamExtensions {
   }
   
   /**
-   * Peek into what values going through the stream chain at this point.
-   * It is meant as a debugging tool for inspecting the data flowing
-   * through the stream.
-   * <p>
-   * The listener will not modify the stream and only get a view of the
-   * data passing by. It should never modify the passed reference!
-   * <p>
-   * If the listener throws an error, it will be caught and printed,
-   * and not interrupt the stream or throw an error on the stream.
-   */
-  public static <T extends Object> Stream<T> peek(final Stream<T> stream, final Procedure1<? super T> listener) {
-    final Function1<T, T> _function = new Function1<T, T>() {
-      public T apply(final T it) {
-        T _xblockexpression = null;
-        {
-          try {
-            listener.apply(it);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              t.printStackTrace();
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
-      }
-    };
-    return StreamExtensions.<T, T>map(stream, _function);
-  }
-  
-  /**
-   * Perform some side-effect action based on the stream. It will not
-   * really affect the stream itself.
+   * Perform some side-effect action based on the stream.
    */
   public static <T extends Object> Stream<T> effect(final Stream<T> stream, final Procedure1<? super T> listener) {
     final Function1<T, T> _function = new Function1<T, T>() {
@@ -2092,8 +2056,7 @@ public class StreamExtensions {
   }
   
   /**
-   * Perform some side-effect action based on the stream. It will not
-   * really affect the stream itself.
+   * Perform some side-effect action based on the stream.
    */
   public static <K extends Object, T extends Object> Stream<Pair<K, T>> effect(final Stream<Pair<K, T>> stream, final Procedure2<? super K, ? super T> listener) {
     final Function1<Pair<K, T>, Pair<K, T>> _function = new Function1<Pair<K, T>, Pair<K, T>>() {

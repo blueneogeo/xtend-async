@@ -45,8 +45,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
       }
     };
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
-    boolean _not = (!_all);
-    if (_not) {
+    if (_all) {
       this.publish();
     }
   }
