@@ -2020,12 +2020,11 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <T extends Object> Task onEach(final Stream<T> stream, final Function1<? super T, ? extends Task> taskFn) {
+  public static <T extends Object> Task onEachAsync(final Stream<T> stream, final Function1<? super T, ? extends Task> taskFn) {
     Stream<Task> _map = StreamExtensions.<T, Task>map(stream, taskFn);
     Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map);
-    final Function1<Boolean, Task> _function = new Function1<Boolean, Task>() {
-      public Task apply(final Boolean it) {
-        return null;
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
       }
     };
     Task _onEach = StreamExtensions.<Boolean>onEach(_resolve, _function);
@@ -2042,12 +2041,11 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <K extends Object, V extends Object> Task onEach(final Stream<Pair<K, V>> stream, final Function2<? super K, ? super V, ? extends Task> taskFn) {
+  public static <K extends Object, V extends Object> Task onEachAsync(final Stream<Pair<K, V>> stream, final Function2<? super K, ? super V, ? extends Task> taskFn) {
     Stream<Task> _map = StreamExtensions.<K, V, Task>map(stream, taskFn);
     Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map);
-    final Function1<Boolean, Task> _function = new Function1<Boolean, Task>() {
-      public Task apply(final Boolean it) {
-        return null;
+    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
       }
     };
     Task _onEach = StreamExtensions.<Boolean>onEach(_resolve, _function);

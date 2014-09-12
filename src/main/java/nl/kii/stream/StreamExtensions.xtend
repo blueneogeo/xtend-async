@@ -950,7 +950,7 @@ class StreamExtensions {
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <T> Task onEach(Stream<T> stream, (T)=>Task taskFn) {
+	def static <T> Task onEachAsync(Stream<T> stream, (T)=>Task taskFn) {
 		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
 		] => [ stream.operation = 'onEach(async)' ]
@@ -961,7 +961,7 @@ class StreamExtensions {
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <K, V> Task onEach(Stream<Pair<K, V>> stream, (K, V)=>Task taskFn) {
+	def static <K, V> Task onEachAsync(Stream<Pair<K, V>> stream, (K, V)=>Task taskFn) {
 		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
 		] => [ stream.operation = 'onEach(async)' ]
