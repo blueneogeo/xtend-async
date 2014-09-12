@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
@@ -26,7 +27,7 @@ public class TestPromiseExtensions {
   public void testFuture() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = PromiseExtensions.<Integer>future(promise);
+      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
       PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf(2));
       boolean _isDone = future.isDone();
       Assert.assertTrue(_isDone);
@@ -41,7 +42,7 @@ public class TestPromiseExtensions {
   public void testFutureError() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = PromiseExtensions.<Integer>future(promise);
+      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
       Exception _exception = new Exception();
       promise.error(_exception);
       try {

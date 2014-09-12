@@ -1,7 +1,5 @@
 package nl.kii.stream.test;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,9 +11,10 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamSubscription;
+import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamMonitor;
+import nl.kii.stream.StreamObserver;
 import nl.kii.stream.Value;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -27,6 +26,58 @@ import org.junit.Test;
 @SuppressWarnings("all")
 public class TestStream {
   private final ExecutorService threads = Executors.newCachedThreadPool();
+  
+  @Test
+  public void testObservingAStream() {
+    IntegerRange _upTo = new IntegerRange(1, 3);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
+    s.monitor(new StreamMonitor() {
+      public void onNext() {
+        InputOutput.<String>println("next!");
+      }
+      
+      public void onSkip() {
+        InputOutput.<String>println("skip!");
+      }
+      
+      public void onClose() {
+        InputOutput.<String>println("close!");
+      }
+    });
+    s.observe(new StreamObserver<Integer>() {
+      public void onValue(final Integer value) {
+        try {
+          InputOutput.<String>println(("value: " + value));
+          if (((value).intValue() == 2)) {
+            throw new Exception("boo!");
+          }
+          s.next();
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+      
+      public boolean onError(final Throwable t) {
+        boolean _xblockexpression = false;
+        {
+          InputOutput.<String>println(("error:" + t));
+          s.next();
+          _xblockexpression = true;
+        }
+        return _xblockexpression;
+      }
+      
+      public void onFinish(final int level) {
+        InputOutput.<String>println("finished");
+        s.next();
+      }
+      
+      public void onClosed() {
+        InputOutput.<String>println("closed");
+      }
+    });
+    s.next();
+  }
   
   @Test
   public void testUnbufferedStream() {
@@ -61,25 +112,6 @@ public class TestStream {
   }
   
   @Test
-  public void testCount() {
-    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4))));
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 2) == 0));
-      }
-    };
-    Stream<Integer> _split = StreamExtensions.<Integer>split(_stream, _function);
-    Stream<List<Integer>> _collect = StreamExtensions.<Integer>collect(_split);
-    Stream<List<List<Integer>>> _collect_1 = StreamExtensions.<List<Integer>>collect(_collect);
-    final Procedure1<List<List<Integer>>> _function_1 = new Procedure1<List<List<Integer>>>() {
-      public void apply(final List<List<Integer>> it) {
-        InputOutput.<List<List<Integer>>>println(it);
-      }
-    };
-    StreamExtensions.<List<List<Integer>>>onEach(_collect_1, _function_1);
-  }
-  
-  @Test
   public void testBufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
     Stream<Integer> _stream = new Stream<Integer>();
@@ -109,14 +141,19 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<StreamSubscription<Integer>> _function = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestStream.this.incCounter(it);
           }
         };
         it.each(_function);
+        final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+          }
+        };
+        it.finish(_function_1);
       }
     };
     StreamExtensions.<Integer>on(s, _function);
@@ -165,8 +202,8 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_map, Integer.valueOf(4));
     Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(6));
-    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestStream.this.setResult(it);
@@ -240,14 +277,19 @@ public class TestStream {
     Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, _finish_1);
     Stream<Integer> _doubleLessThan_6 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(6));
     final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(7));
-    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             result.set((it).intValue());
           }
         };
         it.each(_function);
+        final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+          }
+        };
+        it.finish(_function_1);
       }
     };
     StreamExtensions.<Integer>on(s2, _function_1);

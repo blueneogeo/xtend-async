@@ -8,9 +8,10 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamSubscription;
+import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
@@ -24,19 +25,24 @@ public class StreamAssert {
     LinkedList<Entry<T>> _xblockexpression = null;
     {
       final LinkedList<Entry<T>> data = new LinkedList<Entry<T>>();
-      final Procedure1<StreamSubscription<T>> _function = new Procedure1<StreamSubscription<T>>() {
-        public void apply(final StreamSubscription<T> it) {
-          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-            public void apply(final Throwable it) {
-              nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(it);
-              data.add(_error);
-              stream.next();
+      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
+        public void apply(final StreamHandlerBuilder<T> it) {
+          final Function1<Throwable, Boolean> _function = new Function1<Throwable, Boolean>() {
+            public Boolean apply(final Throwable it) {
+              boolean _xblockexpression = false;
+              {
+                nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(it);
+                data.add(_error);
+                stream.next();
+                _xblockexpression = true;
+              }
+              return Boolean.valueOf(_xblockexpression);
             }
           };
           it.error(_function);
-          final Procedure1<Finish<T>> _function_1 = new Procedure1<Finish<T>>() {
-            public void apply(final Finish<T> it) {
-              Finish<T> _finish = new Finish<T>(it.level);
+          final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+            public void apply(final Integer it) {
+              Finish<T> _finish = new Finish<T>((it).intValue());
               data.add(_finish);
               stream.next();
             }

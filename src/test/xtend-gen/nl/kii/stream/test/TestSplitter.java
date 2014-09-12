@@ -5,7 +5,7 @@ import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamSubscription;
+import nl.kii.stream.StreamHandlerBuilder;
 import nl.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
@@ -27,8 +27,8 @@ public class TestSplitter {
     StreamSource<Integer> _split = StreamExtensions.<Integer>split(source);
     StreamSource<Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamSubscription<Integer>> _function = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -38,8 +38,8 @@ public class TestSplitter {
       }
     };
     StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
@@ -91,8 +91,8 @@ public class TestSplitter {
     StreamSource<Integer> _balance = StreamExtensions.<Integer>balance(source);
     StreamSource<Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamSubscription<Integer>> _function = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -102,8 +102,8 @@ public class TestSplitter {
       }
     };
     StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamSubscription<Integer>> _function_1 = new Procedure1<StreamSubscription<Integer>>() {
-      public void apply(final StreamSubscription<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));

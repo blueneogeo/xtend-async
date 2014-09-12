@@ -8,6 +8,7 @@ import nl.kii.stream.Error
 import nl.kii.stream.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import nl.kii.async.AsyncException
 
 interface IPromise<T> extends Procedure1<Entry<T>> {
 	
@@ -30,6 +31,13 @@ class Promise<T> implements IPromise<T> {
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
+
+
+	/** Property to see if the promise has an error handler assigned */
+	@Atomic public val boolean hasErrorHandler = false
+
+	/** Property to see if the promise has a value handler assigned */
+	@Atomic public val boolean hasValueHandler = false
 
 	/** The result of the promise, if any, otherwise null */
 	@Atomic protected val Entry<T> entry
@@ -77,6 +85,10 @@ class Promise<T> implements IPromise<T> {
 		publisher.apply(it)
 	}
 	
+	def getPublisher() {
+		publisher
+	}
+	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/** If the promise recieved or recieves an error, onError is called with the throwable */
@@ -91,6 +103,7 @@ class Promise<T> implements IPromise<T> {
 				} 
 			}
 		])
+		hasErrorHandler = true
 		// if there is an entry, push it so this handler will get it
 		if(entry != null) publisher.apply(entry)
 		this
@@ -109,9 +122,10 @@ class Promise<T> implements IPromise<T> {
 					}
 				}
 			} catch(Exception e) {
-				error(e)
+				error(new AsyncException('Promise.then gave error for', it, e))
 			}
 		])
+		hasValueHandler = true
 		// if there is an entry, push it so this handler will get it
 		if(entry != null) publisher.apply(entry)
 		this
@@ -137,12 +151,4 @@ class Task extends Promise<Boolean> {
 	
 	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?>», error: «(get as Error<?>).error»«ENDIF» }'''
 
-}
-
-/** Thrown when some error occurred during a promise */
-class PromiseException extends Exception {
-	
-	new(String msg) { super(msg) }
-	new(String msg, Exception e) { super(msg, e) }
-	
 }

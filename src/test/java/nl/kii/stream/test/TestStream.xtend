@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Error
 import nl.kii.stream.Stream
+import nl.kii.stream.StreamObserver
 import nl.kii.stream.Value
 import org.junit.Assert
 import org.junit.Test
@@ -13,10 +14,46 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.stream.StreamMonitor
 
 class TestStream {
 
 	val threads = newCachedThreadPool
+
+	@Test
+	def void testObservingAStream() {
+		val s = (1..3).stream
+		s.monitor(new StreamMonitor {
+			override onNext() { println('next!') }
+			override onSkip() { println('skip!') }
+			override onClose() { println('close!') }
+		})
+		s.observe(new StreamObserver<Integer> {
+			override onValue(Integer value) {
+				println('value: ' + value)
+				if(value == 2) throw new Exception('boo!')
+				s.next
+			}
+			override onError(Throwable t) {
+				println('error:' + t)
+				s.next
+				true
+			}
+			override onFinish(int level) {
+				println('finished')
+				s.next
+			}
+			override onClosed() {
+				println('closed')
+			}
+		})
+			// .then [ println('done!') ]
+			// .onError [ println('caught: ' + it)]
+		// s << 1 << 2 << 3
+
+		s.next
+	}
+
 
 	@Test
 	def void testUnbufferedStream() {
@@ -32,15 +69,6 @@ class TestStream {
 		assertEquals(8, counter.get)
 	}
 	
-	@Test
-	def void testCount() {
-		#[1, 2, 3, 4].stream
-			.split [ it % 2 == 0 ]
-			.collect
-			.collect
-			.onEach [ println(it) ]		
-	}
-
 	@Test
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
@@ -58,6 +86,7 @@ class TestStream {
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
 		s.on [
 			each [ incCounter(it) ]
+			finish [ ]
 		]
 		s.next
 		assertEquals(1, counter) // next pushes the first number onto the stream
@@ -122,6 +151,7 @@ class TestStream {
 		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
 		s2.on [
 			each [ result.set(it) ]
+			finish [ ]
 		]
 		s2.next // ask the next from the substream
 		assertEquals(4, result.get) // which should be the first buffered value

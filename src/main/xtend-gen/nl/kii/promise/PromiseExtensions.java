@@ -1,11 +1,11 @@
 package nl.kii.promise;
 
+import com.google.common.base.Objects;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
-import nl.kii.promise.PromiseFuture;
+import nl.kii.promise.PromiseException;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
@@ -316,10 +316,6 @@ public class PromiseExtensions {
       final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> s) {
           StreamExtensions.<T>pipe(s, newStream);
-          Boolean _isReady = newStream.isReady();
-          if ((_isReady).booleanValue()) {
-            s.next();
-          }
         }
       };
       _onError.then(_function_1);
@@ -494,6 +490,35 @@ public class PromiseExtensions {
   }
   
   /**
+   * Handle errors on the stream.  This will swallow the error from the stream.
+   * If the error is a StreamException and contains a value, that value will be passed
+   * as the second parameter. Otherwise it is null. Since most stream operators throw
+   * StreamExceptions with the entry when an error occurs, this way you get access
+   * to for which value the error occurred
+   * @return a new stream like the incoming stream but without the caught errors.
+   */
+  public static <T extends Object> IPromise<T> onError(final IPromise<T> promise, final Procedure2<? super Throwable, ? super T> listener) {
+    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      public void apply(final Throwable t) {
+        boolean _matched = false;
+        if (!_matched) {
+          if (t instanceof PromiseException) {
+            boolean _notEquals = (!Objects.equal(((PromiseException)t).value, null));
+            if (_notEquals) {
+              _matched=true;
+              listener.apply(t, ((T) ((PromiseException)t).value));
+            }
+          }
+        }
+        if (!_matched) {
+          listener.apply(t, null);
+        }
+      }
+    };
+    return promise.onError(_function);
+  }
+  
+  /**
    * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
    * See chain2() for example of how to use.
    */
@@ -506,42 +531,6 @@ public class PromiseExtensions {
       }
     };
     return promise.then(_function);
-  }
-  
-  /**
-   * Fork a single promise into a list of promises
-   * Note that the original promise is then being listened to and you
-   * can no longer perform .then and .onError on it.
-   */
-  public static <T extends Object> IPromise<T>[] fork(final IPromise<T> promise, final int amount) {
-    IPromise<T>[] _xblockexpression = null;
-    {
-      final IPromise<T>[] promises = new IPromise[amount];
-      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-        public void apply(final Throwable t) {
-          final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
-            public void apply(final IPromise<T> p) {
-              p.error(t);
-            }
-          };
-          IterableExtensions.<IPromise<T>>forEach(((Iterable<IPromise<T>>)Conversions.doWrapArray(promises)), _function);
-        }
-      };
-      IPromise<T> _onError = promise.onError(_function);
-      final Procedure1<T> _function_1 = new Procedure1<T>() {
-        public void apply(final T value) {
-          final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
-            public void apply(final IPromise<T> p) {
-              p.set(value);
-            }
-          };
-          IterableExtensions.<IPromise<T>>forEach(((Iterable<IPromise<T>>)Conversions.doWrapArray(promises)), _function);
-        }
-      };
-      _onError.then(_function_1);
-      _xblockexpression = promises;
-    }
-    return _xblockexpression;
   }
   
   /**
@@ -566,12 +555,7 @@ public class PromiseExtensions {
         target.apply(it);
       }
     };
-    IPromise<T> _always = PromiseExtensions.<T>always(promise, _function);
-    final Procedure1<T> _function_1 = new Procedure1<T>() {
-      public void apply(final T it) {
-      }
-    };
-    return _always.then(_function_1);
+    return PromiseExtensions.<T>always(promise, _function);
   }
   
   /**
@@ -590,16 +574,5 @@ public class PromiseExtensions {
       }
     };
     return _onError.then(_function_1);
-  }
-  
-  /**
-   * Convert a promise into a Future.
-   * Promises are non-blocking. However you can convert to a Future
-   * if you must block and wait for a promise to resolve.
-   * <pre>
-   * val result = promise.future.get // blocks code until the promise is fulfilled
-   */
-  public static <T extends Object> Future<T> future(final IPromise<T> promise) {
-    return new PromiseFuture<T>(promise);
   }
 }

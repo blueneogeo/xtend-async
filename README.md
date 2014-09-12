@@ -4,9 +4,9 @@ Xtend-async provides asynchronous streams, promises and functions to Xtend. It c
 
 Main features:
 
-- non-blocking and thread-safe 
-- optimized for asynchronous programming
-- integration between promises and streams
+- easy to use, beautiful syntax
+- asynchronous, non-blocking and thread-safe 
+- integrates the concepts of streaming and promising
 
 Some features are:
 
@@ -16,8 +16,9 @@ Some features are:
 - support for RX-like batches, which is useful for aggregation.
 - clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
 - flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream
-- internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool 
-- streams and promises can be hard to debug because they encapsulate errors. xtend-streams lets you choose: throw errors as they occur, or catch them at the end
+- internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool
+- streams and promises in xtend-stream encapsulate errors thrown in your handlers and propagate them so you can listen for then. 
+- streams and promises can be hard to debug because they encapsulate errors with long stack traces. Xtend-stream tries to find the root cause and presents it to you directly.
 
 # QUICK EXAMPLES
 

@@ -1,15 +1,16 @@
 package nl.kii.promise;
 
-/**
- * Thrown when some error occurred during a promise
- */
 @SuppressWarnings("all")
 public class PromiseException extends Exception {
-  public PromiseException(final String msg) {
-    super(msg);
+  public final Object value;
+  
+  public PromiseException(final String message, final Object value) {
+    super(((message + ": ") + value));
+    this.value = value;
   }
   
-  public PromiseException(final String msg, final Exception e) {
-    super(msg, e);
+  public PromiseException(final String message, final Object value, final Throwable cause) {
+    super(((message + ": ") + value), cause);
+    this.value = value;
   }
 }

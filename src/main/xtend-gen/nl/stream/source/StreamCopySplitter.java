@@ -9,7 +9,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamNotification;
+import nl.kii.stream.StreamCommand;
 import nl.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -50,7 +50,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     }
   }
   
-  protected void onCommand(@Extension final StreamNotification msg) {
+  protected void onCommand(@Extension final StreamCommand msg) {
     boolean _matched = false;
     if (!_matched) {
       if (msg instanceof Next) {

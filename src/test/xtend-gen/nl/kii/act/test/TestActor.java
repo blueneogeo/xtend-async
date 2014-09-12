@@ -1,15 +1,22 @@
 package nl.kii.act.test;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
+import nl.kii.async.annotation.Async;
+import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
+import nl.kii.stream.Stream;
+import nl.kii.stream.StreamExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -40,11 +47,13 @@ public class TestActor {
       "time to go!", greeter);
   }
   
+  @Atomic
+  private final AtomicReference<Actor<Integer>> _decreaser = new AtomicReference<Actor<Integer>>();
+  
   @Test
   public void testAsyncCrosscallingActors() {
     try {
       final AtomicInteger doneCounter = new AtomicInteger(0);
-      final AtomicReference<Actor<Integer>> decrease = new AtomicReference<Actor<Integer>>();
       final ExecutorService threads = Executors.newCachedThreadPool();
       final Procedure1<Integer> _function = new Procedure1<Integer>() {
         public void apply(final Integer y) {
@@ -55,8 +64,8 @@ public class TestActor {
                 if ((y <= 0)) {
                   doneCounter.incrementAndGet();
                 } else {
-                  Actor<Integer> _get = decrease.get();
-                  ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf(y), _get);
+                  Actor<Integer> _decreaser = TestActor.this.getDecreaser();
+                  ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf(y), _decreaser);
                 }
               } catch (Throwable _e) {
                 throw Exceptions.sneakyThrow(_e);
@@ -78,7 +87,7 @@ public class TestActor {
         }
       };
       Actor<Integer> _actor = ActorExtensions.<Integer>actor(_function_1);
-      decrease.set(_actor);
+      this.setDecreaser(_actor);
       ActorExtensions.<Integer>operator_doubleLessThan(checkDone, Integer.valueOf(100));
       ActorExtensions.<Integer>operator_doubleLessThan(checkDone, Integer.valueOf(300));
       ActorExtensions.<Integer>operator_doubleLessThan(checkDone, Integer.valueOf(200));
@@ -90,57 +99,428 @@ public class TestActor {
     }
   }
   
+  @Atomic
+  private final AtomicInteger _actorCounter = new AtomicInteger(0);
+  
+  @Atomic
+  private final AtomicInteger _functCounter = new AtomicInteger(0);
+  
+  @Atomic
+  private final AtomicInteger _unsyncedCounter = new AtomicInteger(0);
+  
+  @Atomic
+  private final AtomicInteger _syncedCounter = new AtomicInteger(0);
+  
+  public Integer unsynced() {
+    return this.incSyncedCounter();
+  }
+  
+  public synchronized Integer synced() {
+    return this.incSyncedCounter();
+  }
+  
+  /**
+   * Test of actor versus function calls, method calls and synchronized method calls,
+   * under a single threaded load.
+   * <p>
+   * Synchronized calls seem to be about twice as slow as functions and unsynced methods.
+   * Actors are about 3x as slow as synchronized methods.
+   */
   @Test
-  public void testActorLoad() {
-    abstract class __TestActor_1 extends Actor<Integer> {
-      int counter;
+  public void testActorRelativeSingleThreadedPerformance() {
+    final IntegerRange iterations = new IntegerRange(1, 10000000);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return TestActor.this.incFunctCounter();
+      }
+    };
+    final Function1<Integer, Integer> funct = _function;
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        TestActor.this.incActorCounter();
+      }
+    };
+    final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
+    IntegerRange _upTo = new IntegerRange(1, 20000000);
+    for (final Integer i : _upTo) {
+      actor.apply(i);
     }
-    
-    try {
-      final __TestActor_1 actor = new __TestActor_1() {
-        {
-          counter = 0;
+    final Procedure0 _function_2 = new Procedure0() {
+      public void apply() {
+        for (final Integer i : iterations) {
+          funct.apply(i);
         }
-        protected void act(final Integer message, final Procedure0 done) {
-          int _counter = this.counter;
-          this.counter = (_counter + (message).intValue());
-          done.apply();
+      }
+    };
+    final long functTimeMs = this.measure(_function_2);
+    InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
+    final Procedure0 _function_3 = new Procedure0() {
+      public void apply() {
+        for (final Integer i : iterations) {
+          TestActor.this.unsynced();
+        }
+      }
+    };
+    final long unsyncedTimeMs = this.measure(_function_3);
+    InputOutput.<String>println(("unsynced method took: " + Long.valueOf(unsyncedTimeMs)));
+    final Procedure0 _function_4 = new Procedure0() {
+      public void apply() {
+        for (final Integer i : iterations) {
+          TestActor.this.synced();
+        }
+      }
+    };
+    final long syncedTimeMs = this.measure(_function_4);
+    InputOutput.<String>println(("synced method took: " + Long.valueOf(syncedTimeMs)));
+    final Procedure0 _function_5 = new Procedure0() {
+      public void apply() {
+        for (final Integer i : iterations) {
+          actor.apply(i);
+        }
+      }
+    };
+    final long actorTimeMs = this.measure(_function_5);
+    InputOutput.<String>println(("actor took: " + Long.valueOf(actorTimeMs)));
+  }
+  
+  /**
+   * Test of actor versus function calls, method calls and synchronized method calls,
+   * under a multithreaded load.
+   * <p>
+   * Synchronized calls seem to be about twice as slow as functions and unsynced methods.
+   * Actors are about 3x as slow as synchronized methods.
+   * <p>
+   * Interestingly this is about the same as under singlethreaded load.
+   */
+  @Test
+  public void testActorRelativeMultiThreadedPerformance() {
+    try {
+      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+        public Integer apply(final Integer it) {
+          return TestActor.this.incFunctCounter();
         }
       };
-      final ExecutorService threads = Executors.newCachedThreadPool();
-      IntegerRange _upTo = new IntegerRange(1, 10);
+      final Function1<Integer, Integer> funct = _function;
+      final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          TestActor.this.incActorCounter();
+        }
+      };
+      final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
+      IntegerRange _upTo = new IntegerRange(1, 20000000);
+      for (final Integer i : _upTo) {
+        actor.apply(i);
+      }
+      final IntegerRange iterations = new IntegerRange(1, 1000000);
+      final int threads = 10;
+      Task _complete = PromiseExtensions.complete();
+      final Function1<Boolean, Promise<Long>> _function_2 = new Function1<Boolean, Promise<Long>>() {
+        public Promise<Long> apply(final Boolean it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                funct.apply(i);
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      IPromise<Long> _call = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_complete, _function_2);
+      final Procedure1<Long> _function_3 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("function took: " + it));
+        }
+      };
+      IPromise<Long> _then = _call.then(_function_3);
+      final Function1<Long, Promise<Long>> _function_4 = new Function1<Long, Promise<Long>>() {
+        public Promise<Long> apply(final Long it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                TestActor.this.unsynced();
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      IPromise<Long> _call_1 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then, _function_4);
+      final Procedure1<Long> _function_5 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("unsynced method took: " + it));
+        }
+      };
+      IPromise<Long> _then_1 = _call_1.then(_function_5);
+      final Function1<Long, Promise<Long>> _function_6 = new Function1<Long, Promise<Long>>() {
+        public Promise<Long> apply(final Long it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                TestActor.this.synced();
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      IPromise<Long> _call_2 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then_1, _function_6);
+      final Procedure1<Long> _function_7 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("synced method took: " + it));
+        }
+      };
+      IPromise<Long> _then_2 = _call_2.then(_function_7);
+      final Function1<Long, Promise<Long>> _function_8 = new Function1<Long, Promise<Long>>() {
+        public Promise<Long> apply(final Long it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                actor.apply(i);
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      IPromise<Long> _call_3 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then_2, _function_8);
+      final Procedure1<Long> _function_9 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("actor took: " + it));
+        }
+      };
+      IPromise<Long> _then_3 = _call_3.then(_function_9);
+      Future<Long> _future = ExecutorExtensions.<Long>future(_then_3);
+      _future.get();
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  /**
+   * List processing vs Stream processing.
+   * <p>
+   * In this example, in small lists, the difference is performance is about a factor 2.
+   * <p>
+   * When the lists grow in size and are constantly pushed, it seems the GC can't keep
+   * up and the difference grows to a factor 100 for lists of 100_000 items (processed a 1000 times).
+   * <p>
+   * In normal use cases the stream/list processing will not be the heaviest operation, but this
+   * does mean there is room for optimisation.
+   */
+  @Test
+  public void testStreamRelativeSingleThreadedPerformance() {
+    final int iterations = 1000;
+    final int listSize = 1000;
+    final IntegerRange list = new IntegerRange(1, listSize);
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+          public Integer apply(final Integer it) {
+            return Integer.valueOf(((it).intValue() + 1000));
+          }
+        };
+        Iterable<Integer> _map = IterableExtensions.<Integer, Integer>map(list, _function);
+        final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+          public Boolean apply(final Integer it) {
+            return Boolean.valueOf((((it).intValue() % 2) == 0));
+          }
+        };
+        Iterable<Integer> _filter = IterableExtensions.<Integer>filter(_map, _function_1);
+        final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            TestActor.this.incFunctCounter();
+          }
+        };
+        IterableExtensions.<Integer>forEach(_filter, _function_2);
+      }
+    };
+    final Procedure1<Integer> funct = _function;
+    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        Stream<Integer> _stream = StreamExtensions.<Integer>stream(list);
+        final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+          public Integer apply(final Integer it) {
+            return Integer.valueOf(((it).intValue() + 1000));
+          }
+        };
+        Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
+        final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+          public Boolean apply(final Integer it) {
+            return Boolean.valueOf((((it).intValue() % 2) == 0));
+          }
+        };
+        Stream<Integer> _filter = StreamExtensions.<Integer>filter(_map, _function_1);
+        final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+          public void apply(final Integer it) {
+            TestActor.this.incActorCounter();
+          }
+        };
+        StreamExtensions.<Integer>onEach(_filter, _function_2);
+      }
+    };
+    final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
+    IntegerRange _upTo = new IntegerRange(1, 100);
+    for (final Integer i : _upTo) {
+      actor.apply(i);
+    }
+    final Procedure0 _function_2 = new Procedure0() {
+      public void apply() {
+        IntegerRange _upTo = new IntegerRange(1, iterations);
+        for (final Integer i : _upTo) {
+          funct.apply(i);
+        }
+      }
+    };
+    final long functTimeMs = this.measure(_function_2);
+    InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
+    final Procedure0 _function_3 = new Procedure0() {
+      public void apply() {
+        IntegerRange _upTo = new IntegerRange(1, iterations);
+        for (final Integer i : _upTo) {
+          actor.apply(i);
+        }
+      }
+    };
+    final long streamTimeMs = this.measure(_function_3);
+    InputOutput.<String>println(("stream took: " + Long.valueOf(streamTimeMs)));
+  }
+  
+  /**
+   * measure the duration of an action
+   */
+  public long measure(final Procedure0 actionFn) {
+    long _xblockexpression = (long) 0;
+    {
+      final long start = System.currentTimeMillis();
+      actionFn.apply();
+      final long end = System.currentTimeMillis();
+      _xblockexpression = (end - start);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * measure the duration of an action executed on multiple threads at once
+   */
+  @Async
+  public Promise<Long> measure(final int threads, final Procedure0 actionFn) {
+    Promise<Long> _xblockexpression = null;
+    {
+      final ExecutorService pool = Executors.newFixedThreadPool(threads);
+      final long start = System.currentTimeMillis();
+      IntegerRange _upTo = new IntegerRange(1, threads);
+      Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
       final Function1<Integer, Task> _function = new Function1<Integer, Task>() {
         public Task apply(final Integer it) {
           final Runnable _function = new Runnable() {
             public void run() {
-              IntegerRange _upTo = new IntegerRange(1, 100000);
-              for (final Integer i : _upTo) {
-                ActorExtensions.<Integer>operator_doubleLessThan(actor, Integer.valueOf(1));
-              }
+              actionFn.apply();
             }
           };
-          return ExecutorExtensions.task(threads, _function);
+          return ExecutorExtensions.task(pool, _function);
         }
       };
-      Iterable<Task> _map = IterableExtensions.<Integer, Task>map(_upTo, _function);
-      Task _all = PromiseExtensions.all(_map);
-      final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-        public void apply(final Boolean it) {
-          InputOutput.<String>println("done");
+      Stream<Task> _map = StreamExtensions.<Integer, Task>map(_stream, _function);
+      Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map, threads);
+      Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_resolve);
+      IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
+      final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {
+        public Long apply(final List<Boolean> it) {
+          long _currentTimeMillis = System.currentTimeMillis();
+          return Long.valueOf((_currentTimeMillis - start));
         }
       };
-      IPromise<Boolean> _then = _all.then(_function_1);
-      final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          String _message = it.getMessage();
-          Assert.fail(_message);
-        }
-      };
-      _then.onError(_function_2);
-      Thread.sleep(500);
-      Assert.assertEquals(1000000, actor.counter);
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
+      _xblockexpression = PromiseExtensions.<List<Boolean>, Long>map(_first, _function_1);
     }
+    return _xblockexpression;
+  }
+  
+  private Actor<Integer> setDecreaser(final Actor<Integer> value) {
+    return this._decreaser.getAndSet(value);
+  }
+  
+  private Actor<Integer> getDecreaser() {
+    return this._decreaser.get();
+  }
+  
+  private Integer setActorCounter(final Integer value) {
+    return this._actorCounter.getAndSet(value);
+  }
+  
+  private Integer getActorCounter() {
+    return this._actorCounter.get();
+  }
+  
+  private Integer incActorCounter() {
+    return this._actorCounter.incrementAndGet();
+  }
+  
+  private Integer decActorCounter() {
+    return this._actorCounter.decrementAndGet();
+  }
+  
+  private Integer incActorCounter(final Integer value) {
+    return this._actorCounter.addAndGet(value);
+  }
+  
+  private Integer setFunctCounter(final Integer value) {
+    return this._functCounter.getAndSet(value);
+  }
+  
+  private Integer getFunctCounter() {
+    return this._functCounter.get();
+  }
+  
+  private Integer incFunctCounter() {
+    return this._functCounter.incrementAndGet();
+  }
+  
+  private Integer decFunctCounter() {
+    return this._functCounter.decrementAndGet();
+  }
+  
+  private Integer incFunctCounter(final Integer value) {
+    return this._functCounter.addAndGet(value);
+  }
+  
+  private Integer setUnsyncedCounter(final Integer value) {
+    return this._unsyncedCounter.getAndSet(value);
+  }
+  
+  private Integer getUnsyncedCounter() {
+    return this._unsyncedCounter.get();
+  }
+  
+  private Integer incUnsyncedCounter() {
+    return this._unsyncedCounter.incrementAndGet();
+  }
+  
+  private Integer decUnsyncedCounter() {
+    return this._unsyncedCounter.decrementAndGet();
+  }
+  
+  private Integer incUnsyncedCounter(final Integer value) {
+    return this._unsyncedCounter.addAndGet(value);
+  }
+  
+  private Integer setSyncedCounter(final Integer value) {
+    return this._syncedCounter.getAndSet(value);
+  }
+  
+  private Integer getSyncedCounter() {
+    return this._syncedCounter.get();
+  }
+  
+  private Integer incSyncedCounter() {
+    return this._syncedCounter.incrementAndGet();
+  }
+  
+  private Integer decSyncedCounter() {
+    return this._syncedCounter.decrementAndGet();
+  }
+  
+  private Integer incSyncedCounter(final Integer value) {
+    return this._syncedCounter.addAndGet(value);
   }
 }

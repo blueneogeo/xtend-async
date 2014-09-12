@@ -1,11 +1,12 @@
 package nl.kii.stream
-
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
 
 import static com.google.common.collect.Queues.*
+import nl.kii.promise.Task
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -22,19 +23,23 @@ import static com.google.common.collect.Queues.*
  * <li>wraps errors and lets you listen for them at the end of the stream chain
  * </ul>
  */
-class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
+class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage>, Observable<Entry<T>> {
 
-	val Queue<Entry<T>> queue
+	val Queue<Entry<T>> queue // queue for incoming values, for buffering when there is no ready listener
 
-	@Atomic val boolean open = true
-	@Atomic val boolean ready = false
-	@Atomic val boolean skipping = false
+	@Atomic val boolean open = true // whether the stream is open
+	@Atomic val boolean ready = false // whether the listener is ready
+	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
 
-	@Atomic val (Entry<T>)=>void entryListener
-	@Atomic val (StreamNotification)=>void notifyListener
+	@Atomic val (Entry<T>)=>void entryListener // listener for entries from the stream queue
+	@Atomic val (StreamCommand)=>void commandListener // listener for next, skip and close commands
+
+	@Atomic public val String operation // name of the operation the listener is performing
 
 	/** create the stream with a memory concurrent queue */
-	new() { this(newConcurrentLinkedQueue) }
+	new() { 
+		this(newConcurrentLinkedQueue)
+	}
 
 	/** create the stream with a memory concurrent queue and the given initial values */
 	new(T... initalValues) {
@@ -43,7 +48,9 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	}
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue) { this.queue = queue }
+	new(Queue<Entry<T>> queue) { 
+		this.queue = queue
+	}
 	
 	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
 	def getQueue() { queue.unmodifiableView	}
@@ -84,28 +91,92 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	
 	/** 
 	 * Listen for changes on the stream. There can only be a single change listener.
-	 * this is used mostly internally, and you are encouraged to use the StreamExtensions
-	 * instead. If you need more than one listener, use a StreamObserver by calling StreamExtensions.observe.
-	 * The entryListener must be non blocking.
+	 * <p>
+	 * this is used mostly internally, and you are encouraged to use .observe() or
+	 * the StreamExtensions instead.
+	 * @return unsubscribe function
 	 */
 	override =>void onChange((Entry<T>)=>void entryListener) {
 		this.entryListener = entryListener
 		return [| this.entryListener = null ]
 	}
 	
-	/**
-	 * Listen for notifications from the stream. This is used mostly when chaining streams
-	 * together and allows streams to inform eachother on actions taken.
+	/** 
+	 * Listen for commands given to the stream. There can only be a single command listener.
+	 * <p>
+	 * this is used mostly internally, and you are encouraged to use .monitor() or
+	 * the StreamExtensions instead.
+	 * @return unsubscribe function
 	 */
-	def void onNotification((StreamNotification)=>void notifyListener) {
-		this.notifyListener = notifyListener
+	def =>void onCommand((StreamCommand)=>void commandListener) {
+		this.commandListener = commandListener
+		return [| this.commandListener = null ]
+	}
+	
+	/**
+	 * Observe the entries coming off this stream using a StreamObserver.
+	 * Note that you can only have ONE stream observer for every stream!
+	 * If you want more than one observer, you can split the stream.
+	 * <p>
+	 * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
+	 * instead, for a more concise and elegant builder syntax.
+	 * <p>
+	 * @return a Task that can be listened to for an error, or for completion if
+	 * all values were processed (until finish or close).
+	 * <p>
+	 * @throws UncaughtStreamException if you have no onError listener(s) for the returned task.
+	 * <p>
+	 * Even if you process an error, the error is always exported. If the task has
+	 * an error listener, the error is passed to that task. If the task has no
+	 * error listener, then an UncaughtStreamException will be thrown.
+	 * <p>
+	 * To prevent errors from passing down the stream, you have to filter them. You can do this
+	 * by using the StreamExtensions.onError[] extension (or write your own filter).
+	 */
+	def observe(StreamObserver<T> observer) {
+		val task = new Task
+		operation = 'observe'
+		onChange [ entry |
+			// println('performing ' + operation + ' on ' + entry)
+			switch it : entry {
+				Value<T>: observer.onValue(value)
+				Finish<T>: { observer.onFinish(level) if(level==0) task.complete }
+				Error<T>: {
+					val escalate = observer.onError(error)
+					if(escalate) {
+						if(task.hasErrorHandler) task.error(new StreamException(operation, entry, error)) 
+						else throw new UncaughtStreamException(operation, entry, error)
+					}
+				}
+				Closed<T>: { observer.onClosed task.complete }
+			}
+		]
+		task
+	}
+	
+	/**
+	 * Monitor commands given to this stream.
+	 */
+	def void monitor(StreamMonitor monitor) {
+		onCommand [ message |
+			try {
+				switch it : message {
+					Next: monitor.onNext
+					Skip: monitor.onSkip
+					Close: monitor.onClose
+				}
+			} catch(UncaughtStreamException t) {
+				throw t // these should not be caught but escalated
+			} catch(Exception t) {
+				throw new StreamException(operation, null, t)
+			}
+		]
 	}
 
 	// STREAM INPUT PROCESSING ////////////////////////////////////////////////
 
 	/**
-	 * Process next incoming entry.
-	 * Since the stream extends Actor, there is no more than one thread active.
+	 * Process a single incoming stream message from the actor queue.
 	 */
 	override protected act(StreamMessage entry, =>void done) {
 		if(isOpen) {
@@ -154,7 +225,9 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 	
 	// STREAM PUBLISHING //////////////////////////////////////////////////////
 	
-	/** take an entry from the queue and pass it to the listener */
+	/**
+	 * Publish a single entry from the stream queue.
+	 */
 	def protected boolean publishNext() {
 		if(isOpen && isReady && entryListener != null && !queue.empty) {
 			ready = false
@@ -169,34 +242,31 @@ class Stream<T> extends Actor<StreamMessage> implements Observable<Entry<T>> {
 				// publish the value on the entryListener
 				entryListener.apply(entry)
 				true
+			} catch (UncaughtStreamException e) {
+				// this error is meant to break the publishing loop
+				throw e
 			} catch (Throwable t) {
-				// if we were already processing an error, throw and exit
-				if(entry instanceof Error<?>) throw new StreamException('error handler gave error ' + t.message + ' when handling', entry, t)
+				// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
+				if(entry instanceof Error<?>) {
+					switch t {
+						StreamException: throw t
+						default: throw new StreamException(operation, entry, t)
+					}
+				}
 				// otherwise push the error on the stream
 				ready = true
-				apply(new Error(new StreamException(t.message + ', when handling', entry, t)))
+				apply(new Error(new StreamException(operation, entry, t)))
 				false
 			}
 		} else false
 	}
 
 	/** helper function for informing the notify listener */
-	def protected notify(StreamNotification notification) {
-		if(notifyListener != null)
-			notifyListener.apply(notification)
+	def protected notify(StreamCommand command) {
+		if(commandListener != null)
+			commandListener.apply(command)
 	}
 	
-	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''
-	
-}
-
-class StreamException extends Exception {
-	
-	public val Entry<?> entry
-	
-	new(String message, Entry<?> entry, Throwable cause) {
-		super(message + ': ' + entry, cause)
-		this.entry = entry
-	}
+	override toString() '''Stream { operation: «operation», open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''
 	
 }

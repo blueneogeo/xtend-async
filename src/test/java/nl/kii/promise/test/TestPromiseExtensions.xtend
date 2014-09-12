@@ -1,5 +1,5 @@
 package nl.kii.promise.test
-
+import static extension nl.kii.async.ExecutorExtensions.*
 import java.util.concurrent.ExecutionException
 import nl.kii.promise.Promise
 import org.junit.Test

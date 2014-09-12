@@ -19,3 +19,5 @@
 /TestStreamExtensions.java
 /TestStreamPairExt.java
 /.TestSplitter.java._trace
+/.TestStreamErrorHandling.java._trace
+/.TestStreamObserving.java._trace

@@ -5,21 +5,21 @@ import java.util.List
 /** A message used by streams and promises */
 interface StreamMessage { }
 
-// NOTIFICATIONS //////////////////////////////////////////////////////////////
+// COMMANDS ///////////////////////////////////////////////////////////////////
 
 /** A command given to a stream. 
  * Commands travel upwards towards the source of a stream, to control the stream.
  */
-interface StreamNotification extends StreamMessage { }
+interface StreamCommand extends StreamMessage { }
 
 /** Request the next entry from the stream */
-class Next implements StreamNotification { }
+class Next implements StreamCommand { }
 
 /** Request the stream to stop sending entries until after the next finish entry */
-class Skip implements StreamNotification { }
+class Skip implements StreamCommand { }
 
 /** Request the stream to close and stop sending */
-class Close implements StreamNotification{ }
+class Close implements StreamCommand{ }
 
 // ENTRIES ////////////////////////////////////////////////////////////////////
 

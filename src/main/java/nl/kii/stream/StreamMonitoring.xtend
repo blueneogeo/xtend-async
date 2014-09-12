@@ -3,7 +3,17 @@ package nl.kii.stream
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-interface StreamNotificationObserver extends Procedure1<StreamNotification> {
+interface StreamMonitor {
+	
+	def void onNext()
+	
+	def void onSkip()
+	
+	def void onClose()
+	
+}
+
+interface StreamResponder {
 	
 	def void next((Void)=>void handler)
 	
@@ -13,26 +23,13 @@ interface StreamNotificationObserver extends Procedure1<StreamNotification> {
 
 }
 
-class StreamMonitor implements StreamNotificationObserver {
-	
-	val Stream<?> stream
+class StreamResponderBuilder implements StreamMonitor, StreamResponder {
 	
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn
 	@Atomic Procedure1<Void> closeFn
 	
-	new(Stream<?> stream) {
-		this.stream = stream
-		stream.onNotification[ apply ]
-	}
-
-	override apply(StreamNotification it) {
-		switch it {
-			Next: nextFn?.apply(null)
-			Skip: skipFn?.apply(null)
-			Close: closeFn?.apply(null)
-		}
-	}
+	// STREAMRESPONDER IMPLEMENTATION /////////////////////////////////////////
 
 	override next((Void)=>void handler) {
 		nextFn = handler
@@ -44,6 +41,20 @@ class StreamMonitor implements StreamNotificationObserver {
 
 	override close((Void)=>void handler) {
 		closeFn = handler
+	}
+	
+	// STREAMMONITOR IMPLEMENTATION ///////////////////////////////////////////
+	
+	override onNext() {
+		nextFn?.apply(null)
+	}
+	
+	override onSkip() {
+		skipFn?.apply(null)
+	}
+	
+	override onClose() {
+		closeFn?.apply(null)
 	}
 	
 }

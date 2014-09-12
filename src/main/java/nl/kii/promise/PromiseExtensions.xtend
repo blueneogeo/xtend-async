@@ -2,7 +2,6 @@ package nl.kii.promise
 
 import java.util.List
 import java.util.Map
-import java.util.concurrent.Future
 import nl.kii.stream.Entry
 import nl.kii.stream.Error
 import nl.kii.stream.Stream
@@ -183,18 +182,7 @@ class PromiseExtensions {
 		val newStream = new Stream<T>
 		promise
 			.onError [ newStream.error(it) ]
-			.then [ s |
-				s.pipe(newStream)
-				if(newStream.ready) s.next
-//				s.on [
-//					each [ newStream.push(it) ]
-//					finish [ newStream.finish(level) ]
-//					closed [ newStream.close ]
-//					error [ newStream.error(it) ]
-//				]
-//				newStream.controls(s)
-//				if(newStream.ready) s.next
-			] 
+			.then [ s | s.pipe(newStream) ] 
 		newStream
 	}
 
@@ -311,6 +299,23 @@ class PromiseExtensions {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	/**
+	 * Handle errors on the stream.  This will swallow the error from the stream.
+	 * If the error is a StreamException and contains a value, that value will be passed
+	 * as the second parameter. Otherwise it is null. Since most stream operators throw
+	 * StreamExceptions with the entry when an error occurs, this way you get access
+	 * to for which value the error occurred
+	 * @return a new stream like the incoming stream but without the caught errors.
+	 */
+	def static <T> onError(IPromise<T> promise, (Throwable, T)=>void listener) {
+		promise.onError [ t |
+			switch t {
+				PromiseException case t.value != null: listener.apply(t, t.value as T)
+				default: listener.apply(t, null)
+			} 
+		]
+	}
+	
+	/**
 	 * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
 	 * See chain2() for example of how to use.
 	 */
@@ -318,19 +323,6 @@ class PromiseExtensions {
 		promise.then [ listener.apply(key, value) ]
 	}
 	
-	/** 
-	 * Fork a single promise into a list of promises
-	 * Note that the original promise is then being listened to and you 
-	 * can no longer perform .then and .onError on it.
-	 */
-	def static <T> fork(IPromise<T> promise, int amount) {
-		val promises = newArrayOfSize(amount)
-		promise
-			.onError [ t | promises.forEach [ IPromise<T> p | p.error(t) ] ]
-			.then [ value | promises.forEach [ IPromise<T> p | p.set(value) ] ]
-		promises
-	}
-
 	/** Convert or forward a promise to a task */	
 	def static asTask(IPromise<?> promise) {
 		val task = new Task
@@ -340,10 +332,7 @@ class PromiseExtensions {
 
 	/** Forward the events from this promise to another promise of the same type */
 	def static <T> pipe(IPromise<T> promise, IPromise<T> target) {
-		promise
-			.always [ target.apply(it) ]
-			// TODO: necessary?
-			.then [ ] // starts listening
+		promise.always [ target.apply(it) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
@@ -351,19 +340,6 @@ class PromiseExtensions {
 		promise
 			.onError[ task.error(it) ]
 			.then [ task.complete ]
-	}
-
-	// BLOCKING ///////////////////////////////////////////////////////////////	
-	
-	/** 
-	 * Convert a promise into a Future.
-	 * Promises are non-blocking. However you can convert to a Future 
-	 * if you must block and wait for a promise to resolve.
-	 * <pre>
-	 * val result = promise.future.get // blocks code until the promise is fulfilled
-	 */
-	def static <T> Future<T> future(IPromise<T> promise) {
-		new PromiseFuture(promise)
 	}
 
 }

@@ -25,6 +25,7 @@ import nl.stream.source.LoadBalancer
 import nl.stream.source.StreamCopySplitter
 import nl.stream.source.StreamSource
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
@@ -104,6 +105,7 @@ class StreamExtensions {
 			next [ pushNext.apply ]
 			skip [ finished.set(true) stream.finish ]
 		]
+		stream.operation = 'iterate'
 		pushNext.apply
 		stream
 	}
@@ -154,6 +156,12 @@ class StreamExtensions {
 
 	// OBSERVING //////////////////////////////////////////////////////////////
 
+	def static <T> observe(Stream<T> stream, StreamObserver<T> observer) {
+		stream.onChange [ entry |
+			
+		]
+	}
+
 	/** 
 	 * Create a publisher for the stream. This allows you to observe the stream
 	 * with multiple listeners. Publishers do not support flow control, and the
@@ -168,6 +176,7 @@ class StreamExtensions {
 			]
 		]
 		stream.next
+		stream.operation = 'publish'
 		publisher
 	}
 
@@ -258,6 +267,15 @@ class StreamExtensions {
 		stream.error(new Exception(message, cause))
 	}
 	
+	/** Tell the stream something went wrong, with the cause throwable */
+	def static <T> error(Stream<T> stream, String message, T value, Throwable cause) {
+		stream.error(new StreamException(message, value, cause))
+	}
+
+	/** Tell the stream something went wrong, with the cause throwable */
+	def static <T> error(Stream<T> stream, String message, T value) {
+		stream.error(new StreamException(message, value, null))
+	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
@@ -271,11 +289,12 @@ class StreamExtensions {
 				val mapped = mappingFn.apply(it)
 				newStream.push(mapped)
 			]
-			error [	newStream.error(it)	]
-			finish [ newStream.finish(level) ]
+			error [	newStream.error(it)	false ]
+			finish [ newStream.finish(it) ]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
+		stream.operation = 'map'
 		newStream
 	}
 	
@@ -316,15 +335,16 @@ class StreamExtensions {
 					stream.next
 				}
 			]
-			error [	newStream.error(it)	]
+			error [	newStream.error(it) false ]
 			finish [
 				index.set(0)
 				passed.set(0)
-				newStream.finish(level)
+				newStream.finish(it)
 			]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
+		stream.operation = 'filter'
 		newStream
 	}
 	
@@ -414,20 +434,21 @@ class StreamExtensions {
 					newStream.apply(new Value(it))
 				}
 			]
-			error [ newStream.error(it)	]
+			error [ newStream.error(it) false ]
 			finish [
 				// a higher level split also splits up the lower level
 				if(justPostedFinish0.get) {
 					// we don't put finish(0)'s in a row
-					newStream.apply(new Finish(level + 1))
+					newStream.apply(new Finish(it + 1))
 				} else {
 					justPostedFinish0.set(true)
-					val entries = #[ new Finish(0), new Finish(level+1) ]
+					val entries = #[ new Finish(0), new Finish(it+1) ]
 					newStream.apply(new Entries(entries))
 				}
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'split'
 		newStream.controls(stream)
 		newStream
 	}
@@ -440,14 +461,15 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		stream.on [
 			each [ newStream.apply(new Value(it)) ]
-			error [ newStream.error(it)	]
+			error [ newStream.error(it)	false ]
 			finish [
-				if(level > 0)
-					newStream.finish(level - 1)
+				if(it > 0)
+					newStream.finish(it - 1)
 				else stream.next
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'merge'
 		newStream.controls(stream)
 		newStream
 	}
@@ -456,7 +478,7 @@ class StreamExtensions {
 	 * Only let pass a certain amount of items through the stream
 	 */
 	def static <T> Stream<T> limit(Stream<T> stream, int amount) {
-		stream.until [ it, c | c > amount ]
+		stream.until [ it, c | c > amount ] => [ stream.operation = 'limit(amount=' + amount + ')' ]
 	}
 	
 	/**
@@ -488,14 +510,15 @@ class StreamExtensions {
 					newStream.push(it)
 				}
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			finish [
 				index.set(0)
 				passed.set(0)
-				newStream.finish(level)
+				newStream.finish(it)
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'until'
 		newStream.controls(stream)
 		newStream
 	}
@@ -516,13 +539,14 @@ class StreamExtensions {
 					newStream.push(it)
 				}
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			finish [ 
 				count.set(0)
-				newStream.finish(level)
+				newStream.finish(it)
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'until'
 		newStream.controls(stream)
 		newStream
 	}
@@ -538,13 +562,14 @@ class StreamExtensions {
 			each [ s |
 				s.on [
 					each [ newStream.push(it) s.next ]
-					error [ newStream.error(it) s.next ]
+					error [ newStream.error(it) s.next false ]
 				]
 				s.next
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'flatten'
 		newStream.controls(stream)
 		newStream
 	}
@@ -558,7 +583,7 @@ class StreamExtensions {
 	 * Note: breaks finishes and flow control!
 	 */
 	def static <T, R> Stream<R> flatMap(Stream<T> stream, (T)=>Stream<R> mapFn) {
-		stream.map(mapFn).flatten
+		stream.map(mapFn).flatten => [ stream.operation = 'flatmap' ]
 	}
 	
 	/**
@@ -571,13 +596,14 @@ class StreamExtensions {
 		val counter = new AtomicInteger(0)
 		stream.on [
 			each [ newStream.push(counter.incrementAndGet -> it) ]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			finish [
-				if(level == 0) counter.set(0)
-				newStream.finish(level)
+				if(it == 0) counter.set(0)
+				newStream.finish(it)
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'index'
 		newStream.controls(stream)
 		newStream
 	}
@@ -608,7 +634,7 @@ class StreamExtensions {
 				startTime.set(now)
 				true
 			} else false
-		]
+		] => [ stream.operation = 'throttle(periodMs=' + periodMs + ')' ]
 	}
 	
 	// TODO: implement
@@ -626,7 +652,7 @@ class StreamExtensions {
 				startTime.set(now)
 				true
 			} else false
-		]
+		] => [ stream.operation = 'ratelimit(periodMs=' + periodMs + ',bufferSize=' + bufferSize + ')' ]
 	}
 	
 	/** 
@@ -637,7 +663,7 @@ class StreamExtensions {
 	def static <T> Stream<T> forEvery(Stream<T> stream, Stream<?> timerStream) {
 		val newStream = new Stream<T>
 		timerStream.on [
-			error [ stream.error(it) timerStream.next ]
+			error [ stream.error(it) timerStream.next false ]
 			finish [ newStream.finish timerStream.next ]
 			each [ 
 				if(stream.open) stream.next
@@ -648,14 +674,15 @@ class StreamExtensions {
 		]
 		stream.on [
 			each [ newStream.push(it) ]
-			finish [ newStream.finish(level) ]
-			error [ newStream.error(it) ]
+			finish [ newStream.finish(it) ]
+			error [ newStream.error(it) false ]
 			closed [ newStream.close ]
 		]
 		newStream.monitor [
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
+		stream.operation = 'forEvery'
 		timerStream.next
 		newStream
 	}
@@ -673,9 +700,9 @@ class StreamExtensions {
 				latest.set(it)
 				stream.next
 			]
-			error [ newStream.error(it) stream.next ]
-			finish [ newStream.finish(level) stream.next ]
-			closed [ newStream.close ]			
+			error [ newStream.error(it) stream.next false ]
+			finish [ newStream.finish(it) stream.next ]
+			closed [ newStream.close ]
 		]
 		// the new stream is not coupled at all to the source stream
 		newStream.monitor [
@@ -693,7 +720,7 @@ class StreamExtensions {
 	 * It only asks the next promise from the stream when the previous promise has been resolved.  
 	 */
 	def static <T, R> Stream<T> resolve(Stream<? extends IPromise<T>> stream) {
-		stream.resolve(1)
+		stream.resolve(1) => [ stream.operation = 'resolve' ]
 	}
 
 	/** 
@@ -721,10 +748,10 @@ class StreamExtensions {
 						if(isFinished.get) newStream.finish
 					]
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			finish [ 
 				if(processes.get == 0) {
-					newStream.finish(level)
+					newStream.finish(it)
 				} else {
 					// we are still processing, so finish when we are done processing instead
 					isFinished.set(true)
@@ -737,6 +764,7 @@ class StreamExtensions {
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
+		stream.operation = 'resolve(concurrency=' + concurrency + ')'
 		newStream
 	}
 	
@@ -745,7 +773,7 @@ class StreamExtensions {
 	 * Only a single promise will be resolved at once.
 	 */
 	def static <K, V, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(Stream<Pair<K, P>> stream) {
-		stream.resolveValue(1)
+		stream.resolveValue(1) => [ stream.operation = 'resolveValue' ]
 	}
 	
 	/** 
@@ -773,10 +801,10 @@ class StreamExtensions {
 						if(isFinished.get) newStream.finish
 					]
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			finish [ 
 				if(processes.get == 0) {
-					newStream.finish(level)
+					newStream.finish(it)
 				} else {
 					// we are still processing, so finish when we are done processing instead
 					isFinished.set(true)
@@ -789,6 +817,7 @@ class StreamExtensions {
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
+		stream.operation = 'resolveValue(concurrency=' + concurrency + ')'
 		newStream
 	}
 	
@@ -796,10 +825,11 @@ class StreamExtensions {
 
 	/**
 	 * Make an asynchronous call.
-	 * This is an alias for stream.map(mappingFn).resolve
+	 * This is an alias for stream.call(1)
 	 */	
 	def static <T, R, P extends IPromise<R>> call(Stream<T> stream, (T)=>P promiseFn) {
-		stream.map(promiseFn).resolve
+		stream.call(1, promiseFn)
+			=> [ stream.operation = 'call' ]
 	}
 
 	/**
@@ -808,6 +838,7 @@ class StreamExtensions {
 	 */	
 	def static <T, R, P extends IPromise<R>> call(Stream<T> stream, int concurrency, (T)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
+			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 
 	// call for pair streams	
@@ -818,6 +849,7 @@ class StreamExtensions {
 	 */	
 	def static <K, T, R, P extends IPromise<R>> call(Stream<Pair<K, T>> stream, (K, T)=>P promiseFn) {
 		stream.map(promiseFn).resolve
+			 => [ stream.operation = 'call' ]
 	}
 	
 	/**
@@ -826,26 +858,31 @@ class StreamExtensions {
 	 */	
 	def static <K, T, R, P extends IPromise<R>> call(Stream<Pair<K,T>> stream, int concurrency, (K, T)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
+			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 	
 	// call only the value of the pair
 	
 	def static <T, R, P extends IPromise<R>, K2> call2(Stream<T> stream, (T)=>Pair<K2, P> promiseFn) {
 		stream.map(promiseFn).resolveValue
+			=> [ stream.operation = 'call2' ]
 	}
 	
 	def static <T, R, P extends IPromise<R>, K2> call2(Stream<T> stream, int concurrency, (T)=>Pair<K2, P> promiseFn) {
 		stream.map(promiseFn).resolveValue(concurrency)
+			=> [ stream.operation = 'call2(concurrency=' + concurrency + ')' ]
 	}
 
 	// call only the value of the pair, for pair streams
 	
 	def static <K, T, R, P extends IPromise<R>, K2> call2(Stream<Pair<K, T>> stream, (K, T)=>Pair<K2, P> promiseFn) {
-		stream.map(promiseFn).resolveValue
+		stream.map(promiseFn).resolveValue 
+			=> [ stream.operation = 'call2' ]
 	}
 	
 	def static <K, T, R, P extends IPromise<R>, K2> call2(Stream<Pair<K, T>> stream, int concurrency, (K, T)=>Pair<K2, P> promiseFn) {
-		stream.map(promiseFn).resolveValue(concurrency)
+		stream.map(promiseFn).resolveValue(concurrency) 
+			=> [ stream.operation = 'call2(concurrency=' + concurrency + ')' ]
 	}
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
@@ -858,8 +895,8 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		stream.on [
 			each [ newStream.push(it) ]
-			error [ handler.apply(it) stream.next ]
-			finish [ newStream.finish(level) ]
+			error [ handler.apply(it) stream.next false ]
+			finish [ newStream.finish(it) ]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -870,8 +907,8 @@ class StreamExtensions {
 		val newStream = new Stream<T>
 		stream.on [
 			each [ newStream.push(it) ]
-			error [ newStream.error(it) ]
-			finish [ newStream.finish(level) ]
+			error [ newStream.error(it) false ]
+			finish [ newStream.finish(it) ]
 			closed [ 
 				try {
 					handler.apply(null)
@@ -891,9 +928,11 @@ class StreamExtensions {
 	def static <T> Task onEach(Stream<T> stream, (T)=>void handler) {
 		stream.on [
 			each [ handler.apply(it) stream.next ]
-			error [ stream.next ]
+			error [ stream.next true ]
 			finish [ stream.next ]
 			closed [ stream.close ]
+		] => [ 
+			stream.operation = 'onEach'
 			stream.next
 		]
 	}
@@ -911,10 +950,10 @@ class StreamExtensions {
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <T> Task onEachAsync(Stream<T> stream, (T)=>Task listener) {
-		stream.map(listener).resolve.onEach [
+	def static <T> Task onEach(Stream<T> stream, (T)=>Task taskFn) {
+		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
-		]
+		] => [ stream.operation = 'onEach(async)' ]
 	}
 
 	/**
@@ -922,10 +961,10 @@ class StreamExtensions {
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <K, V> Task onEachAsync(Stream<Pair<K, V>> stream, (K, V)=>Task listener) {
-		stream.map(listener).resolve.onEach [
+	def static <K, V> Task onEach(Stream<Pair<K, V>> stream, (K, V)=>Task taskFn) {
+		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
-		]
+		] => [ stream.operation = 'onEach(async)' ]
 	}
 
 	/**
@@ -933,8 +972,8 @@ class StreamExtensions {
 	 * @return a CopySplitter source that you can connect more streams to. 
 	 */
 	def static <T> StreamSource<T> pipe(Stream<T> stream, Stream<T> target) {
-		val source = stream.split.pipe(target)
-		source
+		stream.split.pipe(target)
+			=> [ stream.operation = 'pipe' ]
 	}
 	
 	 /**
@@ -953,6 +992,7 @@ class StreamExtensions {
 				if(!promise.fulfilled)
 					promise.error(it) 
 				 stream.close
+				 false
 			]
 			finish [
 				promise.error('Stream.first: stream finished without returning a value')
@@ -962,6 +1002,7 @@ class StreamExtensions {
 				promise.error('Stream.first: stream closed without returning a value')
 			]
 		]
+		stream.operation = 'first'
 	 	stream.next
 		promise
 	}
@@ -980,7 +1021,7 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				if(level == 0) {
+				if(it == 0) {
 					if(!promise.fulfilled && last.get != null) {
 						promise.set(last.get)
 						stream.close
@@ -993,10 +1034,9 @@ class StreamExtensions {
 					stream.close
 				} else promise.error('stream closed without passing a value, no last entry found.')
 			]
-			error [
-				stream.next
-			]
+			error [	stream.next false ]
 		]
+		stream.operation = 'last'
 		stream.next
 		promise
 	}
@@ -1005,8 +1045,9 @@ class StreamExtensions {
 	 * Skip an amount of items from the stream, and process only the ones after that.
 	 * Resets at finish.
 	 */
-	def static <T> skip(Stream<T> stream, int amount) {
-		stream.filter [ it, index, passed | index > amount ]
+	def static <T> Stream<T> skip(Stream<T> stream, int amount) {
+		stream.filter [ it, index, passed | index > amount ] 
+			=> [ stream.operation = 'skip(amount=' + amount + ')' ]
 	}
 
 	/**
@@ -1015,6 +1056,7 @@ class StreamExtensions {
 	 */
 	def static <T> take(Stream<T> stream, int amount) {
 		stream.until [ it, index, passed | index > amount ]
+			=> [ stream.operation = 'limit(amount=' + amount + ')' ]
 	}
 	
 	/**
@@ -1022,20 +1064,71 @@ class StreamExtensions {
 	 */
 	def static <T> then(Stream<T> stream, Procedure1<T> listener) {
 		stream.first.then(listener)
+			=> [ stream.operation = 'then' ]
 	}
 	
+	/**
+	 * Start the stream and and promise the first value from it.
+	 */
+	def static <K, V> then(Stream<Pair<K, V>> stream, Procedure2<K, V> listener) {
+		stream.first.then [ listener.apply(key, value) ]
+			=> [ stream.operation = 'then' ]
+	}
+
 	// LISTENER BUILDERS //////////////////////////////////////////////////////
 
-	def static <T> Task on(Stream<T> stream, (StreamSubscription<T>)=>void subscriptionFn) {
-		val subscription = new StreamSubscription<T>(stream)
-		subscriptionFn.apply(subscription)
-		subscription.toTask
+	/**
+	 * Convenient builder to easily asynchronously respond to stream entries.
+	 * Defaults for each[], finish[], and error[] is to simply ask for the next entry.
+	 * <p>
+	 * Note: you can only have a single entry handler for a stream.  
+	 * <p>
+	 * Usage example:
+	 * <pre>
+	 * val stream = (1.10).stream
+	 * stream.on [
+	 *    each [ println('got ' + it) stream.next ] // do not forget to ask for the next entry
+	 *    error [ printStackTrace stream.next true ] // true to indicate you want to throw the error
+	 * ]
+	 * stream.next // do not forget to start the stream!
+	 * </pre>
+	 * @return a task that completes on finish(0) or closed, or that gives an error
+	 * if the stream passed an error. 
+	 */
+	def static <T> Task on(Stream<T> stream, (StreamHandlerBuilder<T>)=>void handlerFn) {
+		stream.on [ s, builder | handlerFn.apply(builder) ]
 	}
-	
-	def static <T> monitor(Stream<T> stream, (StreamMonitor)=>void subscriptionFn) {
-		val handler = new StreamMonitor(stream)
-		subscriptionFn.apply(handler)
-		handler
+
+	def static <T> Task on(Stream<T> stream, (Stream<T>, StreamHandlerBuilder<T>)=>void handlerFn) {
+		val handler = new StreamHandlerBuilder<T>(stream) => [
+			// by default, do nothing but call the next item from the stream
+			each [ stream.next ]
+			finish [ stream.next ]
+			error [ stream.next true ] // by default, escalate errors
+		]
+		// observing first so the handlerFn is last and can issue stream commands
+		val task = stream.observe(handler)
+		handlerFn.apply(stream, handler)
+		task
+	}
+
+	/**
+	 * Convenient builder to easily respond to commands given to a stream.
+	 * <p>
+	 * Note: you can only have a single monitor for a stream.
+	 * <p>
+	 * Example: 
+	 * <pre>
+	 * stream.monitor [
+	 *     next [ println('next was called on the stream') ]
+	 *     close [ println('the stream was closed') ]
+	 * ]
+	 * </pre>
+	 */
+	def static <T> void monitor(Stream<T> stream, (StreamResponder)=>void handlerFn) {
+		val handler = new StreamResponderBuilder
+		handlerFn.apply(handler)
+		stream.monitor(handler)
 	}
 
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
@@ -1045,7 +1138,7 @@ class StreamExtensions {
 		stream.map [
 			listener.apply(it)
 			it
-		]
+		] => [ stream.operation = 'effect' ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
@@ -1053,7 +1146,7 @@ class StreamExtensions {
 		stream.map [
 			listener.apply(key, value)
 			it
-		]
+		] => [ stream.operation = 'effect' ]
 	}
 
 	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////
@@ -1070,10 +1163,11 @@ class StreamExtensions {
 				val entries = list.map [ new Value(it) ]
 				newStream.apply(new Entries(entries))
 			]
-			error [ newStream.error(it) ]
-			finish [ newStream.finish(level) ]
+			error [ newStream.error(it) false ]
+			finish [ newStream.finish(it) ]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'separate'
 		newStream.controls(stream)
 		newStream
 	}
@@ -1084,7 +1178,9 @@ class StreamExtensions {
 	 * Collect all items from a stream, separated by finishes
 	 */
 	def static <T> Stream<List<T>> collect(Stream<T> stream) {
-		stream.reduce(newArrayList) [ list, it | list.concat(it) ]
+		val Stream<List<T>> s = stream.reduce(newArrayList) [ list, it | list.concat(it) ]
+		stream.operation = 'collect'
+		s
 	}
 	
 	/**
@@ -1092,6 +1188,7 @@ class StreamExtensions {
 	 */
 	def static <T extends Number> sum(Stream<T> stream) {
 		stream.reduce(0D) [ acc, it | acc + doubleValue ]
+			=> [ stream.operation = 'sum' ]
 	}
 
 	/**
@@ -1102,30 +1199,7 @@ class StreamExtensions {
 			.index
 			.reduce(0 -> 0D) [ acc, it | key -> (acc.value + value.doubleValue) ]
 			.map [ value / key ]
-		
-//		val avg = new AtomicDouble
-//		val count = new AtomicLong(0)
-//		val newStream = new Stream<Double>
-//		stream.on [
-//			each [
-//				avg.addAndGet(doubleValue)
-//				count.incrementAndGet
-//				stream.next
-//			]
-//			finish [
-//				if(level == 0) {
-//					val collected = avg.doubleValue / count.getAndSet(0) 
-//					avg.set(0)
-//					newStream.push(collected)
-//				} else {
-//					newStream.finish(level - 1)
-//				}
-//			]
-//			error [ newStream.error(it) ]
-//			closed [ newStream.close ]
-//		]
-//		newStream.controls(stream)
-//		newStream
+			=> [ stream.operation = 'average' ]
 	}
 	
 	/**
@@ -1133,6 +1207,7 @@ class StreamExtensions {
 	 */
 	def static <T> Stream<Integer> count(Stream<T> stream) {
 		stream.reduce(0) [ acc, it | acc + 1 ]
+			=> [ stream.operation = 'count' ]
 	}
 
 	/**
@@ -1140,7 +1215,9 @@ class StreamExtensions {
 	 * Values must implement Comparable
 	 */
 	def static <T extends Comparable<T>> Stream<T> max(Stream<T> stream) {
-		stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
+		val Stream<T> s = stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
+		stream.operation = 'max'
+		s
 	}
 
 	/**
@@ -1148,7 +1225,9 @@ class StreamExtensions {
 	 * Values must implement Comparable
 	 */
 	def static <T extends Comparable<T>> Stream<T> min(Stream<T> stream) {
-		stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
+		val Stream<T> s = stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
+		stream.operation = 'min'
+		s
 	}
 
 	/**
@@ -1165,21 +1244,23 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				if(level == 0) {
+				if(it == 0) {
 					val result = reduced.getAndSet(initial)
 					if(result != null) newStream.push(result)
 					else newStream.error('no result found when reducing')
 				} else {
-					newStream.finish(level - 1)
+					newStream.finish(it - 1)
 				}
 			]
 			error [
 				// newStream.error(it)
 				// just process the next
 				stream.next
+				false
 			]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'reduce(initial=' + initial + ')'
 		newStream.controls(stream)
 		newStream
 	}
@@ -1196,11 +1277,12 @@ class StreamExtensions {
 			]
 			finish [
 				reduced.set(initial) 
-				newStream.finish(level)
+				newStream.finish(it)
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'scan(initial=' + initial + ')'
 		newStream.controls(stream)
 		newStream
 	}
@@ -1209,14 +1291,18 @@ class StreamExtensions {
 	 * Streams true if all stream values match the test function
 	 */
 	def static <T> Stream<Boolean> all(Stream<T> stream, (T)=>boolean testFn) {
-		stream.reduce(true) [ acc, it | acc && testFn.apply(it) ]
+		val s = stream.reduce(true) [ acc, it | acc && testFn.apply(it) ]
+		stream.operation = 'all'
+		s
 	}
 
 	/**
 	 * Streams true if no stream values match the test function
 	 */
 	def static <T> Stream<Boolean> none(Stream<T> stream, (T)=>boolean testFn) {
-		stream.reduce(true) [ acc, it | acc && !testFn.apply(it) ]
+		val s = stream.reduce(true) [ acc, it | acc && !testFn.apply(it) ]
+		stream.operation = 'none'
+		s
 	}
 
 	/**
@@ -1240,17 +1326,18 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				if(level == 0) {
+				if(it == 0) {
 					val matched = anyMatch.get
 					anyMatch.set(false)
 					if(!matched) newStream.push(false)
 				} else {
-					newStream.finish(level - 1)
+					newStream.finish(it - 1)
 				}
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'any'
 		newStream.controls(stream)
 		newStream
 	}
@@ -1276,15 +1363,16 @@ class StreamExtensions {
 				stream.next
 			]
 			finish [
-				if(level == 0) {
+				if(it == 0) {
 					match.set(null)
 				} else {
-					newStream.finish(level - 1)
+					newStream.finish(it - 1)
 				}
 			]
-			error [ newStream.error(it) ]
+			error [ newStream.error(it) false ]
 			closed [ newStream.close ]
 		]
+		stream.operation = 'first'
 		newStream.controls(stream)
 		newStream
 	}
@@ -1299,6 +1387,7 @@ class StreamExtensions {
 		stream
 			.map [ new String(it, encoding).split('\n').toList ]
 			.separate
+			=> [ stream.operation = 'toText(encoding=' +  encoding + ')' ]
 	}
 	
 	def static Stream<List<Byte>> toBytes(Stream<String> stream) {
@@ -1308,6 +1397,7 @@ class StreamExtensions {
 	def static Stream<List<Byte>> toBytes(Stream<String> stream, String encoding) {
 		stream
 			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
+			=> [ stream.operation = 'toBytes(encoding=' +  encoding + ')' ]
 	}
 
 	/** write a buffered bytestream to an standard java outputstream */
@@ -1315,18 +1405,21 @@ class StreamExtensions {
 		stream.on [
 			closed [ out.close task.complete ]
 			finish [ 
-				if(level == 0) out.close task.complete 
+				if(it == 0) out.close task.complete 
 				stream.next
 			]
 			error [ 
 				task.error(it)
 				stream.close
+				true
 			]
 			each [
 				out.write(it)
 				stream.next
 			]
 		]
+		stream.operation = 'writeTo'
+		stream.next
 	}
 
 	/** write a buffered bytestream to a file */
@@ -1334,6 +1427,7 @@ class StreamExtensions {
 		val sink = Files.asByteSink(file)
 		val out = sink.openBufferedStream
 		stream.writeTo(out, task)
+		stream.operation = 'writeTo(file=' + file.absolutePath + ')'
 	}
 
 	// OTHER //////////////////////////////////////////////////////////////////
@@ -1342,13 +1436,14 @@ class StreamExtensions {
 	 * Complete a task when the stream finishes or closes, 
 	 * or give an error on the task when the stream gives an error.
 	 */	
-	@Async def static toTask(Stream<?> stream, Task task) {
+	@Async def static void toTask(Stream<?> stream, Task task) {
 		stream.on [
 			closed [ task.complete ]
 			finish [ stream.close task.complete ]
-			error [ stream.close task.error(it) ]
+			error [ stream.close task.error(it) true ]
 			each [ /* discard values */]
 		]
+		stream.operation = 'toTask'
 	}
 	
 	// From Xtend-tools

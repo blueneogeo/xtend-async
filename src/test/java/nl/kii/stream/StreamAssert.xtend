@@ -14,8 +14,8 @@ class StreamAssert {
 	def static <T> List<Entry<T>> gather(Stream<T> stream) {
 		val data = new LinkedList<Entry<T>>
 		stream.on [
-			error [ data.add(new Error(it)) stream.next ]
-			finish [ data.add(new Finish(level)) stream.next ]
+			error [ data.add(new Error(it)) stream.next true ]
+			finish [ data.add(new Finish(it)) stream.next ]
 			each [ data.add(value) stream.next ]
 		]
 		stream.next

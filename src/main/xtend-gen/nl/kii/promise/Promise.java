@@ -3,6 +3,7 @@ package nl.kii.promise;
 import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.AsyncException;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
@@ -25,6 +26,18 @@ public class Promise<T extends Object> implements IPromise<T> {
    */
   @Atomic
   private final AtomicBoolean _fulfilled = new AtomicBoolean(false);
+  
+  /**
+   * Property to see if the promise has an error handler assigned
+   */
+  @Atomic
+  private final AtomicBoolean _hasErrorHandler = new AtomicBoolean(false);
+  
+  /**
+   * Property to see if the promise has a value handler assigned
+   */
+  @Atomic
+  private final AtomicBoolean _hasValueHandler = new AtomicBoolean(false);
   
   /**
    * The result of the promise, if any, otherwise null
@@ -125,6 +138,10 @@ public class Promise<T extends Object> implements IPromise<T> {
     this.publisher.apply(it);
   }
   
+  public Publisher<Entry<T>> getPublisher() {
+    return this.publisher;
+  }
+  
   /**
    * If the promise recieved or recieves an error, onError is called with the throwable
    */
@@ -147,6 +164,7 @@ public class Promise<T extends Object> implements IPromise<T> {
       };
       Procedure0 _onChange = this.publisher.onChange(_function);
       sub.set(_onChange);
+      this.setHasErrorHandler(Boolean.valueOf(true));
       Entry<T> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
       if (_notEquals) {
@@ -180,7 +198,8 @@ public class Promise<T extends Object> implements IPromise<T> {
           } catch (final Throwable _t) {
             if (_t instanceof Exception) {
               final Exception e = (Exception)_t;
-              Promise.this.error(e);
+              AsyncException _asyncException = new AsyncException("Promise.then gave error for", it, e);
+              Promise.this.error(_asyncException);
             } else {
               throw Exceptions.sneakyThrow(_t);
             }
@@ -189,6 +208,7 @@ public class Promise<T extends Object> implements IPromise<T> {
       };
       Procedure0 _onChange = this.publisher.onChange(_function);
       sub.set(_onChange);
+      this.setHasValueHandler(Boolean.valueOf(true));
       Entry<T> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
       if (_notEquals) {
@@ -218,6 +238,22 @@ public class Promise<T extends Object> implements IPromise<T> {
   
   public Boolean getFulfilled() {
     return this._fulfilled.get();
+  }
+  
+  public Boolean setHasErrorHandler(final Boolean value) {
+    return this._hasErrorHandler.getAndSet(value);
+  }
+  
+  public Boolean getHasErrorHandler() {
+    return this._hasErrorHandler.get();
+  }
+  
+  public Boolean setHasValueHandler(final Boolean value) {
+    return this._hasValueHandler.getAndSet(value);
+  }
+  
+  public Boolean getHasValueHandler() {
+    return this._hasValueHandler.get();
   }
   
   protected Entry<T> setEntry(final Entry<T> value) {
