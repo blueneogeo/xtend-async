@@ -1,4 +1,4 @@
-package nl.stream.source;
+package nl.kii.stream.source;
 
 import nl.kii.stream.Stream;
 

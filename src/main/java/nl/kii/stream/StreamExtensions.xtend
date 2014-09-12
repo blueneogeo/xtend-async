@@ -21,9 +21,9 @@ import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
-import nl.stream.source.LoadBalancer
-import nl.stream.source.StreamCopySplitter
-import nl.stream.source.StreamSource
+import nl.kii.stream.source.LoadBalancer
+import nl.kii.stream.source.StreamCopySplitter
+import nl.kii.stream.source.StreamSource
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 

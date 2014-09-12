@@ -1,4 +1,4 @@
-package nl.stream.source
+package nl.kii.stream.source
 
 import java.util.List
 import java.util.concurrent.CopyOnWriteArrayList

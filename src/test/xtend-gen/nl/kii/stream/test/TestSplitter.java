@@ -6,7 +6,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamHandlerBuilder;
-import nl.stream.source.StreamSource;
+import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,4 +1,4 @@
-package nl.stream.source
+package nl.kii.stream.source
 
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Close

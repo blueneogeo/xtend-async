@@ -1,4 +1,4 @@
-package nl.stream.source;
+package nl.kii.stream.source;
 
 import com.google.common.base.Objects;
 import java.util.List;
@@ -10,7 +10,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
 import nl.kii.stream.StreamMessage;
-import nl.stream.source.StreamSource;
+import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;

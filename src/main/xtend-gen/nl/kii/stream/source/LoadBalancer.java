@@ -1,4 +1,4 @@
-package nl.stream.source;
+package nl.kii.stream.source;
 
 import java.util.List;
 import nl.kii.stream.Close;
@@ -9,7 +9,7 @@ import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamCommand;
 import nl.kii.stream.Value;
-import nl.stream.source.StreamSplitter;
+import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 
