@@ -2,11 +2,8 @@ package nl.kii.stream
 
 import com.google.common.collect.ImmutableList
 import com.google.common.io.ByteProcessor
-import com.google.common.io.Files
-import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.io.OutputStream
 import java.util.Iterator
 import java.util.List
 import java.util.Map
@@ -129,12 +126,6 @@ class StreamExtensions {
 			close [ stream.close ]
 		]
 		newStream
-	}
-
-	/** stream a file as byte blocks. closing the stream closes the file. */	
-	def static Stream<List<Byte>> stream(File file) {
-		val source = Files.asByteSource(file)
-		source.openBufferedStream.stream
 	}
 	
 	/** create an unending stream of random integers in the range you have given */
@@ -1375,59 +1366,6 @@ class StreamExtensions {
 		stream.operation = 'first'
 		newStream.controls(stream)
 		newStream
-	}
-
-	// WRITING TO OUTPUT STREAMS AND FILES ///////////////////////////////////
-
-	def static Stream<String> toText(Stream<List<Byte>> stream) {
-		stream.toText('UTF-8')
-	}
-	
-	def static Stream<String> toText(Stream<List<Byte>> stream, String encoding) {
-		stream
-			.map [ new String(it, encoding).split('\n').toList ]
-			.separate
-			=> [ stream.operation = 'toText(encoding=' +  encoding + ')' ]
-	}
-	
-	def static Stream<List<Byte>> toBytes(Stream<String> stream) {
-		stream.toBytes('UTF-8')
-	}
-
-	def static Stream<List<Byte>> toBytes(Stream<String> stream, String encoding) {
-		stream
-			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
-			=> [ stream.operation = 'toBytes(encoding=' +  encoding + ')' ]
-	}
-
-	/** write a buffered bytestream to an standard java outputstream */
-	@Async def static void writeTo(Stream<List<Byte>> stream, OutputStream out, Task task) {
-		stream.on [
-			closed [ out.close task.complete ]
-			finish [ 
-				if(it == 0) out.close task.complete 
-				stream.next
-			]
-			error [ 
-				task.error(it)
-				stream.close
-				true
-			]
-			each [
-				out.write(it)
-				stream.next
-			]
-		]
-		stream.operation = 'writeTo'
-		stream.next
-	}
-
-	/** write a buffered bytestream to a file */
-	@Async def static void writeTo(Stream<List<Byte>> stream, File file, Task task) {
-		val sink = Files.asByteSink(file)
-		val out = sink.openBufferedStream
-		stream.writeTo(out, task)
-		stream.operation = 'writeTo(file=' + file.absolutePath + ')'
 	}
 
 	// OTHER //////////////////////////////////////////////////////////////////

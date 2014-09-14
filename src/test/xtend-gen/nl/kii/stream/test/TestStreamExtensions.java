@@ -1,6 +1,5 @@
 package nl.kii.stream.test;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -1050,51 +1049,6 @@ public class TestStreamExtensions {
   }
   
   public void testLatest() {
-  }
-  
-  @Test
-  public void testFileStreaming() {
-    final File file = new File("gradle.properties");
-    Stream<List<Byte>> _stream = StreamExtensions.stream(file);
-    Stream<String> _text = StreamExtensions.toText(_stream);
-    final Function1<String, String> _function = new Function1<String, String>() {
-      public String apply(final String it) {
-        return ("- " + it);
-      }
-    };
-    Stream<String> _map = StreamExtensions.<String, String>map(_text, _function);
-    final Procedure1<String> _function_1 = new Procedure1<String>() {
-      public void apply(final String it) {
-        InputOutput.<String>println(it);
-      }
-    };
-    Task _onEach = StreamExtensions.<String>onEach(_map, _function_1);
-    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("finish");
-      }
-    };
-    _onEach.then(_function_2);
-  }
-  
-  @Test
-  public void testStreamToFileAndFileCopy() {
-    final List<String> data = Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("Hello,", "This is some text", "Please make this into a nice file!"));
-    Stream<String> _stream = StreamExtensions.<String>stream(data);
-    Stream<List<Byte>> _bytes = StreamExtensions.toBytes(_stream);
-    File _file = new File("test.txt");
-    StreamExtensions.writeTo(_bytes, _file);
-    final File source = new File("test.txt");
-    final File destination = new File("text2.txt");
-    Stream<List<Byte>> _stream_1 = StreamExtensions.stream(source);
-    Task _writeTo = StreamExtensions.writeTo(_stream_1, destination);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
-        source.delete();
-        destination.delete();
-      }
-    };
-    _writeTo.then(_function);
   }
   
   private Boolean setCalledThen(final Boolean value) {

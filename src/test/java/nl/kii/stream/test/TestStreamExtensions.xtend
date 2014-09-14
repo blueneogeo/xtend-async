@@ -1,8 +1,9 @@
 package nl.kii.stream.test
 
-import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
+import nl.kii.promise.Promise
+import nl.kii.stream.Stream
 import nl.kii.stream.Value
 import org.junit.Test
 
@@ -13,8 +14,6 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import nl.kii.stream.Stream
-import nl.kii.promise.Promise
 
 class TestStreamExtensions {
 
@@ -479,35 +478,6 @@ class TestStreamExtensions {
 		// val scheduler = newSingleThreadScheduledExecutor;
 		// (5..10).streamRandom.every(1000, scheduler).latest.onEach [ println(it) ]
 		// Thread.sleep(5000)
-	}
-	
-	// TEST FILE STREAMING ////////////////////////////////////////////////////
-	
-	@Test
-	def void testFileStreaming() {
-		val file = new File('gradle.properties')
-		file.stream
-			.toText
-			.map [ '- ' + it ]
-			.onEach [ println(it) ]
-			.then [ println('finish') ]
-	}
-	
-	@Test
-	def void testStreamToFileAndFileCopy() {
-		val data = #[
-			'Hello,',
-			'This is some text',
-			'Please make this into a nice file!'
-		]
-		data.stream.toBytes.writeTo(new File('test.txt'))
-
-		val source = new File('test.txt')
-		val destination = new File('text2.txt')
-		source.stream.writeTo(destination).then [
-			source.delete
-			destination.delete
-		]
 	}
 	
 }
