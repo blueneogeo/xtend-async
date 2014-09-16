@@ -69,7 +69,7 @@ class StreamPairExtensions {
 				promise
 					.onError [
 						processes.decrementAndGet
-						newStream.error(it)
+						newStream.error(new StreamException('resolveValue', result, it))
 						if(isFinished.get) newStream.finish
 					]
 					.then [
@@ -166,7 +166,6 @@ class StreamPairExtensions {
 					}
 					default: {
 						handler.apply(null, it)
-						println('got error ' + message)
 					}
 				} 
 				stream.next false

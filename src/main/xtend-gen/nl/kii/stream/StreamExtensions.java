@@ -44,7 +44,6 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -1638,82 +1637,6 @@ public class StreamExtensions {
       };
       StreamExtensions.<T>on(stream, _function);
       StreamExtensions.<T, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Handle errors on the stream.  This will swallow the error from the stream.
-   * It will attempt to get the key where it went wrong and pass it. If that
-   * fails the value is null.
-   * @return a new stream like the incoming stream but without the caught errors.
-   */
-  public static <K extends Object, V extends Object> Stream<Pair<K, V>> onError(final Stream<Pair<K, V>> stream, final Procedure2<? super K, ? super Throwable> handler) {
-    Stream<Pair<K, V>> _xblockexpression = null;
-    {
-      final Stream<Pair<K, V>> newStream = new Stream<Pair<K, V>>();
-      final Procedure1<StreamHandlerBuilder<Pair<K, V>>> _function = new Procedure1<StreamHandlerBuilder<Pair<K, V>>>() {
-        public void apply(final StreamHandlerBuilder<Pair<K, V>> it) {
-          final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
-            public void apply(final Pair<K, V> it) {
-              newStream.push(it);
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                boolean _matched = false;
-                if (!_matched) {
-                  if (it instanceof StreamException) {
-                    _matched=true;
-                    try {
-                      final Pair<K, ?> pair = ((Pair<K, ?>) ((StreamException)it).value);
-                      K _key = pair.getKey();
-                      handler.apply(_key, it);
-                    } catch (final Throwable _t) {
-                      if (_t instanceof ClassCastException) {
-                        final ClassCastException e = (ClassCastException)_t;
-                        handler.apply(null, it);
-                      } else {
-                        throw Exceptions.sneakyThrow(_t);
-                      }
-                    }
-                  }
-                }
-                if (!_matched) {
-                  {
-                    handler.apply(null, it);
-                    String _message = it.getMessage();
-                    String _plus = ("got error " + _message);
-                    InputOutput.<String>println(_plus);
-                  }
-                }
-                stream.next();
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              newStream.finish((it).intValue());
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<Pair<K, V>>on(stream, _function);
-      StreamExtensions.<Pair<K, V>, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
     return _xblockexpression;

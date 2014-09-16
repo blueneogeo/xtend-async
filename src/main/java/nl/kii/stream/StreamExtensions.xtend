@@ -788,38 +788,6 @@ class StreamExtensions {
 		newStream
 	}
 
-	/**
-	 * Handle errors on the stream.  This will swallow the error from the stream.
-	 * It will attempt to get the key where it went wrong and pass it. If that
-	 * fails the value is null.
-	 * @return a new stream like the incoming stream but without the caught errors.
-	 */
-	def static <K, V> Stream<Pair<K, V>> onError(Stream<Pair<K, V>> stream, (K, Throwable)=>void handler) {
-		val newStream = new Stream<Pair<K, V>>
-		stream.on [
-			each [ newStream.push(it) ]
-			error [
-				switch it {
-					StreamException: try {
-						val pair = value as Pair<K, ?>
-						handler.apply(pair.key, it)
-					} catch(ClassCastException e) {
-						handler.apply(null, it)
-					}
-					default: {
-						handler.apply(null, it)
-						println('got error ' + message)
-					}
-				} 
-				stream.next false
-			]
-			finish [ newStream.finish(it) ]
-			closed [ newStream.close ]
-		]
-		newStream.controls(stream)
-		newStream
-	}
-
 	def static <T> Stream<T> onClosed(Stream<T> stream, (Void)=>void handler) {
 		val newStream = new Stream<T>
 		stream.on [
