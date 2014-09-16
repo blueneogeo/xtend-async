@@ -31,7 +31,6 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamException;
 import nl.kii.stream.StreamHandlerBuilder;
-import nl.kii.stream.StreamObserver;
 import nl.kii.stream.StreamResponder;
 import nl.kii.stream.StreamResponderBuilder;
 import nl.kii.stream.Value;
@@ -45,6 +44,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -110,37 +110,6 @@ public class StreamExtensions {
         }
       };
       _onError.then(_function_1);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Create a stream of values out of a Promise of a list. If the promise throws an error,
-   */
-  public static <K extends Object, T extends Object, T2 extends Iterable<T>> Stream<Pair<K, T>> streamValue(final IPromise<Pair<K, T2>> promise) {
-    Stream<Pair<K, T>> _xblockexpression = null;
-    {
-      final Stream<Pair<K, T>> newStream = new Stream<Pair<K, T>>();
-      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          newStream.error(it);
-        }
-      };
-      IPromise<Pair<K, T2>> _onError = promise.onError(_function);
-      final Procedure2<K, T2> _function_1 = new Procedure2<K, T2>() {
-        public void apply(final K key, final T2 value) {
-          Stream<T> _stream = StreamExtensions.<T>stream(value);
-          final Function1<T, Pair<K, T>> _function = new Function1<T, Pair<K, T>>() {
-            public Pair<K, T> apply(final T it) {
-              return Pair.<K, T>of(key, it);
-            }
-          };
-          Stream<Pair<K, T>> _map = StreamExtensions.<T, Pair<K, T>>map(_stream, _function);
-          StreamExtensions.<Pair<K, T>>pipe(_map, newStream);
-        }
-      };
-      PromiseExtensions.<K, T2>then(_onError, _function_1);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -321,14 +290,6 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> Procedure0 observe(final Stream<T> stream, final StreamObserver<T> observer) {
-    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-      public void apply(final Entry<T> entry) {
-      }
-    };
-    return stream.onChange(_function);
-  }
-  
   /**
    * Create a publisher for the stream. This allows you to observe the stream
    * with multiple listeners. Publishers do not support flow control, and the
@@ -488,6 +449,27 @@ public class StreamExtensions {
   }
   
   /**
+   * pipe a stream into another stream
+   */
+  public static <T extends Object> StreamSource<T> operator_doubleGreaterThan(final Stream<T> source, final Stream<T> dest) {
+    return StreamExtensions.<T>pipe(source, dest);
+  }
+  
+  /**
+   * pipe a stream into another stream
+   */
+  public static <T extends Object> StreamSource<T> operator_doubleLessThan(final Stream<T> dest, final Stream<T> source) {
+    return StreamExtensions.<T>pipe(source, dest);
+  }
+  
+  /**
+   * split a source into a new destination stream
+   */
+  public static <T extends Object> StreamSource<T> operator_doubleGreaterThan(final StreamSource<T> source, final Stream<T> dest) {
+    return source.pipe(dest);
+  }
+  
+  /**
    * Lets you easily pass a Finish<T> entry using the << or >> operators
    */
   public static <T extends Object> Finish<T> finish() {
@@ -606,21 +588,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Perform mapping of a pair stream using a function that exposes the key and value of
-   * the incoming value.
-   */
-  public static <K1 extends Object, V1 extends Object, V2 extends Object> Stream<V2> map(final Stream<Pair<K1, V1>> stream, final Function2<? super K1, ? super V1, ? extends V2> mappingFn) {
-    final Function1<Pair<K1, V1>, V2> _function = new Function1<Pair<K1, V1>, V2>() {
-      public V2 apply(final Pair<K1, V1> it) {
-        K1 _key = it.getKey();
-        V1 _value = it.getValue();
-        return mappingFn.apply(_key, _value);
-      }
-    };
-    return StreamExtensions.<Pair<K1, V1>, V2>map(stream, _function);
-  }
-  
-  /**
    * Filter items in a stream to only the ones that the filterFn
    * returns a true for.
    */
@@ -695,21 +662,6 @@ public class StreamExtensions {
       _xblockexpression = newStream;
     }
     return _xblockexpression;
-  }
-  
-  /**
-   * Filter items in a stream to only the ones that the filterFn
-   * returns a true for.
-   */
-  public static <K extends Object, V extends Object> Stream<Pair<K, V>> filter(final Stream<Pair<K, V>> stream, final Function2<? super K, ? super V, ? extends Boolean> filterFn) {
-    final Function1<Pair<K, V>, Boolean> _function = new Function1<Pair<K, V>, Boolean>() {
-      public Boolean apply(final Pair<K, V> it) {
-        K _key = it.getKey();
-        V _value = it.getValue();
-        return filterFn.apply(_key, _value);
-      }
-    };
-    return StreamExtensions.<Pair<K, V>>filter(stream, _function);
   }
   
   /**
@@ -1194,11 +1146,18 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  public static <T extends Object> StreamSource<T> split(final Stream<T> stream) {
+  /**
+   * Create a splitter StreamSource from a stream that lets you listen to the stream
+   * with multiple listeners.
+   */
+  public static <T extends Object> StreamCopySplitter<T> split(final Stream<T> stream) {
     return new StreamCopySplitter<T>(stream);
   }
   
-  public static <T extends Object> StreamSource<T> balance(final Stream<T> stream) {
+  /**
+   * Balance the stream into multiple listening streams.
+   */
+  public static <T extends Object> LoadBalancer<T> balance(final Stream<T> stream) {
     return new LoadBalancer<T>(stream);
   }
   
@@ -1257,6 +1216,7 @@ public class StreamExtensions {
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are buffered, and dropped only after the buffer has reached a given size.
    */
+  @Deprecated
   public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final int periodMs, final int bufferSize) {
     Stream<T> _xblockexpression = null;
     {
@@ -1309,7 +1269,7 @@ public class StreamExtensions {
    * <p>
    * Errors on the timerstream are put onto the stream. Closing the timerstream also closes the stream.
    */
-  public static <T extends Object> Stream<T> forEvery(final Stream<T> stream, final Stream<?> timerStream) {
+  public static <T extends Object> Stream<T> synchronizeWith(final Stream<T> stream, final Stream<?> timerStream) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
@@ -1606,128 +1566,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Resolves the value promise of the stream into just the value.
-   * Only a single promise will be resolved at once.
-   */
-  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(final Stream<Pair<K, P>> stream) {
-    Stream<Pair<K, V>> _resolveValue = StreamExtensions.<K, V, P>resolveValue(stream, 1);
-    final Procedure1<Stream<Pair<K, V>>> _function = new Procedure1<Stream<Pair<K, V>>>() {
-      public void apply(final Stream<Pair<K, V>> it) {
-        stream.setOperation("resolveValue");
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K, V>>>operator_doubleArrow(_resolveValue, _function);
-  }
-  
-  /**
-   * Resolves the value promise of the stream into just the value.
-   * [concurrency] promises will be resolved at once (at the most).
-   */
-  public static <K extends Object, V extends Object, P extends IPromise<V>> Stream<Pair<K, V>> resolveValue(final Stream<Pair<K, P>> stream, final int concurrency) {
-    Stream<Pair<K, V>> _xblockexpression = null;
-    {
-      final Stream<Pair<K, V>> newStream = new Stream<Pair<K, V>>();
-      final AtomicBoolean isFinished = new AtomicBoolean(false);
-      final AtomicInteger processes = new AtomicInteger(0);
-      final Procedure1<StreamHandlerBuilder<Pair<K, P>>> _function = new Procedure1<StreamHandlerBuilder<Pair<K, P>>>() {
-        public void apply(final StreamHandlerBuilder<Pair<K, P>> it) {
-          final Procedure1<Pair<K, P>> _function = new Procedure1<Pair<K, P>>() {
-            public void apply(final Pair<K, P> result) {
-              final K key = result.getKey();
-              final P promise = result.getValue();
-              processes.incrementAndGet();
-              final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-                public void apply(final Throwable it) {
-                  processes.decrementAndGet();
-                  newStream.error(it);
-                  boolean _get = isFinished.get();
-                  if (_get) {
-                    newStream.finish();
-                  }
-                }
-              };
-              IPromise<V> _onError = promise.onError(_function);
-              final Procedure1<V> _function_1 = new Procedure1<V>() {
-                public void apply(final V it) {
-                  processes.decrementAndGet();
-                  Pair<K, V> _mappedTo = Pair.<K, V>of(key, it);
-                  newStream.push(_mappedTo);
-                  boolean _get = isFinished.get();
-                  if (_get) {
-                    newStream.finish();
-                  }
-                }
-              };
-              _onError.then(_function_1);
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                newStream.error(it);
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              int _get = processes.get();
-              boolean _equals = (_get == 0);
-              if (_equals) {
-                newStream.finish((it).intValue());
-              } else {
-                isFinished.set(true);
-              }
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<Pair<K, P>>on(stream, _function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
-          final Procedure1<Void> _function = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              int _get = processes.get();
-              boolean _greaterThan = (concurrency > _get);
-              if (_greaterThan) {
-                stream.next();
-              }
-            }
-          };
-          it.next(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              stream.skip();
-            }
-          };
-          it.skip(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              stream.close();
-            }
-          };
-          it.close(_function_2);
-        }
-      };
-      StreamExtensions.<Pair<K, V>>monitor(newStream, _function_1);
-      stream.setOperation((("resolveValue(concurrency=" + Integer.valueOf(concurrency)) + ")"));
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
    * Make an asynchronous call.
    * This is an alias for stream.call(1)
    */
@@ -1754,80 +1592,6 @@ public class StreamExtensions {
       }
     };
     return ObjectExtensions.<Stream<R>>operator_doubleArrow(_resolve, _function);
-  }
-  
-  /**
-   * Make an asynchronous call. Passes the key and value of the pair stream as separate parameters.
-   * This is an alias for stream.map(mappingFn).resolve
-   */
-  public static <K extends Object, T extends Object, R extends Object, P extends IPromise<R>> Stream<R> call(final Stream<Pair<K, T>> stream, final Function2<? super K, ? super T, ? extends P> promiseFn) {
-    Stream<P> _map = StreamExtensions.<K, T, P>map(stream, promiseFn);
-    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map);
-    final Procedure1<Stream<R>> _function = new Procedure1<Stream<R>>() {
-      public void apply(final Stream<R> it) {
-        stream.setOperation("call");
-      }
-    };
-    return ObjectExtensions.<Stream<R>>operator_doubleArrow(_resolve, _function);
-  }
-  
-  /**
-   * Make an asynchronous call. Passes the key and value of the pair stream as separate parameters.
-   * This is an alias for stream.map(mappingFn).resolve(concurrency)
-   */
-  public static <K extends Object, T extends Object, R extends Object, P extends IPromise<R>> Stream<R> call(final Stream<Pair<K, T>> stream, final int concurrency, final Function2<? super K, ? super T, ? extends P> promiseFn) {
-    Stream<P> _map = StreamExtensions.<K, T, P>map(stream, promiseFn);
-    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
-    final Procedure1<Stream<R>> _function = new Procedure1<Stream<R>>() {
-      public void apply(final Stream<R> it) {
-        stream.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
-      }
-    };
-    return ObjectExtensions.<Stream<R>>operator_doubleArrow(_resolve, _function);
-  }
-  
-  public static <T extends Object, R extends Object, P extends IPromise<R>, K2 extends Object> Stream<Pair<K2, R>> call2(final Stream<T> stream, final Function1<? super T, ? extends Pair<K2, P>> promiseFn) {
-    Stream<Pair<K2, P>> _map = StreamExtensions.<T, Pair<K2, P>>map(stream, promiseFn);
-    Stream<Pair<K2, R>> _resolveValue = StreamExtensions.<K2, R, P>resolveValue(_map);
-    final Procedure1<Stream<Pair<K2, R>>> _function = new Procedure1<Stream<Pair<K2, R>>>() {
-      public void apply(final Stream<Pair<K2, R>> it) {
-        stream.setOperation("call2");
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K2, R>>>operator_doubleArrow(_resolveValue, _function);
-  }
-  
-  public static <T extends Object, R extends Object, P extends IPromise<R>, K2 extends Object> Stream<Pair<K2, R>> call2(final Stream<T> stream, final int concurrency, final Function1<? super T, ? extends Pair<K2, P>> promiseFn) {
-    Stream<Pair<K2, P>> _map = StreamExtensions.<T, Pair<K2, P>>map(stream, promiseFn);
-    Stream<Pair<K2, R>> _resolveValue = StreamExtensions.<K2, R, P>resolveValue(_map, concurrency);
-    final Procedure1<Stream<Pair<K2, R>>> _function = new Procedure1<Stream<Pair<K2, R>>>() {
-      public void apply(final Stream<Pair<K2, R>> it) {
-        stream.setOperation((("call2(concurrency=" + Integer.valueOf(concurrency)) + ")"));
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K2, R>>>operator_doubleArrow(_resolveValue, _function);
-  }
-  
-  public static <K extends Object, T extends Object, R extends Object, P extends IPromise<R>, K2 extends Object> Stream<Pair<K2, R>> call2(final Stream<Pair<K, T>> stream, final Function2<? super K, ? super T, ? extends Pair<K2, P>> promiseFn) {
-    Stream<Pair<K2, P>> _map = StreamExtensions.<K, T, Pair<K2, P>>map(stream, promiseFn);
-    Stream<Pair<K2, R>> _resolveValue = StreamExtensions.<K2, R, P>resolveValue(_map);
-    final Procedure1<Stream<Pair<K2, R>>> _function = new Procedure1<Stream<Pair<K2, R>>>() {
-      public void apply(final Stream<Pair<K2, R>> it) {
-        stream.setOperation("call2");
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K2, R>>>operator_doubleArrow(_resolveValue, _function);
-  }
-  
-  public static <K extends Object, T extends Object, R extends Object, P extends IPromise<R>, K2 extends Object> Stream<Pair<K2, R>> call2(final Stream<Pair<K, T>> stream, final int concurrency, final Function2<? super K, ? super T, ? extends Pair<K2, P>> promiseFn) {
-    Stream<Pair<K2, P>> _map = StreamExtensions.<K, T, Pair<K2, P>>map(stream, promiseFn);
-    Stream<Pair<K2, R>> _resolveValue = StreamExtensions.<K2, R, P>resolveValue(_map, concurrency);
-    final Procedure1<Stream<Pair<K2, R>>> _function = new Procedure1<Stream<Pair<K2, R>>>() {
-      public void apply(final Stream<Pair<K2, R>> it) {
-        stream.setOperation((("call2(concurrency=" + Integer.valueOf(concurrency)) + ")"));
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K2, R>>>operator_doubleArrow(_resolveValue, _function);
   }
   
   /**
@@ -1874,6 +1638,82 @@ public class StreamExtensions {
       };
       StreamExtensions.<T>on(stream, _function);
       StreamExtensions.<T, Object>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Handle errors on the stream.  This will swallow the error from the stream.
+   * It will attempt to get the key where it went wrong and pass it. If that
+   * fails the value is null.
+   * @return a new stream like the incoming stream but without the caught errors.
+   */
+  public static <K extends Object, V extends Object> Stream<Pair<K, V>> onError(final Stream<Pair<K, V>> stream, final Procedure2<? super K, ? super Throwable> handler) {
+    Stream<Pair<K, V>> _xblockexpression = null;
+    {
+      final Stream<Pair<K, V>> newStream = new Stream<Pair<K, V>>();
+      final Procedure1<StreamHandlerBuilder<Pair<K, V>>> _function = new Procedure1<StreamHandlerBuilder<Pair<K, V>>>() {
+        public void apply(final StreamHandlerBuilder<Pair<K, V>> it) {
+          final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+            public void apply(final Pair<K, V> it) {
+              newStream.push(it);
+            }
+          };
+          it.each(_function);
+          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
+            public Boolean apply(final Throwable it) {
+              boolean _xblockexpression = false;
+              {
+                boolean _matched = false;
+                if (!_matched) {
+                  if (it instanceof StreamException) {
+                    _matched=true;
+                    try {
+                      final Pair<K, ?> pair = ((Pair<K, ?>) ((StreamException)it).value);
+                      K _key = pair.getKey();
+                      handler.apply(_key, it);
+                    } catch (final Throwable _t) {
+                      if (_t instanceof ClassCastException) {
+                        final ClassCastException e = (ClassCastException)_t;
+                        handler.apply(null, it);
+                      } else {
+                        throw Exceptions.sneakyThrow(_t);
+                      }
+                    }
+                  }
+                }
+                if (!_matched) {
+                  {
+                    handler.apply(null, it);
+                    String _message = it.getMessage();
+                    String _plus = ("got error " + _message);
+                    InputOutput.<String>println(_plus);
+                  }
+                }
+                stream.next();
+                _xblockexpression = false;
+              }
+              return Boolean.valueOf(_xblockexpression);
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+            public void apply(final Integer it) {
+              newStream.finish((it).intValue());
+            }
+          };
+          it.finish(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<Pair<K, V>>on(stream, _function);
+      StreamExtensions.<Pair<K, V>, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1977,21 +1817,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
-   * Returns a task that completes once the stream finishes or closes.
-   */
-  public static <K extends Object, V extends Object> Task onEach(final Stream<Pair<K, V>> stream, final Procedure2<? super K, ? super V> listener) {
-    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
-      public void apply(final Pair<K, V> it) {
-        K _key = it.getKey();
-        V _value = it.getValue();
-        listener.apply(_key, _value);
-      }
-    };
-    return StreamExtensions.<Pair<K, V>>onEach(stream, _function);
-  }
-  
-  /**
    * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
@@ -2013,32 +1838,11 @@ public class StreamExtensions {
   }
   
   /**
-   * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
-   * Performs the task for every value, and only requests the next value from the stream once the task has finished.
-   * Returns a task that completes once the stream finishes or closes.
-   */
-  public static <K extends Object, V extends Object> Task onEachAsync(final Stream<Pair<K, V>> stream, final Function2<? super K, ? super V, ? extends Task> taskFn) {
-    Stream<Task> _map = StreamExtensions.<K, V, Task>map(stream, taskFn);
-    Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
-      }
-    };
-    Task _onEach = StreamExtensions.<Boolean>onEach(_resolve, _function);
-    final Procedure1<Task> _function_1 = new Procedure1<Task>() {
-      public void apply(final Task it) {
-        stream.setOperation("onEach(async)");
-      }
-    };
-    return ObjectExtensions.<Task>operator_doubleArrow(_onEach, _function_1);
-  }
-  
-  /**
    * Shortcut for splitting a stream and then performing a pipe to another stream.
    * @return a CopySplitter source that you can connect more streams to.
    */
   public static <T extends Object> StreamSource<T> pipe(final Stream<T> stream, final Stream<T> target) {
-    StreamSource<T> _split = StreamExtensions.<T>split(stream);
+    StreamCopySplitter<T> _split = StreamExtensions.<T>split(stream);
     StreamSource<T> _pipe = _split.pipe(target);
     final Procedure1<StreamSource<T>> _function = new Procedure1<StreamSource<T>>() {
       public void apply(final StreamSource<T> it) {
@@ -2253,27 +2057,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Start the stream and and promise the first value from it.
-   */
-  public static <K extends Object, V extends Object> IPromise<Pair<K, V>> then(final Stream<Pair<K, V>> stream, final Procedure2<K, V> listener) {
-    IPromise<Pair<K, V>> _first = StreamExtensions.<Pair<K, V>>first(stream);
-    final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
-      public void apply(final Pair<K, V> it) {
-        K _key = it.getKey();
-        V _value = it.getValue();
-        listener.apply(_key, _value);
-      }
-    };
-    IPromise<Pair<K, V>> _then = _first.then(_function);
-    final Procedure1<IPromise<Pair<K, V>>> _function_1 = new Procedure1<IPromise<Pair<K, V>>>() {
-      public void apply(final IPromise<Pair<K, V>> it) {
-        stream.setOperation("then");
-      }
-    };
-    return ObjectExtensions.<IPromise<Pair<K, V>>>operator_doubleArrow(_then, _function_1);
-  }
-  
-  /**
    * Convenient builder to easily asynchronously respond to stream entries.
    * Defaults for each[], finish[], and error[] is to simply ask for the next entry.
    * <p>
@@ -2382,31 +2165,6 @@ public class StreamExtensions {
   }
   
   /**
-   * Perform some side-effect action based on the stream.
-   */
-  public static <K extends Object, T extends Object> Stream<Pair<K, T>> effect(final Stream<Pair<K, T>> stream, final Procedure2<? super K, ? super T> listener) {
-    final Function1<Pair<K, T>, Pair<K, T>> _function = new Function1<Pair<K, T>, Pair<K, T>>() {
-      public Pair<K, T> apply(final Pair<K, T> it) {
-        Pair<K, T> _xblockexpression = null;
-        {
-          K _key = it.getKey();
-          T _value = it.getValue();
-          listener.apply(_key, _value);
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
-      }
-    };
-    Stream<Pair<K, T>> _map = StreamExtensions.<Pair<K, T>, Pair<K, T>>map(stream, _function);
-    final Procedure1<Stream<Pair<K, T>>> _function_1 = new Procedure1<Stream<Pair<K, T>>>() {
-      public void apply(final Stream<Pair<K, T>> it) {
-        stream.setOperation("effect");
-      }
-    };
-    return ObjectExtensions.<Stream<Pair<K, T>>>operator_doubleArrow(_map, _function_1);
-  }
-  
-  /**
    * Opposite of collect, separate each list in the stream into separate
    * stream entries and streams those separately.
    */
@@ -2479,6 +2237,35 @@ public class StreamExtensions {
       _xblockexpression = s;
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * Concatenate a lot of strings into a single string, separated by a separator string.
+   * <pre>
+   * (1..3).stream.join('-').then [ println(it) ] // prints 1-2-3
+   */
+  public static <T extends Object> Stream<String> join(final Stream<T> stream, final String separator) {
+    final Function2<String, T, String> _function = new Function2<String, T, String>() {
+      public String apply(final String acc, final T it) {
+        String _xifexpression = null;
+        boolean _notEquals = (!Objects.equal(acc, ""));
+        if (_notEquals) {
+          _xifexpression = separator;
+        } else {
+          _xifexpression = "";
+        }
+        String _plus = (acc + _xifexpression);
+        String _string = it.toString();
+        return (_plus + _string);
+      }
+    };
+    Stream<String> _reduce = StreamExtensions.<T, String>reduce(stream, "", _function);
+    final Procedure1<Stream<String>> _function_1 = new Procedure1<Stream<String>>() {
+      public void apply(final Stream<String> it) {
+        stream.setOperation("join");
+      }
+    };
+    return ObjectExtensions.<Stream<String>>operator_doubleArrow(_reduce, _function_1);
   }
   
   /**
@@ -2621,7 +2408,6 @@ public class StreamExtensions {
   
   /**
    * Reduce a stream of values to a single value, and pass a counter in the function.
-   * The counter is the count of the incoming stream entry (since the start or the last finish)
    * Errors in the stream are suppressed.
    */
   public static <T extends Object, R extends Object> Stream<R> reduce(final Stream<T> stream, final R initial, final Function2<? super R, ? super T, ? extends R> reducerFn) {

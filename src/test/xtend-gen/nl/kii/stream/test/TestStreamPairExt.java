@@ -5,6 +5,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamPairExtensions;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
@@ -24,7 +25,7 @@ public class TestStreamPairExt {
         StreamExtensions.<Integer>operator_doubleLessThan(p2, Integer.valueOf(((k).intValue() + (v).intValue())));
       }
     };
-    StreamExtensions.<Integer, Integer>onEach(p, _function);
+    StreamPairExtensions.<Integer, Integer>onEach(p, _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(3));
     StreamAssert.<Integer>assertStreamContains(p2, _value);
   }
@@ -38,7 +39,7 @@ public class TestStreamPairExt {
         return TestStreamPairExt.this.power2(((a).intValue() + (b).intValue()));
       }
     };
-    final Stream<Integer> asynced = StreamExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
+    final Stream<Integer> asynced = StreamPairExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
     Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
     Finish<Integer> _finish = StreamExtensions.<Integer>finish();
     StreamAssert.<Integer>assertStreamContains(asynced, _value, _finish);
@@ -58,7 +59,7 @@ public class TestStreamPairExt {
         return Pair.<Integer, Integer>of(key, Integer.valueOf((((key).intValue() + (value).intValue()) * ((key).intValue() + (value).intValue()))));
       }
     };
-    final Stream<Pair<Integer, Integer>> asynced = StreamExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
+    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
     Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
@@ -75,15 +76,15 @@ public class TestStreamPairExt {
       }
     };
     Stream<Pair<Integer, Promise<Integer>>> _map = StreamExtensions.<Integer, Pair<Integer, Promise<Integer>>>map(p, _function);
-    Stream<Pair<Integer, Integer>> _resolveValue = StreamExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map);
+    Stream<Pair<Integer, Integer>> _resolveValue = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map);
     final Function2<Integer, Integer, Pair<Integer, Promise<Integer>>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Promise<Integer>>>() {
       public Pair<Integer, Promise<Integer>> apply(final Integer key, final Integer value) {
         Promise<Integer> _power2 = TestStreamPairExt.this.power2((value).intValue());
         return Pair.<Integer, Promise<Integer>>of(key, _power2);
       }
     };
-    Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolveValue, _function_1);
-    final Stream<Pair<Integer, Integer>> asynced = StreamExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map_1);
+    Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamPairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolveValue, _function_1);
+    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
     Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
     Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();

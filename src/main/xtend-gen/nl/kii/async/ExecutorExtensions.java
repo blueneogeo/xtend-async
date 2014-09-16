@@ -146,6 +146,6 @@ public class ExecutorExtensions {
    */
   public static <T extends Object> Stream<T> every(final Stream<T> stream, final int periodMs, final ScheduledExecutorService executor) {
     Stream<Long> _streamEvery = ExecutorExtensions.streamEvery(executor, periodMs);
-    return StreamExtensions.<T>forEvery(stream, _streamEvery);
+    return StreamExtensions.<T>synchronizeWith(stream, _streamEvery);
   }
 }

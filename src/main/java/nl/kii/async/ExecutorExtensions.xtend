@@ -103,7 +103,7 @@ class ExecutorExtensions {
 	 * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
 	 */
 	def static <T> Stream<T> every(Stream<T> stream, int periodMs, ScheduledExecutorService executor) {
-		stream.forEvery(executor.streamEvery(periodMs))
+		stream.synchronizeWith(executor.streamEvery(periodMs))
 	}
 	
 }

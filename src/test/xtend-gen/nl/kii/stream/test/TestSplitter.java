@@ -6,6 +6,8 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.source.LoadBalancer;
+import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
@@ -24,7 +26,7 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    StreamSource<Integer> _split = StreamExtensions.<Integer>split(source);
+    StreamCopySplitter<Integer> _split = StreamExtensions.<Integer>split(source);
     StreamSource<Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
@@ -88,7 +90,7 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    StreamSource<Integer> _balance = StreamExtensions.<Integer>balance(source);
+    LoadBalancer<Integer> _balance = StreamExtensions.<Integer>balance(source);
     StreamSource<Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {

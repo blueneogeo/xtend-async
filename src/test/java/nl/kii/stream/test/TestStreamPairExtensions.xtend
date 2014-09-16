@@ -5,6 +5,7 @@ import org.junit.Test
 
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.StreamPairExtensions.*
 
 class TestStreamPairExt {
 
