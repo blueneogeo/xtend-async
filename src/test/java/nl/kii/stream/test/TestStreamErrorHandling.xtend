@@ -15,11 +15,10 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
-				.onEach [ println(it) ]
+				.onEach [ ]
 			s << 1 << 2 << finish
 			fail('we expected an error for /0')
 		} catch(Exception e) {
-			e.printStackTrace
 			// success
 		}
 	}
@@ -32,11 +31,9 @@ class TestStreamErrorHandling {
 				//.map [ it ]
 				.filter [ 1 / (it % 3) == 0 ] // division by 0 for 3
 				//.map [ it ]
-				.onError [ printStackTrace ]
-				.onEach [ println(it) ]
-			println(s)
+				.onError [ ]
+				.onEach [ ]
 		} catch(Exception e) {
-			e.printStackTrace
 			fail('onError should have caught ' + e)
 		}
 	}
@@ -50,7 +47,7 @@ class TestStreamErrorHandling {
 				.onError [ fail('should not trigger') ]
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
-				.onEach [ println(it) ]
+				.onEach [ ]
 			s << 1 << 2 << finish
 			fail('we expected an error for /0')
 		} catch(Exception e) {
@@ -69,7 +66,7 @@ class TestStreamErrorHandling {
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
 				.onError [ caught = it ] // below the filter method, above the oneach, will filter out the error
-				.onEach [ println(it) ]
+				.onEach [ ]
 			s << 1 << 2 << finish
 		} catch(Exception e) {
 			fail('error should be handled')
@@ -85,11 +82,10 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
-				.onEach [ println(it) ]
+				.onEach [ ]
 				.onError [ caught = it ] // below onEach, listening to the created task
 			s << 1 << 2 << finish
 		} catch(Exception e) {
-			e.printStackTrace
 			fail('error should be handled')
 		}
 		assertNotNull(caught)

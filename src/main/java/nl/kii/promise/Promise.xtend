@@ -18,7 +18,10 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
 	def IPromise<T> error(Throwable t)
 	
 	def IPromise<T> onError(Procedure1<Throwable> errorFn)
-	def IPromise<T> then(Procedure1<T> valueFn)
+	def Task then(Procedure1<T> valueFn)
+	
+	def void setOperation(String operation)
+	def String getOperation()
 	
 }
 
@@ -41,6 +44,9 @@ class Promise<T> implements IPromise<T> {
 
 	/** The result of the promise, if any, otherwise null */
 	@Atomic protected val Entry<T> entry
+
+	/** name of the operation the listener is performing */
+	@Atomic val String _operation 
 
 	/** Create a new unfulfilled promise */
 	new() { }
@@ -89,9 +95,19 @@ class Promise<T> implements IPromise<T> {
 		publisher
 	}
 	
+	override getOperation() {
+		_operation
+	}
+	
+	override setOperation(String name) {
+		_operation = name
+	}
+	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	/** If the promise recieved or recieves an error, onError is called with the throwable */
+	/** 
+	 * If the promise recieved or recieves an error, onError is called with the throwable.
+	 */
 	override onError(Procedure1<Throwable> errorFn) {
 		// register for a new value being applied
 		val sub = new AtomicReference<Procedure0>
@@ -111,6 +127,7 @@ class Promise<T> implements IPromise<T> {
 
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
 	override then(Procedure1<T> valueFn) {
+		val newTask = new Task
 		// register for a new value being applied
 		val sub = new AtomicReference<Procedure0>
 		sub.set(publisher.onChange [
@@ -119,16 +136,19 @@ class Promise<T> implements IPromise<T> {
 					Value<T>: { 
 						sub.get.apply // unsubscribe, so this handler will not be called again
 						valueFn.apply(value)
+						newTask.complete
 					}
+					Error<T>: newTask.error(error)
 				}
 			} catch(Exception e) {
 				error(new AsyncException('Promise.then gave error for', it, e))
+				newTask.error(e)
 			}
 		])
 		hasValueHandler = true
 		// if there is an entry, push it so this handler will get it
 		if(entry != null) publisher.apply(entry)
-		this
+		newTask
 	}
 
 	override toString() '''Promise { fulfilled: «fulfilled», entry: «get» }'''

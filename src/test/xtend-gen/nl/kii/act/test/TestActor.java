@@ -232,9 +232,9 @@ public class TestActor {
           InputOutput.<String>println(("function took: " + it));
         }
       };
-      IPromise<Long> _then = _call.then(_function_3);
-      final Function1<Long, Promise<Long>> _function_4 = new Function1<Long, Promise<Long>>() {
-        public Promise<Long> apply(final Long it) {
+      Task _then = _call.then(_function_3);
+      final Function1<Boolean, Promise<Long>> _function_4 = new Function1<Boolean, Promise<Long>>() {
+        public Promise<Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -245,15 +245,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_1 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then, _function_4);
+      IPromise<Long> _call_1 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then, _function_4);
       final Procedure1<Long> _function_5 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("unsynced method took: " + it));
         }
       };
-      IPromise<Long> _then_1 = _call_1.then(_function_5);
-      final Function1<Long, Promise<Long>> _function_6 = new Function1<Long, Promise<Long>>() {
-        public Promise<Long> apply(final Long it) {
+      Task _then_1 = _call_1.then(_function_5);
+      final Function1<Boolean, Promise<Long>> _function_6 = new Function1<Boolean, Promise<Long>>() {
+        public Promise<Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -264,15 +264,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_2 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then_1, _function_6);
+      IPromise<Long> _call_2 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then_1, _function_6);
       final Procedure1<Long> _function_7 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("synced method took: " + it));
         }
       };
-      IPromise<Long> _then_2 = _call_2.then(_function_7);
-      final Function1<Long, Promise<Long>> _function_8 = new Function1<Long, Promise<Long>>() {
-        public Promise<Long> apply(final Long it) {
+      Task _then_2 = _call_2.then(_function_7);
+      final Function1<Boolean, Promise<Long>> _function_8 = new Function1<Boolean, Promise<Long>>() {
+        public Promise<Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -283,14 +283,14 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_3 = PromiseExtensions.<Long, Long, Promise<Long>>call(_then_2, _function_8);
+      IPromise<Long> _call_3 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then_2, _function_8);
       final Procedure1<Long> _function_9 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("actor took: " + it));
         }
       };
-      IPromise<Long> _then_3 = _call_3.then(_function_9);
-      Future<Long> _future = ExecutorExtensions.<Long>future(_then_3);
+      Task _then_3 = _call_3.then(_function_9);
+      Future<Boolean> _future = ExecutorExtensions.<Boolean>future(_then_3);
       _future.get();
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);

@@ -717,7 +717,7 @@ class StreamExtensions {
 				promise
 					.onError [
 						processes.decrementAndGet
-						newStream.error(it)
+						newStream.error(new StreamException('resolve', null, it))
 						if(isFinished.get) newStream.finish
 					]
 					.then [

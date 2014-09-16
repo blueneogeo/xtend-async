@@ -14,7 +14,6 @@ import nl.kii.stream.StreamHandlerBuilder;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -47,7 +46,6 @@ public class TestStreamErrorHandling {
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_filter, _function_2);
       final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
-          InputOutput.<Integer>println(it);
         }
       };
       StreamExtensions.<Integer>onEach(_map_1, _function_3);
@@ -59,7 +57,6 @@ public class TestStreamErrorHandling {
     } catch (final Throwable _t) {
       if (_t instanceof Exception) {
         final Exception e = (Exception)_t;
-        e.printStackTrace();
       } else {
         throw Exceptions.sneakyThrow(_t);
       }
@@ -79,21 +76,17 @@ public class TestStreamErrorHandling {
       Stream<Integer> _filter = StreamExtensions.<Integer>filter(s, _function);
       final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
-          it.printStackTrace();
         }
       };
       Stream<Integer> _onError = StreamExtensions.<Integer>onError(_filter, _function_1);
       final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
-          InputOutput.<Integer>println(it);
         }
       };
       StreamExtensions.<Integer>onEach(_onError, _function_2);
-      InputOutput.<Stream<Integer>>println(s);
     } catch (final Throwable _t) {
       if (_t instanceof Exception) {
         final Exception e = (Exception)_t;
-        e.printStackTrace();
         Assert.fail(("onError should have caught " + e));
       } else {
         throw Exceptions.sneakyThrow(_t);
@@ -131,7 +124,6 @@ public class TestStreamErrorHandling {
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_filter, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
-          InputOutput.<Integer>println(it);
         }
       };
       StreamExtensions.<Integer>onEach(_map_1, _function_4);
@@ -182,7 +174,6 @@ public class TestStreamErrorHandling {
       Stream<Integer> _onError = StreamExtensions.<Integer>onError(_map_1, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
-          InputOutput.<Integer>println(it);
         }
       };
       StreamExtensions.<Integer>onEach(_onError, _function_4);
@@ -226,7 +217,6 @@ public class TestStreamErrorHandling {
       Stream<Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_filter, _function_2);
       final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
-          InputOutput.<Integer>println(it);
         }
       };
       Task _onEach = StreamExtensions.<Integer>onEach(_map_1, _function_3);
@@ -243,7 +233,6 @@ public class TestStreamErrorHandling {
     } catch (final Throwable _t) {
       if (_t instanceof Exception) {
         final Exception e = (Exception)_t;
-        e.printStackTrace();
         Assert.fail("error should be handled");
       } else {
         throw Exceptions.sneakyThrow(_t);

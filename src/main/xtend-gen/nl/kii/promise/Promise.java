@@ -7,6 +7,7 @@ import nl.kii.async.AsyncException;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
@@ -44,6 +45,12 @@ public class Promise<T extends Object> implements IPromise<T> {
    */
   @Atomic
   private final AtomicReference<Entry<T>> _entry = new AtomicReference<Entry<T>>();
+  
+  /**
+   * name of the operation the listener is performing
+   */
+  @Atomic
+  private final AtomicReference<String> __operation = new AtomicReference<String>();
   
   /**
    * Create a new unfulfilled promise
@@ -142,8 +149,16 @@ public class Promise<T extends Object> implements IPromise<T> {
     return this.publisher;
   }
   
+  public String getOperation() {
+    return this.get_operation();
+  }
+  
+  public void setOperation(final String name) {
+    this.set_operation(name);
+  }
+  
   /**
-   * If the promise recieved or recieves an error, onError is called with the throwable
+   * If the promise recieved or recieves an error, onError is called with the throwable.
    */
   public IPromise<T> onError(final Procedure1<Throwable> errorFn) {
     Promise<T> _xblockexpression = null;
@@ -179,9 +194,10 @@ public class Promise<T extends Object> implements IPromise<T> {
   /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
-  public IPromise<T> then(final Procedure1<T> valueFn) {
-    Promise<T> _xblockexpression = null;
+  public Task then(final Procedure1<T> valueFn) {
+    Task _xblockexpression = null;
     {
+      final Task newTask = new Task();
       final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
       final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
         public void apply(final Entry<T> it) {
@@ -193,6 +209,13 @@ public class Promise<T extends Object> implements IPromise<T> {
                 Procedure0 _get = sub.get();
                 _get.apply();
                 valueFn.apply(((Value<T>)it).value);
+                newTask.complete();
+              }
+            }
+            if (!_matched) {
+              if (it instanceof nl.kii.stream.Error) {
+                _matched=true;
+                newTask.error(((nl.kii.stream.Error<T>)it).error);
               }
             }
           } catch (final Throwable _t) {
@@ -200,6 +223,7 @@ public class Promise<T extends Object> implements IPromise<T> {
               final Exception e = (Exception)_t;
               AsyncException _asyncException = new AsyncException("Promise.then gave error for", it, e);
               Promise.this.error(_asyncException);
+              newTask.error(e);
             } else {
               throw Exceptions.sneakyThrow(_t);
             }
@@ -215,7 +239,7 @@ public class Promise<T extends Object> implements IPromise<T> {
         Entry<T> _entry_1 = this.getEntry();
         this.publisher.apply(_entry_1);
       }
-      _xblockexpression = this;
+      _xblockexpression = newTask;
     }
     return _xblockexpression;
   }
@@ -262,5 +286,13 @@ public class Promise<T extends Object> implements IPromise<T> {
   
   protected Entry<T> getEntry() {
     return this._entry.get();
+  }
+  
+  private String set_operation(final String value) {
+    return this.__operation.getAndSet(value);
+  }
+  
+  private String get_operation() {
+    return this.__operation.get();
   }
 }

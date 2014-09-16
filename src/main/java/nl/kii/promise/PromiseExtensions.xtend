@@ -47,6 +47,7 @@ class PromiseExtensions {
 			.resolve(concurrency) // we get back a pair of the key->value used, and the done result
 			.collect // see it as a list of results
 			.first
+			=> [ operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 
 	/** Shortcut for quickly creating a completed task */	
@@ -151,6 +152,7 @@ class PromiseExtensions {
 		val newPromise = new Promise<R>(promise)
 		promise.then [ newPromise.set(mappingFn.apply(it)) ]
 		newPromise
+			=> [ operation = 'map' ]
 	}
 	
 	/**
@@ -158,23 +160,60 @@ class PromiseExtensions {
 	 * promise as listener parameters.
 	 */
 	def static <K1, V1, V2> map(IPromise<Pair<K1, V1>> promise, (K1, V1)=>V2 mappingFn) {
-		promise.map [ 
-			mappingFn.apply(key, value)
-		]
+		promise.map [ mappingFn.apply(key, value) ]
+			=> [ operation = 'map' ]
 	}
 	
 	/**
 	 * Maps just the values of a promise of a pair to a new promise
 	 */
 	def static <K1, V1, V2> mapValue(IPromise<Pair<K1, V1>> promise, (V1)=>V2 mappingFn) {
-		promise.map [ 
-			key -> mappingFn.apply(value)
-		]
+		promise.map [ key -> mappingFn.apply(value) ]
+			=> [ operation = 'mapValue' ]
+	}
+
+	/**
+	 * Maps errors back into values. 
+	 * Good for alternative path resolving and providing defaults.
+	 */
+	def static <T> mapError(IPromise<T> promise, (Throwable)=>T mappingFn) {
+		val newPromise = new Promise<T>
+		promise
+			.then [ newPromise.set(it) ]
+			.onError [
+				try {
+					newPromise.set(mappingFn.apply(it))
+				} catch(Exception e) {
+					newPromise.error(e)
+				}
+			]
+		newPromise
+			=> [ operation = 'onErrorMap' ]
+	}
+
+	/**
+	 * Maps errors back into values. 
+	 * Good for alternative path resolving and providing defaults.
+	 */
+	def static <T> onErrorCall(IPromise<T> promise, (Throwable)=>Promise<T> mappingFn) {
+		val newPromise = new Promise<Promise<T>>
+		promise
+			.then [ newPromise.set(it.promise) ]
+			.onError [
+				try {
+					newPromise.set(mappingFn.apply(it))
+				} catch(Exception e) {
+					newPromise.error(e)
+				}
+			]
+		newPromise.resolve
+			=> [ operation = 'onErrorCall' ]
 	}
 
 	/** Flattens a promise of a promise to directly a promise. */
 	def static <R, P extends IPromise<R>> flatten(IPromise<P> promise) {
 		promise.resolve
+			=> [ operation = 'flatten' ]
 	}
 
 	/** Create a stream out of a promise of a stream. */
@@ -197,6 +236,7 @@ class PromiseExtensions {
 			.then [ newPromise.set(it) ]
 		]
 		newPromise
+			=> [ operation = 'resolve' ]
 	}	
 
 	/**
@@ -211,40 +251,21 @@ class PromiseExtensions {
 				.then [ newPromise.set(pair.key -> it) ]
 		]
 		newPromise
+			=> [ operation = 'resolveValue' ]
 	}
 
 	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
 	def static <T, R, P extends IPromise<R>> IPromise<R> flatMap(IPromise<T> promise, (T)=>P promiseFn) {
 		promise.map(promiseFn).flatten
+			=> [ operation = 'flatMap' ]
 	}
 
 	def static <T, R, K, P extends IPromise<R>> IPromise<R> flatMap(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
 		promise.map(promiseFn).flatten
+			=> [ operation = 'flatMap' ]
 	}
 	
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
-	
-	/** 
-	 * Peek into what values going through the promise chain at this point.
-	 * It is meant as a debugging tool for inspecting the data flowing
-	 * through the promise.
-	 * <p>
-	 * The listener will not modify the promise and only get a view of the
-	 * data passing by. It should never modify the passed reference!
-	 * <p>
-	 * If the listener throws an error, it will be caught and printed,
-	 * and not interrupt the promise or throw an error on the promise.
-	 */
-	def static <T> peek(IPromise<T> promise, (T)=>void listener) {
-		promise.map [
-			try {
-				listener.apply(it)
-			} catch(Throwable t) {
-				t.printStackTrace
-			}
-			it
-		]
-	}
 	
 	/**
 	 * Perform some side-effect action based on the promise. It will not
@@ -255,6 +276,7 @@ class PromiseExtensions {
 			listener.apply(it)
 			it
 		]
+			=> [ operation = 'effect' ]
 	}
 	
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
@@ -281,31 +303,27 @@ class PromiseExtensions {
 	 */
 	def static <T, R, P extends IPromise<R>> IPromise<R> call(IPromise<T> promise, (T)=>P promiseFn) {
 		promise.map(promiseFn).resolve
+			=> [ operation = 'call' ]
 	}
 
 	def static <T, R, K, P extends IPromise<R>> IPromise<R> call(IPromise<Pair<K, T>> promise, (K, T)=>P promiseFn) {
 		promise.map(promiseFn).resolve
+			=> [ operation = 'call' ]
 	}
 
 	def static <T, R, K, P extends IPromise<R>, K2> IPromise<Pair<K, R>> call2(IPromise<Pair<K, T>> promise, (K, T)=>Pair<K, P> promiseFn) {
 		promise.map(promiseFn).resolveValue
+			=> [ operation = 'call2' ]
 	}
 
 	def static <T, R, K, P extends IPromise<R>> IPromise<Pair<K, R>> call2(IPromise<T> promise, (T)=>Pair<K, P> promiseFn) {
 		promise.map(promiseFn).resolveValue
+			=> [ operation = 'call2' ]
 	}
 
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	/**
-	 * Handle errors on the stream.  This will swallow the error from the stream.
-	 * If the error is a StreamException and contains a value, that value will be passed
-	 * as the second parameter. Otherwise it is null. Since most stream operators throw
-	 * StreamExceptions with the entry when an error occurs, this way you get access
-	 * to for which value the error occurred
-	 * @return a new stream like the incoming stream but without the caught errors.
-	 */
 	def static <T> onError(IPromise<T> promise, (Throwable, T)=>void listener) {
 		promise.onError [ t |
 			switch t {

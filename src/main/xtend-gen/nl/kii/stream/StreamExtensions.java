@@ -1477,7 +1477,8 @@ public class StreamExtensions {
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
                   processes.decrementAndGet();
-                  newStream.error(it);
+                  StreamException _streamException = new StreamException("resolve", null, it);
+                  newStream.error(_streamException);
                   boolean _get = isFinished.get();
                   if (_get) {
                     newStream.finish();
@@ -1968,15 +1969,15 @@ public class StreamExtensions {
   /**
    * Start the stream and and promise the first value from it.
    */
-  public static <T extends Object> IPromise<T> then(final Stream<T> stream, final Procedure1<T> listener) {
+  public static <T extends Object> Task then(final Stream<T> stream, final Procedure1<T> listener) {
     IPromise<T> _first = StreamExtensions.<T>first(stream);
-    IPromise<T> _then = _first.then(listener);
-    final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
-      public void apply(final IPromise<T> it) {
+    Task _then = _first.then(listener);
+    final Procedure1<Task> _function = new Procedure1<Task>() {
+      public void apply(final Task it) {
         stream.setOperation("then");
       }
     };
-    return ObjectExtensions.<IPromise<T>>operator_doubleArrow(_then, _function);
+    return ObjectExtensions.<Task>operator_doubleArrow(_then, _function);
   }
   
   /**

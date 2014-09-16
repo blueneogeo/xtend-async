@@ -1,5 +1,6 @@
 package nl.kii.promise;
 
+import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -15,5 +16,9 @@ public interface IPromise<T extends Object> extends Procedure1<Entry<T>> {
   
   public abstract IPromise<T> onError(final Procedure1<Throwable> errorFn);
   
-  public abstract IPromise<T> then(final Procedure1<T> valueFn);
+  public abstract Task then(final Procedure1<T> valueFn);
+  
+  public abstract void setOperation(final String operation);
+  
+  public abstract String getOperation();
 }

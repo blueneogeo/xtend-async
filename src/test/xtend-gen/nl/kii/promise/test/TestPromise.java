@@ -386,16 +386,16 @@ public class TestPromise {
         InputOutput.<Integer>println(it);
       }
     };
-    IPromise<Integer> _then = _map.then(_function_1);
-    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-        InputOutput.<Integer>println(it);
+    Task _then = _map.then(_function_1);
+    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<Boolean>println(it);
       }
     };
-    IPromise<Integer> _then_1 = _then.then(_function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-        InputOutput.<Integer>println(it);
+    Task _then_1 = _then.then(_function_2);
+    final Procedure1<Boolean> _function_3 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<Boolean>println(it);
       }
     };
     _then_1.then(_function_3);
@@ -420,7 +420,7 @@ public class TestPromise {
         Assert.fail("it/0 should not succeed");
       }
     };
-    IPromise<Integer> _then = _map.then(_function_1);
+    Task _then = _map.then(_function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         TestPromise.this.setFoundError(Boolean.valueOf(true));
