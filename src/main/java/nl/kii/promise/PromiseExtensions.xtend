@@ -176,7 +176,7 @@ class PromiseExtensions {
 	 * Maps errors back into values. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
-	def static <T> mapError(IPromise<T> promise, (Throwable)=>T mappingFn) {
+	def static <T> onErrorMap(IPromise<T> promise, (Throwable)=>T mappingFn) {
 		val newPromise = new Promise<T>
 		promise
 			.then [ newPromise.set(it) ]

@@ -320,7 +320,7 @@ public class PromiseExtensions {
    * Maps errors back into values.
    * Good for alternative path resolving and providing defaults.
    */
-  public static <T extends Object> Promise<T> mapError(final IPromise<T> promise, final Function1<? super Throwable, ? extends T> mappingFn) {
+  public static <T extends Object> Promise<T> onErrorMap(final IPromise<T> promise, final Function1<? super Throwable, ? extends T> mappingFn) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> newPromise = new Promise<T>();
