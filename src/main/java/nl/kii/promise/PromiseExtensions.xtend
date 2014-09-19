@@ -196,17 +196,19 @@ class PromiseExtensions {
 	 * Good for alternative path resolving and providing defaults.
 	 */
 	def static <T> onErrorCall(IPromise<T> promise, (Throwable)=>Promise<T> mappingFn) {
-		val newPromise = new Promise<Promise<T>>
+		val newPromise = new Promise<T>
 		promise
-			.then [ newPromise.set(it.promise) ]
+			.then [ newPromise.set(it) ]
 			.onError [
 				try {
-					newPromise.set(mappingFn.apply(it))
+					mappingFn.apply(it)
+						.onError [ newPromise.error(it) ]
+						.then [ newPromise.set(it) ]
 				} catch(Exception e) {
 					newPromise.error(e)
 				}
 			]
-		newPromise.resolve
+		newPromise
 			=> [ operation = 'onErrorCall' ]
 	}
 
@@ -268,14 +270,12 @@ class PromiseExtensions {
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 	
 	/**
-	 * Perform some side-effect action based on the promise. It will not
-	 * really affect the promise itself.
+	 * Perform some side-effect action based on the promise. It should not affect
+	 * the promise itself however if an error is thrown, this is propagated to
+	 * the new generated promise.
 	 */
 	def static <T> effect(IPromise<T> promise, (T)=>void listener) {
-		promise.map [
-			listener.apply(it)
-			it
-		]
+		promise.map [ listener.apply(it) return it ]
 			=> [ operation = 'effect' ]
 	}
 	

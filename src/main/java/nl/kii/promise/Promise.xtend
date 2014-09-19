@@ -35,7 +35,6 @@ class Promise<T> implements IPromise<T> {
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
 
-
 	/** Property to see if the promise has an error handler assigned */
 	@Atomic public val boolean hasErrorHandler = false
 

@@ -363,11 +363,10 @@ public class PromiseExtensions {
   public static <T extends Object> Promise<T> onErrorCall(final IPromise<T> promise, final Function1<? super Throwable, ? extends Promise<T>> mappingFn) {
     Promise<T> _xblockexpression = null;
     {
-      final Promise<Promise<T>> newPromise = new Promise<Promise<T>>();
+      final Promise<T> newPromise = new Promise<T>();
       final Procedure1<T> _function = new Procedure1<T>() {
         public void apply(final T it) {
-          Promise<T> _promise = PromiseExtensions.<T>promise(it);
-          newPromise.set(_promise);
+          newPromise.set(it);
         }
       };
       Task _then = promise.then(_function);
@@ -375,7 +374,18 @@ public class PromiseExtensions {
         public void apply(final Throwable it) {
           try {
             Promise<T> _apply = mappingFn.apply(it);
-            newPromise.set(_apply);
+            final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+              public void apply(final Throwable it) {
+                newPromise.error(it);
+              }
+            };
+            IPromise<T> _onError = _apply.onError(_function);
+            final Procedure1<T> _function_1 = new Procedure1<T>() {
+              public void apply(final T it) {
+                newPromise.set(it);
+              }
+            };
+            _onError.then(_function_1);
           } catch (final Throwable _t) {
             if (_t instanceof Exception) {
               final Exception e = (Exception)_t;
@@ -387,13 +397,12 @@ public class PromiseExtensions {
         }
       };
       _then.onError(_function_1);
-      Promise<T> _resolve = PromiseExtensions.<T, Promise<T>>resolve(newPromise);
       final Procedure1<Promise<T>> _function_2 = new Procedure1<Promise<T>>() {
         public void apply(final Promise<T> it) {
           it.setOperation("onErrorCall");
         }
       };
-      _xblockexpression = ObjectExtensions.<Promise<T>>operator_doubleArrow(_resolve, _function_2);
+      _xblockexpression = ObjectExtensions.<Promise<T>>operator_doubleArrow(newPromise, _function_2);
     }
     return _xblockexpression;
   }
@@ -534,18 +543,15 @@ public class PromiseExtensions {
   }
   
   /**
-   * Perform some side-effect action based on the promise. It will not
-   * really affect the promise itself.
+   * Perform some side-effect action based on the promise. It should not affect
+   * the promise itself however if an error is thrown, this is propagated to
+   * the new generated promise.
    */
   public static <T extends Object> Promise<T> effect(final IPromise<T> promise, final Procedure1<? super T> listener) {
     final Function1<T, T> _function = new Function1<T, T>() {
       public T apply(final T it) {
-        T _xblockexpression = null;
-        {
-          listener.apply(it);
-          _xblockexpression = it;
-        }
-        return _xblockexpression;
+        listener.apply(it);
+        return it;
       }
     };
     Promise<T> _map = PromiseExtensions.<T, T>map(promise, _function);
