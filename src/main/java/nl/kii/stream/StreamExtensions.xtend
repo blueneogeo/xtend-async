@@ -827,10 +827,10 @@ class StreamExtensions {
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <T> Task onEachAsync(Stream<T> stream, (T)=>Task taskFn) {
+	def static <T, R, P extends IPromise<R>> Task onEachCall(Stream<T> stream, (T)=>P taskFn) {
 		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
-		] => [ stream.operation = 'onEach(async)' ]
+		] => [ stream.operation = 'onEachCall' ]
 	}
 
 	/**

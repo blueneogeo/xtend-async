@@ -1745,17 +1745,17 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <T extends Object> Task onEachAsync(final Stream<T> stream, final Function1<? super T, ? extends Task> taskFn) {
-    Stream<Task> _map = StreamExtensions.<T, Task>map(stream, taskFn);
-    Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
+  public static <T extends Object, R extends Object, P extends IPromise<R>> Task onEachCall(final Stream<T> stream, final Function1<? super T, ? extends P> taskFn) {
+    Stream<P> _map = StreamExtensions.<T, P>map(stream, taskFn);
+    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map);
+    final Procedure1<R> _function = new Procedure1<R>() {
+      public void apply(final R it) {
       }
     };
-    Task _onEach = StreamExtensions.<Boolean>onEach(_resolve, _function);
+    Task _onEach = StreamExtensions.<R>onEach(_resolve, _function);
     final Procedure1<Task> _function_1 = new Procedure1<Task>() {
       public void apply(final Task it) {
-        stream.setOperation("onEach(async)");
+        stream.setOperation("onEachCall");
       }
     };
     return ObjectExtensions.<Task>operator_doubleArrow(_onEach, _function_1);
