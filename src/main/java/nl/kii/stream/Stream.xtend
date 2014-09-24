@@ -25,31 +25,40 @@ import nl.kii.promise.Task
  */
 class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage>, Observable<Entry<T>> {
 
+	val static DEFAULT_MAX_BUFFERSIZE = 10000 // default max size for the queue
+
 	val Queue<Entry<T>> queue // queue for incoming values, for buffering when there is no ready listener
 
+	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
 	@Atomic val boolean open = true // whether the stream is open
 	@Atomic val boolean ready = false // whether the listener is ready
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
 
 	@Atomic val (Entry<T>)=>void entryListener // listener for entries from the stream queue
-	@Atomic val (StreamCommand)=>void commandListener // listener for next, skip and close commands
+	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
 
+	@Atomic public val int maxBufferSize // the maximum size of the queue
 	@Atomic public val String operation // name of the operation the listener is performing
 
 	/** create the stream with a memory concurrent queue */
 	new() { 
-		this(newConcurrentLinkedQueue)
+		this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE)
+	}
+
+	new(int maxBufferSize) { 
+		this(newConcurrentLinkedQueue, maxBufferSize)
 	}
 
 	/** create the stream with a memory concurrent queue and the given initial values */
 	new(T... initalValues) {
-		this(newConcurrentLinkedQueue)
+		this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE)
 		initalValues.forEach [ push ]
 	}
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue) { 
+	new(Queue<Entry<T>> queue, int maxBufferSize) { 
 		this.queue = queue
+		this.maxBufferSize = maxBufferSize
 	}
 	
 	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
@@ -60,7 +69,9 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	def isReady() { getReady }
 	
 	def isSkipping() { getSkipping }
-
+	
+	def getBufferSize() { buffersize }
+	
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
 	/** Ask for the next value in the buffer to be delivered to the change listener */
@@ -102,15 +113,15 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	}
 	
 	/** 
-	 * Listen for commands given to the stream. There can only be a single command listener.
+	 * Listen for notifications from the stream.
 	 * <p>
 	 * this is used mostly internally, and you are encouraged to use .monitor() or
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	def =>void onCommand((StreamCommand)=>void commandListener) {
-		this.commandListener = commandListener
-		return [| this.commandListener = null ]
+	def =>void onNotify((StreamNotification)=>void notificationListener) {
+		this.notificationListener = notificationListener
+		return [| this.notificationListener = null ]
 	}
 	
 	/**
@@ -158,12 +169,13 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	 * Monitor commands given to this stream.
 	 */
 	def void monitor(StreamMonitor monitor) {
-		onCommand [ message |
+		onNotify [ notification |
 			try {
-				switch it : message {
+				switch it : notification {
 					Next: monitor.onNext
 					Skip: monitor.onSkip
 					Close: monitor.onClose
+					Overflow: monitor.onOverflow(entry)
 				}
 			} catch(UncaughtStreamException t) {
 				throw t // these should not be caught but escalated
@@ -182,11 +194,17 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 		if(isOpen) {
 			switch entry {
 				Value<T>, Finish<T>, Error<T>: {
+					if(buffersize >= maxBufferSize) {
+						notify(new Overflow(entry))
+						return
+					} 
 					queue.add(entry)
+					incBuffersize
 					publishNext
 				}
 				Entries<T>: {
 					queue.addAll(entry.entries)
+					incBuffersize(entry.entries.size)
 					publishNext
 				}
 				Next: {
@@ -233,6 +251,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 			ready = false
 			// get the next entry from the queue
 			val entry = queue.poll
+			decBuffersize
 			try {
 				// check for some exceptional cases
 				switch it: entry {
@@ -262,9 +281,9 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	}
 
 	/** helper function for informing the notify listener */
-	def protected notify(StreamCommand command) {
-		if(commandListener != null)
-			commandListener.apply(command)
+	def protected notify(StreamNotification command) {
+		if(notificationListener != null)
+			notificationListener.apply(command)
 	}
 	
 	override toString() '''Stream { operation: «operation», open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''

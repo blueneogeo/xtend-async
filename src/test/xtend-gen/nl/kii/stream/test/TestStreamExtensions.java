@@ -824,6 +824,27 @@ public class TestStreamExtensions {
     Assert.assertEquals(2, _size);
   }
   
+  @Atomic
+  private final AtomicInteger _overflowCount = new AtomicInteger();
+  
+  @Test
+  public void testBufferOverflow() {
+    final Stream<Integer> stream = StreamExtensions.<Integer>stream(int.class);
+    final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
+      public void apply(final Stream<Integer> it) {
+        TestStreamExtensions.this.incOverflowCount();
+      }
+    };
+    StreamExtensions.<Integer>buffer(stream, 3, _function);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(4));
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
+    Integer _overflowCount = this.getOverflowCount();
+    Assert.assertEquals(2, (_overflowCount).intValue());
+  }
+  
   @Test
   public void testResolve() {
     final Promise<Integer> t1 = PromiseExtensions.<Integer>promise(int.class);
@@ -1077,5 +1098,25 @@ public class TestStreamExtensions {
   
   private Integer incCounter(final Integer value) {
     return this._counter.addAndGet(value);
+  }
+  
+  private Integer setOverflowCount(final Integer value) {
+    return this._overflowCount.getAndSet(value);
+  }
+  
+  private Integer getOverflowCount() {
+    return this._overflowCount.get();
+  }
+  
+  private Integer incOverflowCount() {
+    return this._overflowCount.incrementAndGet();
+  }
+  
+  private Integer decOverflowCount() {
+    return this._overflowCount.decrementAndGet();
+  }
+  
+  private Integer incOverflowCount(final Integer value) {
+    return this._overflowCount.addAndGet(value);
   }
 }

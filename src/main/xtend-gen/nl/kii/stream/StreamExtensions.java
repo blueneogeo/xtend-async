@@ -1161,6 +1161,89 @@ public class StreamExtensions {
   }
   
   /**
+   * Tell the stream what size its buffer should be, and what should happen in case
+   * of a buffer overflow.
+   */
+  public static <T extends Object> Stream<T> buffer(final Stream<T> stream, final int maxSize, final Procedure1<? super Stream<T>> onOverflow) {
+    Stream<T> _xblockexpression = null;
+    {
+      stream.setMaxBufferSize(Integer.valueOf(maxSize));
+      final Stream<T> newStream = new Stream<T>(maxSize);
+      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
+        public void apply(final StreamHandlerBuilder<T> it) {
+          final Procedure1<T> _function = new Procedure1<T>() {
+            public void apply(final T it) {
+              newStream.push(it);
+            }
+          };
+          it.each(_function);
+          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
+            public Boolean apply(final Throwable it) {
+              boolean _xblockexpression = false;
+              {
+                newStream.error(it);
+                _xblockexpression = false;
+              }
+              return Boolean.valueOf(_xblockexpression);
+            }
+          };
+          it.error(_function_1);
+          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+            public void apply(final Integer it) {
+              newStream.finish((it).intValue());
+            }
+          };
+          it.finish(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<T>on(stream, _function);
+      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
+        public void apply(final StreamResponder it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.next();
+            }
+          };
+          it.next(_function);
+          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.skip();
+            }
+          };
+          it.skip(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.close(_function_2);
+          final Procedure1<Entry<?>> _function_3 = new Procedure1<Entry<?>>() {
+            public void apply(final Entry<?> it) {
+              onOverflow.apply(stream);
+            }
+          };
+          it.overflow(_function_3);
+        }
+      };
+      StreamExtensions.<T>monitor(stream, _function_1);
+      final Procedure1<Stream<T>> _function_2 = new Procedure1<Stream<T>>() {
+        public void apply(final Stream<T> it) {
+          String _operation = stream.getOperation();
+          it.setOperation(_operation);
+        }
+      };
+      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(newStream, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are dropped.
    */

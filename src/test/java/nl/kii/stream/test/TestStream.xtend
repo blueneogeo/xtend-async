@@ -4,9 +4,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Error
 import nl.kii.stream.Stream
+import nl.kii.stream.StreamMonitor
 import nl.kii.stream.StreamObserver
 import nl.kii.stream.Value
-import org.junit.Assert
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -14,7 +14,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.StreamMonitor
+import nl.kii.stream.Entry
 
 class TestStream {
 
@@ -27,6 +27,7 @@ class TestStream {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
+			override onOverflow(Entry<?> entry) { println('overflow! of ' + entry) }
 		})
 		s.observe(new StreamObserver<Integer> {
 			override onValue(Integer value) {
@@ -194,7 +195,21 @@ class TestStream {
 		]
 		s2.next
 		Thread.sleep(100)
-		Assert.assertEquals(12000, sum.get)
+		assertEquals(12000, sum.get)
+	}
+	
+	@Atomic int overflowCount
+	
+	@Test
+	def void testStreamBufferOverflow() {
+		val stream = new Stream<Integer>(3) // buffer of size 3
+		stream.monitor [
+			overflow [ incOverflowCount ]
+		]
+		stream << 1 << 2 << 3 // so far so good
+		stream << 4 // should break here
+		stream << 5 // should break here too
+		assertEquals(2, overflowCount)
 	}
 	
 }

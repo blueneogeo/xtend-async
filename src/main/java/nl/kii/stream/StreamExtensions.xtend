@@ -596,6 +596,28 @@ class StreamExtensions {
 	}
 
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
+
+	/**
+	 * Tell the stream what size its buffer should be, and what should happen in case
+	 * of a buffer overflow.
+	 */	
+	def static <T> Stream<T> buffer(Stream<T> stream, int maxSize, (Stream<T>)=>void onOverflow) {
+		stream.maxBufferSize = maxSize
+		val newStream = new Stream<T>(maxSize)
+		stream.on [
+			each [ newStream.push(it) ]
+			error [ newStream.error(it) false ]
+			finish [ newStream.finish(it) ]
+			closed [ newStream.close ]
+		]
+		stream.monitor [
+			next[ newStream.next ]
+			skip [ newStream.skip ]
+			close [ newStream.close ]
+			overflow [ onOverflow.apply(stream) ]
+		]
+		newStream => [ operation = stream.operation ]
+	}
 	
 	/**
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.

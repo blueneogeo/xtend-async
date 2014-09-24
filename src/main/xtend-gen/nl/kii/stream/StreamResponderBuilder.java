@@ -2,6 +2,7 @@ package nl.kii.stream;
 
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.stream.Entry;
 import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamResponder;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -17,6 +18,9 @@ public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
   @Atomic
   private final AtomicReference<Procedure1<Void>> _closeFn = new AtomicReference<Procedure1<Void>>();
   
+  @Atomic
+  private final AtomicReference<Procedure1<Entry<?>>> _overflowFn = new AtomicReference<Procedure1<Entry<?>>>();
+  
   public void next(final Procedure1<? super Void> handler) {
     this.setNextFn(((Procedure1<Void>)handler));
   }
@@ -27,6 +31,10 @@ public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
   
   public void close(final Procedure1<? super Void> handler) {
     this.setCloseFn(((Procedure1<Void>)handler));
+  }
+  
+  public void overflow(final Procedure1<? super Entry<?>> handler) {
+    this.setOverflowFn(((Procedure1<Entry<?>>)handler));
   }
   
   public void onNext() {
@@ -47,6 +55,13 @@ public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
     Procedure1<Void> _closeFn = this.getCloseFn();
     if (_closeFn!=null) {
       _closeFn.apply(null);
+    }
+  }
+  
+  public void onOverflow(final Entry<?> entry) {
+    Procedure1<Entry<?>> _overflowFn = this.getOverflowFn();
+    if (_overflowFn!=null) {
+      _overflowFn.apply(entry);
     }
   }
   
@@ -72,5 +87,13 @@ public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
   
   private Procedure1<Void> getCloseFn() {
     return this._closeFn.get();
+  }
+  
+  private Procedure1<Entry<?>> setOverflowFn(final Procedure1<Entry<?>> value) {
+    return this._overflowFn.getAndSet(value);
+  }
+  
+  private Procedure1<Entry<?>> getOverflowFn() {
+    return this._overflowFn.get();
   }
 }

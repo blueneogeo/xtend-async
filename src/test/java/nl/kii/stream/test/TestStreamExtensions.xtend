@@ -346,6 +346,17 @@ class TestStreamExtensions {
 			.assertPromiseEquals(#[1, 2, 3, 4, 6, 8, 9, 10]) // 5 and 7 are missing
 		assertEquals(2, errors.queue.size)
 	}
+	
+	@Atomic int overflowCount
+	
+	@Test
+	def void testBufferOverflow() {
+		val stream = int.stream
+		stream.buffer(3) [ incOverflowCount ]
+		stream << 1 << 2 << 3 // no problem
+		stream << 4 << 5 // problems!
+		assertEquals(2, overflowCount)
+	}
 
 	// PARALLEL ///////////////////////////////////////////////////////////////
 	

@@ -14,6 +14,7 @@ import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamObserver;
+import nl.kii.stream.StreamResponder;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -42,6 +43,10 @@ public class TestStream {
       
       public void onClose() {
         InputOutput.<String>println("close!");
+      }
+      
+      public void onOverflow(final Entry<?> entry) {
+        InputOutput.<String>println(("overflow! of " + entry));
       }
     });
     s.observe(new StreamObserver<Integer>() {
@@ -377,6 +382,32 @@ public class TestStream {
     }
   }
   
+  @Atomic
+  private final AtomicInteger _overflowCount = new AtomicInteger();
+  
+  @Test
+  public void testStreamBufferOverflow() {
+    final Stream<Integer> stream = new Stream<Integer>(3);
+    final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
+      public void apply(final StreamResponder it) {
+        final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
+          public void apply(final Entry<?> it) {
+            TestStream.this.incOverflowCount();
+          }
+        };
+        it.overflow(_function);
+      }
+    };
+    StreamExtensions.<Integer>monitor(stream, _function);
+    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
+    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(4));
+    StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(5));
+    Integer _overflowCount = this.getOverflowCount();
+    Assert.assertEquals(2, (_overflowCount).intValue());
+  }
+  
   private Integer setCounter(final Integer value) {
     return this._counter.getAndSet(value);
   }
@@ -423,5 +454,25 @@ public class TestStream {
   
   private Throwable getError() {
     return this._error.get();
+  }
+  
+  private Integer setOverflowCount(final Integer value) {
+    return this._overflowCount.getAndSet(value);
+  }
+  
+  private Integer getOverflowCount() {
+    return this._overflowCount.get();
+  }
+  
+  private Integer incOverflowCount() {
+    return this._overflowCount.incrementAndGet();
+  }
+  
+  private Integer decOverflowCount() {
+    return this._overflowCount.decrementAndGet();
+  }
+  
+  private Integer incOverflowCount(final Integer value) {
+    return this._overflowCount.addAndGet(value);
   }
 }

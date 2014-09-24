@@ -6,8 +6,8 @@ import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
 import nl.kii.stream.Stream
-import nl.kii.stream.StreamCommand
 import nl.kii.stream.StreamMessage
+import nl.kii.stream.StreamNotification
 
 /**
  * A source is a streamable source of information.
@@ -43,7 +43,7 @@ abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamS
 	
 	override StreamSource<T> pipe(Stream<T> stream) {
 		streams += stream
-		stream.onCommand [ apply ]
+		stream.onNotify [ apply ]
 		// if the stream already asked for a next value, 
 		// try again, so this time this splitter can react to it
 		if(stream.ready) stream.next
@@ -58,7 +58,7 @@ abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamS
 	override protected act(StreamMessage message, =>void done) {
 		switch message {
 			Entry<T>: onEntry(message)
-			StreamCommand: onCommand(message)
+			StreamNotification: onCommand(message)
 		}
 		done.apply
 	}
@@ -67,7 +67,7 @@ abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamS
 	abstract protected def void onEntry(Entry<T> entry)
 
 	/** Handle a message coming from a piped stream */
-	abstract protected def void onCommand(StreamCommand msg)
+	abstract protected def void onCommand(StreamNotification msg)
 
 	/** Utility method that only returns true if all members match the condition */	
 	protected static def <T> boolean all(Iterable<T> list, (T)=>boolean conditionFn) {

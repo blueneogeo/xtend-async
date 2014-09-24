@@ -11,6 +11,8 @@ interface StreamMonitor {
 	
 	def void onClose()
 	
+	def void onOverflow(Entry<?> entry)
+	
 }
 
 interface StreamResponder {
@@ -21,6 +23,8 @@ interface StreamResponder {
 
 	def void close((Void)=>void handler)
 
+	def void overflow((Entry<?>)=>void handler)
+
 }
 
 class StreamResponderBuilder implements StreamMonitor, StreamResponder {
@@ -28,6 +32,7 @@ class StreamResponderBuilder implements StreamMonitor, StreamResponder {
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn
 	@Atomic Procedure1<Void> closeFn
+	@Atomic Procedure1<Entry<?>> overflowFn
 	
 	// STREAMRESPONDER IMPLEMENTATION /////////////////////////////////////////
 
@@ -42,6 +47,10 @@ class StreamResponderBuilder implements StreamMonitor, StreamResponder {
 	override close((Void)=>void handler) {
 		closeFn = handler
 	}
+
+	override overflow((Entry<?>)=>void handler) {
+		overflowFn = handler
+	}
 	
 	// STREAMMONITOR IMPLEMENTATION ///////////////////////////////////////////
 	
@@ -55,6 +64,10 @@ class StreamResponderBuilder implements StreamMonitor, StreamResponder {
 	
 	override onClose() {
 		closeFn?.apply(null)
+	}
+	
+	override onOverflow(Entry<?> entry) {
+		overflowFn?.apply(entry)
 	}
 	
 }

@@ -6,7 +6,7 @@ import nl.kii.stream.Entry
 import nl.kii.stream.Next
 import nl.kii.stream.Skip
 import nl.kii.stream.Stream
-import nl.kii.stream.StreamCommand
+import nl.kii.stream.StreamNotification
 
 /**
  * This splitter simply tries to pass all incoming values
@@ -33,7 +33,7 @@ class StreamCopySplitter<T> extends StreamSplitter<T> {
 		if(streams.all[ready]) publish
 	}
 	
-	protected override onCommand(extension StreamCommand msg) {
+	protected override onCommand(extension StreamNotification msg) {
 		switch msg {
 			Next: next
 			Skip: skip

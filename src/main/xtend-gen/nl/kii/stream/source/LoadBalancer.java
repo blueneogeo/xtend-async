@@ -7,7 +7,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.Next;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamCommand;
+import nl.kii.stream.StreamNotification;
 import nl.kii.stream.Value;
 import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
@@ -61,7 +61,7 @@ public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
     }
   }
   
-  protected void onCommand(@Extension final StreamCommand msg) {
+  protected void onCommand(@Extension final StreamNotification msg) {
     boolean _matched = false;
     if (!_matched) {
       if (msg instanceof Next) {

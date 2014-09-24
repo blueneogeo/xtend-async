@@ -8,8 +8,8 @@ import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamCommand;
 import nl.kii.stream.StreamMessage;
+import nl.kii.stream.StreamNotification;
 import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -52,12 +52,12 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
     {
       List<Stream<T>> _streams = this.getStreams();
       _streams.add(stream);
-      final Procedure1<StreamCommand> _function = new Procedure1<StreamCommand>() {
-        public void apply(final StreamCommand it) {
+      final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
+        public void apply(final StreamNotification it) {
           StreamSplitter.this.apply(it);
         }
       };
-      stream.onCommand(_function);
+      stream.onNotify(_function);
       Boolean _isReady = stream.isReady();
       if ((_isReady).booleanValue()) {
         stream.next();
@@ -89,9 +89,9 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
       }
     }
     if (!_matched) {
-      if (message instanceof StreamCommand) {
+      if (message instanceof StreamNotification) {
         _matched=true;
-        this.onCommand(((StreamCommand)message));
+        this.onCommand(((StreamNotification)message));
       }
     }
     done.apply();
@@ -105,7 +105,7 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
   /**
    * Handle a message coming from a piped stream
    */
-  protected abstract void onCommand(final StreamCommand msg);
+  protected abstract void onCommand(final StreamNotification msg);
   
   /**
    * Utility method that only returns true if all members match the condition
