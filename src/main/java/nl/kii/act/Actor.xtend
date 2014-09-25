@@ -120,17 +120,18 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	protected def void process() {
 		// this outer loop is for re-entering the process loop after a AtMaxProcessDepth exception is thrown
-		while(!processing && !inbox.empty) {
+		// while(!processing && !inbox.empty) {
+		while(!inbox.empty) {
 			try {
 				// processNextAsync will try to recurse through the entire inbox,
 				processNextAsync(MAX_PROCESS_DEPTH)
 				// in which case we are done processing and looping...
-				processing = false
+				// processing = false
 				return;
 			} catch (AtMaxProcessDepth e) {
 				// ... or we end up at max recursion, in which case we are not finished and the while tries again
 				// println('was at max depth, coming back up!')
-				processing = false
+				// processing = false
 			}
 		}
 	}
@@ -139,14 +140,15 @@ abstract class Actor<T> implements Procedure1<T> {
 	 * Process a single message recursively by calling itself until either the inbox is empty,
 	 * or the maximum depth is achieved, in which case an AtMaxProcessDepth exception is thrown.
 	 */
-	protected def void processNextAsync(int depth) {
+	protected def boolean processNextAsync(int depth) {
 		if(depth == 0) throw new AtMaxProcessDepth
-		if(processing) return;
+		// check if we were already processing, otherwise set as processing
+		val allowed = _processing.compareAndSet(false, true)
+		if(!allowed) return false
 		// try to get the next message
 		val message = inbox.poll
-		if(message == null) return;
+		if(message == null) return false
 		// ok, we have a message, start processing
-		processing = true
 		act(message) [|
 			// the act is done, stop processing
 			processing = false
@@ -154,6 +156,7 @@ abstract class Actor<T> implements Procedure1<T> {
 			if(!inbox.empty)
 				processNextAsync(depth - 1)
 		]
+		true
 	}
 	
 	/**

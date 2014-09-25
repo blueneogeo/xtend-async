@@ -131,15 +131,13 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
    * Start processing as many messages as possible before releasing the thread.
    */
   protected void process() {
-    while (((!(this.getProcessing()).booleanValue()) && (!this.inbox.isEmpty()))) {
+    while ((!this.inbox.isEmpty())) {
       try {
         this.processNextAsync(Actor.MAX_PROCESS_DEPTH);
-        this.setProcessing(Boolean.valueOf(false));
         return;
       } catch (final Throwable _t) {
         if (_t instanceof AtMaxProcessDepth) {
           final AtMaxProcessDepth e = (AtMaxProcessDepth)_t;
-          this.setProcessing(Boolean.valueOf(false));
         } else {
           throw Exceptions.sneakyThrow(_t);
         }
@@ -151,32 +149,36 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
    * Process a single message recursively by calling itself until either the inbox is empty,
    * or the maximum depth is achieved, in which case an AtMaxProcessDepth exception is thrown.
    */
-  protected void processNextAsync(final int depth) {
+  protected boolean processNextAsync(final int depth) {
     try {
-      if ((depth == 0)) {
-        throw new AtMaxProcessDepth();
-      }
-      Boolean _processing = this.getProcessing();
-      if ((_processing).booleanValue()) {
-        return;
-      }
-      final T message = this.inbox.poll();
-      boolean _equals = Objects.equal(message, null);
-      if (_equals) {
-        return;
-      }
-      this.setProcessing(Boolean.valueOf(true));
-      final Procedure0 _function = new Procedure0() {
-        public void apply() {
-          Actor.this.setProcessing(Boolean.valueOf(false));
-          boolean _isEmpty = Actor.this.inbox.isEmpty();
-          boolean _not = (!_isEmpty);
-          if (_not) {
-            Actor.this.processNextAsync((depth - 1));
-          }
+      boolean _xblockexpression = false;
+      {
+        if ((depth == 0)) {
+          throw new AtMaxProcessDepth();
         }
-      };
-      this.act(message, _function);
+        final boolean allowed = this._processing.compareAndSet(false, true);
+        if ((!allowed)) {
+          return false;
+        }
+        final T message = this.inbox.poll();
+        boolean _equals = Objects.equal(message, null);
+        if (_equals) {
+          return false;
+        }
+        final Procedure0 _function = new Procedure0() {
+          public void apply() {
+            Actor.this.setProcessing(Boolean.valueOf(false));
+            boolean _isEmpty = Actor.this.inbox.isEmpty();
+            boolean _not = (!_isEmpty);
+            if (_not) {
+              Actor.this.processNextAsync((depth - 1));
+            }
+          }
+        };
+        this.act(message, _function);
+        _xblockexpression = true;
+      }
+      return _xblockexpression;
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }

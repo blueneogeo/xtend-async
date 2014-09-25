@@ -601,7 +601,7 @@ class StreamExtensions {
 	 * Tell the stream what size its buffer should be, and what should happen in case
 	 * of a buffer overflow.
 	 */	
-	def static <T> Stream<T> buffer(Stream<T> stream, int maxSize, (Stream<T>)=>void onOverflow) {
+	def static <T> Stream<T> buffer(Stream<T> stream, int maxSize, (Entry<?>)=>void onOverflow) {
 		stream.maxBufferSize = maxSize
 		val newStream = new Stream<T>(maxSize)
 		stream.on [
@@ -610,11 +610,14 @@ class StreamExtensions {
 			finish [ newStream.finish(it) ]
 			closed [ newStream.close ]
 		]
+		newStream.monitor [
+			next[ stream.next ]
+			skip [ stream.skip ]
+			close [ stream.close ]
+			overflow [ onOverflow.apply(it) ]
+		]
 		stream.monitor [
-			next[ newStream.next ]
-			skip [ newStream.skip ]
-			close [ newStream.close ]
-			overflow [ onOverflow.apply(stream) ]
+			overflow [ onOverflow.apply(it) ]
 		]
 		newStream => [ operation = stream.operation ]
 	}
@@ -636,12 +639,10 @@ class StreamExtensions {
 		] => [ stream.operation = 'throttle(periodMs=' + periodMs + ')' ]
 	}
 	
-	// TODO: needs testing
 	/** 
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
 	 * All other values are buffered, and dropped only after the buffer has reached a given size.
 	 */
-	@Deprecated
 	def static <T> Stream<T> ratelimit(Stream<T> stream, int periodMs, int bufferSize) {
 		// -1 means allow, we want to allow the first incoming value
 		val startTime = new AtomicLong(-1) 

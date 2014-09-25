@@ -830,8 +830,8 @@ public class TestStreamExtensions {
   @Test
   public void testBufferOverflow() {
     final Stream<Integer> stream = StreamExtensions.<Integer>stream(int.class);
-    final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
-      public void apply(final Stream<Integer> it) {
+    final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
+      public void apply(final Entry<?> it) {
         TestStreamExtensions.this.incOverflowCount();
       }
     };

@@ -2,11 +2,10 @@ package nl.kii.stream.test
 
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Error
+import nl.kii.stream.Entry
 import nl.kii.stream.Stream
 import nl.kii.stream.StreamMonitor
 import nl.kii.stream.StreamObserver
-import nl.kii.stream.Value
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -14,7 +13,6 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.Entry
 
 class TestStream {
 
@@ -165,37 +163,28 @@ class TestStream {
 		s2.next // results in the 3 after the finish
 		assertEquals(3, result.get)
 	}
+
+	@Atomic int sum
+	@Atomic int overflow
 	
 	@Test
 	def void testParallelHighThroughputStreaming() {
-		val s = Integer.stream
-		val s2 = s.map [ it * 2 ]
-		threads.task [|
-			for(i : 0..999) {
-				s.apply(new Value(1))
-			}
-		]
-		threads.task [|
-			for(i : 1000..1999) {
-				s.apply(new Value(2))
-			}
-		]
-		threads.task [|
-			for(i : 2000..2999) {
-				s.apply(new Value(3))
-			}
-		]
-		val sum = new AtomicInteger
-		s2.onChange [
-			switch it {
-				Error<?>: println(it)
-				Value<Integer>: sum.addAndGet(value) 
-			}
-			s2.next
-		]
-		s2.next
-		Thread.sleep(100)
-		assertEquals(12000, sum.get)
+		val s = int.stream
+		// The threads push in the values so quickly into the queues,
+		// that the buffer needs to be increased to deal with the overflow
+		// It is unlikely that this is necessary in normal use cases, since
+		// you are usually not pushing data as fast as you can without any
+		// other preparation of data.
+		val s2 = s.buffer(3000) [ incOverflow ]
+		// PS: I tested that if a Thread.sleep(1) is put in each pushing task,
+		// that negates the need for a big buffer. 
+		threads.task [ for(i : 0..999) s << 1 ]
+		threads.task [ for(i : 1000..1999) s << 2 ]
+		threads.task [ for(i : 2000..2999)	s << 3 ]
+		s2.onEach [ incSum ]
+		Thread.sleep(1000)
+		assertEquals(0, overflow)
+		assertEquals(3000, sum)
 	}
 	
 	@Atomic int overflowCount

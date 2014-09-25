@@ -375,7 +375,7 @@ class TestStreamExtensions {
 		]
 		println('start') 
 		s.next
-		println('A') 
+		println('A')
 		t1.set(1)
 		println('B') 
 		// s.next

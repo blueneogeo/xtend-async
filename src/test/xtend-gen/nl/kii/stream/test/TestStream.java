@@ -15,7 +15,6 @@ import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamObserver;
 import nl.kii.stream.StreamResponder;
-import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -313,22 +312,27 @@ public class TestStream {
     Assert.assertEquals(3, _get_2);
   }
   
+  @Atomic
+  private final AtomicInteger _sum = new AtomicInteger();
+  
+  @Atomic
+  private final AtomicInteger _overflow = new AtomicInteger();
+  
   @Test
   public void testParallelHighThroughputStreaming() {
     try {
-      final Stream<Integer> s = StreamExtensions.<Integer>stream(Integer.class);
-      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-        public Integer apply(final Integer it) {
-          return Integer.valueOf(((it).intValue() * 2));
+      final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+      final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
+        public void apply(final Entry<?> it) {
+          TestStream.this.incOverflow();
         }
       };
-      final Stream<Integer> s2 = StreamExtensions.<Integer, Integer>map(s, _function);
+      final Stream<Integer> s2 = StreamExtensions.<Integer>buffer(s, 3000, _function);
       final Runnable _function_1 = new Runnable() {
         public void run() {
           IntegerRange _upTo = new IntegerRange(0, 999);
           for (final Integer i : _upTo) {
-            Value<Integer> _value = new Value<Integer>(Integer.valueOf(1));
-            s.apply(_value);
+            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
           }
         }
       };
@@ -337,8 +341,7 @@ public class TestStream {
         public void run() {
           IntegerRange _upTo = new IntegerRange(1000, 1999);
           for (final Integer i : _upTo) {
-            Value<Integer> _value = new Value<Integer>(Integer.valueOf(2));
-            s.apply(_value);
+            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(2));
           }
         }
       };
@@ -347,36 +350,22 @@ public class TestStream {
         public void run() {
           IntegerRange _upTo = new IntegerRange(2000, 2999);
           for (final Integer i : _upTo) {
-            Value<Integer> _value = new Value<Integer>(Integer.valueOf(3));
-            s.apply(_value);
+            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(3));
           }
         }
       };
       ExecutorExtensions.task(this.threads, _function_3);
-      final AtomicInteger sum = new AtomicInteger();
-      final Procedure1<Entry<Integer>> _function_4 = new Procedure1<Entry<Integer>>() {
-        public void apply(final Entry<Integer> it) {
-          boolean _matched = false;
-          if (!_matched) {
-            if (it instanceof nl.kii.stream.Error) {
-              _matched=true;
-              InputOutput.<nl.kii.stream.Error<?>>println(((nl.kii.stream.Error<?>)it));
-            }
-          }
-          if (!_matched) {
-            if (it instanceof Value) {
-              _matched=true;
-              sum.addAndGet((((Value<Integer>)it).value).intValue());
-            }
-          }
-          s2.next();
+      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          TestStream.this.incSum();
         }
       };
-      s2.onChange(_function_4);
-      s2.next();
-      Thread.sleep(100);
-      int _get = sum.get();
-      Assert.assertEquals(12000, _get);
+      StreamExtensions.<Integer>onEach(s2, _function_4);
+      Thread.sleep(1000);
+      Integer _overflow = this.getOverflow();
+      Assert.assertEquals(0, (_overflow).intValue());
+      Integer _sum = this.getSum();
+      Assert.assertEquals(3000, (_sum).intValue());
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
@@ -454,6 +443,46 @@ public class TestStream {
   
   private Throwable getError() {
     return this._error.get();
+  }
+  
+  private Integer setSum(final Integer value) {
+    return this._sum.getAndSet(value);
+  }
+  
+  private Integer getSum() {
+    return this._sum.get();
+  }
+  
+  private Integer incSum() {
+    return this._sum.incrementAndGet();
+  }
+  
+  private Integer decSum() {
+    return this._sum.decrementAndGet();
+  }
+  
+  private Integer incSum(final Integer value) {
+    return this._sum.addAndGet(value);
+  }
+  
+  private Integer setOverflow(final Integer value) {
+    return this._overflow.getAndSet(value);
+  }
+  
+  private Integer getOverflow() {
+    return this._overflow.get();
+  }
+  
+  private Integer incOverflow() {
+    return this._overflow.incrementAndGet();
+  }
+  
+  private Integer decOverflow() {
+    return this._overflow.decrementAndGet();
+  }
+  
+  private Integer incOverflow(final Integer value) {
+    return this._overflow.addAndGet(value);
   }
   
   private Integer setOverflowCount(final Integer value) {

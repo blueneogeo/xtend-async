@@ -48,6 +48,78 @@ public class TestActor {
   }
   
   @Atomic
+  private final AtomicInteger _access = new AtomicInteger();
+  
+  @Atomic
+  private final AtomicInteger _value = new AtomicInteger();
+  
+  @Atomic
+  private final AtomicInteger _multipleThreadAccessViolation = new AtomicInteger();
+  
+  @Test
+  public void testActorsAreSingleThreaded() {
+    try {
+      final Actor<Integer> actor = new Actor<Integer>() {
+        protected void act(final Integer message, final Procedure0 done) {
+          final Integer a = TestActor.this.incAccess();
+          if (((a).intValue() > 1)) {
+            TestActor.this.incMultipleThreadAccessViolation();
+          }
+          Integer _value = TestActor.this.getValue();
+          int _plus = ((_value).intValue() + 1);
+          TestActor.this.setValue(Integer.valueOf(_plus));
+          TestActor.this.decAccess();
+          done.apply();
+        }
+      };
+      final ExecutorService threads = Executors.newCachedThreadPool();
+      final Runnable _function = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(1, 1000);
+          for (final Integer i : _upTo) {
+            actor.apply(i);
+          }
+        }
+      };
+      ExecutorExtensions.task(threads, _function);
+      final Runnable _function_1 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(1, 1000);
+          for (final Integer i : _upTo) {
+            actor.apply(i);
+          }
+        }
+      };
+      ExecutorExtensions.task(threads, _function_1);
+      final Runnable _function_2 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(1, 1000);
+          for (final Integer i : _upTo) {
+            actor.apply(i);
+          }
+        }
+      };
+      ExecutorExtensions.task(threads, _function_2);
+      final Runnable _function_3 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(1, 1000);
+          for (final Integer i : _upTo) {
+            actor.apply(i);
+          }
+        }
+      };
+      ExecutorExtensions.task(threads, _function_3);
+      Thread.sleep(1000);
+      Integer _multipleThreadAccessViolation = this.getMultipleThreadAccessViolation();
+      Assert.assertEquals(0, (_multipleThreadAccessViolation).intValue());
+      Integer _value = this.getValue();
+      Assert.assertEquals(4000, (_value).intValue());
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  @Atomic
   private final AtomicReference<Actor<Integer>> _decreaser = new AtomicReference<Actor<Integer>>();
   
   @Test
@@ -434,6 +506,66 @@ public class TestActor {
       _xblockexpression = PromiseExtensions.<List<Boolean>, Long>map(_first, _function_1);
     }
     return _xblockexpression;
+  }
+  
+  private Integer setAccess(final Integer value) {
+    return this._access.getAndSet(value);
+  }
+  
+  private Integer getAccess() {
+    return this._access.get();
+  }
+  
+  private Integer incAccess() {
+    return this._access.incrementAndGet();
+  }
+  
+  private Integer decAccess() {
+    return this._access.decrementAndGet();
+  }
+  
+  private Integer incAccess(final Integer value) {
+    return this._access.addAndGet(value);
+  }
+  
+  private Integer setValue(final Integer value) {
+    return this._value.getAndSet(value);
+  }
+  
+  private Integer getValue() {
+    return this._value.get();
+  }
+  
+  private Integer incValue() {
+    return this._value.incrementAndGet();
+  }
+  
+  private Integer decValue() {
+    return this._value.decrementAndGet();
+  }
+  
+  private Integer incValue(final Integer value) {
+    return this._value.addAndGet(value);
+  }
+  
+  private Integer setMultipleThreadAccessViolation(final Integer value) {
+    return this._multipleThreadAccessViolation.getAndSet(value);
+  }
+  
+  private Integer getMultipleThreadAccessViolation() {
+    return this._multipleThreadAccessViolation.get();
+  }
+  
+  private Integer incMultipleThreadAccessViolation() {
+    return this._multipleThreadAccessViolation.incrementAndGet();
+  }
+  
+  private Integer decMultipleThreadAccessViolation() {
+    return this._multipleThreadAccessViolation.decrementAndGet();
+  }
+  
+  private Integer incMultipleThreadAccessViolation(final Integer value) {
+    return this._multipleThreadAccessViolation.addAndGet(value);
   }
   
   private Actor<Integer> setDecreaser(final Actor<Integer> value) {

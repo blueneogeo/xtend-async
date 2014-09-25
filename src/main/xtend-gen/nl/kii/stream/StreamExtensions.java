@@ -1164,7 +1164,7 @@ public class StreamExtensions {
    * Tell the stream what size its buffer should be, and what should happen in case
    * of a buffer overflow.
    */
-  public static <T extends Object> Stream<T> buffer(final Stream<T> stream, final int maxSize, final Procedure1<? super Stream<T>> onOverflow) {
+  public static <T extends Object> Stream<T> buffer(final Stream<T> stream, final int maxSize, final Procedure1<? super Entry<?>> onOverflow) {
     Stream<T> _xblockexpression = null;
     {
       stream.setMaxBufferSize(Integer.valueOf(maxSize));
@@ -1207,38 +1207,49 @@ public class StreamExtensions {
         public void apply(final StreamResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
-              newStream.next();
+              stream.next();
             }
           };
           it.next(_function);
           final Procedure1<Void> _function_1 = new Procedure1<Void>() {
             public void apply(final Void it) {
-              newStream.skip();
+              stream.skip();
             }
           };
           it.skip(_function_1);
           final Procedure1<Void> _function_2 = new Procedure1<Void>() {
             public void apply(final Void it) {
-              newStream.close();
+              stream.close();
             }
           };
           it.close(_function_2);
           final Procedure1<Entry<?>> _function_3 = new Procedure1<Entry<?>>() {
             public void apply(final Entry<?> it) {
-              onOverflow.apply(stream);
+              onOverflow.apply(it);
             }
           };
           it.overflow(_function_3);
         }
       };
-      StreamExtensions.<T>monitor(stream, _function_1);
-      final Procedure1<Stream<T>> _function_2 = new Procedure1<Stream<T>>() {
+      StreamExtensions.<T>monitor(newStream, _function_1);
+      final Procedure1<StreamResponder> _function_2 = new Procedure1<StreamResponder>() {
+        public void apply(final StreamResponder it) {
+          final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
+            public void apply(final Entry<?> it) {
+              onOverflow.apply(it);
+            }
+          };
+          it.overflow(_function);
+        }
+      };
+      StreamExtensions.<T>monitor(stream, _function_2);
+      final Procedure1<Stream<T>> _function_3 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> it) {
           String _operation = stream.getOperation();
           it.setOperation(_operation);
         }
       };
-      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(newStream, _function_2);
+      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(newStream, _function_3);
     }
     return _xblockexpression;
   }
@@ -1298,7 +1309,6 @@ public class StreamExtensions {
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are buffered, and dropped only after the buffer has reached a given size.
    */
-  @Deprecated
   public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final int periodMs, final int bufferSize) {
     Stream<T> _xblockexpression = null;
     {

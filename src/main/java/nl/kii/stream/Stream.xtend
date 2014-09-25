@@ -25,7 +25,7 @@ import nl.kii.promise.Task
  */
 class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage>, Observable<Entry<T>> {
 
-	val static DEFAULT_MAX_BUFFERSIZE = 10000 // default max size for the queue
+	val static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
 
 	val Queue<Entry<T>> queue // queue for incoming values, for buffering when there is no ready listener
 
@@ -194,15 +194,19 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 		if(isOpen) {
 			switch entry {
 				Value<T>, Finish<T>, Error<T>: {
+					// check for buffer overflow
 					if(buffersize >= maxBufferSize) {
 						notify(new Overflow(entry))
+						done.apply
 						return
-					} 
+					}
+					// add the entry to the queue
 					queue.add(entry)
 					incBuffersize
 					publishNext
 				}
 				Entries<T>: {
+					// add the entries to the queue 
 					queue.addAll(entry.entries)
 					incBuffersize(entry.entries.size)
 					publishNext
@@ -221,7 +225,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
 							Finish<T> case level==0: skipping = false
-							default: queue.poll
+							default: { queue.poll decBuffersize }
 						}
 					}
 					// if we are still skipping, notify the parent stream it needs to skip
@@ -230,6 +234,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 				Close: {
 					// and publish the closed command downwards
 					queue.add(new Closed)
+					incBuffersize
 					publishNext
 					notify(entry)
 					setOpen = false
@@ -237,6 +242,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 			}
 		} else {
 			queue.clear
+			buffersize = 0
 		}
 		done.apply
 	}
