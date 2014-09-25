@@ -26,7 +26,7 @@ import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public class IOStreamExtensions {
+public class StreamIOExtensions {
   /**
    * stream a standard Java inputstream. closing the stream closes the inputstream.
    */
@@ -101,7 +101,7 @@ public class IOStreamExtensions {
       {
         final ByteSource source = Files.asByteSource(file);
         BufferedInputStream _openBufferedStream = source.openBufferedStream();
-        _xblockexpression = IOStreamExtensions.stream(_openBufferedStream);
+        _xblockexpression = StreamIOExtensions.stream(_openBufferedStream);
       }
       return _xblockexpression;
     } catch (Throwable _e) {
@@ -110,7 +110,7 @@ public class IOStreamExtensions {
   }
   
   public static Stream<String> toText(final Stream<List<Byte>> stream) {
-    return IOStreamExtensions.toText(stream, "UTF-8");
+    return StreamIOExtensions.toText(stream, "UTF-8");
   }
   
   public static Stream<String> toText(final Stream<List<Byte>> stream, final String encoding) {
@@ -136,7 +136,7 @@ public class IOStreamExtensions {
   }
   
   public static Stream<List<Byte>> toBytes(final Stream<String> stream) {
-    return IOStreamExtensions.toBytes(stream, "UTF-8");
+    return StreamIOExtensions.toBytes(stream, "UTF-8");
   }
   
   public static Stream<List<Byte>> toBytes(final Stream<String> stream, final String encoding) {
@@ -229,7 +229,7 @@ public class IOStreamExtensions {
     try {
       final ByteSink sink = Files.asByteSink(file);
       final BufferedOutputStream out = sink.openBufferedStream();
-      IOStreamExtensions.writeTo(stream, out, task);
+      StreamIOExtensions.writeTo(stream, out, task);
       String _absolutePath = file.getAbsolutePath();
       String _plus = ("writeTo(file=" + _absolutePath);
       String _plus_1 = (_plus + ")");

@@ -24,6 +24,8 @@ Some features are:
 
 ## Asynchronously loading 1000 users in parallel
 
+…but only 3 at the same time!
+
 	val userIds = 1..1000 // users to load from db
 
 	userIds.distribute(3) [ id | db.loadUser(id) ]
@@ -88,7 +90,8 @@ Flow control:
 
 ## Print all lines with 'Joe' in a file
 
-	new File('example.txt').stream
+	new File('example.txt')
+		.stream
 		.toText
 		.filter [ contains('Joe') ]
 		.onEach [ println(it) ]
@@ -100,7 +103,8 @@ Flow control:
 
 ## Copy all lines containing Joe to another file
 
-	new File('example.txt').stream
+	new File('example.txt')
+		.stream
 		.toText
 		.filter [ contains('Joe') ]
 		.toBytes

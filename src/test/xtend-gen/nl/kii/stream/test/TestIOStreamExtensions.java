@@ -4,9 +4,9 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import nl.kii.promise.Task;
-import nl.kii.stream.IOStreamExtensions;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamIOExtensions;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -18,8 +18,8 @@ public class TestIOStreamExtensions {
   @Test
   public void testFileStreaming() {
     final File file = new File("gradle.properties");
-    Stream<List<Byte>> _stream = IOStreamExtensions.stream(file);
-    Stream<String> _text = IOStreamExtensions.toText(_stream);
+    Stream<List<Byte>> _stream = StreamIOExtensions.stream(file);
+    Stream<String> _text = StreamIOExtensions.toText(_stream);
     final Function1<String, String> _function = new Function1<String, String>() {
       public String apply(final String it) {
         return ("- " + it);
@@ -44,13 +44,13 @@ public class TestIOStreamExtensions {
   public void testStreamToFileAndFileCopy() {
     final List<String> data = Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("Hello,", "This is some text", "Please make this into a nice file!"));
     Stream<String> _stream = StreamExtensions.<String>stream(data);
-    Stream<List<Byte>> _bytes = IOStreamExtensions.toBytes(_stream);
+    Stream<List<Byte>> _bytes = StreamIOExtensions.toBytes(_stream);
     File _file = new File("test.txt");
-    IOStreamExtensions.writeTo(_bytes, _file);
+    StreamIOExtensions.writeTo(_bytes, _file);
     final File source = new File("test.txt");
     final File destination = new File("text2.txt");
-    Stream<List<Byte>> _stream_1 = IOStreamExtensions.stream(source);
-    Task _writeTo = IOStreamExtensions.writeTo(_stream_1, destination);
+    Stream<List<Byte>> _stream_1 = StreamIOExtensions.stream(source);
+    Task _writeTo = StreamIOExtensions.writeTo(_stream_1, destination);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         source.delete();

@@ -12,7 +12,7 @@ import nl.kii.promise.Task
 
 import static extension nl.kii.stream.StreamExtensions.*
 
-class IOStreamExtensions {
+class StreamIOExtensions {
 	
 	/** stream a standard Java inputstream. closing the stream closes the inputstream. */
 	def static Stream<List<Byte>> stream(InputStream stream) {

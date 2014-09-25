@@ -1,7 +1,7 @@
 package nl.kii.stream.test
 
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.stream.IOStreamExtensions.*
+import static extension nl.kii.stream.StreamIOExtensions.*
 import java.io.File
 import org.junit.Test
 
