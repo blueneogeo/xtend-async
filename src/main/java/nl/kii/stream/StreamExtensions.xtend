@@ -626,7 +626,7 @@ class StreamExtensions {
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
 	 * All other values are dropped.
 	 */
-	def static <T> Stream<T> throttle(Stream<T> stream, int periodMs) {
+	def static <T> Stream<T> throttle(Stream<T> stream, long periodMs) {
 		// -1 means allow, we want to allow the first incoming value
 		val startTime = new AtomicLong(-1) 
 		stream.filter [
@@ -642,18 +642,51 @@ class StreamExtensions {
 	/** 
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
 	 * All other values are buffered, and dropped only after the buffer has reached a given size.
+	 * This method requires a timer function, that takes a period in milliseconds, and that calls
+	 * the passed procedure when that period has expired.
+	 * <p>
+	 * Since ratelimiting does not throw away values when the source is pushing data faster
+	 * than can be processed, it can cause buffer overflow after some time.
+	 * <p>
+	 * You are strongly adviced to put a buffer statement before the ratelimit so you can 
+	 * set the max buffer size and handle overflowing data, like this:
+	 * <p>
+	 * <pre>
+	 * someStream
+	 *    .buffer(1000) [ println('overflow error! handle this') ]
+	 *    .ratelimit(100) [ period, timeoutFn, | vertx.setTimer(period, timeoutFn) ]
+	 *    .onEach [ ... ]
+	 * </pre>
 	 */
-	def static <T> Stream<T> ratelimit(Stream<T> stream, int periodMs, int bufferSize) {
+	def static <T> Stream<T> ratelimit(Stream<T> stream, long periodMs, (long, =>void)=>void timerFn) {
 		// -1 means allow, we want to allow the first incoming value
-		val startTime = new AtomicLong(-1) 
-		stream.filter [
-			val now = System.currentTimeMillis
-			if(startTime.get == -1 || now - startTime.get > periodMs) {
-				// period has expired, reset the period and pass one
-				startTime.set(now)
-				true
-			} else false
-		] => [ stream.operation = 'ratelimit(periodMs=' + periodMs + ',bufferSize=' + bufferSize + ')' ]
+		val lastNextMs = new AtomicLong(-1)
+		val isTiming = new AtomicBoolean
+		val newStream = new Stream<T>
+		stream.onChange [ newStream.apply(it) ]
+		newStream.monitor [
+			next [
+				val now = System.currentTimeMillis
+				// perform a next right now?
+				if(lastNextMs.get == -1 || now - lastNextMs.get > periodMs) {
+					lastNextMs.set(now)
+					stream.next
+				// or, if we are not already timing, set up a delayed next on the timerFn
+				} else if(!isTiming.get) {
+					// delay the next for the remaining time
+					val delayMs = now + periodMs - lastNextMs.get
+					timerFn.apply(delayMs) [
+						isTiming.set(false)
+						val now2 = System.currentTimeMillis
+						lastNextMs.set(now2)
+						stream.next
+					]
+				}
+			]
+			skip [ stream.skip ]
+			close [ stream.close ]
+		]
+		newStream => [ stream.operation = 'ratelimit(periodMs=' + periodMs + ')' ]
 	}
 	
 	/** 

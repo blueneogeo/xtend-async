@@ -1258,7 +1258,7 @@ public class StreamExtensions {
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are dropped.
    */
-  public static <T extends Object> Stream<T> throttle(final Stream<T> stream, final int periodMs) {
+  public static <T extends Object> Stream<T> throttle(final Stream<T> stream, final long periodMs) {
     Stream<T> _xblockexpression = null;
     {
       final AtomicLong startTime = new AtomicLong((-1));
@@ -1297,7 +1297,7 @@ public class StreamExtensions {
       Stream<T> _filter = StreamExtensions.<T>filter(stream, _function);
       final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> it) {
-          stream.setOperation((("throttle(periodMs=" + Integer.valueOf(periodMs)) + ")"));
+          stream.setOperation((("throttle(periodMs=" + Long.valueOf(periodMs)) + ")"));
         }
       };
       _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(_filter, _function_1);
@@ -1308,50 +1308,94 @@ public class StreamExtensions {
   /**
    * Only allows one value for every timeInMs milliseconds to pass through the stream.
    * All other values are buffered, and dropped only after the buffer has reached a given size.
+   * This method requires a timer function, that takes a period in milliseconds, and that calls
+   * the passed procedure when that period has expired.
+   * <p>
+   * Since ratelimiting does not throw away values when the source is pushing data faster
+   * than can be processed, it can cause buffer overflow after some time.
+   * <p>
+   * You are strongly adviced to put a buffer statement before the ratelimit so you can
+   * set the max buffer size and handle overflowing data, like this:
+   * <p>
+   * <pre>
+   * someStream
+   *    .buffer(1000) [ println('overflow error! handle this') ]
+   *    .ratelimit(100) [ period, timeoutFn, | vertx.setTimer(period, timeoutFn) ]
+   *    .onEach [ ... ]
+   * </pre>
    */
-  public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final int periodMs, final int bufferSize) {
+  public static <T extends Object> Stream<T> ratelimit(final Stream<T> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     Stream<T> _xblockexpression = null;
     {
-      final AtomicLong startTime = new AtomicLong((-1));
-      final Function1<T, Boolean> _function = new Function1<T, Boolean>() {
-        public Boolean apply(final T it) {
-          boolean _xblockexpression = false;
-          {
-            final long now = System.currentTimeMillis();
-            boolean _xifexpression = false;
-            boolean _or = false;
-            long _get = startTime.get();
-            boolean _equals = (_get == (-1));
-            if (_equals) {
-              _or = true;
-            } else {
-              long _get_1 = startTime.get();
-              long _minus = (now - _get_1);
-              boolean _greaterThan = (_minus > periodMs);
-              _or = _greaterThan;
-            }
-            if (_or) {
-              boolean _xblockexpression_1 = false;
-              {
-                startTime.set(now);
-                _xblockexpression_1 = true;
+      final AtomicLong lastNextMs = new AtomicLong((-1));
+      final AtomicBoolean isTiming = new AtomicBoolean();
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
+        public void apply(final Entry<T> it) {
+          newStream.apply(it);
+        }
+      };
+      stream.onChange(_function);
+      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
+        public void apply(final StreamResponder it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              final long now = System.currentTimeMillis();
+              boolean _or = false;
+              long _get = lastNextMs.get();
+              boolean _equals = (_get == (-1));
+              if (_equals) {
+                _or = true;
+              } else {
+                long _get_1 = lastNextMs.get();
+                long _minus = (now - _get_1);
+                boolean _greaterThan = (_minus > periodMs);
+                _or = _greaterThan;
               }
-              _xifexpression = _xblockexpression_1;
-            } else {
-              _xifexpression = false;
+              if (_or) {
+                lastNextMs.set(now);
+                stream.next();
+              } else {
+                boolean _get_2 = isTiming.get();
+                boolean _not = (!_get_2);
+                if (_not) {
+                  long _get_3 = lastNextMs.get();
+                  final long delayMs = ((now + periodMs) - _get_3);
+                  final Procedure0 _function = new Procedure0() {
+                    public void apply() {
+                      isTiming.set(false);
+                      final long now2 = System.currentTimeMillis();
+                      lastNextMs.set(now2);
+                      stream.next();
+                    }
+                  };
+                  timerFn.apply(Long.valueOf(delayMs), _function);
+                }
+              }
             }
-            _xblockexpression = _xifexpression;
-          }
-          return Boolean.valueOf(_xblockexpression);
+          };
+          it.next(_function);
+          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              stream.skip();
+            }
+          };
+          it.skip(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              stream.close();
+            }
+          };
+          it.close(_function_2);
         }
       };
-      Stream<T> _filter = StreamExtensions.<T>filter(stream, _function);
-      final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
+      StreamExtensions.<T>monitor(newStream, _function_1);
+      final Procedure1<Stream<T>> _function_2 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> it) {
-          stream.setOperation((((("ratelimit(periodMs=" + Integer.valueOf(periodMs)) + ",bufferSize=") + Integer.valueOf(bufferSize)) + ")"));
+          stream.setOperation((("ratelimit(periodMs=" + Long.valueOf(periodMs)) + ")"));
         }
       };
-      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(_filter, _function_1);
+      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(newStream, _function_2);
     }
     return _xblockexpression;
   }

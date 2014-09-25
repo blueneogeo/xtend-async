@@ -14,6 +14,7 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
+import java.util.Timer
 
 class TestStreamExtensions {
 
@@ -481,7 +482,18 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testThrottle() {
-		(1..1000).stream.throttle(1).onEach [ println(it) ]
+		(1..1000).stream.throttle(10).onEach [ println(it) ]
+	}
+	
+	@Test
+	def void testRateLimit() {
+		val stream = (1..1000).stream
+		val delayFn = [ long period, =>void doneFn | 
+			new Timer().schedule([ doneFn.apply ], period)
+		]
+		val limited = stream.ratelimit(500, delayFn) 
+		limited.onEach [ println(it) ]
+		Thread.sleep(5000)
 	}
 	
 	// @Test FIX: latest does not work yet

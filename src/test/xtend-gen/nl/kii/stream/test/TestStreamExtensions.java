@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,7 +35,9 @@ import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -1060,13 +1064,44 @@ public class TestStreamExtensions {
   public void testThrottle() {
     IntegerRange _upTo = new IntegerRange(1, 1000);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    Stream<Integer> _throttle = StreamExtensions.<Integer>throttle(_stream, 1);
+    Stream<Integer> _throttle = StreamExtensions.<Integer>throttle(_stream, 10);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
     StreamExtensions.<Integer>onEach(_throttle, _function);
+  }
+  
+  @Test
+  public void testRateLimit() {
+    try {
+      IntegerRange _upTo = new IntegerRange(1, 1000);
+      final Stream<Integer> stream = StreamExtensions.<Integer>stream(_upTo);
+      final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        public void apply(final Long period, final Procedure0 doneFn) {
+          Timer _timer = new Timer();
+          final TimerTask _function = new TimerTask() {
+            @Override
+            public void run() {
+              doneFn.apply();
+            }
+          };
+          _timer.schedule(_function, period);
+        }
+      };
+      final Procedure2<Long, Procedure0> delayFn = _function;
+      final Stream<Integer> limited = StreamExtensions.<Integer>ratelimit(stream, 500, delayFn);
+      final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          InputOutput.<Integer>println(it);
+        }
+      };
+      StreamExtensions.<Integer>onEach(limited, _function_1);
+      Thread.sleep(5000);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   public void testLatest() {
