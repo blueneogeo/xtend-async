@@ -134,12 +134,12 @@ class StreamPairExtensions {
 
 	// call only the value of the pair, for pair streams
 	
-	def static <K, T, R, P extends IPromise<R>, K2> call2(Stream<Pair<K, T>> stream, (K, T)=>Pair<K2, P> promiseFn) {
+	def static <K, T, R, P extends IPromise<R>, K2> call3(Stream<Pair<K, T>> stream, (K, T)=>Pair<K2, P> promiseFn) {
 		stream.map(promiseFn).resolveValue 
 			=> [ stream.operation = 'call2' ]
 	}
 	
-	def static <K, T, R, P extends IPromise<R>, K2> call2(Stream<Pair<K, T>> stream, int concurrency, (K, T)=>Pair<K2, P> promiseFn) {
+	def static <K, T, R, P extends IPromise<R>, K2> call3(Stream<Pair<K, T>> stream, int concurrency, (K, T)=>Pair<K2, P> promiseFn) {
 		stream.map(promiseFn).resolveValue(concurrency) 
 			=> [ stream.operation = 'call2(concurrency=' + concurrency + ')' ]
 	}
