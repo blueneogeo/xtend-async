@@ -1,5 +1,7 @@
 package nl.kii.stream
+
 import static extension com.google.common.base.Throwables.*
+
 /**
  * An exception that occurred in a stream handler, somewhere in the chain of stream operations.
  * <p>
@@ -20,6 +22,7 @@ class StreamException extends Exception {
 	
 	val static int valueWrapSize = 10
 	val static int traceSize = 1
+	val static int maxValueStringLength = 500
 	
 	public val String operation
 	public val Object value
@@ -34,13 +37,18 @@ class StreamException extends Exception {
 		val root = cause.rootCause
 		'''
 		Stream.«operation»«IF root!=null && root.message != null» gave error "«root.message»«ENDIF»"«IF value!=null && value.toString.length < valueWrapSize» for value: "«value»"«ENDIF»
-		«IF value!=null && value.toString.length >= valueWrapSize»For value: { «value» }«ENDIF»
+		«IF value!=null && value.toString.length >= valueWrapSize»For value: { «value.toString.limit(maxValueStringLength)» }«ENDIF»
 		«IF cause!=null»
 		«FOR e : root.stackTrace.take(traceSize)»
 			at «e.className».«e.methodName»(«e.fileName»:«e.lineNumber»)
 		«ENDFOR»
 		«ENDIF»'''
 	}
+	
+	def static limit(String string, int maxLength) {
+		if(string == null || string.length <= maxLength) return string
+		string.substring(0, maxLength) + '... (' + (string.length - maxLength) + ' more chars)'
+	}	
 }
 
 /** 
