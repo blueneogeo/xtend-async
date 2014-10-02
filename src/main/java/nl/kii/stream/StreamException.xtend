@@ -33,6 +33,12 @@ class StreamException extends Exception {
 		this.value = value
 	}
 	
+	def static getMessage(StreamException e) {
+		if(e.cause != null && e.cause instanceof StreamException) {
+			
+		}
+	}
+	
 	override getMessage() {
 		val root = cause.rootCause
 		'''

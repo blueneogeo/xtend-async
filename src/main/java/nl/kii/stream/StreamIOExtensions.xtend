@@ -1,5 +1,5 @@
 package nl.kii.stream
-import static extension com.google.common.io.ByteStreams.*
+
 import com.google.common.io.ByteProcessor
 import com.google.common.io.Files
 import java.io.File
@@ -10,6 +10,7 @@ import java.util.List
 import nl.kii.async.annotation.Async
 import nl.kii.promise.Task
 
+import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.stream.StreamExtensions.*
 
 class StreamIOExtensions {
