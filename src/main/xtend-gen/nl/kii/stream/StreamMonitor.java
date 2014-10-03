@@ -10,5 +10,5 @@ public interface StreamMonitor {
   
   public abstract void onClose();
   
-  public abstract void onOverflow(final Entry<?> entry);
+  public abstract void onOverflow(final Entry<?, ?> entry);
 }

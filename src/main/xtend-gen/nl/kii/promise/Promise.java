@@ -1,18 +1,13 @@
 package nl.kii.promise;
 
-import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import nl.kii.async.AsyncException;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
-import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
@@ -20,7 +15,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public class Promise<T extends Object> implements IPromise<T> {
-  private final Publisher<Entry<T>> publisher = new Publisher<Entry<T>>();
+  private final Publisher<Entry<T>> publisher /* Skipped initializer because of errors */;
   
   /**
    * Property to see if the promise is fulfulled
@@ -88,61 +83,22 @@ public class Promise<T extends Object> implements IPromise<T> {
    * set the promised value
    */
   public void set(final T value) {
-    boolean _equals = Objects.equal(value, null);
-    if (_equals) {
-      throw new NullPointerException("cannot promise a null value");
-    }
-    Value<T> _value = new Value<T>(value);
-    this.apply(_value);
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)");
   }
   
   /**
    * report an error to the listener of the promise.
    */
   public IPromise<T> error(final Throwable t) {
-    Promise<T> _xblockexpression = null;
-    {
-      nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
-      this.apply(_error);
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Error(R, Throwable) is not applicable for the arguments (Throwable)"
+      + "\nType mismatch: cannot convert from Throwable to T");
   }
   
   public void apply(final Entry<T> it) {
-    boolean _equals = Objects.equal(it, null);
-    if (_equals) {
-      throw new NullPointerException("cannot promise a null entry");
-    }
-    boolean _switchResult = false;
-    boolean _matched = false;
-    if (!_matched) {
-      Boolean _fulfilled = this.getFulfilled();
-      boolean _not = (!(_fulfilled).booleanValue());
-      if (_not) {
-        _matched=true;
-        _switchResult = true;
-      }
-    }
-    if (!_matched) {
-      if (it instanceof nl.kii.stream.Error) {
-        Boolean _fulfilled_1 = this.getFulfilled();
-        if (_fulfilled_1) {
-          _matched=true;
-          _switchResult = true;
-        }
-      }
-    }
-    if (!_matched) {
-      _switchResult = false;
-    }
-    final boolean allowed = _switchResult;
-    if ((!allowed)) {
-      return;
-    }
-    this.setFulfilled(Boolean.valueOf(true));
-    this.setEntry(it);
-    this.publisher.apply(it);
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Error<R, T>; it cannot be parameterized with arguments <T>");
   }
   
   public Publisher<Entry<T>> getPublisher() {
@@ -161,87 +117,19 @@ public class Promise<T extends Object> implements IPromise<T> {
    * If the promise recieved or recieves an error, onError is called with the throwable.
    */
   public IPromise<T> onError(final Procedure1<Throwable> errorFn) {
-    Promise<T> _xblockexpression = null;
-    {
-      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-        public void apply(final Entry<T> it) {
-          boolean _matched = false;
-          if (!_matched) {
-            if (it instanceof nl.kii.stream.Error) {
-              _matched=true;
-              Procedure0 _get = sub.get();
-              _get.apply();
-              errorFn.apply(((nl.kii.stream.Error<T>)it).error);
-            }
-          }
-        }
-      };
-      Procedure0 _onChange = this.publisher.onChange(_function);
-      sub.set(_onChange);
-      this.setHasErrorHandler(Boolean.valueOf(true));
-      Entry<T> _entry = this.getEntry();
-      boolean _notEquals = (!Objects.equal(_entry, null));
-      if (_notEquals) {
-        Entry<T> _entry_1 = this.getEntry();
-        this.publisher.apply(_entry_1);
-      }
-      _xblockexpression = this;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Error<R, T>; it cannot be parameterized with arguments <T>"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <T>");
   }
   
   /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
   public Task then(final Procedure1<T> valueFn) {
-    Task _xblockexpression = null;
-    {
-      final Task newTask = new Task();
-      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-        public void apply(final Entry<T> it) {
-          try {
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof Value) {
-                _matched=true;
-                Procedure0 _get = sub.get();
-                _get.apply();
-                valueFn.apply(((Value<T>)it).value);
-                newTask.complete();
-              }
-            }
-            if (!_matched) {
-              if (it instanceof nl.kii.stream.Error) {
-                _matched=true;
-                newTask.error(((nl.kii.stream.Error<T>)it).error);
-              }
-            }
-          } catch (final Throwable _t) {
-            if (_t instanceof Exception) {
-              final Exception e = (Exception)_t;
-              AsyncException _asyncException = new AsyncException("Promise.then gave error for", it, e);
-              Promise.this.error(_asyncException);
-              newTask.error(e);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        }
-      };
-      Procedure0 _onChange = this.publisher.onChange(_function);
-      sub.set(_onChange);
-      this.setHasValueHandler(Boolean.valueOf(true));
-      Entry<T> _entry = this.getEntry();
-      boolean _notEquals = (!Objects.equal(_entry, null));
-      if (_notEquals) {
-        Entry<T> _entry_1 = this.getEntry();
-        this.publisher.apply(_entry_1);
-      }
-      _xblockexpression = newTask;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Value<R, T>; it cannot be parameterized with arguments <T>"
+      + "\nIncorrect number of arguments for type Error<R, T>; it cannot be parameterized with arguments <T>"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <T>");
   }
   
   public String toString() {

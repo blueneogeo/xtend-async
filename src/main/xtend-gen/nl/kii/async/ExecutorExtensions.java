@@ -118,8 +118,8 @@ public class ExecutorExtensions {
           final long now = System.currentTimeMillis();
           final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
           boolean _and = false;
-          Boolean _isOpen = newStream.isOpen();
-          if (!(_isOpen).booleanValue()) {
+          boolean _isOpen = newStream.isOpen();
+          if (!_isOpen) {
             _and = false;
           } else {
             _and = (!expired);

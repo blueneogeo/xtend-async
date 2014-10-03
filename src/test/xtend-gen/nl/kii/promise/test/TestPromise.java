@@ -1,11 +1,9 @@
 package nl.kii.promise.test;
 
-import com.google.common.base.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Async;
 import nl.kii.async.annotation.Atomic;
@@ -13,7 +11,6 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
-import nl.kii.stream.Entry;
 import nl.kii.stream.StreamAssert;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -131,181 +128,14 @@ public class TestPromise {
   
   @Test
   public void testLongChain() {
-    final AtomicBoolean alwaysDone = new AtomicBoolean();
-    final AtomicReference<Throwable> caughtError = new AtomicReference<Throwable>();
-    Promise<Integer> _addOne = this.addOne(1);
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_addOne, _function);
-    final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call, _function_1);
-    final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
-    final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
-    final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
-    final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
-    final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
-    final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
-    final Procedure1<Throwable> _function_8 = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        caughtError.set(it);
-      }
-    };
-    IPromise<Integer> _onError = _call_7.onError(_function_8);
-    final Procedure1<Entry<Integer>> _function_9 = new Procedure1<Entry<Integer>>() {
-      public void apply(final Entry<Integer> it) {
-        alwaysDone.set(true);
-      }
-    };
-    IPromise<Integer> _always = PromiseExtensions.<Integer>always(_onError, _function_9);
-    StreamAssert.<Integer>assertPromiseEquals(_always, Integer.valueOf(10));
-    boolean _get = alwaysDone.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
-    Throwable _get_1 = caughtError.get();
-    Assert.assertNull(_get_1);
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <Integer>");
   }
   
   @Test
   public void testLongChainWithError() {
-    final AtomicBoolean alwaysDone = new AtomicBoolean();
-    final AtomicReference<Throwable> caughtError = new AtomicReference<Throwable>();
-    Promise<Integer> _addOne = this.addOne(1);
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_addOne, _function);
-    final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_1 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call, _function_1);
-    final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
-    final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_3 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
-    final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_4 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
-    final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_5 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
-    final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        try {
-          Promise<Integer> _xblockexpression = null;
-          {
-            boolean _notEquals = (!Objects.equal(it, null));
-            if (_notEquals) {
-              throw new Exception("help!");
-            }
-            _xblockexpression = TestPromise.this.addOne((it).intValue());
-          }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
-        }
-      }
-    };
-    IPromise<Integer> _call_6 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
-    final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_7 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
-    final Function1<Integer, Promise<Integer>> _function_8 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_8 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_7, _function_8);
-    final Function1<Integer, Promise<Integer>> _function_9 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_9 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_8, _function_9);
-    final Function1<Integer, Promise<Integer>> _function_10 = new Function1<Integer, Promise<Integer>>() {
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromise.this.addOne((it).intValue());
-      }
-    };
-    IPromise<Integer> _call_10 = PromiseExtensions.<Integer, Integer, Promise<Integer>>call(_call_9, _function_10);
-    final Procedure1<Throwable> _function_11 = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        caughtError.set(it);
-      }
-    };
-    IPromise<Integer> _onError = _call_10.onError(_function_11);
-    final Procedure1<Entry<Integer>> _function_12 = new Procedure1<Entry<Integer>>() {
-      public void apply(final Entry<Integer> it) {
-        alwaysDone.set(true);
-      }
-    };
-    IPromise<Integer> _always = PromiseExtensions.<Integer>always(_onError, _function_12);
-    final Procedure1<Integer> _function_13 = new Procedure1<Integer>() {
-      public void apply(final Integer it) {
-        Assert.fail(("should not get here" + it));
-      }
-    };
-    _always.then(_function_13);
-    boolean _get = alwaysDone.get();
-    Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
-    Throwable _get_1 = caughtError.get();
-    Assert.assertNotNull(_get_1);
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <Integer>");
   }
   
   private final ExecutorService threads = Executors.newCachedThreadPool();

@@ -29,8 +29,8 @@ public class TestSplitter {
     StreamCopySplitter<Integer> _split = StreamExtensions.<Integer>split(source);
     StreamSource<Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -39,9 +39,9 @@ public class TestSplitter {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
+    StreamExtensions.<Integer, Integer>on(s1, _function);
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
@@ -50,7 +50,7 @@ public class TestSplitter {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s2, _function_1);
+    StreamExtensions.<Integer, Integer>on(s2, _function_1);
     StreamExtensions.<Integer>operator_doubleLessThan(source, Integer.valueOf(1));
     Boolean _did1 = this.getDid1();
     Assert.assertFalse((_did1).booleanValue());
@@ -93,8 +93,8 @@ public class TestSplitter {
     LoadBalancer<Integer> _balance = StreamExtensions.<Integer>balance(source);
     StreamSource<Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -103,9 +103,9 @@ public class TestSplitter {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
+    StreamExtensions.<Integer, Integer>on(s1, _function);
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
         final Procedure1<Integer> _function = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
@@ -114,13 +114,13 @@ public class TestSplitter {
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s2, _function_1);
+    StreamExtensions.<Integer, Integer>on(s2, _function_1);
     this.setDid1(Boolean.valueOf(false));
     this.setDid2(Boolean.valueOf(false));
     Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(source, Integer.valueOf(1));
     Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
     StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Boolean _did1 = this.getDid1();
     Assert.assertFalse((_did1).booleanValue());

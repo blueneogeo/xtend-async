@@ -8,7 +8,6 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,15 +24,14 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
-import nl.kii.stream.Entries;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamException;
 import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.StreamResponder;
 import nl.kii.stream.StreamResponderBuilder;
-import nl.kii.stream.Value;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
@@ -46,7 +44,6 @@ import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
@@ -202,8 +199,8 @@ public class StreamExtensions {
           public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
             boolean _xblockexpression = false;
             {
-              Boolean _isOpen = newStream.isOpen();
-              boolean _not = (!(_isOpen).booleanValue());
+              boolean _isOpen = newStream.isOpen();
+              boolean _not = (!_isOpen);
               if (_not) {
                 return false;
               }
@@ -258,8 +255,8 @@ public class StreamExtensions {
         public void apply(final StreamResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
-              Boolean _isOpen = newStream.isOpen();
-              if ((_isOpen).booleanValue()) {
+              boolean _isOpen = newStream.isOpen();
+              if (_isOpen) {
                 int _start = range.getStart();
                 int _size = range.getSize();
                 int _nextInt = randomizer.nextInt(_size);
@@ -294,30 +291,9 @@ public class StreamExtensions {
    * with multiple listeners. Publishers do not support flow control, and the
    * created Publisher will eagerly pull all data from the stream for publishing.
    */
-  public static <T extends Object> Publisher<T> publish(final Stream<T> stream) {
-    Publisher<T> _xblockexpression = null;
-    {
-      final Publisher<T> publisher = new Publisher<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              publisher.apply(it);
-              Boolean _publishing = publisher.getPublishing();
-              if ((_publishing).booleanValue()) {
-                stream.next();
-              }
-            }
-          };
-          it.each(_function);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      stream.next();
-      stream.setOperation("publish");
-      _xblockexpression = publisher;
-    }
-    return _xblockexpression;
+  public static <T extends Object> Publisher<T> publish(final IStream<T> stream) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field operation is undefined for the type StreamExtensions");
   }
   
   /**
@@ -425,26 +401,18 @@ public class StreamExtensions {
    * Lets you easily pass an Error<T> to the stream using the << operator
    */
   public static <T extends Object> Stream<T> operator_doubleLessThan(final Stream<T> stream, final Throwable t) {
-    Stream<T> _xblockexpression = null;
-    {
-      nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
-      stream.apply(_error);
-      _xblockexpression = stream;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Error(R, Throwable) is not applicable for the arguments (Throwable)"
+      + "\nType mismatch: cannot convert from Throwable to T");
   }
   
   /**
    * Lets you easily pass an Error<T> to the stream using the >> operator
    */
   public static <T extends Object> Stream<T> operator_doubleGreaterThan(final Throwable t, final Stream<T> stream) {
-    Stream<T> _xblockexpression = null;
-    {
-      nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(t);
-      stream.apply(_error);
-      _xblockexpression = stream;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Error(R, Throwable) is not applicable for the arguments (Throwable)"
+      + "\nType mismatch: cannot convert from Throwable to T");
   }
   
   /**
@@ -471,12 +439,14 @@ public class StreamExtensions {
   /**
    * Lets you easily pass a Finish<T> entry using the << or >> operators
    */
-  public static <T extends Object> Finish<T> finish() {
-    return new Finish<T>(0);
+  public static <T extends Object> Finish<T, Object> finish() {
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of type arguments. The constructor Finish<R, T> is not applicable for the type arguments <T>");
   }
   
-  public static <T extends Object> Finish<T> finish(final int level) {
-    return new Finish<T>(level);
+  public static <T extends Object> Finish<T, Object> finish(final int level) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of type arguments. The constructor Finish<R, T> is not applicable for the type arguments <T>");
   }
   
   public static <T extends Object, R extends Object> void controls(final Stream<T> newStream, final Stream<?> parent) {
@@ -544,8 +514,8 @@ public class StreamExtensions {
     Stream<R> _xblockexpression = null;
     {
       final Stream<R> newStream = new Stream<R>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               final R mapped = mappingFn.apply(it);
@@ -578,7 +548,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       StreamExtensions.<R, Object>controls(newStream, stream);
       stream.setOperation("map");
       _xblockexpression = newStream;
@@ -612,8 +582,8 @@ public class StreamExtensions {
       final Stream<T> newStream = new Stream<T>();
       final AtomicLong index = new AtomicLong(0);
       final AtomicLong passed = new AtomicLong(0);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               final long i = index.incrementAndGet();
@@ -655,7 +625,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       StreamExtensions.<T, Object>controls(newStream, stream);
       stream.setOperation("filter");
       _xblockexpression = newStream;
@@ -727,72 +697,9 @@ public class StreamExtensions {
    * List<List<T>>, you cannot have a separation at the higher list level, which is not represented at the <List<T>> level.
    */
   public static <T extends Object> Stream<T> split(final Stream<T> stream, final Function1<? super T, ? extends Boolean> splitConditionFn) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final AtomicBoolean justPostedFinish0 = new AtomicBoolean(false);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              Boolean _apply = splitConditionFn.apply(it);
-              if ((_apply).booleanValue()) {
-                Value<T> _value = new Value<T>(it);
-                Finish<T> _finish = new Finish<T>(0);
-                final List<? extends Entry<T>> entries = Collections.<Entry<T>>unmodifiableList(CollectionLiterals.<Entry<T>>newArrayList(_value, _finish));
-                justPostedFinish0.set(true);
-                Entries<T> _entries = new Entries<T>(((Entry<T>[])Conversions.unwrapArray(entries, Entry.class)));
-                newStream.apply(_entries);
-              } else {
-                justPostedFinish0.set(false);
-                Value<T> _value_1 = new Value<T>(it);
-                newStream.apply(_value_1);
-              }
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                newStream.error(it);
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              boolean _get = justPostedFinish0.get();
-              if (_get) {
-                Finish<Object> _finish = new Finish<Object>(((it).intValue() + 1));
-                newStream.apply(_finish);
-              } else {
-                justPostedFinish0.set(true);
-                Finish<Object> _finish_1 = new Finish<Object>(0);
-                Finish<Object> _finish_2 = new Finish<Object>(((it).intValue() + 1));
-                final List<Finish<Object>> entries = Collections.<Finish<Object>>unmodifiableList(CollectionLiterals.<Finish<Object>>newArrayList(_finish_1, _finish_2));
-                Entries<Object> _entries = new Entries<Object>(((Entry<Object>[])Conversions.unwrapArray(entries, Entry.class)));
-                newStream.apply(_entries);
-              }
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      stream.setOperation("split");
-      StreamExtensions.<T, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)"
+      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)");
   }
   
   /**
@@ -800,53 +707,8 @@ public class StreamExtensions {
    * @see StreamExtensions.split
    */
   public static <T extends Object> Stream<T> merge(final Stream<T> stream) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              Value<T> _value = new Value<T>(it);
-              newStream.apply(_value);
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                newStream.error(it);
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              if (((it).intValue() > 0)) {
-                newStream.finish(((it).intValue() - 1));
-              } else {
-                stream.next();
-              }
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      stream.setOperation("merge");
-      StreamExtensions.<T, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)");
   }
   
   /**
@@ -892,8 +754,8 @@ public class StreamExtensions {
       final Stream<T> newStream = new Stream<T>();
       final AtomicLong index = new AtomicLong(0);
       final AtomicLong passed = new AtomicLong(0);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               final long i = index.incrementAndGet();
@@ -936,7 +798,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("until");
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -953,8 +815,8 @@ public class StreamExtensions {
     {
       final AtomicLong count = new AtomicLong(0);
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               long _incrementAndGet = count.incrementAndGet();
@@ -994,7 +856,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("until");
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -1011,12 +873,12 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<Stream<T>>> _function = new Procedure1<StreamHandlerBuilder<Stream<T>>>() {
-        public void apply(final StreamHandlerBuilder<Stream<T>> it) {
+      final Procedure1<StreamHandlerBuilder<Stream<T>, Stream<T>>> _function = new Procedure1<StreamHandlerBuilder<Stream<T>, Stream<T>>>() {
+        public void apply(final StreamHandlerBuilder<Stream<T>, Stream<T>> it) {
           final Procedure1<Stream<T>> _function = new Procedure1<Stream<T>>() {
             public void apply(final Stream<T> s) {
-              final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-                public void apply(final StreamHandlerBuilder<T> it) {
+              final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+                public void apply(final StreamHandlerBuilder<T, T> it) {
                   final Procedure1<T> _function = new Procedure1<T>() {
                     public void apply(final T it) {
                       newStream.push(it);
@@ -1038,7 +900,7 @@ public class StreamExtensions {
                   it.error(_function_1);
                 }
               };
-              StreamExtensions.<T>on(s, _function);
+              StreamExtensions.<T, T>on(s, _function);
               s.next();
             }
           };
@@ -1062,7 +924,7 @@ public class StreamExtensions {
           it.closed(_function_2);
         }
       };
-      StreamExtensions.<Stream<T>>on(stream, _function);
+      StreamExtensions.<Stream<T>, Stream<T>>on(stream, _function);
       stream.setOperation("flatten");
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -1099,8 +961,8 @@ public class StreamExtensions {
     {
       final Stream<Pair<Integer, T>> newStream = new Stream<Pair<Integer, T>>();
       final AtomicInteger counter = new AtomicInteger(0);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               int _incrementAndGet = counter.incrementAndGet();
@@ -1137,7 +999,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("index");
       StreamExtensions.<Pair<Integer, T>, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -1165,93 +1027,10 @@ public class StreamExtensions {
    * of a buffer overflow.
    */
   public static <T extends Object> Stream<T> buffer(final Stream<T> stream, final int maxSize, final Procedure1<? super Entry<?>> onOverflow) {
-    Stream<T> _xblockexpression = null;
-    {
-      stream.setMaxBufferSize(Integer.valueOf(maxSize));
-      final Stream<T> newStream = new Stream<T>(maxSize);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              newStream.push(it);
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                newStream.error(it);
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              newStream.finish((it).intValue());
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<T>on(stream, _function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
-          final Procedure1<Void> _function = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              stream.next();
-            }
-          };
-          it.next(_function);
-          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              stream.skip();
-            }
-          };
-          it.skip(_function_1);
-          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              stream.close();
-            }
-          };
-          it.close(_function_2);
-          final Procedure1<Entry<?>> _function_3 = new Procedure1<Entry<?>>() {
-            public void apply(final Entry<?> it) {
-              onOverflow.apply(it);
-            }
-          };
-          it.overflow(_function_3);
-        }
-      };
-      StreamExtensions.<T>monitor(newStream, _function_1);
-      final Procedure1<StreamResponder> _function_2 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
-          final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
-            public void apply(final Entry<?> it) {
-              onOverflow.apply(it);
-            }
-          };
-          it.overflow(_function);
-        }
-      };
-      StreamExtensions.<T>monitor(stream, _function_2);
-      final Procedure1<Stream<T>> _function_3 = new Procedure1<Stream<T>>() {
-        public void apply(final Stream<T> it) {
-          String _operation = stream.getOperation();
-          it.setOperation(_operation);
-        }
-      };
-      _xblockexpression = ObjectExtensions.<Stream<T>>operator_doubleArrow(newStream, _function_3);
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nType mismatch: cannot convert from int to T[]"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <? extends Object>"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <? extends Object>");
   }
   
   /**
@@ -1330,8 +1109,8 @@ public class StreamExtensions {
       final AtomicLong lastNextMs = new AtomicLong((-1));
       final AtomicBoolean isTiming = new AtomicBoolean();
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-        public void apply(final Entry<T> it) {
+      final Procedure1<Entry<T, T>> _function = new Procedure1<Entry<T, T>>() {
+        public void apply(final Entry<T, T> it) {
           newStream.apply(it);
         }
       };
@@ -1409,8 +1188,8 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<?>> _function = new Procedure1<StreamHandlerBuilder<?>>() {
-        public void apply(final StreamHandlerBuilder<?> it) {
+      final Procedure1<StreamHandlerBuilder<?, ?>> _function = new Procedure1<StreamHandlerBuilder<?, ?>>() {
+        public void apply(final StreamHandlerBuilder<?, ?> it) {
           final Function1<Throwable, Boolean> _function = new Function1<Throwable, Boolean>() {
             public Boolean apply(final Throwable it) {
               boolean _xblockexpression = false;
@@ -1432,8 +1211,8 @@ public class StreamExtensions {
           it.finish(_function_1);
           final Procedure1<Object> _function_2 = new Procedure1<Object>() {
             public void apply(final Object it) {
-              Boolean _isOpen = stream.isOpen();
-              if ((_isOpen).booleanValue()) {
+              boolean _isOpen = stream.isOpen();
+              if (_isOpen) {
                 stream.next();
               } else {
                 timerStream.close();
@@ -1451,8 +1230,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.on(timerStream, _function);
-      final Procedure1<StreamHandlerBuilder<T>> _function_1 = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function_1 = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               newStream.push(it);
@@ -1484,7 +1263,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function_1);
+      StreamExtensions.<T, T>on(stream, _function_1);
       final Procedure1<StreamResponder> _function_2 = new Procedure1<StreamResponder>() {
         public void apply(final StreamResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
@@ -1519,8 +1298,8 @@ public class StreamExtensions {
     {
       final AtomicReference<T> latest = new AtomicReference<T>();
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               latest.set(it);
@@ -1555,7 +1334,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
         public void apply(final StreamResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
@@ -1606,8 +1385,8 @@ public class StreamExtensions {
       final Stream<T> newStream = new Stream<T>();
       final AtomicBoolean isFinished = new AtomicBoolean(false);
       final AtomicInteger processes = new AtomicInteger(0);
-      final Procedure1<StreamHandlerBuilder<? extends IPromise<T>>> _function = new Procedure1<StreamHandlerBuilder<? extends IPromise<T>>>() {
-        public void apply(final StreamHandlerBuilder<? extends IPromise<T>> it) {
+      final Procedure1<StreamHandlerBuilder<? extends IPromise<T>, ? extends IPromise<T>>> _function = new Procedure1<StreamHandlerBuilder<? extends IPromise<T>, ? extends IPromise<T>>>() {
+        public void apply(final StreamHandlerBuilder<? extends IPromise<T>, ? extends IPromise<T>> it) {
           final Procedure1<IPromise<T>> _function = new Procedure1<IPromise<T>>() {
             public void apply(final IPromise<T> promise) {
               processes.incrementAndGet();
@@ -1739,8 +1518,8 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               newStream.push(it);
@@ -1773,7 +1552,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
@@ -1784,8 +1563,8 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               newStream.push(it);
@@ -1821,7 +1600,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
     }
@@ -1833,8 +1612,8 @@ public class StreamExtensions {
    * Returns a task that completes once the stream finishes or closes.
    */
   public static <T extends Object> Task onEach(final Stream<T> stream, final Procedure1<? super T> handler) {
-    final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-      public void apply(final StreamHandlerBuilder<T> it) {
+    final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+      public void apply(final StreamHandlerBuilder<T, T> it) {
         final Procedure1<T> _function = new Procedure1<T>() {
           public void apply(final T it) {
             handler.apply(it);
@@ -1867,7 +1646,7 @@ public class StreamExtensions {
         it.closed(_function_3);
       }
     };
-    Task _on = StreamExtensions.<T>on(stream, _function);
+    Task _on = StreamExtensions.<T, T>on(stream, _function);
     final Procedure1<Task> _function_1 = new Procedure1<Task>() {
       public void apply(final Task it) {
         stream.setOperation("onEach");
@@ -1921,8 +1700,8 @@ public class StreamExtensions {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               Boolean _fulfilled = promise.getFulfilled();
@@ -1965,7 +1744,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("first");
       stream.next();
       _xblockexpression = promise;
@@ -1983,8 +1762,8 @@ public class StreamExtensions {
     {
       final Promise<T> promise = new Promise<T>();
       final AtomicReference<T> last = new AtomicReference<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               Boolean _fulfilled = promise.getFulfilled();
@@ -2057,7 +1836,7 @@ public class StreamExtensions {
           it.error(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("last");
       stream.next();
       _xblockexpression = promise;
@@ -2135,52 +1914,14 @@ public class StreamExtensions {
    * @return a task that completes on finish(0) or closed, or that gives an error
    * if the stream passed an error.
    */
-  public static <T extends Object> Task on(final Stream<T> stream, final Procedure1<? super StreamHandlerBuilder<T>> handlerFn) {
-    final Procedure2<Stream<T>, StreamHandlerBuilder<T>> _function = new Procedure2<Stream<T>, StreamHandlerBuilder<T>>() {
-      public void apply(final Stream<T> s, final StreamHandlerBuilder<T> builder) {
-        handlerFn.apply(builder);
-      }
-    };
-    return StreamExtensions.<T>on(stream, _function);
+  public static <R extends Object, T extends Object> Task on(final IStream<R, T> stream, final Procedure1<? super StreamHandlerBuilder<R, T>> handlerFn) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nType mismatch: cannot convert from (Object, StreamHandlerBuilder<R, T>)=>void to (StreamHandlerBuilder<R, T>)=>void");
   }
   
-  public static <T extends Object> Task on(final Stream<T> stream, final Procedure2<? super Stream<T>, ? super StreamHandlerBuilder<T>> handlerFn) {
-    Task _xblockexpression = null;
-    {
-      StreamHandlerBuilder<T> _streamHandlerBuilder = new StreamHandlerBuilder<T>(stream);
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
-          final Procedure1<T> _function = new Procedure1<T>() {
-            public void apply(final T it) {
-              stream.next();
-            }
-          };
-          it.each(_function);
-          final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              stream.next();
-            }
-          };
-          it.finish(_function_1);
-          final Function1<Throwable, Boolean> _function_2 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                stream.next();
-                _xblockexpression = true;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_2);
-        }
-      };
-      final StreamHandlerBuilder<T> handler = ObjectExtensions.<StreamHandlerBuilder<T>>operator_doubleArrow(_streamHandlerBuilder, _function);
-      final Task task = stream.observe(handler);
-      handlerFn.apply(stream, handler);
-      _xblockexpression = task;
-    }
-    return _xblockexpression;
+  public static <R extends Object, T extends Object> Task on(final Stream<T> stream, final Procedure2<? super Stream<T>, ? super StreamHandlerBuilder<T>> handlerFn) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of type arguments. The constructor StreamHandlerBuilder<R, T> is not applicable for the type arguments <T>");
   }
   
   /**
@@ -2230,55 +1971,8 @@ public class StreamExtensions {
    * stream entries and streams those separately.
    */
   public static <T extends Object> Stream<T> separate(final Stream<List<T>> stream) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<List<T>>> _function = new Procedure1<StreamHandlerBuilder<List<T>>>() {
-        public void apply(final StreamHandlerBuilder<List<T>> it) {
-          final Procedure1<List<T>> _function = new Procedure1<List<T>>() {
-            public void apply(final List<T> list) {
-              final Function1<T, Value<T>> _function = new Function1<T, Value<T>>() {
-                public Value<T> apply(final T it) {
-                  return new Value<T>(it);
-                }
-              };
-              final List<Value<T>> entries = ListExtensions.<T, Value<T>>map(list, _function);
-              Entries<T> _entries = new Entries<T>(((Entry<T>[])Conversions.unwrapArray(entries, Entry.class)));
-              newStream.apply(_entries);
-            }
-          };
-          it.each(_function);
-          final Function1<Throwable, Boolean> _function_1 = new Function1<Throwable, Boolean>() {
-            public Boolean apply(final Throwable it) {
-              boolean _xblockexpression = false;
-              {
-                newStream.error(it);
-                _xblockexpression = false;
-              }
-              return Boolean.valueOf(_xblockexpression);
-            }
-          };
-          it.error(_function_1);
-          final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-            public void apply(final Integer it) {
-              newStream.finish((it).intValue());
-            }
-          };
-          it.finish(_function_2);
-          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
-            public void apply(final Void it) {
-              newStream.close();
-            }
-          };
-          it.closed(_function_3);
-        }
-      };
-      StreamExtensions.<List<T>>on(stream, _function);
-      stream.setOperation("separate");
-      StreamExtensions.<T, Object>controls(newStream, stream);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)");
   }
   
   /**
@@ -2476,8 +2170,8 @@ public class StreamExtensions {
     {
       final AtomicReference<R> reduced = new AtomicReference<R>(initial);
       final Stream<R> newStream = new Stream<R>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               R _get = reduced.get();
@@ -2522,7 +2216,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation((("reduce(initial=" + initial) + ")"));
       StreamExtensions.<R, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -2535,8 +2229,8 @@ public class StreamExtensions {
     {
       final AtomicReference<R> reduced = new AtomicReference<R>(initial);
       final Stream<R> newStream = new Stream<R>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               R _get = reduced.get();
@@ -2576,7 +2270,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation((("scan(initial=" + initial) + ")"));
       StreamExtensions.<R, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -2647,8 +2341,8 @@ public class StreamExtensions {
     {
       final AtomicBoolean anyMatch = new AtomicBoolean(false);
       final Stream<Boolean> newStream = new Stream<Boolean>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               Boolean _apply = testFn.apply(it);
@@ -2694,7 +2388,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("any");
       StreamExtensions.<Boolean, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -2714,8 +2408,8 @@ public class StreamExtensions {
     {
       final AtomicReference<T> match = new AtomicReference<T>();
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamHandlerBuilder<T>> _function = new Procedure1<StreamHandlerBuilder<T>>() {
-        public void apply(final StreamHandlerBuilder<T> it) {
+      final Procedure1<StreamHandlerBuilder<T, T>> _function = new Procedure1<StreamHandlerBuilder<T, T>>() {
+        public void apply(final StreamHandlerBuilder<T, T> it) {
           final Procedure1<T> _function = new Procedure1<T>() {
             public void apply(final T it) {
               Boolean _apply = testFn.apply(it);
@@ -2757,7 +2451,7 @@ public class StreamExtensions {
           it.closed(_function_3);
         }
       };
-      StreamExtensions.<T>on(stream, _function);
+      StreamExtensions.<T, T>on(stream, _function);
       stream.setOperation("first");
       StreamExtensions.<T, Object>controls(newStream, stream);
       _xblockexpression = newStream;
@@ -2771,8 +2465,8 @@ public class StreamExtensions {
    */
   @Async
   public static void toTask(final Stream<?> stream, final Task task) {
-    final Procedure1<StreamHandlerBuilder<?>> _function = new Procedure1<StreamHandlerBuilder<?>>() {
-      public void apply(final StreamHandlerBuilder<?> it) {
+    final Procedure1<StreamHandlerBuilder<?, ?>> _function = new Procedure1<StreamHandlerBuilder<?, ?>>() {
+      public void apply(final StreamHandlerBuilder<?, ?> it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             task.complete();

@@ -1,22 +1,17 @@
 package nl.kii.stream.test;
 
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.IPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Finish;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -51,7 +46,7 @@ public class TestStreamErrorHandling {
       StreamExtensions.<Integer>onEach(_map_1, _function_3);
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-      Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+      Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
       StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
       Assert.fail("we expected an error for /0");
     } catch (final Throwable _t) {
@@ -129,7 +124,7 @@ public class TestStreamErrorHandling {
       StreamExtensions.<Integer>onEach(_map_1, _function_4);
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-      Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+      Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
       StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
       Assert.fail("we expected an error for /0");
     } catch (final Throwable _t) {
@@ -179,7 +174,7 @@ public class TestStreamErrorHandling {
       StreamExtensions.<Integer>onEach(_onError, _function_4);
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-      Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+      Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
       StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
     } catch (final Throwable _t) {
       if (_t instanceof Exception) {
@@ -228,7 +223,7 @@ public class TestStreamErrorHandling {
       _onEach.onError(_function_4);
       Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
       Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-      Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+      Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
       StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
     } catch (final Throwable _t) {
       if (_t instanceof Exception) {
@@ -298,53 +293,8 @@ public class TestStreamErrorHandling {
   
   @Test
   public void testErrorHandlingAfterCollect() {
-    this.setFinished(Boolean.valueOf(false));
-    this.setErrorCount(Integer.valueOf(0));
-    this.setCount(Integer.valueOf(0));
-    final Stream<Integer> s = StreamExtensions.<Integer>stream(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(5), Integer.valueOf(6), Integer.valueOf(7), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() % 3));
-      }
-    };
-    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      public Integer apply(final Integer it) {
-        return Integer.valueOf((100 / (it).intValue()));
-      }
-    };
-    final Stream<Integer> s2 = StreamExtensions.<Integer, Integer>map(_map, _function_1);
-    final Procedure2<Stream<Integer>, StreamHandlerBuilder<Integer>> _function_2 = new Procedure2<Stream<Integer>, StreamHandlerBuilder<Integer>>() {
-      public void apply(final Stream<Integer> stream, final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            TestStreamErrorHandling.this.incCount();
-            stream.next();
-          }
-        };
-        it.each(_function);
-      }
-    };
-    Task _on = StreamExtensions.<Integer>on(s2, _function_2);
-    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.incErrorCount();
-      }
-    };
-    IPromise<Boolean> _onError = _on.onError(_function_3);
-    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
-      public void apply(final Boolean it) {
-        TestStreamErrorHandling.this.setFinished(Boolean.valueOf(true));
-      }
-    };
-    _onError.then(_function_4);
-    s2.next();
-    Integer _count = this.getCount();
-    Assert.assertEquals(7, (_count).intValue());
-    Boolean _finished = this.getFinished();
-    Assert.assertFalse((_finished).booleanValue());
-    Integer _errorCount = this.getErrorCount();
-    Assert.assertEquals(1, (_errorCount).intValue());
+    throw new Error("Unresolved compilation problems:"
+      + "\nCannot make a static reference to the non-static type T");
   }
   
   private Throwable setCaught(final Throwable value) {

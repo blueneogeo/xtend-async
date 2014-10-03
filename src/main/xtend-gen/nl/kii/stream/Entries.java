@@ -11,11 +11,11 @@ import org.eclipse.xtext.xbase.lib.Conversions;
  * Consider it an atomic push of multiple entries onto the stream.
  */
 @SuppressWarnings("all")
-public class Entries<T extends Object> implements StreamMessage {
-  public final List<Entry<T>> entries;
+public class Entries<R extends Object, T extends Object> implements StreamMessage {
+  public final List<Entry<R, T>> entries;
   
-  public Entries(final Entry<T>... entries) {
-    this.entries = ((List<Entry<T>>)Conversions.doWrapArray(entries));
+  public Entries(final Entry<R, T>... entries) {
+    this.entries = ((List<Entry<R, T>>)Conversions.doWrapArray(entries));
   }
   
   public String toString() {
@@ -24,10 +24,10 @@ public class Entries<T extends Object> implements StreamMessage {
   
   public boolean equals(final Object o) {
     boolean _and = false;
-    if (!(o instanceof Entries<?>)) {
+    if (!(o instanceof Entries<?, ?>)) {
       _and = false;
     } else {
-      boolean _equals = Objects.equal(((Entries<?>) o).entries, this.entries);
+      boolean _equals = Objects.equal(((Entries<?, ?>) o).entries, this.entries);
       _and = _equals;
     }
     return _and;

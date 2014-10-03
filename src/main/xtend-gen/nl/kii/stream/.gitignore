@@ -128,3 +128,6 @@
 /.StreamResponderBuilder.java._trace
 /.Overflow.java._trace
 /.StreamIOExtensions.java._trace
+/.SubStream.java._trace
+/.BaseStream.java._trace
+/.IStream.java._trace

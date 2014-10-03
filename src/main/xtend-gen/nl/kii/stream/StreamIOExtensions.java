@@ -48,8 +48,8 @@ public class StreamIOExtensions {
           public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
             boolean _xblockexpression = false;
             {
-              Boolean _isOpen = newStream.isOpen();
-              boolean _not = (!(_isOpen).booleanValue());
+              boolean _isOpen = newStream.isOpen();
+              boolean _not = (!_isOpen);
               if (_not) {
                 return false;
               }
@@ -164,8 +164,8 @@ public class StreamIOExtensions {
    */
   @Async
   public static void writeTo(final Stream<List<Byte>> stream, final OutputStream out, final Task task) {
-    final Procedure1<StreamHandlerBuilder<List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<List<Byte>>>() {
-      public void apply(final StreamHandlerBuilder<List<Byte>> it) {
+    final Procedure1<StreamHandlerBuilder<List<Byte>, List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<List<Byte>, List<Byte>>>() {
+      public void apply(final StreamHandlerBuilder<List<Byte>, List<Byte>> it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             try {
@@ -216,7 +216,7 @@ public class StreamIOExtensions {
         it.each(_function_3);
       }
     };
-    StreamExtensions.<List<Byte>>on(stream, _function);
+    StreamExtensions.<List<Byte>, List<Byte>>on(stream, _function);
     stream.setOperation("writeTo");
     stream.next();
   }

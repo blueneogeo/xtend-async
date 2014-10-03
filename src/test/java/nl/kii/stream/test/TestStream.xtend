@@ -20,32 +20,32 @@ class TestStream {
 
 	@Test
 	def void testObservingAStream() {
-		val s = (1..3).stream
+		val Stream<Integer, Integer> s = (1..3).stream
 		s.monitor(new StreamMonitor {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
-			override onOverflow(Entry<?> entry) { println('overflow! of ' + entry) }
+			override onOverflow(Entry<?, ?> entry) { println('overflow! of ' + entry) }
 		})
-		s.observe(new StreamObserver<Integer> {
-			override onValue(Integer value) {
-				println('value: ' + value)
-				if(value == 2) throw new Exception('boo!')
-				s.next
-			}
-			override onError(Throwable t) {
-				println('error:' + t)
-				s.next
-				true
-			}
-			override onFinish(int level) {
-				println('finished')
-				s.next
-			}
-			override onClosed() {
-				println('closed')
-			}
-		})
+//		s.observe(new StreamObserver<Integer, Integer> {
+//			override onValue(Integer from, Integer value) {
+//				println('value: ' + value)
+//				if(value == 2) throw new Exception('boo!')
+//				s.next
+//			}
+//			override onError(Integer from, Throwable t) {
+//				println('error:' + t)
+//				s.next
+//				true
+//			}
+//			override onFinish(int level) {
+//				println('finished')
+//				s.next
+//			}
+//			override onClosed() {
+//				println('closed')
+//			}
+//		})
 			// .then [ println('done!') ]
 			// .onError [ println('caught: ' + it)]
 		// s << 1 << 2 << 3
@@ -71,7 +71,7 @@ class TestStream {
 	@Test
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
-		val s = new Stream<Integer> << 1 << 2 << 3
+		val s = new Stream<Integer, Integer> << 1 << 2 << 3
 		s.onEach [ 
 			counter.addAndGet(it)
 		]
@@ -82,7 +82,7 @@ class TestStream {
 	
 	@Test
 	def void testControlledStream() {
-		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
+		val s = new Stream<Integer, Integer> << 1 << 2 << 3 << finish << 4 << 5
 		s.on [
 			each [ incCounter(it) ]
 			finish [ ]

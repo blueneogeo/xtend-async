@@ -138,7 +138,7 @@ class StreamExtensions {
 	 * with multiple listeners. Publishers do not support flow control, and the
 	 * created Publisher will eagerly pull all data from the stream for publishing.
 	 */
-	def static <T> Publisher<T> publish(Stream<T> stream) {
+	def static <T> Publisher<T> publish(IStream<T> stream) {
 		val publisher = new Publisher<T>
 		stream.on [
 			each [
@@ -1009,11 +1009,11 @@ class StreamExtensions {
 	 * @return a task that completes on finish(0) or closed, or that gives an error
 	 * if the stream passed an error. 
 	 */
-	def static <T> Task on(Stream<T> stream, (StreamHandlerBuilder<T>)=>void handlerFn) {
+	def static <R, T> Task on(IStream<R, T> stream, (StreamHandlerBuilder<R, T>)=>void handlerFn) {
 		stream.on [ s, builder | handlerFn.apply(builder) ]
 	}
 
-	def static <T> Task on(Stream<T> stream, (Stream<T>, StreamHandlerBuilder<T>)=>void handlerFn) {
+	def static <R, T> Task on(Stream<T> stream, (Stream<T>, StreamHandlerBuilder<T>)=>void handlerFn) {
 		val handler = new StreamHandlerBuilder<T>(stream) => [
 			// by default, do nothing but call the next item from the stream
 			each [ stream.next ]

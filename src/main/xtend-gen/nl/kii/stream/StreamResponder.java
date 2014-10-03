@@ -11,5 +11,5 @@ public interface StreamResponder {
   
   public abstract void close(final Procedure1<? super Void> handler);
   
-  public abstract void overflow(final Procedure1<? super Entry<?>> handler);
+  public abstract void overflow(final Procedure1<? super Entry<?, ?>> handler);
 }

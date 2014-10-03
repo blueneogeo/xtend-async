@@ -41,7 +41,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     List<Stream<T>> _streams = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
-        return it.isReady();
+        return Boolean.valueOf(it.isReady());
       }
     };
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
@@ -95,7 +95,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     List<Stream<T>> _streams = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
-        return it.isReady();
+        return Boolean.valueOf(it.isReady());
       }
     };
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
@@ -111,7 +111,7 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     List<Stream<T>> _streams = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
-        return it.isSkipping();
+        return Boolean.valueOf(it.isSkipping());
       }
     };
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
@@ -127,8 +127,8 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     List<Stream<T>> _streams = this.getStreams();
     final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
       public Boolean apply(final Stream<T> it) {
-        Boolean _isOpen = it.isOpen();
-        return Boolean.valueOf((!(_isOpen).booleanValue()));
+        boolean _isOpen = it.isOpen();
+        return Boolean.valueOf((!_isOpen));
       }
     };
     boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);

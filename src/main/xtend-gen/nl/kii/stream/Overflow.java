@@ -8,9 +8,9 @@ import nl.kii.stream.StreamNotification;
  */
 @SuppressWarnings("all")
 public class Overflow implements StreamNotification {
-  public final Entry<?> entry;
+  public final Entry<?, ?> entry;
   
-  public Overflow(final Entry<?> entry) {
+  public Overflow(final Entry<?, ?> entry) {
     this.entry = entry;
   }
 }

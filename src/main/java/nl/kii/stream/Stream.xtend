@@ -1,12 +1,14 @@
 package nl.kii.stream
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+
 import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
+import nl.kii.promise.Task
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
-import nl.kii.promise.Task
+import java.util.Collection
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -23,80 +25,120 @@ import nl.kii.promise.Task
  * <li>wraps errors and lets you listen for them at the end of the stream chain
  * </ul>
  */
-class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage>, Observable<Entry<T>> {
+interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T>> {
+	
+	// PUSH DATA IN ///////////////////////////////////////////////////////////
 
-	val static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
+	def void push(R from, T value) 
+	def void error(R from, Throwable error)
+	def void finish()
+	def void finish(int level)
 
-	val Queue<Entry<T>> queue // queue for incoming values, for buffering when there is no ready listener
+	// CONTROL THE STREAM /////////////////////////////////////////////////////
+
+	def void next()
+	def void skip()
+	def void close()
+
+	// STATUS /////////////////////////////////////////////////////////////////
+	
+	def boolean isOpen()
+	def boolean isReady()
+	def boolean isSkipping()
+
+	def int getBufferSize()
+	def Collection<Entry<R, T>> getQueue()
+
+	def void setOperation(String operationName)
+	def String getOperation()
+	
+}
+
+class Stream<T> extends SubStream<T, T> {
+
+	/** create the stream with a memory concurrent queue and the given initial values */
+	new(T... initalValues) {
+		initalValues.forEach [ push ]
+	}
+
+	def push(T value) {
+		super.push(value, value)
+	}
+	
+	def error(Throwable t) {
+		super.error(null, t)
+	}
+ 	
+}
+
+class SubStream<R, T> extends BaseStream<R, T> {
+
+}
+ 
+abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<R, T> {
+
+	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
+
+	val protected Queue<Entry<R, T>> queue // queue for incoming values, for buffering when there is no ready listener
 
 	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
 	@Atomic val boolean open = true // whether the stream is open
 	@Atomic val boolean ready = false // whether the listener is ready
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
 
-	@Atomic val (Entry<T>)=>void entryListener // listener for entries from the stream queue
+	@Atomic val (Entry<R, T>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
 
 	@Atomic public val int maxBufferSize // the maximum size of the queue
 	@Atomic public val String operation // name of the operation the listener is performing
 
 	/** create the stream with a memory concurrent queue */
-	new() { 
-		this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE)
-	}
+	new() { this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE) }
 
-	new(int maxBufferSize) { 
-		this(newConcurrentLinkedQueue, maxBufferSize)
-	}
-
-	/** create the stream with a memory concurrent queue and the given initial values */
-	new(T... initalValues) {
-		this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE)
-		initalValues.forEach [ push ]
-	}
+	new(int maxBufferSize) { this(newConcurrentLinkedQueue, maxBufferSize) }
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<T>> queue, int maxBufferSize) { 
+	new(Queue<Entry<R, T>> queue, int maxBufferSize) { 
 		this.queue = queue
 		this.maxBufferSize = maxBufferSize
 	}
 	
 	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
-	def getQueue() { queue.unmodifiableView	}
+	override getQueue() { queue.unmodifiableView	}
 
-	def isOpen() { getOpen }
+	override isOpen() { getOpen }
 	
-	def isReady() { getReady }
+	override isReady() { getReady }
 	
-	def isSkipping() { getSkipping }
+	override isSkipping() { getSkipping }
 	
-	def getBufferSize() { buffersize }
+	override getBufferSize() { buffersize }
 	
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
 	/** Ask for the next value in the buffer to be delivered to the change listener */
-	def next() { apply(new Next) }
+	override next() { apply(new Next) }
 	
 	/** Tell the stream to stop sending values until the next Finish(0) */
-	def skip() { apply(new Skip) }
+	override skip() { apply(new Skip) }
 	
 	/** Close the stream, which will stop the listener from recieving values */
-	def close() { apply(new Close) }
+	override close() { apply(new Close) }
 	
 	/** Queue a value on the stream for pushing to the listener */
-	def push(T value) { apply(new Value(value)) }
+	override push(R from, T value) { apply(new Value(from, value)) }
 	
 	/** 
 	 * Tell the stream an error occurred. the error will not be thrown directly,
 	 * but passed and can be listened for down the stream.
 	 */
-	def error(Throwable error) { apply(new Error(error)) }
+	override error(R from, Throwable error) { apply(new Error(from, error)) }
 	
 	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	def finish() { apply(new Finish(0)) }	
+	override finish() { apply(new Finish(0)) }	
 
 	/** Tell the stream a batch of the given level has finished. */
-	def finish(int level) { apply(new Finish(level)) }	
+	override finish(int level) { apply(new Finish(level)) }	
 	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
@@ -107,7 +149,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	override =>void onChange((Entry<T>)=>void entryListener) {
+	override =>void onChange((Entry<R, T>)=>void entryListener) {
 		this.entryListener = entryListener
 		return [| this.entryListener = null ]
 	}
@@ -144,22 +186,22 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	 * To prevent errors from passing down the stream, you have to filter them. You can do this
 	 * by using the StreamExtensions.onError[] extension (or write your own filter).
 	 */
-	def observe(StreamObserver<T> observer) {
+	def observe(StreamObserver<R, T> observer) {
 		val task = new Task
 		operation = 'observe'
 		onChange [ entry |
 			// println('performing ' + operation + ' on ' + entry)
 			switch it : entry {
-				Value<T>: observer.onValue(value)
-				Finish<T>: { observer.onFinish(level) if(level==0) task.complete }
-				Error<T>: {
-					val escalate = observer.onError(error)
+				Value<R, T>: observer.onValue(from, value)
+				Finish<R, T>: { observer.onFinish(level) if(level==0) task.complete }
+				Error<R, T>: {
+					val escalate = observer.onError(from, error)
 					if(escalate) {
 						if(task.hasErrorHandler) task.error(new StreamException(operation, entry, error)) 
 						else throw new UncaughtStreamException(operation, entry, error)
 					}
 				}
-				Closed<T>: { observer.onClosed task.complete }
+				Closed<R, T>: { observer.onClosed task.complete }
 			}
 		]
 		task
@@ -193,7 +235,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 	override protected act(StreamMessage entry, =>void done) {
 		if(isOpen) {
 			switch entry {
-				Value<T>, Finish<T>, Error<T>: {
+				Value<R, T>, Finish<R, T>, Error<R, T>: {
 					// check for buffer overflow
 					if(buffersize >= maxBufferSize) {
 						notify(new Overflow(entry))
@@ -205,7 +247,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 					incBuffersize
 					publishNext
 				}
-				Entries<T>: {
+				Entries<R, T>: {
 					// add the entries to the queue 
 					queue.addAll(entry.entries)
 					incBuffersize(entry.entries.size)
@@ -224,7 +266,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 					// discard everything up to finish from the queue
 					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
-							Finish<T> case level==0: skipping = false
+							Finish<R, T> case level==0: skipping = false
 							default: { queue.poll decBuffersize }
 						}
 					}
@@ -262,7 +304,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 				// check for some exceptional cases
 				switch it: entry {
 					// a finish of level 0 stops the skipping
-					Finish<T>: if(level == 0) skipping = false
+					Finish<R, T>: if(level == 0) skipping = false
 				}
 				// publish the value on the entryListener
 				entryListener.apply(entry)
@@ -272,7 +314,7 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 				throw e
 			} catch (Throwable t) {
 				// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
-				if(entry instanceof Error<?>) {
+				if(entry instanceof Error<?, ?>) {
 					switch t {
 						StreamException: throw t
 						default: throw new StreamException(operation, entry, t)
@@ -280,7 +322,11 @@ class Stream<T> extends Actor<StreamMessage> implements Procedure1<StreamMessage
 				}
 				// otherwise push the error on the stream
 				ready = true
-				apply(new Error(new StreamException(operation, entry, t)))
+				switch entry {
+					Value<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+					Error<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+					default: println('help! cannot create an error! ' + entry + ' gave ' + t)
+				}
 				false
 			}
 		} else false

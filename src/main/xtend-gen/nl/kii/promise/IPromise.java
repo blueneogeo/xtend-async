@@ -5,7 +5,7 @@ import nl.kii.stream.Entry;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public interface IPromise<T extends Object> extends Procedure1<Entry<T>> {
+public interface IPromise<T extends Object> /* extends Procedure1<Entry<T>>  */{
   public abstract Boolean getFulfilled();
   
   public abstract Entry<T> get();

@@ -39,8 +39,8 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
     this.source = source;
     CopyOnWriteArrayList<Stream<T>> _copyOnWriteArrayList = new CopyOnWriteArrayList<Stream<T>>();
     this.setStreams(_copyOnWriteArrayList);
-    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-      public void apply(final Entry<T> it) {
+    final Procedure1<Entry<T, T>> _function = new Procedure1<Entry<T, T>>() {
+      public void apply(final Entry<T, T> it) {
         StreamSplitter.this.apply(it);
       }
     };
@@ -58,8 +58,8 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
         }
       };
       stream.onNotify(_function);
-      Boolean _isReady = stream.isReady();
-      if ((_isReady).booleanValue()) {
+      boolean _isReady = stream.isReady();
+      if (_isReady) {
         stream.next();
       }
       _xblockexpression = this;
@@ -81,20 +81,8 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
    * we are wrapping in an actor to make things threadsafe
    */
   protected void act(final StreamMessage message, final Procedure0 done) {
-    boolean _matched = false;
-    if (!_matched) {
-      if (message instanceof Entry) {
-        _matched=true;
-        this.onEntry(((Entry<T>)message));
-      }
-    }
-    if (!_matched) {
-      if (message instanceof StreamNotification) {
-        _matched=true;
-        this.onCommand(((StreamNotification)message));
-      }
-    }
-    done.apply();
+    throw new Error("Unresolved compilation problems:"
+      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <T>");
   }
   
   /**

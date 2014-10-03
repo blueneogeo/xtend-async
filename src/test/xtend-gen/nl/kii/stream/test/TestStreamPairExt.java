@@ -26,7 +26,7 @@ public class TestStreamPairExt {
       }
     };
     StreamPairExtensions.<Integer, Integer>onEach(p, _function);
-    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(3));
+    Value<Integer, Object> _value = StreamAssert.<Integer>value(Integer.valueOf(3));
     StreamAssert.<Integer>assertStreamContains(p2, _value);
   }
   
@@ -40,8 +40,8 @@ public class TestStreamPairExt {
       }
     };
     final Stream<Integer> asynced = StreamPairExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
-    Value<Integer> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
+    Value<Integer, Object> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
+    Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
     StreamAssert.<Integer>assertStreamContains(asynced, _value, _finish);
   }
   
@@ -61,8 +61,8 @@ public class TestStreamPairExt {
     };
     final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
-    Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
+    Value<Pair<Integer, Integer>, Object> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
+    Finish<Pair<Integer, Integer>, Object> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
     StreamAssert.<Pair<Integer, Integer>>assertStreamContains(asynced, _value, _finish);
   }
   
@@ -86,8 +86,8 @@ public class TestStreamPairExt {
     Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamPairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolveValue, _function_1);
     final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map_1);
     Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
-    Value<Pair<Integer, Integer>> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    Finish<Pair<Integer, Integer>> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
+    Value<Pair<Integer, Integer>, Object> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
+    Finish<Pair<Integer, Integer>, Object> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
     StreamAssert.<Pair<Integer, Integer>>assertStreamContains(asynced, _value, _finish);
   }
   
