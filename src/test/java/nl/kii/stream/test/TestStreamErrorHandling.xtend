@@ -7,36 +7,78 @@ import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStreamErrorHandling {
 
+	@Atomic int counter
+	@Atomic int errors
+	@Atomic boolean complete
+	@Atomic boolean failed
+
 	@Test
-	def void testNoHandlingShouldTriggerException() {
-		try {
-			val s = int.stream
-			s
-				.map [ it ]
-				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
-				.map [ it ]
-				.onEach [ ]
-			s << 1 << 2 << finish
-			fail('we expected an error for /0')
-		} catch(Exception e) {
-			// success
-		}
+	def void testStreamsSwallowExceptions() {
+		val s = int.stream
+		s
+			.map [ it ]
+			.map [
+				if(it == 2 || it == 4) throw new Exception
+				it
+			]
+			.map [ it ]
+			.onEach [ incCounter ]
+			.then [ complete = true ]
+		s << 1 << 2 << 3 << 4 << 5 finish
+		// gets here without an error, and there were two errors, for 2 and 4
+		assertEquals(3, counter)
+		// the whole operation did not complete without errors
+		assertFalse(complete)
 	}
 
 	@Test
-	def void testIteratorErrorHandlingShouldCatchException() {
-		try {
-			val s = (1..20).stream
-			s
-				//.map [ it ]
-				.filter [ 1 / (it % 3) == 0 ] // division by 0 for 3
-				//.map [ it ]
-				.onError [ ]
-				.onEach [ ]
-		} catch(Exception e) {
-			fail('onError should have caught ' + e)
-		}
+	def void testStreamsErrorHandlersSwallowExceptions() {
+		val s = int.stream
+		s
+			.map [ it ]
+			.map [
+				if(it == 2 || it == 4) throw new Exception
+				it
+			]
+			.onError [ incErrors ]
+			.map [ it ]
+			.onEach [ incCounter ]
+			.then [ complete = true ]
+			.onError [ failed = true ]
+		s << 1 << 2 << 3 << 4 << 5 << finish
+		// there were two errors
+		assertEquals(2, errors)
+		// gets here without an error, and there were two errors, for 2 and 4
+		assertEquals(3, counter)
+		// the whole operation now does complete, since the error was swallowed
+		assertTrue(complete)
+		assertFalse(failed)
 	}
+
+	@Test
+	def void testStreamAggregationsShouldFailOnInternalErrrorsButNotBreakTheStream() {
+		(1..20).stream
+			.split [ it % 4 == 0 ]
+			.map [
+				if(it % 6 == 0) throw new Exception
+				it
+			]
+			.collect
+			.onError [ println('error ' + it) ]
+			.onEach [ println(it) ]
+			.then [ println('done') ]
+	}
+
+
+
+
+
+
+
+
+
+
+
 
 	@Test
 	def void testHandlingAboveErrorShouldTriggerException() {
@@ -114,29 +156,4 @@ class TestStreamErrorHandling {
 		assertTrue(finished) // end of iteration
 	}
 	
-	@Test
-	def void testErrorHandlingAfterCollect() {
-		finished = false
-		errorCount = 0
-		count = 0
-		val s = #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].stream
-		val s2 = s
-			.map [ it % 3 ]
-			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
-			// s2.on [ each [ incCount s2.next ] ]
-		s2
-			.on [ stream, it | each [ incCount stream.next ] ]
-			.onError [ incErrorCount ] 
-			.then [ finished = true ]
-		s2.next
-			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
-			// in other words, putting onError after onEach means break stream on error
-			// however, this solution only works asynchronously! on a single threaded solution the .on would finish
-			// processing all data before the .onError is even called.
-			
-		assertEquals(7, count) // only two values passed, and then we got the 3
-		assertFalse(finished) // we did not catch the error in the loop, so the loop has an error and did not finish
-		assertEquals(1, errorCount) // only one error because after the onEach task
-	}
-
 }

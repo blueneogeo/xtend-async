@@ -14,6 +14,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -97,14 +98,14 @@ public class TestPromiseExtensions {
   @Test
   public void testListPromiseToStream() {
     final Promise<List<Integer>> p = new Promise<List<Integer>>(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
-    Stream<Integer, Object> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
-    Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
+    Stream<Integer> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
+    SubStream<Integer, Double> _sum = StreamExtensions.<Integer, Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
       public void apply(final Double it) {
         Assert.assertEquals(6, (it).doubleValue(), 0);
       }
     };
-    StreamExtensions.<Double>then(_sum, _function);
+    StreamExtensions.<Integer, Double>then(_sum, _function);
   }
   
   @Atomic

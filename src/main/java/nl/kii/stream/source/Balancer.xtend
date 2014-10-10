@@ -4,26 +4,26 @@ import nl.kii.stream.Close
 import nl.kii.stream.Entry
 import nl.kii.stream.Error
 import nl.kii.stream.Finish
+import nl.kii.stream.IStream
 import nl.kii.stream.Next
 import nl.kii.stream.Skip
-import nl.kii.stream.Stream
-import nl.kii.stream.Value
 import nl.kii.stream.StreamNotification
+import nl.kii.stream.Value
 
 /**
  * This splitter sends each message to the first stream that is ready.
  * This means that each attached stream receives different messages. 
  */
-class LoadBalancer<T> extends StreamSplitter<T> {
+class LoadBalancer<R, T> extends StreamSplitter<R, T> {
 	
-	new(Stream<T> source) {
+	new(IStream<R, T> source) {
 		super(source)
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	protected override onEntry(Entry<T> entry) {
+	protected override onEntry(Entry<R, T> entry) {
 		switch entry {
-			Value<T>: {
+			Value<R, T>: {
 				for(stream : streams) {
 					if(stream.ready) {
 						stream.apply(entry)
@@ -31,12 +31,12 @@ class LoadBalancer<T> extends StreamSplitter<T> {
 					}
 				}
 			}
-			Finish<T>: {
+			Finish<R, T>: {
 				for(stream : streams) {
 					stream.finish
 				}
 			}
-			Error<T>: {
+			Error<R, T>: {
 				for(stream : streams) {
 					stream.error(entry.error)
 				}

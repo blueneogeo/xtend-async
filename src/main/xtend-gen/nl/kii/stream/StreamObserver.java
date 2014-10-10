@@ -9,14 +9,13 @@ public interface StreamObserver<R extends Object, T extends Object> {
   
   /**
    * handle an incoming error
-   * @return if the error should be escalated/thrown
    */
-  public abstract boolean onError(final R from, final Throwable t);
+  public abstract void onError(final R from, final Throwable t);
   
   /**
    * handle an imcoming finish of a given level
    */
-  public abstract void onFinish(final int level);
+  public abstract void onFinish(final R from, final int level);
   
   /**
    * handle the stream being closed

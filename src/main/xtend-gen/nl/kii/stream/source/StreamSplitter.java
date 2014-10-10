@@ -7,9 +7,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Stream;
+import nl.kii.stream.IStream;
 import nl.kii.stream.StreamMessage;
 import nl.kii.stream.StreamNotification;
+import nl.kii.stream.SubStream;
 import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -23,34 +24,34 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * distribution system.
  */
 @SuppressWarnings("all")
-public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessage> implements StreamSource<T> {
+public abstract class StreamSplitter<R extends Object, T extends Object> extends Actor<StreamMessage> implements StreamSource<R, T> {
   /**
    * the source stream that gets distributed
    */
-  protected final Stream<T> source;
+  protected final IStream<R, T> source;
   
   /**
    * the connected listening streams
    */
   @Atomic
-  private final AtomicReference<List<Stream<T>>> _streams = new AtomicReference<List<Stream<T>>>();
+  private final AtomicReference<List<IStream<R, T>>> _streams = new AtomicReference<List<IStream<R, T>>>();
   
-  public StreamSplitter(final Stream<T> source) {
+  public StreamSplitter(final IStream<R, T> source) {
     this.source = source;
-    CopyOnWriteArrayList<Stream<T>> _copyOnWriteArrayList = new CopyOnWriteArrayList<Stream<T>>();
+    CopyOnWriteArrayList<IStream<R, T>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<R, T>>();
     this.setStreams(_copyOnWriteArrayList);
-    final Procedure1<Entry<T, T>> _function = new Procedure1<Entry<T, T>>() {
-      public void apply(final Entry<T, T> it) {
+    final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
+      public void apply(final Entry<R, T> it) {
         StreamSplitter.this.apply(it);
       }
     };
     source.onChange(_function);
   }
   
-  public StreamSource<T> pipe(final Stream<T> stream) {
-    StreamSplitter<T> _xblockexpression = null;
+  public StreamSource<R, T> pipe(final IStream<R, T> stream) {
+    StreamSplitter<R, T> _xblockexpression = null;
     {
-      List<Stream<T>> _streams = this.getStreams();
+      List<IStream<R, T>> _streams = this.getStreams();
       _streams.add(stream);
       final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
         public void apply(final StreamNotification it) {
@@ -67,28 +68,40 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
     return _xblockexpression;
   }
   
-  public Stream<T> stream() {
-    Stream<T> _stream = new Stream<T>();
-    final Procedure1<Stream<T>> _function = new Procedure1<Stream<T>>() {
-      public void apply(final Stream<T> it) {
+  public IStream<R, T> stream() {
+    SubStream<R, T> _subStream = new SubStream<R, T>(this.source);
+    final Procedure1<SubStream<R, T>> _function = new Procedure1<SubStream<R, T>>() {
+      public void apply(final SubStream<R, T> it) {
         StreamSplitter.this.pipe(it);
       }
     };
-    return ObjectExtensions.<Stream<T>>operator_doubleArrow(_stream, _function);
+    return ObjectExtensions.<SubStream<R, T>>operator_doubleArrow(_subStream, _function);
   }
   
   /**
    * we are wrapping in an actor to make things threadsafe
    */
   protected void act(final StreamMessage message, final Procedure0 done) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <T>");
+    boolean _matched = false;
+    if (!_matched) {
+      if (message instanceof Entry) {
+        _matched=true;
+        this.onEntry(((Entry<R, T>)message));
+      }
+    }
+    if (!_matched) {
+      if (message instanceof StreamNotification) {
+        _matched=true;
+        this.onCommand(((StreamNotification)message));
+      }
+    }
+    done.apply();
   }
   
   /**
    * Handle an entry coming in from the source stream
    */
-  protected abstract void onEntry(final Entry<T> entry);
+  protected abstract void onEntry(final Entry<R, T> entry);
   
   /**
    * Handle a message coming from a piped stream
@@ -109,11 +122,11 @@ public abstract class StreamSplitter<T extends Object> extends Actor<StreamMessa
     return Objects.equal(_findFirst, null);
   }
   
-  protected List<Stream<T>> setStreams(final List<Stream<T>> value) {
+  protected List<IStream<R, T>> setStreams(final List<IStream<R, T>> value) {
     return this._streams.getAndSet(value);
   }
   
-  protected List<Stream<T>> getStreams() {
+  protected List<IStream<R, T>> getStreams() {
     return this._streams.get();
   }
 }

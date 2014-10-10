@@ -11,18 +11,18 @@ import static extension org.junit.Assert.*
 class StreamAssert {
 	
 	/** pull all queued data from a stream put it in a list, and print any error */
-	def static <T> List<Entry<T>> gather(Stream<T> stream) {
-		val data = new LinkedList<Entry<T>>
+	def static <R, T> List<Entry<R, T>> gather(IStream<R, T> stream) {
+		val data = new LinkedList<Entry<R, T>>
 		stream.on [
-			error [ data.add(new Error(it)) stream.next true ]
-			finish [ data.add(new Finish(it)) stream.next ]
-			each [ data.add(value) stream.next ]
+			error [ data.add(new Error($0, $1)) stream.next ]
+			finish [ data.add(new Finish($0, $1)) stream.next ]
+			each [ data.add(new Value($0, $1)) stream.next ]
 		]
 		stream.next
 		data
 	}
 
-	def static <T> assertStreamContains(Stream<T> stream, Entry<T>... entries) {
+	def static <R, T> assertStreamContains(IStream<R, T> stream, Entry<R, T>... entries) {
 		val data = stream.gather
 		println(data)
 		assertArrayEquals(entries, data)
@@ -47,8 +47,8 @@ class StreamAssert {
 		ref.get.assertArrayEquals(value)
 	}
 	
-	def static <T> value(T value) {
-		new Value<T>(value)
+	def static <R, T> value(T value) {
+		new Value<R, T>(null, value)
 	}
 	
 }

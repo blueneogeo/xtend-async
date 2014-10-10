@@ -10,10 +10,10 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import nl.kii.async.AsyncException
 
-interface IPromise<T> extends Procedure1<Entry<T>> {
+interface IPromise<T> extends Procedure1<Entry<?, T>> {
 	
 	def Boolean getFulfilled()
-	def Entry<T> get()
+	def Entry<?, T> get()
 	def void set(T value)
 	def IPromise<T> error(Throwable t)
 	
@@ -30,7 +30,7 @@ interface IPromise<T> extends Procedure1<Entry<T>> {
  */
 class Promise<T> implements IPromise<T> {
 	
-	val publisher = new Publisher<Entry<T>>
+	val publisher = new Publisher<Entry<?, T>>
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
@@ -42,7 +42,7 @@ class Promise<T> implements IPromise<T> {
 	@Atomic public val boolean hasValueHandler = false
 
 	/** The result of the promise, if any, otherwise null */
-	@Atomic protected val Entry<T> entry
+	@Atomic protected val Entry<?, T> entry
 
 	/** name of the operation the listener is performing */
 	@Atomic val String _operation 
@@ -68,20 +68,20 @@ class Promise<T> implements IPromise<T> {
 	/** set the promised value */
 	override set(T value) {
 		if(value == null) throw new NullPointerException('cannot promise a null value')
-		apply(new Value(value))
+		apply(new Value(null, value))
 	}
 
 	/** report an error to the listener of the promise. */
 	override error(Throwable t) {
-		apply(new Error<T>(t))
+		apply(new Error(null, t))
 		this
 	}
 	
-	override apply(Entry<T> it) {
+	override apply(Entry<?, T> it) {
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
 		val allowed = switch it { 
 			case !fulfilled: true
-			Error<T> case fulfilled: true
+			Error<?, T> case fulfilled: true
 			default: false
 		}
 		if(!allowed) return;
@@ -112,7 +112,7 @@ class Promise<T> implements IPromise<T> {
 		val sub = new AtomicReference<Procedure0>
 		sub.set(publisher.onChange [
 			switch it { 
-				Error<T>: { 
+				Error<?, T>: { 
 					sub.get.apply // unsubscribe, so this handler will not be called again
 					errorFn.apply(error)
 				} 
@@ -132,12 +132,12 @@ class Promise<T> implements IPromise<T> {
 		sub.set(publisher.onChange [
 			try {
 				switch it { 
-					Value<T>: { 
+					Value<?, T>: { 
 						sub.get.apply // unsubscribe, so this handler will not be called again
 						valueFn.apply(value)
 						newTask.complete
 					}
-					Error<T>: newTask.error(error)
+					Error<?, T>: newTask.error(error)
 				}
 			} catch(Exception e) {
 				error(new AsyncException('Promise.then gave error for', it, e))
@@ -168,6 +168,6 @@ class Task extends Promise<Boolean> {
 		this
 	}
 	
-	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?>», error: «(get as Error<?>).error»«ENDIF» }'''
+	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?, ?>», error: «(get as Error<?, ?>).error»«ENDIF» }'''
 
 }

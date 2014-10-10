@@ -21,3 +21,7 @@
 /.TestSplitter.java._trace
 /.TestStreamErrorHandling.java._trace
 /.TestStreamObserving.java._trace
+/.TestIOStreamExtensions.java._trace
+/TestIOStreamExtensions.java
+/TestStreamErrorHandling.java
+/TestSplitter.java

@@ -101,9 +101,9 @@ class PromiseExtensions {
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
-	def static <T> always(IPromise<T> promise, Procedures.Procedure1<Entry<T>> resultFn) {
-		promise.onError [ resultFn.apply(new Error(it)) ]
-		promise.then [ resultFn.apply(new Value(it)) ]
+	def static <T> always(IPromise<T> promise, Procedures.Procedure1<Entry<?, T>> resultFn) {
+		promise.onError [ resultFn.apply(new Error(null, it)) ]
+		promise.then [ resultFn.apply(new Value(null, it)) ]
 		promise
 	}
 	
@@ -325,6 +325,15 @@ class PromiseExtensions {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	def static <T> onError(IPromise<T> promise, (Throwable, T)=>void listener) {
+		promise.onError [ t |
+			switch t {
+				PromiseException case t.value != null: listener.apply(t, t.value as T)
+				default: listener.apply(t, null)
+			} 
+		]
+	}
+
+	def static <T> onErrorThrow(IPromise<T> promise, (Throwable, T)=>Exception exceptionFn) {
 		promise.onError [ t |
 			switch t {
 				PromiseException case t.value != null: listener.apply(t, t.value as T)

@@ -62,9 +62,10 @@ class Value<R, T> implements Entry<R, T> {
  * which level of data was finished.
  */
 class Finish<R, T> implements Entry<R, T> {
+	public val R from
 	public val int level
-	new() { this(0) }
-	new(int level) { this.level = level }
+	new() { this(null, 0) }
+	new(R from, int level) { this.from = from this.level = level }
 	override toString() { 'finish(' + level + ')' }
 	override equals(Object o) { o instanceof Finish<?,?> && (o as Finish<?,?>).level == level }
 }

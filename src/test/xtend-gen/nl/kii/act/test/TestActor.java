@@ -17,6 +17,7 @@ import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -416,19 +417,19 @@ public class TestActor {
             return Integer.valueOf(((it).intValue() + 1000));
           }
         };
-        Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
+        SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
         final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
           public Boolean apply(final Integer it) {
             return Boolean.valueOf((((it).intValue() % 2) == 0));
           }
         };
-        Stream<Integer> _filter = StreamExtensions.<Integer>filter(_map, _function_1);
+        SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_1);
         final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
           public void apply(final Integer it) {
             TestActor.this.incActorCounter();
           }
         };
-        StreamExtensions.<Integer>onEach(_filter, _function_2);
+        StreamExtensions.<Integer, Integer>onEach(_filter, _function_2);
       }
     };
     final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
@@ -493,10 +494,10 @@ public class TestActor {
           return ExecutorExtensions.task(pool, _function);
         }
       };
-      Stream<Task> _map = StreamExtensions.<Integer, Task>map(_stream, _function);
-      Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map, threads);
-      Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_resolve);
-      IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
+      SubStream<Integer, Task> _map = StreamExtensions.<Integer, Integer, Task>map(_stream, _function);
+      SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean>resolve(_map, threads);
+      SubStream<Integer, List<Boolean>> _collect = StreamExtensions.<Integer, Boolean>collect(_resolve);
+      Promise<List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
       final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {
         public Long apply(final List<Boolean> it) {
           long _currentTimeMillis = System.currentTimeMillis();

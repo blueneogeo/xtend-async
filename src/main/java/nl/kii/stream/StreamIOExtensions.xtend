@@ -1,5 +1,5 @@
 package nl.kii.stream
-
+import static extension nl.kii.promise.PromiseExtensions.*
 import com.google.common.io.ByteProcessor
 import com.google.common.io.Files
 import java.io.File
@@ -7,7 +7,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.List
-import nl.kii.async.annotation.Async
 import nl.kii.promise.Task
 
 import static extension com.google.common.io.ByteStreams.*
@@ -44,29 +43,30 @@ class StreamIOExtensions {
 	
 	// WRITING TO OUTPUT STREAMS AND FILES ///////////////////////////////////
 
-	def static Stream<String> toText(Stream<List<Byte>> stream) {
+	def static <R> SubStream<R, String> toText(IStream<R, List<Byte>> stream) {
 		stream.toText('UTF-8')
 	}
 	
-	def static Stream<String> toText(Stream<List<Byte>> stream, String encoding) {
+	def static <R> SubStream<R, String> toText(IStream<R, List<Byte>> stream, String encoding) {
 		stream
 			.map [ new String(it, encoding).split('\n').toList ]
 			.separate
 			=> [ stream.operation = 'toText(encoding=' +  encoding + ')' ]
 	}
 	
-	def static Stream<List<Byte>> toBytes(Stream<String> stream) {
+	def static <R> SubStream<R, List<Byte>> toBytes(IStream<R, String> stream) {
 		stream.toBytes('UTF-8')
 	}
 
-	def static Stream<List<Byte>> toBytes(Stream<String> stream, String encoding) {
+	def static <R> SubStream<R, List<Byte>> toBytes(IStream<R, String> stream, String encoding) {
 		stream
 			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
 			=> [ stream.operation = 'toBytes(encoding=' +  encoding + ')' ]
 	}
 
 	/** write a buffered bytestream to an standard java outputstream */
-	@Async def static void writeTo(Stream<List<Byte>> stream, OutputStream out, Task task) {
+	def static <R> Task writeTo(IStream<R, List<Byte>> stream, OutputStream out) {
+		val task = new Task
 		stream.on [
 			closed [ out.close task.complete ]
 			finish [ 
@@ -74,25 +74,27 @@ class StreamIOExtensions {
 				stream.next
 			]
 			error [ 
-				task.error(it)
+				task.error($1)
 				stream.close
-				true
 			]
 			each [
-				out.write(it)
+				out.write($1)
 				stream.next
 			]
 		]
 		stream.operation = 'writeTo'
 		stream.next
+		task
 	}
 
 	/** write a buffered bytestream to a file */
-	@Async def static void writeTo(Stream<List<Byte>> stream, File file, Task task) {
+	def static <R> Task writeTo(IStream<R, List<Byte>> stream, File file) {
+		val task = new Task
 		val sink = Files.asByteSink(file)
 		val out = sink.openBufferedStream
-		stream.writeTo(out, task)
+		stream.writeTo(out).pipe(task)
 		stream.operation = 'writeTo(file=' + file.absolutePath + ')'
+		task
 	}
 	
 	

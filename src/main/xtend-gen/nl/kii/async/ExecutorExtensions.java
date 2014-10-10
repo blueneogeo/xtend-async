@@ -11,8 +11,10 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
 @SuppressWarnings("all")
@@ -144,8 +146,8 @@ public class ExecutorExtensions {
    * Push a value onto the stream from the parent stream every periodMs milliseconds.
    * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
    */
-  public static <T extends Object> Stream<T> every(final Stream<T> stream, final int periodMs, final ScheduledExecutorService executor) {
+  public static <R extends Object, T extends Object> SubStream<R, T> every(final IStream<R, T> stream, final int periodMs, final ScheduledExecutorService executor) {
     Stream<Long> _streamEvery = ExecutorExtensions.streamEvery(executor, periodMs);
-    return StreamExtensions.<T>synchronizeWith(stream, _streamEvery);
+    return StreamExtensions.<R, T>synchronizeWith(stream, _streamEvery);
   }
 }

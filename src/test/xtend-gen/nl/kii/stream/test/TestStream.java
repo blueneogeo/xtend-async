@@ -4,11 +4,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.Task;
+import nl.kii.stream.Entry;
+import nl.kii.stream.Finish;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamMonitor;
+import nl.kii.stream.StreamObserver;
+import nl.kii.stream.StreamResponder;
+import nl.kii.stream.SubStream;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.InputOutput;
+import org.eclipse.xtext.xbase.lib.IntegerRange;
+import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,38 +33,87 @@ public class TestStream {
   
   @Test
   public void testObservingAStream() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from Stream<Integer, Object> to Stream<Integer, Integer>");
+    final Stream<Integer> s = new Stream<Integer>();
+    StreamExtensions.<Integer, Integer>monitor(s, new StreamMonitor() {
+      public void onNext() {
+        InputOutput.<String>println("next!");
+      }
+      
+      public void onSkip() {
+        InputOutput.<String>println("skip!");
+      }
+      
+      public void onClose() {
+        InputOutput.<String>println("close!");
+      }
+      
+      public void onOverflow(final Entry<?, ?> entry) {
+        InputOutput.<String>println(("overflow! of " + entry));
+      }
+    });
+    StreamExtensions.<Integer, Integer>observe(s, new StreamObserver<Integer, Integer>() {
+      public void onValue(final Integer from, final Integer value) {
+        try {
+          InputOutput.<String>println(("value: " + value));
+          if (((value).intValue() == 2)) {
+            throw new Exception("boo!");
+          }
+          s.next();
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+      
+      public void onError(final Integer from, final Throwable t) {
+        InputOutput.<String>println(("error:" + t));
+        s.next();
+      }
+      
+      public void onFinish(final Integer from, final int level) {
+        InputOutput.<String>println("finished");
+        s.next();
+      }
+      
+      public void onClosed() {
+        InputOutput.<String>println("closed");
+      }
+    });
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    s.next();
   }
   
   @Test
   public void testUnbufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
-    final Stream<Integer, Integer> s = StreamExtensions.<Integer>stream(int.class);
+    final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
       public Boolean apply(final Integer it) {
         return Boolean.valueOf(((it).intValue() != 2));
       }
     };
-    Stream<Integer, Object> _filter = StreamExtensions.<Integer>filter(s, _function);
+    SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(s, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
-    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_filter, _function_1);
+    SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
     };
-    StreamExtensions.<Integer>onEach(_map, _function_2);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    StreamExtensions.<Integer, Integer>onEach(_map, _function_2);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     int _get = counter.get();
     Assert.assertEquals(6, _get);
-    StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     int _get_1 = counter.get();
     Assert.assertEquals(8, _get_1);
   }
@@ -57,16 +121,16 @@ public class TestStream {
   @Test
   public void testBufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
-    Stream<Integer, Integer> _stream = new Stream<Integer, Integer>();
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Stream<Integer> _stream = new Stream<Integer>();
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
     };
-    StreamExtensions.<Integer>onEach(s, _function);
+    StreamExtensions.<Integer, Integer>onEach(s, _function);
     int _get = counter.get();
     Assert.assertEquals(6, _get);
   }
@@ -76,10 +140,55 @@ public class TestStream {
   
   @Test
   public void testControlledStream() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from T to Integer"
-      + "\nCannot make a static reference to the non-static type T"
-      + "\nIncorrect number of arguments for type StreamHandlerBuilder<R, T>; it cannot be parameterized with arguments <Integer>");
+    Stream<Integer> _stream = new Stream<Integer>();
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            TestStream.this.incCounter($1);
+          }
+        };
+        it.each(_function);
+        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+          }
+        };
+        it.finish(_function_1);
+      }
+    };
+    StreamExtensions.<Integer, Integer>on(s, _function);
+    s.next();
+    Integer _counter = this.getCounter();
+    Assert.assertEquals(1, (_counter).intValue());
+    s.skip();
+    Integer _counter_1 = this.getCounter();
+    Assert.assertEquals(1, (_counter_1).intValue());
+    s.next();
+    Integer _counter_2 = this.getCounter();
+    Assert.assertEquals(1, (_counter_2).intValue());
+    s.next();
+    Integer _counter_3 = this.getCounter();
+    Assert.assertEquals(5, (_counter_3).intValue());
+    s.next();
+    Integer _counter_4 = this.getCounter();
+    Assert.assertEquals(10, (_counter_4).intValue());
+    s.next();
+    Integer _counter_5 = this.getCounter();
+    Assert.assertEquals(10, (_counter_5).intValue());
+    IStream<Integer, Integer> _doubleLessThan_5 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(4));
+    Integer _counter_6 = this.getCounter();
+    Assert.assertEquals(11, (_counter_6).intValue());
+    s.next();
+    Integer _counter_7 = this.getCounter();
+    Assert.assertEquals(15, (_counter_7).intValue());
   }
   
   @Atomic
@@ -87,10 +196,39 @@ public class TestStream {
   
   @Test
   public void testControlledChainedBufferedStream() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from T to Integer"
-      + "\nCannot make a static reference to the non-static type T"
-      + "\nIncorrect number of arguments for type StreamHandlerBuilder<R, T>; it cannot be parameterized with arguments <Integer>");
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        return it;
+      }
+    };
+    final SubStream<Integer, Integer> s = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            TestStream.this.setResult($1);
+          }
+        };
+        it.each(_function);
+      }
+    };
+    StreamExtensions.<Integer, Integer>on(s, _function_1);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    s.next();
+    Integer _result = this.getResult();
+    Assert.assertEquals(1, (_result).intValue());
+    s.next();
+    Integer _result_1 = this.getResult();
+    Assert.assertEquals(2, (_result_1).intValue());
+    s.next();
+    Integer _result_2 = this.getResult();
+    Assert.assertEquals(3, (_result_2).intValue());
+    s.next();
+    Integer _result_3 = this.getResult();
+    Assert.assertEquals(3, (_result_3).intValue());
   }
   
   @Atomic
@@ -98,16 +236,24 @@ public class TestStream {
   
   @Test
   public void testStreamErrors() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nInvalid number of type arguments. The constructor Stream<R, T> is not applicable for the type arguments <Integer>");
-  }
-  
-  @Test
-  public void testChainedBufferedSkippingStream() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nType mismatch: cannot convert from T to int"
-      + "\nCannot make a static reference to the non-static type T"
-      + "\nIncorrect number of arguments for type StreamHandlerBuilder<R, T>; it cannot be parameterized with arguments <Integer>");
+    final Stream<Integer> s = new Stream<Integer>();
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        InputOutput.<String>println("!!");
+        TestStream.this.setError(it);
+      }
+    };
+    _onEach.onError(_function_1);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(0));
+    Throwable _error = this.getError();
+    Assert.assertNotNull(_error);
   }
   
   @Atomic
@@ -118,8 +264,55 @@ public class TestStream {
   
   @Test
   public void testParallelHighThroughputStreaming() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <? extends Object>");
+    try {
+      final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
+      final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+        public void apply(final Entry<?, ?> it) {
+          TestStream.this.incOverflow();
+        }
+      };
+      final SubStream<Integer, Integer> s2 = StreamExtensions.<Integer, Integer>buffer(s, 3000, _function);
+      final Runnable _function_1 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(0, 999);
+          for (final Integer i : _upTo) {
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+          }
+        }
+      };
+      ExecutorExtensions.task(this.threads, _function_1);
+      final Runnable _function_2 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(1000, 1999);
+          for (final Integer i : _upTo) {
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(2));
+          }
+        }
+      };
+      ExecutorExtensions.task(this.threads, _function_2);
+      final Runnable _function_3 = new Runnable() {
+        public void run() {
+          IntegerRange _upTo = new IntegerRange(2000, 2999);
+          for (final Integer i : _upTo) {
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(3));
+          }
+        }
+      };
+      ExecutorExtensions.task(this.threads, _function_3);
+      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          TestStream.this.incSum();
+        }
+      };
+      StreamExtensions.<Integer, Integer>onEach(s2, _function_4);
+      Thread.sleep(1000);
+      Integer _overflow = this.getOverflow();
+      Assert.assertEquals(0, (_overflow).intValue());
+      Integer _sum = this.getSum();
+      Assert.assertEquals(3000, (_sum).intValue());
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   @Atomic
@@ -127,8 +320,31 @@ public class TestStream {
   
   @Test
   public void testStreamBufferOverflow() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nInvalid number of type arguments. The constructor Stream<R, T> is not applicable for the type arguments <Integer>");
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
+    final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
+      public void apply(final Stream<Integer> it) {
+        it.setMaxBufferSize(Integer.valueOf(3));
+      }
+    };
+    final Stream<Integer> stream = ObjectExtensions.<Stream<Integer>>operator_doubleArrow(_stream, _function);
+    final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
+      public void apply(final StreamResponder it) {
+        final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+          public void apply(final Entry<?, ?> it) {
+            TestStream.this.incOverflowCount();
+          }
+        };
+        it.overflow(_function);
+      }
+    };
+    StreamExtensions.<Integer, Integer>monitor(stream, _function_1);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(4));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(5));
+    Integer _overflowCount = this.getOverflowCount();
+    Assert.assertEquals(2, (_overflowCount).intValue());
   }
   
   private Integer setCounter(final Integer value) {

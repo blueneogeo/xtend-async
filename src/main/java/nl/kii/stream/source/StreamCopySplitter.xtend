@@ -3,9 +3,9 @@ package nl.kii.stream.source
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Close
 import nl.kii.stream.Entry
+import nl.kii.stream.IStream
 import nl.kii.stream.Next
 import nl.kii.stream.Skip
-import nl.kii.stream.Stream
 import nl.kii.stream.StreamNotification
 
 /**
@@ -14,20 +14,22 @@ import nl.kii.stream.StreamNotification
  * <p>
  * Flow control is maintained by only allowing the next
  * entry from the source stream if all piped streams are ready.
- * This means that you need to make sure that all connected
+ * <p>
+ * Note: This means that you need to make sure that all connected
  * streams do not block their flow, since one blocking stream
  * will block all streams from flowing.
  */
-class StreamCopySplitter<T> extends StreamSplitter<T> {
+class StreamCopySplitter<R, T> extends StreamSplitter<R, T> {
 	
-	@Atomic Entry<T> buffer
+	@Atomic Entry<R, T> buffer
 	
-	new(Stream<T> source) {
+	new(IStream<R, T> source) {
 		super(source)
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	protected override onEntry(Entry<T> entry) {
+	protected override onEntry(Entry<R, T> entry) {
+		println(entry)
 		buffer = entry
 		// only proceed if all streams are ready
 		if(streams.all[ready]) publish
@@ -43,12 +45,13 @@ class StreamCopySplitter<T> extends StreamSplitter<T> {
 	
 	protected def publish() {
 		if(buffer != null) {
-			for(it : streams) apply(buffer)
+			for(s : streams) s.apply(buffer)
 			buffer = null
 		}
 	}
 	
 	protected def next() {
+		println('next!')
 		if(!streams.all[ready]) return;
 		source.next
 		publish

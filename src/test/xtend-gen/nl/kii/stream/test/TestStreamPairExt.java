@@ -6,8 +6,8 @@ import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamPairExtensions;
+import nl.kii.stream.SubStream;
 import nl.kii.stream.Value;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -22,12 +22,12 @@ public class TestStreamPairExt {
     final Stream<Integer> p2 = StreamExtensions.<Integer>stream(int.class);
     final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
       public void apply(final Integer k, final Integer v) {
-        StreamExtensions.<Integer>operator_doubleLessThan(p2, Integer.valueOf(((k).intValue() + (v).intValue())));
+        StreamExtensions.<Integer, Integer>operator_doubleLessThan(p2, Integer.valueOf(((k).intValue() + (v).intValue())));
       }
     };
     StreamPairExtensions.<Integer, Integer>onEach(p, _function);
-    Value<Integer, Object> _value = StreamAssert.<Integer>value(Integer.valueOf(3));
-    StreamAssert.<Integer>assertStreamContains(p2, _value);
+    Value<Integer, Integer> _value = StreamAssert.<Integer, Integer>value(Integer.valueOf(3));
+    StreamAssert.<Integer, Integer>assertStreamContains(p2, _value);
   }
   
   @Test
@@ -39,56 +39,27 @@ public class TestStreamPairExt {
         return TestStreamPairExt.this.power2(((a).intValue() + (b).intValue()));
       }
     };
-    final Stream<Integer> asynced = StreamPairExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
-    Value<Integer, Object> _value = StreamAssert.<Integer>value(Integer.valueOf(9));
-    Finish<Integer, Object> _finish = StreamExtensions.<Integer>finish();
-    StreamAssert.<Integer>assertStreamContains(asynced, _value, _finish);
+    final SubStream<Promise<Integer>, Integer> asynced = StreamPairExtensions.<Integer, Integer, Integer, Promise<Integer>>call(p, _function);
+    Value<Promise<Integer>, Integer> _value = StreamAssert.<Promise<Integer>, Integer>value(Integer.valueOf(9));
+    Finish<Promise<Integer>, Integer> _finish = StreamExtensions.<Promise<Integer>, Integer>finish();
+    StreamAssert.<Promise<Integer>, Integer>assertStreamContains(asynced, _value, _finish);
   }
   
   @Test
   public void testMapWithPairs() {
-    final Stream<Integer> p = StreamExtensions.<Integer>datastream(Integer.valueOf(2));
-    final Function1<Integer, Pair<Integer, Integer>> _function = new Function1<Integer, Pair<Integer, Integer>>() {
-      public Pair<Integer, Integer> apply(final Integer it) {
-        return Pair.<Integer, Integer>of(it, Integer.valueOf(((it).intValue() * (it).intValue())));
-      }
-    };
-    Stream<Pair<Integer, Integer>> _map = StreamExtensions.<Integer, Pair<Integer, Integer>>map(p, _function);
-    final Function2<Integer, Integer, Pair<Integer, Integer>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Integer>>() {
-      public Pair<Integer, Integer> apply(final Integer key, final Integer value) {
-        return Pair.<Integer, Integer>of(key, Integer.valueOf((((key).intValue() + (value).intValue()) * ((key).intValue() + (value).intValue()))));
-      }
-    };
-    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Pair<Integer, Integer>>map(_map, _function_1);
-    Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(36));
-    Value<Pair<Integer, Integer>, Object> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    Finish<Pair<Integer, Integer>, Object> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
-    StreamAssert.<Pair<Integer, Integer>>assertStreamContains(asynced, _value, _finish);
+    throw new Error("Unresolved compilation problems:"
+      + "\n* cannot be resolved."
+      + "\nType mismatch: cannot convert from (Object, String)=>Pair<Object, Object> to (Pair<Integer, Integer>)=>Pair<Integer, Integer>");
   }
   
   @Test
   public void testAsyncPair() {
-    final Stream<Integer> p = StreamExtensions.<Integer>datastream(Integer.valueOf(2));
-    final Function1<Integer, Pair<Integer, Promise<Integer>>> _function = new Function1<Integer, Pair<Integer, Promise<Integer>>>() {
-      public Pair<Integer, Promise<Integer>> apply(final Integer it) {
-        Promise<Integer> _promise = new Promise<Integer>(it);
-        return Pair.<Integer, Promise<Integer>>of(it, _promise);
-      }
-    };
-    Stream<Pair<Integer, Promise<Integer>>> _map = StreamExtensions.<Integer, Pair<Integer, Promise<Integer>>>map(p, _function);
-    Stream<Pair<Integer, Integer>> _resolveValue = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map);
-    final Function2<Integer, Integer, Pair<Integer, Promise<Integer>>> _function_1 = new Function2<Integer, Integer, Pair<Integer, Promise<Integer>>>() {
-      public Pair<Integer, Promise<Integer>> apply(final Integer key, final Integer value) {
-        Promise<Integer> _power2 = TestStreamPairExt.this.power2((value).intValue());
-        return Pair.<Integer, Promise<Integer>>of(key, _power2);
-      }
-    };
-    Stream<Pair<Integer, Promise<Integer>>> _map_1 = StreamPairExtensions.<Integer, Integer, Pair<Integer, Promise<Integer>>>map(_resolveValue, _function_1);
-    final Stream<Pair<Integer, Integer>> asynced = StreamPairExtensions.<Integer, Integer, Promise<Integer>>resolveValue(_map_1);
-    Pair<Integer, Integer> _mappedTo = Pair.<Integer, Integer>of(Integer.valueOf(2), Integer.valueOf(4));
-    Value<Pair<Integer, Integer>, Object> _value = StreamAssert.<Pair<Integer, Integer>>value(_mappedTo);
-    Finish<Pair<Integer, Integer>, Object> _finish = StreamExtensions.<Pair<Integer, Integer>>finish();
-    StreamAssert.<Pair<Integer, Integer>>assertStreamContains(asynced, _value, _finish);
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method resolveValue is undefined for the type TestStreamPairExt"
+      + "\nThere is no context to infer the closure\'s argument types from. Consider typing the arguments or put the closures into a typed context."
+      + "\nmap cannot be resolved"
+      + "\nresolveValue cannot be resolved"
+      + "\nassertStreamContains cannot be resolved");
   }
   
   private Promise<Integer> power2(final int i) {

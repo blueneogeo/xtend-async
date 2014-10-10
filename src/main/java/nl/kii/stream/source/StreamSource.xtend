@@ -5,20 +5,21 @@ import java.util.concurrent.CopyOnWriteArrayList
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
-import nl.kii.stream.Stream
+import nl.kii.stream.IStream
 import nl.kii.stream.StreamMessage
 import nl.kii.stream.StreamNotification
+import nl.kii.stream.SubStream
 
 /**
  * A source is a streamable source of information.
  */
-interface StreamSource<T> {
+interface StreamSource<R, T> {
 
 	/** Create a new stream and pipe source stream to this stream */	
-	def Stream<T> stream()
+	def IStream<R, T> stream()
 	
 	/** Connect an existing stream as a listener to the source stream */
-	def StreamSource<T> pipe(Stream<T> stream)
+	def StreamSource<R, T> pipe(IStream<R, T> stream)
 
 }
 
@@ -27,21 +28,21 @@ interface StreamSource<T> {
  * for other streams. It usually implements a specific value
  * distribution system.
  */
-abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamSource<T> {
+abstract class StreamSplitter<R, T> extends Actor<StreamMessage> implements StreamSource<R, T> {
 	
 	/** the source stream that gets distributed */
-	protected val Stream<T> source
+	protected val IStream<R, T> source
 	
 	/** the connected listening streams */
-	@Atomic protected val List<Stream<T>> streams
+	@Atomic protected val List<IStream<R, T>> streams
 	
-	new(Stream<T> source) {
+	new(IStream<R, T> source) {
 		this.source = source
 		this.streams = new CopyOnWriteArrayList
 		source.onChange [ apply ]
 	}
 	
-	override StreamSource<T> pipe(Stream<T> stream) {
+	override StreamSource<R, T> pipe(IStream<R, T> stream) {
 		streams += stream
 		stream.onNotify [ apply ]
 		// if the stream already asked for a next value, 
@@ -50,21 +51,21 @@ abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamS
 		this
 	}
 	
-	override Stream<T> stream() {
-		new Stream<T> => [ pipe ]
+	override IStream<R, T> stream() {
+		new SubStream<R, T>(source) => [ pipe ]
 	}
 	
 	/** we are wrapping in an actor to make things threadsafe */
 	override protected act(StreamMessage message, =>void done) {
 		switch message {
-			Entry<T>: onEntry(message)
+			Entry<R, T>: onEntry(message)
 			StreamNotification: onCommand(message)
 		}
 		done.apply
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	abstract protected def void onEntry(Entry<T> entry)
+	abstract protected def void onEntry(Entry<R, T> entry)
 
 	/** Handle a message coming from a piped stream */
 	abstract protected def void onCommand(StreamNotification msg)

@@ -1,14 +1,13 @@
 package nl.kii.stream
 
+import java.util.Collection
 import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
-import nl.kii.promise.Task
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*
-import java.util.Collection
 
 /**
  * A sequence of elements supporting sequential and parallel aggregate operations.
@@ -26,21 +25,30 @@ import java.util.Collection
  * </ul>
  */
 interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T>> {
-	
+
 	// PUSH DATA IN ///////////////////////////////////////////////////////////
 
-	def void push(R from, T value) 
-	def void error(R from, Throwable error)
+	override apply(StreamMessage message)
+
+	def void push(R value) 
+	def void error(Throwable error)
 	def void finish()
 	def void finish(int level)
 
-	// CONTROL THE STREAM /////////////////////////////////////////////////////
+	// CONTROL ////////////////////////////////////////////////////////////////
 
 	def void next()
 	def void skip()
 	def void close()
+	
+	// LISTEN /////////////////////////////////////////////////////////////////
+	
+	override =>void onChange((Entry<R, T>)=>void observeFn)
+	def =>void onNotify((StreamNotification)=>void notificationListener)
 
 	// STATUS /////////////////////////////////////////////////////////////////
+	
+	def Stream<R> getRoot()
 	
 	def boolean isOpen()
 	def boolean isReady()
@@ -49,32 +57,83 @@ interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T
 	def int getBufferSize()
 	def Collection<Entry<R, T>> getQueue()
 
-	def void setOperation(String operationName)
+	def String setOperation(String operationName)
 	def String getOperation()
 	
 }
 
-class Stream<T> extends SubStream<T, T> {
+class Stream<T> extends BaseStream<T, T> {
 
-	/** create the stream with a memory concurrent queue and the given initial values */
-	new(T... initalValues) {
-		initalValues.forEach [ push ]
-	}
+	override getRoot() { this }
 
-	def push(T value) {
-		super.push(value, value)
-	}
+	/** Queue a value on the stream for pushing to the listener */
+	override push(T value) { apply(new Value(value, value)) }
 	
-	def error(Throwable t) {
-		super.error(null, t)
-	}
+	/** 
+	 * Tell the stream an error occurred. the error will not be thrown directly,
+	 * but passed and can be listened for down the stream.
+	 */
+	override error(Throwable error) { apply(new Error(null, error)) }
+	
+	/** Tell the stream the current batch of data is finished. The same as finish(0). */
+	override finish() { apply(new Finish(null, 0)) }	
+
+	/** Tell the stream a batch of the given level has finished. */
+	override finish(int level) { apply(new Finish(null, level)) }	
  	
 }
 
 class SubStream<R, T> extends BaseStream<R, T> {
 
+	val protected Stream<R> root
+
+	new (IStream<R, ?> parent) {
+		this.root = parent.root
+	}
+
+	new (IStream<R, ?> parent, int maxSize) {
+		super(maxSize)
+		this.root = parent.root
+	}
+
+	override getRoot() { root }
+
+	// APPLYING VALUES TO THE ROOT STREAM
+
+	/** Queue a value on the stream for pushing to the listener */
+	override push(R value) { root.push(value) }
+	
+	/** 
+	 * Tell the stream an error occurred. the error will not be thrown directly,
+	 * but passed and can be listened for down the stream.
+	 */
+	override error(Throwable t) { root.error(t) }
+	
+	/** Tell the stream the current batch of data is finished. The same as finish(0). */
+	override finish() { root.finish }	
+
+	/** Tell the stream a batch of the given level has finished. */
+	override finish(int level) { root.finish(level) }	
+
+	// APPLYING PAIRS TO THE SUBSTREAM
+
+	/** Queue a value on the stream for pushing to the listener */
+	package def push(R from, T value) { apply(new Value(from, value)) }
+	
+	/** 
+	 * Tell the stream an error occurred. the error will not be thrown directly,
+	 * but passed and can be listened for down the stream.
+	 */
+	package def error(R from, Throwable error) { apply(new Error(from, error)) }
+	
+	/** Tell the stream the current batch of data is finished. The same as finish(0). */
+	package def finish(R from) { apply(new Finish(from, 0)) }	
+
+	/** Tell the stream a batch of the given level has finished. */
+	package def finish(R from, int level) { apply(new Finish(from, level)) }	
+	
 }
- 
+
 abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<R, T> {
 
 	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
@@ -125,21 +184,6 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	/** Close the stream, which will stop the listener from recieving values */
 	override close() { apply(new Close) }
 	
-	/** Queue a value on the stream for pushing to the listener */
-	override push(R from, T value) { apply(new Value(from, value)) }
-	
-	/** 
-	 * Tell the stream an error occurred. the error will not be thrown directly,
-	 * but passed and can be listened for down the stream.
-	 */
-	override error(R from, Throwable error) { apply(new Error(from, error)) }
-	
-	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	override finish() { apply(new Finish(0)) }	
-
-	/** Tell the stream a batch of the given level has finished. */
-	override finish(int level) { apply(new Finish(level)) }	
-	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
 	/** 
@@ -161,77 +205,14 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	def =>void onNotify((StreamNotification)=>void notificationListener) {
+	override =>void onNotify((StreamNotification)=>void notificationListener) {
 		this.notificationListener = notificationListener
 		return [| this.notificationListener = null ]
 	}
 	
-	/**
-	 * Observe the entries coming off this stream using a StreamObserver.
-	 * Note that you can only have ONE stream observer for every stream!
-	 * If you want more than one observer, you can split the stream.
-	 * <p>
-	 * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
-	 * instead, for a more concise and elegant builder syntax.
-	 * <p>
-	 * @return a Task that can be listened to for an error, or for completion if
-	 * all values were processed (until finish or close).
-	 * <p>
-	 * @throws UncaughtStreamException if you have no onError listener(s) for the returned task.
-	 * <p>
-	 * Even if you process an error, the error is always exported. If the task has
-	 * an error listener, the error is passed to that task. If the task has no
-	 * error listener, then an UncaughtStreamException will be thrown.
-	 * <p>
-	 * To prevent errors from passing down the stream, you have to filter them. You can do this
-	 * by using the StreamExtensions.onError[] extension (or write your own filter).
-	 */
-	def observe(StreamObserver<R, T> observer) {
-		val task = new Task
-		operation = 'observe'
-		onChange [ entry |
-			// println('performing ' + operation + ' on ' + entry)
-			switch it : entry {
-				Value<R, T>: observer.onValue(from, value)
-				Finish<R, T>: { observer.onFinish(level) if(level==0) task.complete }
-				Error<R, T>: {
-					val escalate = observer.onError(from, error)
-					if(escalate) {
-						if(task.hasErrorHandler) task.error(new StreamException(operation, entry, error)) 
-						else throw new UncaughtStreamException(operation, entry, error)
-					}
-				}
-				Closed<R, T>: { observer.onClosed task.complete }
-			}
-		]
-		task
-	}
-	
-	/**
-	 * Monitor commands given to this stream.
-	 */
-	def void monitor(StreamMonitor monitor) {
-		onNotify [ notification |
-			try {
-				switch it : notification {
-					Next: monitor.onNext
-					Skip: monitor.onSkip
-					Close: monitor.onClose
-					Overflow: monitor.onOverflow(entry)
-				}
-			} catch(UncaughtStreamException t) {
-				throw t // these should not be caught but escalated
-			} catch(Exception t) {
-				throw new StreamException(operation, null, t)
-			}
-		]
-	}
-
 	// STREAM INPUT PROCESSING ////////////////////////////////////////////////
 
-	/**
-	 * Process a single incoming stream message from the actor queue.
-	 */
+	/** Process a single incoming stream message from the actor queue. */
 	override protected act(StreamMessage entry, =>void done) {
 		if(isOpen) {
 			switch entry {
@@ -258,7 +239,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 					// try to publish the next from the queue
 					val published = publishNext
 					// if nothing was published, notify there parent stream we need a next entry
-					if(!published) notify(entry)			
+					if(!published) notify(entry)
 				}
 				Skip: {
 					if(isSkipping) return 
@@ -291,45 +272,50 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	
 	// STREAM PUBLISHING //////////////////////////////////////////////////////
 	
-	/**
-	 * Publish a single entry from the stream queue.
-	 */
+	/** Publish a single entry from the stream queue. */
 	def protected boolean publishNext() {
-		if(isOpen && isReady && entryListener != null && !queue.empty) {
-			ready = false
-			// get the next entry from the queue
-			val entry = queue.poll
-			decBuffersize
-			try {
-				// check for some exceptional cases
-				switch it: entry {
-					// a finish of level 0 stops the skipping
-					Finish<R, T>: if(level == 0) skipping = false
-				}
-				// publish the value on the entryListener
-				entryListener.apply(entry)
-				true
-			} catch (UncaughtStreamException e) {
-				// this error is meant to break the publishing loop
-				throw e
-			} catch (Throwable t) {
-				// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
-				if(entry instanceof Error<?, ?>) {
-					switch t {
-						StreamException: throw t
-						default: throw new StreamException(operation, entry, t)
-					}
-				}
-				// otherwise push the error on the stream
-				ready = true
-				switch entry {
-					Value<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
-					Error<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
-					default: println('help! cannot create an error! ' + entry + ' gave ' + t)
-				}
-				false
+		// should we publish at all?
+		if(!isOpen || !isReady || entryListener == null || queue.empty) return false
+		// ok, lets get publishing
+		ready = false
+		// get the next entry from the queue
+		val entry = queue.poll
+		decBuffersize
+		try {
+			// check for some exceptional cases
+			switch it: entry {
+				// a finish of level 0 stops the skipping
+				Finish<R, T>: if(level == 0) skipping = false
 			}
-		} else false
+			// publish the value on the entryListener
+			entryListener.apply(entry)
+			// something was published
+			true
+		} catch (UncaughtStreamException e) {
+			// this error is meant to break the publishing loop
+			throw e
+		} catch (Throwable t) {
+			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
+			if(entry instanceof Error<?, ?>) {
+				switch t {
+					StreamException: throw t
+					default: throw new StreamException(operation, entry, t)
+				}
+			}
+			// check if next was called by the handler
+			val nextCalled = isReady
+			// make the stream ready again
+			ready = true
+			// otherwise push the error on the stream
+			switch entry {
+				Value<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+				Error<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+			}
+			// if next was not called, it would halt the stream, so call it now
+			if(!nextCalled) this.next
+			// ok, done, nothing was published
+			false
+		}
 	}
 
 	/** helper function for informing the notify listener */

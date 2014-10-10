@@ -14,6 +14,8 @@ import nl.kii.stream.Stream
 import static java.util.concurrent.TimeUnit.*
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.stream.IStream
+import nl.kii.stream.SubStream
 
 class ExecutorExtensions {
 	
@@ -102,7 +104,7 @@ class ExecutorExtensions {
 	 * Push a value onto the stream from the parent stream every periodMs milliseconds.
 	 * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
 	 */
-	def static <T> Stream<T> every(Stream<T> stream, int periodMs, ScheduledExecutorService executor) {
+	def static <R, T> SubStream<R, T> every(IStream<R, T> stream, int periodMs, ScheduledExecutorService executor) {
 		stream.synchronizeWith(executor.streamEvery(periodMs))
 	}
 	

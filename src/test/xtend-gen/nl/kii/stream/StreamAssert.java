@@ -1,14 +1,19 @@
 package nl.kii.stream;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.promise.IPromise;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Stream;
+import nl.kii.stream.Finish;
+import nl.kii.stream.IStream;
+import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 
 @SuppressWarnings("all")
@@ -16,17 +21,48 @@ public class StreamAssert {
   /**
    * pull all queued data from a stream put it in a list, and print any error
    */
-  public static <T extends Object> List<Entry<T>> gather(final Stream<T> stream) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe method each is undefined for the type StreamAssert"
-      + "\nInvalid number of arguments. The constructor Error(R, Throwable) is not applicable for the arguments (T)"
-      + "\nType mismatch: cannot convert from (Integer)=>void to int"
-      + "\nIncorrect number of arguments for type Entry<R, T>; it cannot be parameterized with arguments <T>");
+  public static <R extends Object, T extends Object> List<Entry<R, T>> gather(final IStream<R, T> stream) {
+    LinkedList<Entry<R, T>> _xblockexpression = null;
+    {
+      final LinkedList<Entry<R, T>> data = new LinkedList<Entry<R, T>>();
+      final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
+        public void apply(final StreamHandlerBuilder<R, T> it) {
+          final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+            public void apply(final R $0, final Throwable $1) {
+              nl.kii.stream.Error<R, T> _error = new nl.kii.stream.Error<R, T>($0, $1);
+              data.add(_error);
+              stream.next();
+            }
+          };
+          it.error(_function);
+          final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
+            public void apply(final R $0, final Integer $1) {
+              Finish<R, T> _finish = new Finish<R, T>($0, ($1).intValue());
+              data.add(_finish);
+              stream.next();
+            }
+          };
+          it.finish(_function_1);
+          final Procedure2<R, T> _function_2 = new Procedure2<R, T>() {
+            public void apply(final R $0, final T $1) {
+              Value<R, T> _value = new Value<R, T>($0, $1);
+              data.add(_value);
+              stream.next();
+            }
+          };
+          it.each(_function_2);
+        }
+      };
+      StreamExtensions.<R, T>on(stream, _function);
+      stream.next();
+      _xblockexpression = data;
+    }
+    return _xblockexpression;
   }
   
-  public static <T extends Object> void assertStreamContains(final Stream<T> stream, final Entry<T>... entries) {
-    final List<Entry<T>> data = StreamAssert.<T>gather(stream);
-    InputOutput.<List<Entry<T>>>println(data);
+  public static <R extends Object, T extends Object> void assertStreamContains(final IStream<R, T> stream, final Entry<R, T>... entries) {
+    final List<Entry<R, T>> data = StreamAssert.<R, T>gather(stream);
+    InputOutput.<List<Entry<R, T>>>println(data);
     Assert.assertArrayEquals(entries, ((Object[])Conversions.unwrapArray(data, Object.class)));
   }
   
@@ -68,8 +104,7 @@ public class StreamAssert {
     Assert.assertArrayEquals(((Object[])Conversions.unwrapArray(_get, Object.class)), ((Object[])Conversions.unwrapArray(value, Object.class)));
   }
   
-  public static <T extends Object> Value<T, Object> value(final T value) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nInvalid number of arguments. The constructor Value(R, T) is not applicable for the arguments (T)");
+  public static <R extends Object, T extends Object> Value<R, T> value(final T value) {
+    return new Value<R, T>(null, value);
   }
 }

@@ -9,3 +9,10 @@
 /.ExecutorExtensions.java._trace
 /.AsyncException.java._trace
 /.HandlerException.java._trace
+/AsyncCollection.java
+/AsyncException.java
+/AsyncMap.java
+/ExecutorExtensions.java
+/IndexedAsyncMap.java
+/AsyncCollectionWrapper.java
+/AsyncMapWrapper.java

@@ -131,3 +131,16 @@
 /.SubStream.java._trace
 /.BaseStream.java._trace
 /.IStream.java._trace
+/BaseStream.java
+/IStream.java
+/Overflow.java
+/StreamHandler.java
+/StreamHandlerBuilder.java
+/StreamIOExtensions.java
+/StreamMonitor.java
+/StreamNotification.java
+/StreamObserver.java
+/StreamResponder.java
+/StreamResponderBuilder.java
+/SubStream.java
+/UncaughtStreamException.java

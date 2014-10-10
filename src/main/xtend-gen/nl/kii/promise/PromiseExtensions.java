@@ -10,6 +10,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -63,16 +64,16 @@ public class PromiseExtensions {
    */
   public static <T extends Object, R extends Object, P extends IPromise<R>> IPromise<List<R>> call(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
     Stream<T> _stream = StreamExtensions.<T>stream(data);
-    Stream<P> _map = StreamExtensions.<T, P>map(_stream, operationFn);
-    Stream<R> _resolve = StreamExtensions.<R, Object>resolve(_map, concurrency);
-    Stream<List<R>> _collect = StreamExtensions.<R>collect(_resolve);
-    IPromise<List<R>> _first = StreamExtensions.<List<R>>first(_collect);
-    final Procedure1<IPromise<List<R>>> _function = new Procedure1<IPromise<List<R>>>() {
-      public void apply(final IPromise<List<R>> it) {
+    SubStream<T, P> _map = StreamExtensions.<T, T, P>map(_stream, operationFn);
+    SubStream<T, R> _resolve = StreamExtensions.<T, R>resolve(_map, concurrency);
+    SubStream<T, List<R>> _collect = StreamExtensions.<T, R>collect(_resolve);
+    Promise<List<R>> _first = StreamExtensions.<T, List<R>>first(_collect);
+    final Procedure1<Promise<List<R>>> _function = new Procedure1<Promise<List<R>>>() {
+      public void apply(final Promise<List<R>> it) {
         it.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<IPromise<List<R>>>operator_doubleArrow(_first, _function);
+    return ObjectExtensions.<Promise<List<R>>>operator_doubleArrow(_first, _function);
   }
   
   /**
@@ -127,9 +128,9 @@ public class PromiseExtensions {
         return it;
       }
     };
-    Stream<Boolean> _call = StreamExtensions.<Task, Boolean, Task>call(_stream, _function_1);
-    Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_call);
-    IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
+    SubStream<Task, Boolean> _call = StreamExtensions.<Task, Boolean, Task>call(_stream, _function_1);
+    SubStream<Task, List<Boolean>> _collect = StreamExtensions.<Task, Boolean>collect(_call);
+    Promise<List<Boolean>> _first = StreamExtensions.<Task, List<Boolean>>first(_collect);
     return PromiseExtensions.asTask(_first);
   }
   
@@ -172,19 +173,19 @@ public class PromiseExtensions {
   /**
    * Always call onResult, whether the promise has been either fulfilled or had an error.
    */
-  public static <T extends Object> IPromise<T> always(final IPromise<T> promise, final Procedure1<Entry<T>> resultFn) {
+  public static <T extends Object> IPromise<T> always(final IPromise<T> promise, final Procedure1<Entry<?, T>> resultFn) {
     IPromise<T> _xblockexpression = null;
     {
       final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
-          nl.kii.stream.Error<T> _error = new nl.kii.stream.Error<T>(it);
+          nl.kii.stream.Error<Object, T> _error = new nl.kii.stream.Error<Object, T>(null, it);
           resultFn.apply(_error);
         }
       };
       promise.onError(_function);
       final Procedure1<T> _function_1 = new Procedure1<T>() {
         public void apply(final T it) {
-          Value<T> _value = new Value<T>(it);
+          Value<Object, T> _value = new Value<Object, T>(null, it);
           resultFn.apply(_value);
         }
       };
@@ -435,7 +436,7 @@ public class PromiseExtensions {
       IPromise<Stream<T>> _onError = promise.onError(_function);
       final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
         public void apply(final Stream<T> s) {
-          StreamExtensions.<T>pipe(s, newStream);
+          StreamExtensions.<T, T>pipe(s, newStream);
         }
       };
       _onError.then(_function_1);
@@ -645,6 +646,14 @@ public class PromiseExtensions {
     return promise.onError(_function);
   }
   
+  public static <T extends Object> IPromise<T> onErrorThrow(final IPromise<T> promise, final Function2<? super Throwable, ? super T, ? extends Exception> exceptionFn) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nThe method or field listener is undefined for the type PromiseExtensions"
+      + "\nThe method or field listener is undefined for the type PromiseExtensions"
+      + "\napply cannot be resolved"
+      + "\napply cannot be resolved");
+  }
+  
   /**
    * Responds to a promise pair with a listener that takes the key and value of the promise result pair.
    * See chain2() for example of how to use.
@@ -677,8 +686,8 @@ public class PromiseExtensions {
    * Forward the events from this promise to another promise of the same type
    */
   public static <T extends Object> IPromise<T> pipe(final IPromise<T> promise, final IPromise<T> target) {
-    final Procedure1<Entry<T>> _function = new Procedure1<Entry<T>>() {
-      public void apply(final Entry<T> it) {
+    final Procedure1<Entry<?, T>> _function = new Procedure1<Entry<?, T>>() {
+      public void apply(final Entry<?, T> it) {
         target.apply(it);
       }
     };

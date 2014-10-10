@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.Task;
 import nl.kii.stream.Close;
 import nl.kii.stream.Closed;
 import nl.kii.stream.Entries;
@@ -22,14 +21,11 @@ import nl.kii.stream.Overflow;
 import nl.kii.stream.Skip;
 import nl.kii.stream.StreamException;
 import nl.kii.stream.StreamMessage;
-import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamNotification;
-import nl.kii.stream.StreamObserver;
 import nl.kii.stream.UncaughtStreamException;
 import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -130,39 +126,6 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
   }
   
   /**
-   * Queue a value on the stream for pushing to the listener
-   */
-  public void push(final R from, final T value) {
-    Value<R, T> _value = new Value<R, T>(from, value);
-    this.apply(_value);
-  }
-  
-  /**
-   * Tell the stream an error occurred. the error will not be thrown directly,
-   * but passed and can be listened for down the stream.
-   */
-  public void error(final R from, final Throwable error) {
-    nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(from, error);
-    this.apply(_error);
-  }
-  
-  /**
-   * Tell the stream the current batch of data is finished. The same as finish(0).
-   */
-  public void finish() {
-    Finish<Object, Object> _finish = new Finish<Object, Object>(0);
-    this.apply(_finish);
-  }
-  
-  /**
-   * Tell the stream a batch of the given level has finished.
-   */
-  public void finish(final int level) {
-    Finish<Object, Object> _finish = new Finish<Object, Object>(level);
-    this.apply(_finish);
-  }
-  
-  /**
    * Listen for changes on the stream. There can only be a single change listener.
    * <p>
    * this is used mostly internally, and you are encouraged to use .observe() or
@@ -194,140 +157,6 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
       }
     };
     return _function;
-  }
-  
-  /**
-   * Observe the entries coming off this stream using a StreamObserver.
-   * Note that you can only have ONE stream observer for every stream!
-   * If you want more than one observer, you can split the stream.
-   * <p>
-   * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
-   * instead, for a more concise and elegant builder syntax.
-   * <p>
-   * @return a Task that can be listened to for an error, or for completion if
-   * all values were processed (until finish or close).
-   * <p>
-   * @throws UncaughtStreamException if you have no onError listener(s) for the returned task.
-   * <p>
-   * Even if you process an error, the error is always exported. If the task has
-   * an error listener, the error is passed to that task. If the task has no
-   * error listener, then an UncaughtStreamException will be thrown.
-   * <p>
-   * To prevent errors from passing down the stream, you have to filter them. You can do this
-   * by using the StreamExtensions.onError[] extension (or write your own filter).
-   */
-  public Task observe(final StreamObserver<R, T> observer) {
-    Task _xblockexpression = null;
-    {
-      final Task task = new Task();
-      this.setOperation("observe");
-      final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
-        public void apply(final Entry<R, T> entry) {
-          try {
-            final Entry<R, T> it = entry;
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof Value) {
-                _matched=true;
-                observer.onValue(((Value<R, T>)it).from, ((Value<R, T>)it).value);
-              }
-            }
-            if (!_matched) {
-              if (it instanceof Finish) {
-                _matched=true;
-                observer.onFinish(((Finish<R, T>)it).level);
-                if ((((Finish<R, T>)it).level == 0)) {
-                  task.complete();
-                }
-              }
-            }
-            if (!_matched) {
-              if (it instanceof nl.kii.stream.Error) {
-                _matched=true;
-                final boolean escalate = observer.onError(((nl.kii.stream.Error<R, T>)it).from, ((nl.kii.stream.Error<R, T>)it).error);
-                if (escalate) {
-                  Boolean _hasErrorHandler = task.getHasErrorHandler();
-                  if ((_hasErrorHandler).booleanValue()) {
-                    String _operation = BaseStream.this.getOperation();
-                    StreamException _streamException = new StreamException(_operation, entry, ((nl.kii.stream.Error<R, T>)it).error);
-                    task.error(_streamException);
-                  } else {
-                    String _operation_1 = BaseStream.this.getOperation();
-                    throw new UncaughtStreamException(_operation_1, entry, ((nl.kii.stream.Error<R, T>)it).error);
-                  }
-                }
-              }
-            }
-            if (!_matched) {
-              if (it instanceof Closed) {
-                _matched=true;
-                observer.onClosed();
-                task.complete();
-              }
-            }
-          } catch (Throwable _e) {
-            throw Exceptions.sneakyThrow(_e);
-          }
-        }
-      };
-      this.onChange(_function);
-      _xblockexpression = task;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Monitor commands given to this stream.
-   */
-  public void monitor(final StreamMonitor monitor) {
-    final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
-      public void apply(final StreamNotification notification) {
-        try {
-          try {
-            final StreamNotification it = notification;
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof Next) {
-                _matched=true;
-                monitor.onNext();
-              }
-            }
-            if (!_matched) {
-              if (it instanceof Skip) {
-                _matched=true;
-                monitor.onSkip();
-              }
-            }
-            if (!_matched) {
-              if (it instanceof Close) {
-                _matched=true;
-                monitor.onClose();
-              }
-            }
-            if (!_matched) {
-              if (it instanceof Overflow) {
-                _matched=true;
-                monitor.onOverflow(((Overflow)it).entry);
-              }
-            }
-          } catch (final Throwable _t) {
-            if (_t instanceof UncaughtStreamException) {
-              final UncaughtStreamException t = (UncaughtStreamException)_t;
-              throw t;
-            } else if (_t instanceof Exception) {
-              final Exception t_1 = (Exception)_t;
-              String _operation = BaseStream.this.getOperation();
-              throw new StreamException(_operation, null, t_1);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
-        }
-      }
-    };
-    this.onNotify(_function);
   }
   
   /**
@@ -442,112 +271,111 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
    */
   protected boolean publishNext() {
     try {
-      boolean _xifexpression = false;
-      boolean _and = false;
-      boolean _and_1 = false;
-      boolean _and_2 = false;
-      boolean _isOpen = this.isOpen();
-      if (!_isOpen) {
-        _and_2 = false;
-      } else {
-        boolean _isReady = this.isReady();
-        _and_2 = _isReady;
-      }
-      if (!_and_2) {
-        _and_1 = false;
-      } else {
-        Procedure1<? super Entry<R, T>> _entryListener = this.getEntryListener();
-        boolean _notEquals = (!Objects.equal(_entryListener, null));
-        _and_1 = _notEquals;
-      }
-      if (!_and_1) {
-        _and = false;
-      } else {
-        boolean _isEmpty = this.queue.isEmpty();
-        boolean _not = (!_isEmpty);
-        _and = _not;
-      }
-      if (_and) {
-        boolean _xblockexpression = false;
-        {
-          this.setReady(Boolean.valueOf(false));
-          final Entry<R, T> entry = this.queue.poll();
-          this.decBuffersize();
-          boolean _xtrycatchfinallyexpression = false;
-          try {
-            boolean _xblockexpression_1 = false;
-            {
-              final Entry<R, T> it = entry;
-              boolean _matched = false;
-              if (!_matched) {
-                if (it instanceof Finish) {
-                  _matched=true;
-                  if ((((Finish<R, T>)it).level == 0)) {
-                    this.setSkipping(Boolean.valueOf(false));
-                  }
-                }
-              }
-              Procedure1<? super Entry<R, T>> _entryListener_1 = this.getEntryListener();
-              _entryListener_1.apply(entry);
-              _xblockexpression_1 = true;
-            }
-            _xtrycatchfinallyexpression = _xblockexpression_1;
-          } catch (final Throwable _t) {
-            if (_t instanceof UncaughtStreamException) {
-              final UncaughtStreamException e = (UncaughtStreamException)_t;
-              throw e;
-            } else if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              boolean _xblockexpression_2 = false;
-              {
-                if ((entry instanceof nl.kii.stream.Error<?, ?>)) {
-                  boolean _matched = false;
-                  if (!_matched) {
-                    if (t instanceof StreamException) {
-                      _matched=true;
-                      throw t;
-                    }
-                  }
-                  String _operation = this.getOperation();
-                  throw new StreamException(_operation, entry, t);
-                }
-                this.setReady(Boolean.valueOf(true));
-                boolean _matched_1 = false;
-                if (!_matched_1) {
-                  if (entry instanceof Value) {
-                    _matched_1=true;
-                    String _operation_1 = this.getOperation();
-                    StreamException _streamException = new StreamException(_operation_1, entry, t);
-                    nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((Value<R, T>)entry).from, _streamException);
-                    this.apply(_error);
-                  }
-                }
-                if (!_matched_1) {
-                  if (entry instanceof nl.kii.stream.Error) {
-                    _matched_1=true;
-                    String _operation_1 = this.getOperation();
-                    StreamException _streamException = new StreamException(_operation_1, entry, t);
-                    nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((nl.kii.stream.Error<R, T>)entry).from, _streamException);
-                    this.apply(_error);
-                  }
-                }
-                if (!_matched_1) {
-                  InputOutput.<String>println(((("help! cannot create an error! " + entry) + " gave ") + t));
-                }
-                _xblockexpression_2 = false;
-              }
-              _xtrycatchfinallyexpression = _xblockexpression_2;
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-          _xblockexpression = _xtrycatchfinallyexpression;
+      boolean _xblockexpression = false;
+      {
+        boolean _or = false;
+        boolean _or_1 = false;
+        boolean _or_2 = false;
+        boolean _isOpen = this.isOpen();
+        boolean _not = (!_isOpen);
+        if (_not) {
+          _or_2 = true;
+        } else {
+          boolean _isReady = this.isReady();
+          boolean _not_1 = (!_isReady);
+          _or_2 = _not_1;
         }
-        _xifexpression = _xblockexpression;
-      } else {
-        _xifexpression = false;
+        if (_or_2) {
+          _or_1 = true;
+        } else {
+          Procedure1<? super Entry<R, T>> _entryListener = this.getEntryListener();
+          boolean _equals = Objects.equal(_entryListener, null);
+          _or_1 = _equals;
+        }
+        if (_or_1) {
+          _or = true;
+        } else {
+          boolean _isEmpty = this.queue.isEmpty();
+          _or = _isEmpty;
+        }
+        if (_or) {
+          return false;
+        }
+        this.setReady(Boolean.valueOf(false));
+        final Entry<R, T> entry = this.queue.poll();
+        this.decBuffersize();
+        boolean _xtrycatchfinallyexpression = false;
+        try {
+          boolean _xblockexpression_1 = false;
+          {
+            final Entry<R, T> it = entry;
+            boolean _matched = false;
+            if (!_matched) {
+              if (it instanceof Finish) {
+                _matched=true;
+                if ((((Finish<R, T>)it).level == 0)) {
+                  this.setSkipping(Boolean.valueOf(false));
+                }
+              }
+            }
+            Procedure1<? super Entry<R, T>> _entryListener_1 = this.getEntryListener();
+            _entryListener_1.apply(entry);
+            _xblockexpression_1 = true;
+          }
+          _xtrycatchfinallyexpression = _xblockexpression_1;
+        } catch (final Throwable _t) {
+          if (_t instanceof UncaughtStreamException) {
+            final UncaughtStreamException e = (UncaughtStreamException)_t;
+            throw e;
+          } else if (_t instanceof Throwable) {
+            final Throwable t = (Throwable)_t;
+            boolean _xblockexpression_2 = false;
+            {
+              if ((entry instanceof nl.kii.stream.Error<?, ?>)) {
+                boolean _matched = false;
+                if (!_matched) {
+                  if (t instanceof StreamException) {
+                    _matched=true;
+                    throw t;
+                  }
+                }
+                String _operation = this.getOperation();
+                throw new StreamException(_operation, entry, t);
+              }
+              final boolean nextCalled = this.isReady();
+              this.setReady(Boolean.valueOf(true));
+              boolean _matched_1 = false;
+              if (!_matched_1) {
+                if (entry instanceof Value) {
+                  _matched_1=true;
+                  String _operation_1 = this.getOperation();
+                  StreamException _streamException = new StreamException(_operation_1, entry, t);
+                  nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((Value<R, T>)entry).from, _streamException);
+                  this.apply(_error);
+                }
+              }
+              if (!_matched_1) {
+                if (entry instanceof nl.kii.stream.Error) {
+                  _matched_1=true;
+                  String _operation_1 = this.getOperation();
+                  StreamException _streamException = new StreamException(_operation_1, entry, t);
+                  nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((nl.kii.stream.Error<R, T>)entry).from, _streamException);
+                  this.apply(_error);
+                }
+              }
+              if ((!nextCalled)) {
+                this.next();
+              }
+              _xblockexpression_2 = false;
+            }
+            _xtrycatchfinallyexpression = _xblockexpression_2;
+          } else {
+            throw Exceptions.sneakyThrow(_t);
+          }
+        }
+        _xblockexpression = _xtrycatchfinallyexpression;
       }
-      return _xifexpression;
+      return _xblockexpression;
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
     }
@@ -671,12 +499,10 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
   }
   
   public String setOperation(final String value) {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe return type is incompatible with setOperation(String)");
+    return this._operation.getAndSet(value);
   }
   
   public String getOperation() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nThe return type is incompatible with setOperation(String)");
+    return this._operation.get();
   }
 }
