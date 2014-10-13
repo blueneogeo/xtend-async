@@ -14,8 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
@@ -383,7 +385,7 @@ public class TestStreamExtensions {
     final SubStream<Integer, List<Integer>> collect = StreamExtensions.<Integer, Integer>collect(split2);
     final SubStream<Integer, List<List<Integer>>> collect2 = StreamExtensions.<Integer, List<Integer>>collect(collect);
     final SubStream<Integer, List<List<List<Integer>>>> collect3 = StreamExtensions.<Integer, List<List<Integer>>>collect(collect2);
-    Promise<List<List<List<Integer>>>> _first = StreamExtensions.<Integer, List<List<List<Integer>>>>first(collect3);
+    IPromise<Integer, List<List<List<Integer>>>> _first = StreamExtensions.<Integer, List<List<List<Integer>>>>first(collect3);
     final Procedure1<List<List<List<Integer>>>> _function_2 = new Procedure1<List<List<List<Integer>>>>() {
       public void apply(final List<List<List<Integer>>> it) {
         Assert.assertEquals(it, 
@@ -419,7 +421,7 @@ public class TestStreamExtensions {
     final SubStream<Integer, List<List<Integer>>> collect2 = StreamExtensions.<Integer, List<Integer>>collect(collect);
     final SubStream<Integer, List<List<List<Integer>>>> collect3 = StreamExtensions.<Integer, List<List<Integer>>>collect(collect2);
     final SubStream<Integer, List<List<List<List<Integer>>>>> collect4 = StreamExtensions.<Integer, List<List<List<Integer>>>>collect(collect3);
-    Promise<List<List<List<List<Integer>>>>> _first = StreamExtensions.<Integer, List<List<List<List<Integer>>>>>first(collect4);
+    IPromise<Integer, List<List<List<List<Integer>>>>> _first = StreamExtensions.<Integer, List<List<List<List<Integer>>>>>first(collect4);
     final Procedure1<List<List<List<List<Integer>>>>> _function_3 = new Procedure1<List<List<List<List<Integer>>>>>() {
       public void apply(final List<List<List<List<Integer>>>> it) {
         Assert.assertEquals(it, 
@@ -813,7 +815,7 @@ public class TestStreamExtensions {
       }
     };
     SubStream<Boolean, Boolean> _any = StreamExtensions.<Boolean, Boolean>any(s, _function);
-    final Promise<Boolean> matches = StreamExtensions.<Boolean, Boolean>first(_any);
+    final IPromise<Boolean, Boolean> matches = StreamExtensions.<Boolean, Boolean>first(_any);
     StreamAssert.<Boolean>assertPromiseEquals(matches, Boolean.valueOf(true));
   }
   
@@ -831,7 +833,7 @@ public class TestStreamExtensions {
       }
     };
     SubStream<Boolean, Boolean> _any = StreamExtensions.<Boolean, Boolean>any(s, _function);
-    final Promise<Boolean> matches = StreamExtensions.<Boolean, Boolean>first(_any);
+    final IPromise<Boolean, Boolean> matches = StreamExtensions.<Boolean, Boolean>first(_any);
     StreamAssert.<Boolean>assertPromiseEquals(matches, Boolean.valueOf(false));
   }
   
@@ -848,7 +850,7 @@ public class TestStreamExtensions {
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_split);
     SubStream<Integer, Integer> _separate = StreamExtensions.<Integer, Integer>separate(_collect);
     SubStream<Integer, List<Integer>> _collect_1 = StreamExtensions.<Integer, Integer>collect(_separate);
-    Promise<List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect_1);
+    IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect_1);
     IntegerRange _upTo_1 = new IntegerRange(1, 10);
     List<Integer> _list = IterableExtensions.<Integer>toList(_upTo_1);
     StreamAssert.<Integer>assertPromiseEquals(_first, _list);
@@ -879,7 +881,7 @@ public class TestStreamExtensions {
     };
     SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_map_1, _function_2);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_onError);
-    Promise<List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
+    IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(6), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
     Collection<Entry<String, String>> _queue = errors.getQueue();
     int _size = _queue.size();
@@ -1098,7 +1100,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(2));
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(3));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(4));
-    Promise<Integer> _first = StreamExtensions.<Integer, Integer>first(s);
+    IPromise<Integer, Integer> _first = StreamExtensions.<Integer, Integer>first(s);
     StreamAssert.<Integer>assertPromiseEquals(_first, Integer.valueOf(2));
   }
   
@@ -1106,7 +1108,7 @@ public class TestStreamExtensions {
   public void testLast() {
     IntegerRange _upTo = new IntegerRange(1, 1000000);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
-    Promise<Integer> _last = StreamExtensions.<Integer, Integer>last(s);
+    SubPromise<Integer, Integer> _last = StreamExtensions.<Integer, Integer>last(s);
     StreamAssert.<Integer>assertPromiseEquals(_last, Integer.valueOf(1000000));
   }
   
@@ -1117,7 +1119,7 @@ public class TestStreamExtensions {
     SubStream<Integer, Integer> _skip = StreamExtensions.<Integer, Integer>skip(s, 3);
     SubStream<Integer, Integer> _take = StreamExtensions.<Integer, Integer>take(_skip, 3);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_take);
-    Promise<List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
+    IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5), Integer.valueOf(6))));
   }
   
@@ -1133,7 +1135,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, _finish_1);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(s);
-    Promise<List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
+    IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))));
   }
   

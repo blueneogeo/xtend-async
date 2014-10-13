@@ -25,6 +25,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.promise.SubPromise
 
 class StreamExtensions {
 	
@@ -940,19 +941,18 @@ class StreamExtensions {
 	 /**
 	  * Start the stream and promise the first value coming from the stream.
 	  * Closes the stream once it has the value or an error.
-	  * TODO: IPromise<R, T>
 	  */
-	def static <R, T> Promise<T> first(IStream<R, T> stream) {
-		val promise = new Promise<T>
+	def static <R, T> IPromise<R, T> first(IStream<R, T> stream) {
+		val promise = new SubPromise<R, T>(new Promise<R>)
 		stream.on [
 			each [ 
 				if(!promise.fulfilled)
-					promise.set($1) 
+					promise.set($0, $1) 
 				stream.close 
 			]
 			error [
 				if(!promise.fulfilled)
-					promise.error($1) 
+					promise.error($0, $1) 
 				 stream.close
 			]
 			finish [
@@ -972,10 +972,9 @@ class StreamExtensions {
 	  * Start the stream and promise the first value coming from the stream.
 	  * Will keep asking next on the stream until it gets to the last value!
 	  * Skips any stream errors, and closes the stream when it is done.
-	  * TODO: IPromise<R, T>
 	  */
 	def static <R, T> last(IStream<R, T> stream) {
-		val promise = new Promise<T>
+		val promise = new SubPromise<R, T>(new Promise<R>)
 		val last = new AtomicReference<T>
 		stream.on [
 			each [ 
@@ -985,14 +984,14 @@ class StreamExtensions {
 			finish [
 				if($1 == 0) {
 					if(!promise.fulfilled && last.get != null) {
-						promise.set(last.get)
+						promise.set($0, last.get)
 						stream.close
 					} else promise.error('stream finished without passing a value, no last entry found.')
 				} else stream.next 
 			]
 			closed [ 
 				if(!promise.fulfilled && last.get != null) {
-					promise.set(last.get)
+					promise.set(null, last.get)
 					stream.close
 				} else promise.error('stream closed without passing a value, no last entry found.')
 			]

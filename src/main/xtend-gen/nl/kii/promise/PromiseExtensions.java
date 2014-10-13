@@ -114,7 +114,7 @@ public class PromiseExtensions {
     };
     SubStream<Task, Boolean> _call = StreamExtensions.<Task, Boolean, Task, Boolean, Task>call(_stream, _function_1);
     SubStream<Task, List<Boolean>> _collect = StreamExtensions.<Task, Boolean>collect(_call);
-    Promise<List<Boolean>> _first = StreamExtensions.<Task, List<Boolean>>first(_collect);
+    IPromise<Task, List<Boolean>> _first = StreamExtensions.<Task, List<Boolean>>first(_collect);
     return PromiseExtensions.asTask(_first);
   }
   

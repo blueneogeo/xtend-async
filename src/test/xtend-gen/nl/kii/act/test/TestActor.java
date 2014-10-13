@@ -11,7 +11,7 @@ import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Async;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.Promise;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
@@ -287,8 +287,8 @@ public class TestActor {
       final IntegerRange iterations = new IntegerRange(1, 1000000);
       final int threads = 10;
       Task _complete = PromiseExtensions.complete();
-      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_2 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
-        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_2 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -299,15 +299,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_complete, _function_2);
+      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_complete, _function_2);
       final Procedure1<Long> _function_3 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("function took: " + it));
         }
       };
       Task _then = _call.then(_function_3);
-      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_4 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
-        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_4 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -318,15 +318,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then, _function_4);
+      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then, _function_4);
       final Procedure1<Long> _function_5 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("unsynced method took: " + it));
         }
       };
       Task _then_1 = _call_1.then(_function_5);
-      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_6 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
-        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_6 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -337,15 +337,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then_1, _function_6);
+      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then_1, _function_6);
       final Procedure1<Long> _function_7 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("synced method took: " + it));
         }
       };
       Task _then_2 = _call_2.then(_function_7);
-      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_8 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
-        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_8 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
             public void apply() {
               for (final Integer i : iterations) {
@@ -356,7 +356,7 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then_2, _function_8);
+      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then_2, _function_8);
       final Procedure1<Long> _function_9 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("actor took: " + it));
@@ -477,8 +477,8 @@ public class TestActor {
    * measure the duration of an action executed on multiple threads at once
    */
   @Async
-  public SubPromise<List<Boolean>, Long> measure(final int threads, final Procedure0 actionFn) {
-    SubPromise<List<Boolean>, Long> _xblockexpression = null;
+  public SubPromise<Integer, Long> measure(final int threads, final Procedure0 actionFn) {
+    SubPromise<Integer, Long> _xblockexpression = null;
     {
       final ExecutorService pool = Executors.newFixedThreadPool(threads);
       final long start = System.currentTimeMillis();
@@ -497,14 +497,14 @@ public class TestActor {
       SubStream<Integer, Task> _map = StreamExtensions.<Integer, Integer, Task>map(_stream, _function);
       SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean, Boolean>resolve(_map, threads);
       SubStream<Integer, List<Boolean>> _collect = StreamExtensions.<Integer, Boolean>collect(_resolve);
-      Promise<List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
+      IPromise<Integer, List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
       final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {
         public Long apply(final List<Boolean> it) {
           long _currentTimeMillis = System.currentTimeMillis();
           return Long.valueOf((_currentTimeMillis - start));
         }
       };
-      _xblockexpression = PromiseExtensions.<List<Boolean>, List<Boolean>, Long>map(_first, _function_1);
+      _xblockexpression = PromiseExtensions.<Integer, List<Boolean>, Long>map(_first, _function_1);
     }
     return _xblockexpression;
   }

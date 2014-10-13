@@ -23,6 +23,7 @@ import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.BaseStream;
 import nl.kii.stream.Close;
@@ -1993,12 +1994,12 @@ public class StreamExtensions {
   /**
    * Start the stream and promise the first value coming from the stream.
    * Closes the stream once it has the value or an error.
-   * TODO: IPromise<R, T>
    */
-  public static <R extends Object, T extends Object> Promise<T> first(final IStream<R, T> stream) {
-    Promise<T> _xblockexpression = null;
+  public static <R extends Object, T extends Object> IPromise<R, T> first(final IStream<R, T> stream) {
+    SubPromise<R, T> _xblockexpression = null;
     {
-      final Promise<T> promise = new Promise<T>();
+      Promise<R> _promise = new Promise<R>();
+      final SubPromise<R, T> promise = new SubPromise<R, T>(_promise);
       final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
@@ -2006,7 +2007,7 @@ public class StreamExtensions {
               Boolean _fulfilled = promise.getFulfilled();
               boolean _not = (!(_fulfilled).booleanValue());
               if (_not) {
-                promise.set($1);
+                promise.set($0, $1);
               }
               stream.close();
             }
@@ -2017,7 +2018,7 @@ public class StreamExtensions {
               Boolean _fulfilled = promise.getFulfilled();
               boolean _not = (!(_fulfilled).booleanValue());
               if (_not) {
-                promise.error($1);
+                promise.error($0, $1);
               }
               stream.close();
             }
@@ -2025,14 +2026,14 @@ public class StreamExtensions {
           it.error(_function_1);
           final Procedure2<R, Integer> _function_2 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
-              PromiseExtensions.<T, T>error(promise, "Stream.first: stream finished without returning a value");
+              PromiseExtensions.<R, T>error(promise, "Stream.first: stream finished without returning a value");
               stream.close();
             }
           };
           it.finish(_function_2);
           final Procedure1<Void> _function_3 = new Procedure1<Void>() {
             public void apply(final Void it) {
-              PromiseExtensions.<T, T>error(promise, "Stream.first: stream closed without returning a value");
+              PromiseExtensions.<R, T>error(promise, "Stream.first: stream closed without returning a value");
             }
           };
           it.closed(_function_3);
@@ -2050,12 +2051,12 @@ public class StreamExtensions {
    * Start the stream and promise the first value coming from the stream.
    * Will keep asking next on the stream until it gets to the last value!
    * Skips any stream errors, and closes the stream when it is done.
-   * TODO: IPromise<R, T>
    */
-  public static <R extends Object, T extends Object> Promise<T> last(final IStream<R, T> stream) {
-    Promise<T> _xblockexpression = null;
+  public static <R extends Object, T extends Object> SubPromise<R, T> last(final IStream<R, T> stream) {
+    SubPromise<R, T> _xblockexpression = null;
     {
-      final Promise<T> promise = new Promise<T>();
+      Promise<R> _promise = new Promise<R>();
+      final SubPromise<R, T> promise = new SubPromise<R, T>(_promise);
       final AtomicReference<T> last = new AtomicReference<T>();
       final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
         public void apply(final StreamHandlerBuilder<R, T> it) {
@@ -2085,10 +2086,10 @@ public class StreamExtensions {
                 }
                 if (_and) {
                   T _get_1 = last.get();
-                  promise.set(_get_1);
+                  promise.set($0, _get_1);
                   stream.close();
                 } else {
-                  PromiseExtensions.<T, T>error(promise, "stream finished without passing a value, no last entry found.");
+                  PromiseExtensions.<R, T>error(promise, "stream finished without passing a value, no last entry found.");
                 }
               } else {
                 stream.next();
@@ -2110,10 +2111,10 @@ public class StreamExtensions {
               }
               if (_and) {
                 T _get_1 = last.get();
-                promise.set(_get_1);
+                promise.set(null, _get_1);
                 stream.close();
               } else {
-                PromiseExtensions.<T, T>error(promise, "stream closed without passing a value, no last entry found.");
+                PromiseExtensions.<R, T>error(promise, "stream closed without passing a value, no last entry found.");
               }
             }
           };
@@ -2177,7 +2178,7 @@ public class StreamExtensions {
    * TODO: Task<R>
    */
   public static <R extends Object, T extends Object> Task then(final IStream<R, T> stream, final Procedure1<T> listener) {
-    Promise<T> _first = StreamExtensions.<R, T>first(stream);
+    IPromise<R, T> _first = StreamExtensions.<R, T>first(stream);
     Task _then = _first.then(listener);
     final Procedure1<Task> _function = new Procedure1<Task>() {
       public void apply(final Task it) {
