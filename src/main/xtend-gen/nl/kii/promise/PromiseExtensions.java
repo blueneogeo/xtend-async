@@ -112,7 +112,7 @@ public class PromiseExtensions {
         return it;
       }
     };
-    SubStream<Task, Boolean> _call = StreamExtensions.<Boolean, Task, Boolean, Task>call(_stream, _function_1);
+    SubStream<Task, Boolean> _call = StreamExtensions.<Task, Boolean, Task, Boolean, Task>call(_stream, _function_1);
     SubStream<Task, List<Boolean>> _collect = StreamExtensions.<Task, Boolean>collect(_call);
     Promise<List<Boolean>> _first = StreamExtensions.<Task, List<Boolean>>first(_collect);
     return PromiseExtensions.asTask(_first);
@@ -256,19 +256,25 @@ public class PromiseExtensions {
     SubPromise<R, M> _xblockexpression = null;
     {
       final SubPromise<R, M> newPromise = new SubPromise<R, M>(promise);
-      final Procedure2<R, T> _function = new Procedure2<R, T>() {
+      final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+        public void apply(final R r, final Throwable it) {
+          newPromise.error(r, it);
+        }
+      };
+      IPromise<R, T> _onError = promise.onError(_function);
+      final Procedure2<R, T> _function_1 = new Procedure2<R, T>() {
         public void apply(final R r, final T it) {
           M _apply = mappingFn.apply(r, it);
           newPromise.set(r, _apply);
         }
       };
-      promise.then(_function);
-      final Procedure1<SubPromise<R, M>> _function_1 = new Procedure1<SubPromise<R, M>>() {
+      _onError.then(_function_1);
+      final Procedure1<SubPromise<R, M>> _function_2 = new Procedure1<SubPromise<R, M>>() {
         public void apply(final SubPromise<R, M> it) {
           it.setOperation("map");
         }
       };
-      _xblockexpression = ObjectExtensions.<SubPromise<R, M>>operator_doubleArrow(newPromise, _function_1);
+      _xblockexpression = ObjectExtensions.<SubPromise<R, M>>operator_doubleArrow(newPromise, _function_2);
     }
     return _xblockexpression;
   }
@@ -367,14 +373,14 @@ public class PromiseExtensions {
   /**
    * Flattens a promise of a promise to directly a promise.
    */
-  public static <R extends Object, T extends Object, P extends IPromise<R, T>> SubPromise<R, T> flatten(final IPromise<R, P> promise) {
-    SubPromise<R, T> _resolve = PromiseExtensions.<R, T, P>resolve(promise);
-    final Procedure1<SubPromise<R, T>> _function = new Procedure1<SubPromise<R, T>>() {
-      public void apply(final SubPromise<R, T> it) {
+  public static <R1 extends Object, R2 extends Object, T extends Object, P extends IPromise<R1, T>> SubPromise<R2, T> flatten(final IPromise<R2, P> promise) {
+    SubPromise<R2, T> _resolve = PromiseExtensions.<R2, R1, T, P>resolve(promise);
+    final Procedure1<SubPromise<R2, T>> _function = new Procedure1<SubPromise<R2, T>>() {
+      public void apply(final SubPromise<R2, T> it) {
         it.setOperation("flatten");
       }
     };
-    return ObjectExtensions.<SubPromise<R, T>>operator_doubleArrow(_resolve, _function);
+    return ObjectExtensions.<SubPromise<R2, T>>operator_doubleArrow(_resolve, _function);
   }
   
   /**
@@ -405,33 +411,39 @@ public class PromiseExtensions {
    * Resolve a promise of a promise to directly a promise.
    * Alias for Promise.flatten, added for consistent syntax with streams
    */
-  public static <R extends Object, T extends Object, P extends IPromise<R, T>> SubPromise<R, T> resolve(final IPromise<R, P> promise) {
+  public static <R extends Object, R2 extends Object, T extends Object, P extends IPromise<R2, T>> SubPromise<R, T> resolve(final IPromise<R, P> promise) {
     SubPromise<R, T> _xblockexpression = null;
     {
       final SubPromise<R, T> newPromise = new SubPromise<R, T>(promise);
-      final Procedure1<P> _function = new Procedure1<P>() {
-        public void apply(final P it) {
-          final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
-            public void apply(final R r, final Throwable it) {
+      final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+        public void apply(final R r, final Throwable it) {
+          newPromise.error(r, it);
+        }
+      };
+      IPromise<R, P> _onError = promise.onError(_function);
+      final Procedure2<R, P> _function_1 = new Procedure2<R, P>() {
+        public void apply(final R r, final P p) {
+          final Procedure2<R2, Throwable> _function = new Procedure2<R2, Throwable>() {
+            public void apply(final R2 r2, final Throwable it) {
               newPromise.error(r, it);
             }
           };
-          IPromise<R, T> _onError = it.onError(_function);
-          final Procedure2<R, T> _function_1 = new Procedure2<R, T>() {
-            public void apply(final R r, final T it) {
+          IPromise<R2, T> _onError = p.onError(_function);
+          final Procedure2<R2, T> _function_1 = new Procedure2<R2, T>() {
+            public void apply(final R2 r2, final T it) {
               newPromise.set(r, it);
             }
           };
           _onError.then(_function_1);
         }
       };
-      promise.then(_function);
-      final Procedure1<SubPromise<R, T>> _function_1 = new Procedure1<SubPromise<R, T>>() {
+      _onError.then(_function_1);
+      final Procedure1<SubPromise<R, T>> _function_2 = new Procedure1<SubPromise<R, T>>() {
         public void apply(final SubPromise<R, T> it) {
           it.setOperation("resolve");
         }
       };
-      _xblockexpression = ObjectExtensions.<SubPromise<R, T>>operator_doubleArrow(newPromise, _function_1);
+      _xblockexpression = ObjectExtensions.<SubPromise<R, T>>operator_doubleArrow(newPromise, _function_2);
     }
     return _xblockexpression;
   }
@@ -441,7 +453,7 @@ public class PromiseExtensions {
    */
   public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> IPromise<R, M> flatMap(final IPromise<R, T> promise, final Function1<? super T, ? extends P> promiseFn) {
     SubPromise<R, P> _map = PromiseExtensions.<R, T, P>map(promise, promiseFn);
-    SubPromise<R, M> _flatten = PromiseExtensions.<R, M, P>flatten(_map);
+    SubPromise<R, M> _flatten = PromiseExtensions.<R, R, M, P>flatten(_map);
     final Procedure1<SubPromise<R, M>> _function = new Procedure1<SubPromise<R, M>>() {
       public void apply(final SubPromise<R, M> it) {
         it.setOperation("flatMap");
@@ -496,15 +508,15 @@ public class PromiseExtensions {
    * Example:
    * <pre>
    * loadUser
-   *   .thenAsync [ checkCredentialsAsync ]
-   *   .thenAsync [ signinUser ]
+   *   .call [ checkCredentialsAsync ]
+   *   .call [ signinUser ]
    *   .onError [ setErrorMessage('could not sign you in') ]
    *   .then [ println('success!') ]
    * </pre>
    */
-  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> IPromise<R, M> call(final IPromise<R, T> promise, final Function1<? super T, ? extends P> promiseFn) {
+  public static <R extends Object, R2 extends Object, T extends Object, M extends Object, P extends IPromise<R2, M>> SubPromise<R, M> call(final IPromise<R, T> promise, final Function1<? super T, ? extends P> promiseFn) {
     SubPromise<R, P> _map = PromiseExtensions.<R, T, P>map(promise, promiseFn);
-    SubPromise<R, M> _resolve = PromiseExtensions.<R, M, P>resolve(_map);
+    SubPromise<R, M> _resolve = PromiseExtensions.<R, R2, M, P>resolve(_map);
     final Procedure1<SubPromise<R, M>> _function = new Procedure1<SubPromise<R, M>>() {
       public void apply(final SubPromise<R, M> it) {
         it.setOperation("call");

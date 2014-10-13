@@ -159,9 +159,10 @@ class PromiseExtensions {
 	 */
 	def static <R, T, M> map(IPromise<R, T> promise, (R, T)=>M mappingFn) {
 		val newPromise = new SubPromise<R, M>(promise)
-		promise.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
-		newPromise
-			=> [ operation = 'map' ]
+		promise
+			.onError [ r, it | newPromise.error(r, it) ]
+			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
+		newPromise => [ operation = 'map' ]
 	}
 	
 	/**
@@ -179,8 +180,7 @@ class PromiseExtensions {
 				}
 			]
 			.then [ r, it | newPromise.set(r, it) ]
-		newPromise
-			=> [ operation = 'onErrorMap' ]
+		newPromise => [ operation = 'onErrorMap' ]
 	}
 
 	/**
@@ -200,14 +200,12 @@ class PromiseExtensions {
 				}
 			]
 			.then [ newPromise.set(it) ]
-		newPromise
-			=> [ operation = 'onErrorCall' ]
+		newPromise => [ operation = 'onErrorCall' ]
 	}
 
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <R, T, P extends IPromise<R, T>> flatten(IPromise<R, P> promise) {
-		promise.resolve
-			=> [ operation = 'flatten' ]
+	def static <R1, R2, T, P extends IPromise<R1, T>> flatten(IPromise<R2, P> promise) {
+		promise.resolve => [ operation = 'flatten' ]
 	}
 
 	/** Create a stream out of a promise of a stream. */
@@ -223,14 +221,16 @@ class PromiseExtensions {
 	 * Resolve a promise of a promise to directly a promise.
 	 * Alias for Promise.flatten, added for consistent syntax with streams 
 	 * */
-	def static <R, T, P extends IPromise<R, T>> resolve(IPromise<R, P> promise) {
+	def static <R, R2, T, P extends IPromise<R2, T>> resolve(IPromise<R, P> promise) {
 		val newPromise = new SubPromise<R, T>(promise)
-		promise.then [
-			onError [ r, it | newPromise.error(r, it) ] 
-			.then [ r, it | newPromise.set(r, it) ]
-		]
-		newPromise
-			=> [ operation = 'resolve' ]
+		promise
+			.onError [ r, it | newPromise.error(r, it) ]
+			.then [ r, p |
+				p
+					.onError [ r2, it | newPromise.error(r, it) ] 
+					.then [ r2, it | newPromise.set(r, it) ]
+			]
+		newPromise => [ operation = 'resolve' ]
 	}	
 
 	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
@@ -262,9 +262,6 @@ class PromiseExtensions {
 	
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
 	
-	// Note: these are just aliases of flatmap, but used for nicer syntax and to indicate that the operations
-	// may have sideeffects. Flatmap operations should not have sideeffects.
-
 	/** 
 	 * When the promise gives a result, call the function that returns another promise and 
 	 * return that promise so you can chain and continue. Any thrown errors will be caught 
@@ -276,13 +273,13 @@ class PromiseExtensions {
 	 * Example:
 	 * <pre>
 	 * loadUser
-	 *   .thenAsync [ checkCredentialsAsync ]
-	 *   .thenAsync [ signinUser ]
+	 *   .call [ checkCredentialsAsync ]
+	 *   .call [ signinUser ]
 	 *   .onError [ setErrorMessage('could not sign you in') ]
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <R, T, M, P extends IPromise<R, M>> IPromise<R, M> call(IPromise<R, T> promise, (T)=>P promiseFn) {
+	def static <R, R2, T, M, P extends IPromise<R2, M>> call(IPromise<R, T> promise, (T)=>P promiseFn) {
 		promise.map(promiseFn).resolve
 			=> [ operation = 'call' ]
 	}

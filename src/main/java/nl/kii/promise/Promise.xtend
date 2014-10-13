@@ -56,7 +56,7 @@ class SubPromise<R, T> extends BasePromise<R, T> {
 	
 	val protected IPromise<R, ?> root
 
-	/** Constructor for easily creating a child promise */
+	/** Constructor for easily creating a child promise. */
 	new(IPromise<R, ?> parentPromise) {
 		this.root = parentPromise.root
 		parentPromise.onError [ error(it) ]

@@ -10,7 +10,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   protected final IPromise<R, ?> root;
   
   /**
-   * Constructor for easily creating a child promise
+   * Constructor for easily creating a child promise.
    */
   public SubPromise(final IPromise<R, ?> parentPromise) {
     IPromise<R, ?> _root = parentPromise.getRoot();

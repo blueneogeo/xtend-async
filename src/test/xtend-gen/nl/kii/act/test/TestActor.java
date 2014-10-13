@@ -3,6 +3,7 @@ package nl.kii.act.test;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
@@ -266,11 +267,107 @@ public class TestActor {
    */
   @Test
   public void testActorRelativeMultiThreadedPerformance() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nBounds mismatch: The type arguments <Boolean, Boolean, Long, SubPromise<List<Boolean>, Long>> are not a valid substitute for the bounded type parameters <R, T, M, P extends IPromise<R, M>> of the method call(IPromise<R, T>, (T)=>P)"
-      + "\nBounds mismatch: The type arguments <Boolean, Boolean, Long, SubPromise<List<Boolean>, Long>> are not a valid substitute for the bounded type parameters <R, T, M, P extends IPromise<R, M>> of the method call(IPromise<R, T>, (T)=>P)"
-      + "\nBounds mismatch: The type arguments <Boolean, Boolean, Long, SubPromise<List<Boolean>, Long>> are not a valid substitute for the bounded type parameters <R, T, M, P extends IPromise<R, M>> of the method call(IPromise<R, T>, (T)=>P)"
-      + "\nBounds mismatch: The type arguments <Boolean, Boolean, Long, SubPromise<List<Boolean>, Long>> are not a valid substitute for the bounded type parameters <R, T, M, P extends IPromise<R, M>> of the method call(IPromise<R, T>, (T)=>P)");
+    try {
+      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+        public Integer apply(final Integer it) {
+          return TestActor.this.incFunctCounter();
+        }
+      };
+      final Function1<Integer, Integer> funct = _function;
+      final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          TestActor.this.incActorCounter();
+        }
+      };
+      final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
+      IntegerRange _upTo = new IntegerRange(1, 20000000);
+      for (final Integer i : _upTo) {
+        actor.apply(i);
+      }
+      final IntegerRange iterations = new IntegerRange(1, 1000000);
+      final int threads = 10;
+      Task _complete = PromiseExtensions.complete();
+      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_2 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
+        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                funct.apply(i);
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_complete, _function_2);
+      final Procedure1<Long> _function_3 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("function took: " + it));
+        }
+      };
+      Task _then = _call.then(_function_3);
+      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_4 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
+        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                TestActor.this.unsynced();
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then, _function_4);
+      final Procedure1<Long> _function_5 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("unsynced method took: " + it));
+        }
+      };
+      Task _then_1 = _call_1.then(_function_5);
+      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_6 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
+        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                TestActor.this.synced();
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then_1, _function_6);
+      final Procedure1<Long> _function_7 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("synced method took: " + it));
+        }
+      };
+      Task _then_2 = _call_2.then(_function_7);
+      final Function1<Boolean, SubPromise<List<Boolean>, Long>> _function_8 = new Function1<Boolean, SubPromise<List<Boolean>, Long>>() {
+        public SubPromise<List<Boolean>, Long> apply(final Boolean it) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              for (final Integer i : iterations) {
+                actor.apply(i);
+              }
+            }
+          };
+          return TestActor.this.measure(threads, _function);
+        }
+      };
+      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, List<Boolean>, Boolean, Long, SubPromise<List<Boolean>, Long>>call(_then_2, _function_8);
+      final Procedure1<Long> _function_9 = new Procedure1<Long>() {
+        public void apply(final Long it) {
+          InputOutput.<String>println(("actor took: " + it));
+        }
+      };
+      Task _then_3 = _call_3.then(_function_9);
+      Future<Boolean> _future = ExecutorExtensions.<Boolean, Boolean>future(_then_3);
+      _future.get();
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   /**

@@ -59,12 +59,13 @@ class TestMultiThreadedProcessing {
 		val s = int.stream << 1 << 2 << 3
 		s
 			.map [ throwsError ] // this error should propagate down the chain to the .error handler
-			.resolve
+			.resolve(1)
+//			.onError [ println('caught error! ' + message) ]
 			.map [ it + 1 ]
 			.map [ power2 ]
 			.resolve
 			.onError [ result.incrementAndGet ]
-			.onEach [ fail('we should not end up here, since an error should be caught instead') ]
+			.onEach [ println('result ' + it) ]
 		Thread.sleep(500)
 		3.assertEquals(result.get)
 	}
@@ -77,7 +78,7 @@ class TestMultiThreadedProcessing {
 	}
 
 	def throwsError(int i) {
-		threads.promise [|
+		threads.promise [
 			Thread.sleep(100)
 			if(threads != null) throw new Exception('something went wrong')
 			return i * i

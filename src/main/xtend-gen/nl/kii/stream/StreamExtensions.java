@@ -1603,7 +1603,7 @@ public class StreamExtensions {
                 public void apply(final Throwable it) {
                   processes.decrementAndGet();
                   StreamException _streamException = new StreamException("resolve", r, it);
-                  newStream.error(_streamException);
+                  newStream.error(r, _streamException);
                   boolean _get = isFinished.get();
                   if (_get) {
                     newStream.finish(r);
@@ -1689,29 +1689,29 @@ public class StreamExtensions {
    * Make an asynchronous call.
    * This is an alias for stream.call(1)
    */
-  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> SubStream<T, M> call(final Stream<T> stream, final Function1<? super T, ? extends P> promiseFn) {
-    SubStream<T, M> _call = StreamExtensions.<R, T, M, P>call(stream, 1, promiseFn);
-    final Procedure1<SubStream<T, M>> _function = new Procedure1<SubStream<T, M>>() {
-      public void apply(final SubStream<T, M> it) {
+  public static <R extends Object, R2 extends Object, T extends Object, M extends Object, P extends IPromise<R2, M>> SubStream<R, M> call(final IStream<R, T> stream, final Function1<? super T, ? extends P> promiseFn) {
+    SubStream<R, M> _call = StreamExtensions.<R, R2, T, M, P>call(stream, 1, promiseFn);
+    final Procedure1<SubStream<R, M>> _function = new Procedure1<SubStream<R, M>>() {
+      public void apply(final SubStream<R, M> it) {
         stream.setOperation("call");
       }
     };
-    return ObjectExtensions.<SubStream<T, M>>operator_doubleArrow(_call, _function);
+    return ObjectExtensions.<SubStream<R, M>>operator_doubleArrow(_call, _function);
   }
   
   /**
    * Make an asynchronous call.
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
-  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> SubStream<T, M> call(final Stream<T> stream, final int concurrency, final Function1<? super T, ? extends P> promiseFn) {
-    SubStream<T, P> _map = StreamExtensions.<T, T, P>map(stream, promiseFn);
-    SubStream<T, M> _resolve = StreamExtensions.<T, R, M>resolve(_map, concurrency);
-    final Procedure1<SubStream<T, M>> _function = new Procedure1<SubStream<T, M>>() {
-      public void apply(final SubStream<T, M> it) {
+  public static <R extends Object, R2 extends Object, T extends Object, M extends Object, P extends IPromise<R2, M>> SubStream<R, M> call(final IStream<R, T> stream, final int concurrency, final Function1<? super T, ? extends P> promiseFn) {
+    SubStream<R, P> _map = StreamExtensions.<R, T, P>map(stream, promiseFn);
+    SubStream<R, M> _resolve = StreamExtensions.<R, R2, M>resolve(_map, concurrency);
+    final Procedure1<SubStream<R, M>> _function = new Procedure1<SubStream<R, M>>() {
+      public void apply(final SubStream<R, M> it) {
         stream.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<T, M>>operator_doubleArrow(_resolve, _function);
+    return ObjectExtensions.<SubStream<R, M>>operator_doubleArrow(_resolve, _function);
   }
   
   /**

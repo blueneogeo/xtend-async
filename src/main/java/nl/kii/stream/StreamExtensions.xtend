@@ -761,7 +761,7 @@ class StreamExtensions {
 				promise
 					.onError [
 						processes.decrementAndGet
-						newStream.error(new StreamException('resolve', r, it))
+						newStream.error(r, new StreamException('resolve', r, it))
 						if(isFinished.get) newStream.finish(r)
 					]
 					.then [
@@ -796,7 +796,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.call(1)
 	 */	
-	def static <R, T, M, P extends IPromise<R, M>> call(Stream<T> stream, (T)=>P promiseFn) {
+	def static <R, R2, T, M, P extends IPromise<R2, M>> call(IStream<R, T> stream, (T)=>P promiseFn) {
 		stream.call(1, promiseFn)
 			=> [ stream.operation = 'call' ]
 	}
@@ -805,7 +805,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
-	def static <R, T, M, P extends IPromise<R, M>> call(Stream<T> stream, int concurrency, (T)=>P promiseFn) {
+	def static <R, R2, T, M, P extends IPromise<R2, M>> call(IStream<R, T> stream, int concurrency, (T)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}

@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.SubPromise;
@@ -75,8 +76,11 @@ public class TestPromiseExtensions {
   
   @Test
   public void testFlatten() {
-    throw new Error("Unresolved compilation problems:"
-      + "\nBounds mismatch: The type arguments <Promise<Integer>, Integer, Promise<Integer>> are not a valid substitute for the bounded type parameters <R, T, P extends IPromise<R, T>> of the method flatten(IPromise<R, P>)");
+    final Promise<Integer> p1 = new Promise<Integer>(Integer.valueOf(3));
+    Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
+    final IPromise<Promise<Integer>, Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>, Promise<Integer>>operator_doubleLessThan(_promise, p1);
+    final SubPromise<Promise<Integer>, Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>, Integer, Promise<Integer>>flatten(p2);
+    StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
   }
   
   @Test
@@ -88,7 +92,7 @@ public class TestPromiseExtensions {
       }
     };
     SubPromise<Integer, Promise<Integer>> _map = PromiseExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
-    final SubPromise<Integer, Integer> asynced = PromiseExtensions.<Integer, Integer, Promise<Integer>>flatten(_map);
+    final SubPromise<Integer, Integer> asynced = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   
