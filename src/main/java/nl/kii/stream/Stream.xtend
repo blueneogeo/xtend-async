@@ -118,19 +118,19 @@ class SubStream<R, T> extends BaseStream<R, T> {
 	// APPLYING PAIRS TO THE SUBSTREAM
 
 	/** Queue a value on the stream for pushing to the listener */
-	package def push(R from, T value) { apply(new Value(from, value)) }
+	def push(R from, T value) { apply(new Value(from, value)) }
 	
 	/** 
 	 * Tell the stream an error occurred. the error will not be thrown directly,
 	 * but passed and can be listened for down the stream.
 	 */
-	package def error(R from, Throwable error) { apply(new Error(from, error)) }
+	def error(R from, Throwable error) { apply(new Error(from, error)) }
 	
 	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	package def finish(R from) { apply(new Finish(from, 0)) }	
+	def finish(R from) { apply(new Finish(from, 0)) }	
 
 	/** Tell the stream a batch of the given level has finished. */
-	package def finish(R from, int level) { apply(new Finish(from, level)) }	
+	def finish(R from, int level) { apply(new Finish(from, level)) }	
 	
 }
 

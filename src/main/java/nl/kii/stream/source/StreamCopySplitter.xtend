@@ -29,7 +29,6 @@ class StreamCopySplitter<R, T> extends StreamSplitter<R, T> {
 	
 	/** Handle an entry coming in from the source stream */
 	protected override onEntry(Entry<R, T> entry) {
-		println(entry)
 		buffer = entry
 		// only proceed if all streams are ready
 		if(streams.all[ready]) publish
@@ -51,7 +50,6 @@ class StreamCopySplitter<R, T> extends StreamSplitter<R, T> {
 	}
 	
 	protected def next() {
-		println('next!')
 		if(!streams.all[ready]) return;
 		source.next
 		publish

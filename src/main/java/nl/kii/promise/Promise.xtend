@@ -9,7 +9,6 @@ import nl.kii.stream.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
-import nl.kii.async.AsyncException
 
 interface IPromise<R, T> extends Procedure1<Entry<R, T>> {
 	
@@ -71,9 +70,9 @@ class SubPromise<R, T> extends BasePromise<R, T> {
 	override error(Throwable t) { root.error(t) this }
 	
 	/** set the promised value */
-	package def void set(R from, T value) { apply(new Value(from, value)) }
+	def void set(R from, T value) { apply(new Value(from, value)) }
 
-	package def error(R from, Throwable t) { apply(new Error(from, t)) }
+	def void error(R from, Throwable t) { apply(new Error(from, t)) }
 
 }
 
@@ -136,14 +135,20 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 	}	
 	/** 
 	 * If the promise recieved or recieves an error, onError is called with the throwable.
+	 * Removes the error from the chain, so the returned promise no longer receives the error.
+	 * 
+	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
+	 * since there is a generics problem trying to assign the values.
 	 */
 	override onError(Procedure2<R, Throwable> errorFn) {
+		// FIX: this does not work
+		// val subPromise = new SubPromise<R, T>(this) as IPromise<R, T> as SubPromise<R, T>
 		// register for a new value being applied
-		val sub = new AtomicReference<Procedure0>
-		sub.set(publisher.onChange [
-			switch it { 
+		val unregisterFn = new AtomicReference<Procedure0>
+		unregisterFn.set(publisher.onChange [
+			switch it {
 				Error<R, T>: { 
-					sub.get.apply // unsubscribe, so this handler will not be called again
+					unregisterFn.get.apply // unsubscribe, so this handler will not be called again
 					errorFn.apply(from, error)
 				} 
 			}
@@ -151,6 +156,7 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 		hasErrorHandler = true
 		// if there is an entry, push it so this handler will get it
 		if(entry != null) publisher.apply(entry)
+		// subPromise
 		this
 	}
 
@@ -163,19 +169,19 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 	override then(Procedure2<R, T> valueFn) {
 		val newTask = new Task
 		// register for a new value being applied
-		val sub = new AtomicReference<Procedure0>
-		sub.set(publisher.onChange [
+		val unregisterFn = new AtomicReference<Procedure0>
+		unregisterFn.set(publisher.onChange [
 			try {
 				switch it { 
 					Value<R, T>: { 
-						sub.get.apply // unsubscribe, so this handler will not be called again
+						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
 						valueFn.apply(from, value)
 						newTask.complete
 					}
 					Error<R, T>: newTask.error(error)
 				}
 			} catch(Exception e) {
-				error(new AsyncException('Promise.then gave error for', it, e))
+				error(new PromiseException('Promise.then gave error for', it, e))
 				newTask.error(e)
 			}
 		])

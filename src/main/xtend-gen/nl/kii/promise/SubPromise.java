@@ -49,12 +49,12 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   /**
    * set the promised value
    */
-  void set(final R from, final T value) {
+  public void set(final R from, final T value) {
     Value<R, T> _value = new Value<R, T>(from, value);
     this.apply(_value);
   }
   
-  void error(final R from, final Throwable t) {
+  public void error(final R from, final Throwable t) {
     nl.kii.stream.Error<R, T> _error = new nl.kii.stream.Error<R, T>(from, t);
     this.apply(_error);
   }

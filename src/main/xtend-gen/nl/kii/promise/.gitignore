@@ -17,3 +17,4 @@
 /.BasePromise.java._trace
 /.SubPromise.java._trace
 /.SubTask.java._trace
+/.AsyncException.java._trace

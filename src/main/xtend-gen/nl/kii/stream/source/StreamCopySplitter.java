@@ -13,7 +13,6 @@ import nl.kii.stream.StreamNotification;
 import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 
 /**
  * This splitter simply tries to pass all incoming values
@@ -39,7 +38,6 @@ public class StreamCopySplitter<R extends Object, T extends Object> extends Stre
    * Handle an entry coming in from the source stream
    */
   protected void onEntry(final Entry<R, T> entry) {
-    InputOutput.<Entry<R, T>>println(entry);
     this.setBuffer(entry);
     List<IStream<R, T>> _streams = this.getStreams();
     final Function1<IStream<R, T>, Boolean> _function = new Function1<IStream<R, T>, Boolean>() {
@@ -95,7 +93,6 @@ public class StreamCopySplitter<R extends Object, T extends Object> extends Stre
   }
   
   protected void next() {
-    InputOutput.<String>println("next!");
     List<IStream<R, T>> _streams = this.getStreams();
     final Function1<IStream<R, T>, Boolean> _function = new Function1<IStream<R, T>, Boolean>() {
       public Boolean apply(final IStream<R, T> it) {

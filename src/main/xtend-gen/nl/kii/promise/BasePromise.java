@@ -3,10 +3,10 @@ package nl.kii.promise;
 import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import nl.kii.async.AsyncException;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.PromiseException;
 import nl.kii.promise.Task;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
@@ -119,18 +119,22 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   
   /**
    * If the promise recieved or recieves an error, onError is called with the throwable.
+   * Removes the error from the chain, so the returned promise no longer receives the error.
+   * 
+   * FIX: this method should return a subpromise with the error filtered out, but it returns this,
+   * since there is a generics problem trying to assign the values.
    */
   public IPromise<R, T> onError(final Procedure2<R, Throwable> errorFn) {
     BasePromise<R, T> _xblockexpression = null;
     {
-      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
+      final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
         public void apply(final Entry<R, T> it) {
           boolean _matched = false;
           if (!_matched) {
             if (it instanceof nl.kii.stream.Error) {
               _matched=true;
-              Procedure0 _get = sub.get();
+              Procedure0 _get = unregisterFn.get();
               _get.apply();
               errorFn.apply(((nl.kii.stream.Error<R, T>)it).from, ((nl.kii.stream.Error<R, T>)it).error);
             }
@@ -138,7 +142,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
         }
       };
       Procedure0 _onChange = this.publisher.onChange(_function);
-      sub.set(_onChange);
+      unregisterFn.set(_onChange);
       this.setHasErrorHandler(Boolean.valueOf(true));
       Entry<R, T> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
@@ -170,7 +174,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     Task _xblockexpression = null;
     {
       final Task newTask = new Task();
-      final AtomicReference<Procedure0> sub = new AtomicReference<Procedure0>();
+      final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
         public void apply(final Entry<R, T> it) {
           try {
@@ -178,7 +182,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
             if (!_matched) {
               if (it instanceof Value) {
                 _matched=true;
-                Procedure0 _get = sub.get();
+                Procedure0 _get = unregisterFn.get();
                 _get.apply();
                 valueFn.apply(((Value<R, T>)it).from, ((Value<R, T>)it).value);
                 newTask.complete();
@@ -193,8 +197,8 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
           } catch (final Throwable _t) {
             if (_t instanceof Exception) {
               final Exception e = (Exception)_t;
-              AsyncException _asyncException = new AsyncException("Promise.then gave error for", it, e);
-              BasePromise.this.error(_asyncException);
+              PromiseException _promiseException = new PromiseException("Promise.then gave error for", it, e);
+              BasePromise.this.error(_promiseException);
               newTask.error(e);
             } else {
               throw Exceptions.sneakyThrow(_t);
@@ -203,7 +207,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
         }
       };
       Procedure0 _onChange = this.publisher.onChange(_function);
-      sub.set(_onChange);
+      unregisterFn.set(_onChange);
       this.setHasValueHandler(Boolean.valueOf(true));
       Entry<R, T> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
