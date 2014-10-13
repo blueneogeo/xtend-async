@@ -26,6 +26,7 @@ import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 import nl.kii.promise.SubPromise
+import nl.kii.promise.SubTask
 
 class StreamExtensions {
 	
@@ -883,7 +884,7 @@ class StreamExtensions {
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <R, T> Task onEach(IStream<R, T> stream, (T)=>void handler) {
+	def static <R, T> SubTask<R> onEach(IStream<R, T> stream, (T)=>void handler) {
 		stream.onEach [ r, it | handler.apply(it) ]
 	}
 
@@ -891,13 +892,13 @@ class StreamExtensions {
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
-	def static <R, T> Task onEach(IStream<R, T> stream, (R, T)=>void handler) {
-		val task = new Task
+	def static <R, T> SubTask<R> onEach(IStream<R, T> stream, (R, T)=>void handler) {
+		val task = new SubTask<R>(new Promise<R>)
 		stream.on [
 			each [ handler.apply($0, $1) stream.next ]
 			error [ task.error($1) stream.next ]
 			finish [
-				if($1 == 0) task.complete
+				if($1 == 0) task.set($0, true)
 				stream.next
 			]
 			closed [ stream.close ]

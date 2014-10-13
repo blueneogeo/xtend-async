@@ -3,6 +3,7 @@ package nl.kii.stream.test;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
@@ -32,7 +33,7 @@ public class TestIOStreamExtensions {
         InputOutput.<String>println(it);
       }
     };
-    Task _onEach = StreamExtensions.<List<Byte>, String>onEach(_map, _function_1);
+    SubTask<List<Byte>> _onEach = StreamExtensions.<List<Byte>, String>onEach(_map, _function_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         InputOutput.<String>println("finish");

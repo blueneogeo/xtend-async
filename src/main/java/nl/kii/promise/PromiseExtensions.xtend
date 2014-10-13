@@ -40,15 +40,14 @@ class PromiseExtensions {
 		new Promise<Pair<K, V>>
 	}
 
-//	/** Distribute work using an asynchronous method */	
-//	def static <T, R, P extends IPromise<R>> IPromise<List<R>> call(List<T> data, int concurrency, (T)=>P operationFn) {
-//		data.stream
-//			.map(operationFn) // put each of them
-//			.resolve(concurrency) // we get back a pair of the key->value used, and the done result
-//			.collect // see it as a list of results
-//			.first
-//			=> [ operation = 'call(concurrency=' + concurrency + ')' ]
-//	}
+	/** Distribute work using an asynchronous method */	
+	def static <R, T, M, P extends IPromise<R, M>> IPromise<T, List<M>> call(List<T> data, int concurrency, (T)=>P operationFn) {
+		data.stream
+			.call(concurrency, operationFn)
+			.collect // see it as a list of results
+			.first
+			=> [ operation = 'call(concurrency=' + concurrency + ')' ]
+	}
 
 	/** Shortcut for quickly creating a completed task */	
 	def static Task complete() {
@@ -163,6 +162,17 @@ class PromiseExtensions {
 			.onError [ r, it | newPromise.error(r, it) ]
 			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
 		newPromise => [ operation = 'map' ]
+	}
+	
+	/**
+	 * Create a new promise with a new root, defined by the rootFn
+	 */
+	def static <R, R2, T> root(IPromise<R, T> promise, (R, T)=>R2 rootFn) {
+		val subPromise = new SubPromise<R2, T>(new Promise<R2>)
+		promise
+			.onError [ r, it | subPromise.error(rootFn.apply(r, null), it) ]
+			.then [ r, it | subPromise.set(rootFn.apply(r, it), it) ]
+		subPromise => [ operation = 'root' ]
 	}
 	
 	/**

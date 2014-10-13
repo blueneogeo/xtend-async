@@ -24,6 +24,7 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.SubPromise;
+import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
 import nl.kii.stream.BaseStream;
 import nl.kii.stream.Close;
@@ -1876,7 +1877,7 @@ public class StreamExtensions {
    * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <R extends Object, T extends Object> Task onEach(final IStream<R, T> stream, final Procedure1<? super T> handler) {
+  public static <R extends Object, T extends Object> SubTask<R> onEach(final IStream<R, T> stream, final Procedure1<? super T> handler) {
     final Procedure2<R, T> _function = new Procedure2<R, T>() {
       public void apply(final R r, final T it) {
         handler.apply(it);
@@ -1889,10 +1890,11 @@ public class StreamExtensions {
    * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <R extends Object, T extends Object> Task onEach(final IStream<R, T> stream, final Procedure2<? super R, ? super T> handler) {
-    Task _xblockexpression = null;
+  public static <R extends Object, T extends Object> SubTask<R> onEach(final IStream<R, T> stream, final Procedure2<? super R, ? super T> handler) {
+    SubTask<R> _xblockexpression = null;
     {
-      final Task task = new Task();
+      Promise<R> _promise = new Promise<R>();
+      final SubTask<R> task = new SubTask<R>(_promise);
       final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
@@ -1912,7 +1914,7 @@ public class StreamExtensions {
           final Procedure2<R, Integer> _function_2 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
               if ((($1).intValue() == 0)) {
-                task.complete();
+                task.set($0, Boolean.valueOf(true));
               }
               stream.next();
             }
@@ -1939,20 +1941,20 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> Task onEachCall(final IStream<R, T> stream, final Function2<? super R, ? super T, ? extends P> taskFn) {
+  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> SubTask<R> onEachCall(final IStream<R, T> stream, final Function2<? super R, ? super T, ? extends P> taskFn) {
     SubStream<R, P> _map = StreamExtensions.<R, T, P>map(stream, taskFn);
     SubStream<R, V> _resolve = StreamExtensions.<R, R2, V>resolve(_map);
     final Procedure1<V> _function = new Procedure1<V>() {
       public void apply(final V it) {
       }
     };
-    Task _onEach = StreamExtensions.<R, V>onEach(_resolve, _function);
-    final Procedure1<Task> _function_1 = new Procedure1<Task>() {
-      public void apply(final Task it) {
+    SubTask<R> _onEach = StreamExtensions.<R, V>onEach(_resolve, _function);
+    final Procedure1<SubTask<R>> _function_1 = new Procedure1<SubTask<R>>() {
+      public void apply(final SubTask<R> it) {
         stream.setOperation("onEachCall");
       }
     };
-    return ObjectExtensions.<Task>operator_doubleArrow(_onEach, _function_1);
+    return ObjectExtensions.<SubTask<R>>operator_doubleArrow(_onEach, _function_1);
   }
   
   /**
@@ -1960,20 +1962,20 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> Task onEachCall(final IStream<R, T> stream, final Function1<? super T, ? extends P> taskFn) {
+  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> SubTask<R> onEachCall(final IStream<R, T> stream, final Function1<? super T, ? extends P> taskFn) {
     SubStream<R, P> _map = StreamExtensions.<R, T, P>map(stream, taskFn);
     SubStream<R, V> _resolve = StreamExtensions.<R, R2, V>resolve(_map);
     final Procedure1<V> _function = new Procedure1<V>() {
       public void apply(final V it) {
       }
     };
-    Task _onEach = StreamExtensions.<R, V>onEach(_resolve, _function);
-    final Procedure1<Task> _function_1 = new Procedure1<Task>() {
-      public void apply(final Task it) {
+    SubTask<R> _onEach = StreamExtensions.<R, V>onEach(_resolve, _function);
+    final Procedure1<SubTask<R>> _function_1 = new Procedure1<SubTask<R>>() {
+      public void apply(final SubTask<R> it) {
         stream.setOperation("onEachCall");
       }
     };
-    return ObjectExtensions.<Task>operator_doubleArrow(_onEach, _function_1);
+    return ObjectExtensions.<SubTask<R>>operator_doubleArrow(_onEach, _function_1);
   }
   
   /**

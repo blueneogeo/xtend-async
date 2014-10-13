@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
 import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
@@ -72,7 +73,7 @@ public class TestStreamErrorHandling {
         TestStreamErrorHandling.this.incCounter();
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_3);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_3);
     final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestStreamErrorHandling.this.setComplete(Boolean.valueOf(true));
@@ -134,7 +135,7 @@ public class TestStreamErrorHandling {
         TestStreamErrorHandling.this.incCounter();
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_4);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_4);
     final Procedure1<Boolean> _function_5 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestStreamErrorHandling.this.setComplete(Boolean.valueOf(true));
@@ -203,7 +204,7 @@ public class TestStreamErrorHandling {
         InputOutput.<String>println(("result : " + it));
       }
     };
-    Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
     final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         InputOutput.<String>println("done");
@@ -271,7 +272,7 @@ public class TestStreamErrorHandling {
         InputOutput.<String>println(("result : " + it));
       }
     };
-    Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
     final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         InputOutput.<String>println("done");
@@ -337,7 +338,7 @@ public class TestStreamErrorHandling {
         InputOutput.<String>println(("result : " + it));
       }
     };
-    Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_2);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_2);
     final Procedure1<Boolean> _function_3 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         InputOutput.<String>println("done");
@@ -464,7 +465,7 @@ public class TestStreamErrorHandling {
         public void apply(final Integer it) {
         }
       };
-      Task _onEach = StreamExtensions.<Integer, Integer>onEach(_map_1, _function_3);
+      SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_1, _function_3);
       final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
           TestStreamErrorHandling.this.setCaught(it);
@@ -526,7 +527,7 @@ public class TestStreamErrorHandling {
         TestStreamErrorHandling.this.incCount();
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(_onError, _function_3);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_onError, _function_3);
     final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestStreamErrorHandling.this.setFinished(Boolean.valueOf(true));

@@ -18,7 +18,7 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.SubPromise;
-import nl.kii.promise.Task;
+import nl.kii.promise.SubTask;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
@@ -910,7 +910,7 @@ public class TestStreamExtensions {
         }
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         TestStreamExtensions.this.incErrorCount();
@@ -1172,7 +1172,7 @@ public class TestStreamExtensions {
         InputOutput.<Integer>println(it);
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(s2, _function);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s2, _function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         InputOutput.<String>println("done");
@@ -1201,7 +1201,7 @@ public class TestStreamExtensions {
         InputOutput.<Integer>println(it);
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(_onError, _function_1);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_onError, _function_1);
     StreamAssert.<Boolean>assertPromiseEquals(_onEach, Boolean.valueOf(true));
   }
   
@@ -1219,7 +1219,7 @@ public class TestStreamExtensions {
         InputOutput.<Integer>println(it);
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(s2, _function);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s2, _function);
     StreamAssert.<Boolean>assertPromiseEquals(_onEach, Boolean.valueOf(true));
   }
   

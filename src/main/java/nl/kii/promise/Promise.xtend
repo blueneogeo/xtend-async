@@ -146,11 +146,16 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 		// register for a new value being applied
 		val unregisterFn = new AtomicReference<Procedure0>
 		unregisterFn.set(publisher.onChange [
-			switch it {
-				Error<R, T>: { 
-					unregisterFn.get.apply // unsubscribe, so this handler will not be called again
-					errorFn.apply(from, error)
-				} 
+			try {
+				switch it {
+					Error<R, T>: { 
+						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
+						errorFn.apply(from, error)
+					} 
+				}
+			} catch(Exception e) {
+				println('Promise.onError: error while handling promise error for entry ' + it)
+				e.printStackTrace
 			}
 		])
 		hasErrorHandler = true

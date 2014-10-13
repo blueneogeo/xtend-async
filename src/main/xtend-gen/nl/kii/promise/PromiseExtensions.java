@@ -61,6 +61,22 @@ public class PromiseExtensions {
   }
   
   /**
+   * Distribute work using an asynchronous method
+   */
+  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> IPromise<T, List<M>> call(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
+    Stream<T> _stream = StreamExtensions.<T>stream(data);
+    SubStream<T, M> _call = StreamExtensions.<T, R, T, M, P>call(_stream, concurrency, operationFn);
+    SubStream<T, List<M>> _collect = StreamExtensions.<T, M>collect(_call);
+    IPromise<T, List<M>> _first = StreamExtensions.<T, List<M>>first(_collect);
+    final Procedure1<IPromise<T, List<M>>> _function = new Procedure1<IPromise<T, List<M>>>() {
+      public void apply(final IPromise<T, List<M>> it) {
+        it.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
+      }
+    };
+    return ObjectExtensions.<IPromise<T, List<M>>>operator_doubleArrow(_first, _function);
+  }
+  
+  /**
    * Shortcut for quickly creating a completed task
    */
   public static Task complete() {
@@ -275,6 +291,38 @@ public class PromiseExtensions {
         }
       };
       _xblockexpression = ObjectExtensions.<SubPromise<R, M>>operator_doubleArrow(newPromise, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create a new promise with a new root, defined by the rootFn
+   */
+  public static <R extends Object, R2 extends Object, T extends Object> SubPromise<R2, T> root(final IPromise<R, T> promise, final Function2<? super R, ? super T, ? extends R2> rootFn) {
+    SubPromise<R2, T> _xblockexpression = null;
+    {
+      Promise<R2> _promise = new Promise<R2>();
+      final SubPromise<R2, T> subPromise = new SubPromise<R2, T>(_promise);
+      final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+        public void apply(final R r, final Throwable it) {
+          R2 _apply = rootFn.apply(r, null);
+          subPromise.error(_apply, it);
+        }
+      };
+      IPromise<R, T> _onError = promise.onError(_function);
+      final Procedure2<R, T> _function_1 = new Procedure2<R, T>() {
+        public void apply(final R r, final T it) {
+          R2 _apply = rootFn.apply(r, it);
+          subPromise.set(_apply, it);
+        }
+      };
+      _onError.then(_function_1);
+      final Procedure1<SubPromise<R2, T>> _function_2 = new Procedure1<SubPromise<R2, T>>() {
+        public void apply(final SubPromise<R2, T> it) {
+          it.setOperation("root");
+        }
+      };
+      _xblockexpression = ObjectExtensions.<SubPromise<R2, T>>operator_doubleArrow(subPromise, _function_2);
     }
     return _xblockexpression;
   }

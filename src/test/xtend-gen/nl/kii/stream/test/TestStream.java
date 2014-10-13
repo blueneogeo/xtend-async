@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.Task;
+import nl.kii.promise.SubTask;
 import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
@@ -242,7 +242,7 @@ public class TestStream {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
       }
     };
-    Task _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         InputOutput.<String>println("!!");

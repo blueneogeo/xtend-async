@@ -12,6 +12,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
@@ -130,13 +131,23 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
         public void apply(final Entry<R, T> it) {
-          boolean _matched = false;
-          if (!_matched) {
-            if (it instanceof nl.kii.stream.Error) {
-              _matched=true;
-              Procedure0 _get = unregisterFn.get();
-              _get.apply();
-              errorFn.apply(((nl.kii.stream.Error<R, T>)it).from, ((nl.kii.stream.Error<R, T>)it).error);
+          try {
+            boolean _matched = false;
+            if (!_matched) {
+              if (it instanceof nl.kii.stream.Error) {
+                _matched=true;
+                Procedure0 _get = unregisterFn.get();
+                _get.apply();
+                errorFn.apply(((nl.kii.stream.Error<R, T>)it).from, ((nl.kii.stream.Error<R, T>)it).error);
+              }
+            }
+          } catch (final Throwable _t) {
+            if (_t instanceof Exception) {
+              final Exception e = (Exception)_t;
+              InputOutput.<String>println(("Promise.onError: error while handling promise error for entry " + it));
+              e.printStackTrace();
+            } else {
+              throw Exceptions.sneakyThrow(_t);
             }
           }
         }
