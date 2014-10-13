@@ -1203,7 +1203,6 @@ class StreamExtensions {
 		val newStream = new SubStream<R, P>(stream)
 		stream.on [
 			each [
-				println('value ' + $1)
 				try {
 					reduced.set(reducerFn.apply(reduced.get, $1))
 				} finally {
@@ -1212,13 +1211,10 @@ class StreamExtensions {
 			]
 			finish [
 				if($1 == 0) {
-					println('finish, resetting to initial')
 					val result = reduced.getAndSet(initial)
 					if(result != null) {
-						println('not null, continue!')
 						newStream.push($0, result)
 					} else {
-						println('null... do not send a finish!')
 						stream.next
 					}
 				} else {

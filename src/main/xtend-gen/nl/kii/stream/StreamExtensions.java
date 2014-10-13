@@ -56,7 +56,6 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
 import org.eclipse.xtext.xbase.lib.Functions.Function4;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -2558,7 +2557,6 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
-              InputOutput.<String>println(("value " + $1));
               try {
                 P _get = reduced.get();
                 P _apply = reducerFn.apply(_get, $1);
@@ -2572,14 +2570,11 @@ public class StreamExtensions {
           final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
               if ((($1).intValue() == 0)) {
-                InputOutput.<String>println("finish, resetting to initial");
                 final P result = reduced.getAndSet(initial);
                 boolean _notEquals = (!Objects.equal(result, null));
                 if (_notEquals) {
-                  InputOutput.<String>println("not null, continue!");
                   newStream.push($0, result);
                 } else {
-                  InputOutput.<String>println("null... do not send a finish!");
                   stream.next();
                 }
               } else {
