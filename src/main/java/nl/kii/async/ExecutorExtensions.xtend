@@ -26,7 +26,7 @@ class ExecutorExtensions {
 	 * <pre>
 	 * val result = promise.future.get // blocks code until the promise is fulfilled
 	 */
-	def static <T> Future<T> future(IPromise<T> promise) {
+	def static <R, T> Future<T> future(IPromise<R, T> promise) {
 		new PromiseFuture(promise)
 	}
 
@@ -37,7 +37,7 @@ class ExecutorExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> IPromise<T> promise(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> promise(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {

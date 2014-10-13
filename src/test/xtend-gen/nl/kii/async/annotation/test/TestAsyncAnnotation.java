@@ -56,7 +56,7 @@ public class TestAsyncAnnotation {
         isError.set(true);
       }
     };
-    IPromise<Boolean> _onError = _printHello.onError(_function);
+    IPromise<Boolean, Boolean> _onError = _printHello.onError(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         isError.set(false);
@@ -88,8 +88,8 @@ public class TestAsyncAnnotation {
   }
   
   @Async
-  public IPromise<Integer> increment(final int number, final Promise<Integer> promise) {
-    return PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
+  public IPromise<Integer, Integer> increment(final int number, final Promise<Integer> promise) {
+    return PromiseExtensions.<Integer, Integer>operator_doubleLessThan(promise, Integer.valueOf((number + 1)));
   }
   
   @Async(true)

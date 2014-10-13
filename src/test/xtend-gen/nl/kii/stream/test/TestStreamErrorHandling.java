@@ -10,12 +10,14 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.StreamHandlerBuilder;
 import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -163,7 +165,7 @@ public class TestStreamErrorHandling {
   }
   
   @Test
-  public void testStreamAggregationsShouldFailOnInternalErrrorsButNotBreakTheStream() {
+  public void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream() {
     IntegerRange _upTo = new IntegerRange(1, 20);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
@@ -198,7 +200,7 @@ public class TestStreamErrorHandling {
     SubStream<Integer, List<Integer>> _onError = StreamExtensions.<Integer, List<Integer>>onError(_collect, _function_2);
     final Procedure1<List<Integer>> _function_3 = new Procedure1<List<Integer>>() {
       public void apply(final List<Integer> it) {
-        InputOutput.<List<Integer>>println(it);
+        InputOutput.<String>println(("result : " + it));
       }
     };
     Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
@@ -207,54 +209,181 @@ public class TestStreamErrorHandling {
         InputOutput.<String>println("done");
       }
     };
-    _onEach.then(_function_4);
+    Task _then = _onEach.then(_function_4);
+    final Procedure1<Throwable> _function_5 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        String _message = it.getMessage();
+        Assert.fail(_message);
+      }
+    };
+    _then.onError(_function_5);
   }
   
   @Test
-  public void testHandlingAboveErrorShouldTriggerException() {
-    try {
-      final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-        public Integer apply(final Integer it) {
-          return it;
-        }
-      };
-      SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-      final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-        public void apply(final Throwable it) {
-          Assert.fail("should not trigger");
-        }
-      };
-      SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_map, _function_1);
-      final Function1<Integer, Boolean> _function_2 = new Function1<Integer, Boolean>() {
-        public Boolean apply(final Integer it) {
-          return Boolean.valueOf(((1 / ((it).intValue() % 2)) == 0));
-        }
-      };
-      SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_onError, _function_2);
-      final Function1<Integer, Integer> _function_3 = new Function1<Integer, Integer>() {
-        public Integer apply(final Integer it) {
-          return it;
-        }
-      };
-      SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_3);
-      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-        public void apply(final Integer it) {
-        }
-      };
-      StreamExtensions.<Integer, Integer>onEach(_map_1, _function_4);
-      IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
-      IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-      Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
-      StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
-      Assert.fail("we expected an error for /0");
-    } catch (final Throwable _t) {
-      if (_t instanceof Exception) {
-        final Exception e = (Exception)_t;
-      } else {
-        throw Exceptions.sneakyThrow(_t);
+  public void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream2() {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(4));
+    IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(5));
+    IStream<Integer, Integer> _doubleLessThan_5 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(6));
+    IStream<Integer, Integer> _doubleLessThan_6 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(7));
+    IStream<Integer, Integer> _doubleLessThan_7 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(8));
+    IStream<Integer, Integer> _doubleLessThan_8 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_7, Integer.valueOf(9));
+    IStream<Integer, Integer> _doubleLessThan_9 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_8, Integer.valueOf(10));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish(0);
+    IStream<Integer, Integer> _doubleLessThan_10 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_9, _finish);
+    Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish(1);
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_10, _finish_1);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 4) == 0));
       }
-    }
+    };
+    SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(s, _function);
+    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        try {
+          Integer _xblockexpression = null;
+          {
+            if ((((it).intValue() % 6) == 0)) {
+              throw new Exception();
+            }
+            _xblockexpression = it;
+          }
+          return _xblockexpression;
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_split, _function_1);
+    SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_map);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        InputOutput.<String>println(("error " + it));
+      }
+    };
+    SubStream<Integer, List<Integer>> _onError = StreamExtensions.<Integer, List<Integer>>onError(_collect, _function_2);
+    final Procedure1<List<Integer>> _function_3 = new Procedure1<List<Integer>>() {
+      public void apply(final List<Integer> it) {
+        InputOutput.<String>println(("result : " + it));
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_3);
+    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<String>println("done");
+      }
+    };
+    Task _then = _onEach.then(_function_4);
+    final Procedure1<Throwable> _function_5 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        String _message = it.getMessage();
+        Assert.fail(_message);
+      }
+    };
+    _then.onError(_function_5);
+  }
+  
+  @Test
+  public void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream3() {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(4));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish(0);
+    IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, _finish);
+    IStream<Integer, Integer> _doubleLessThan_5 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    IStream<Integer, Integer> _doubleLessThan_6 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(6));
+    IStream<Integer, Integer> _doubleLessThan_7 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(7));
+    IStream<Integer, Integer> _doubleLessThan_8 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_7, Integer.valueOf(8));
+    Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish(0);
+    IStream<Integer, Integer> _doubleLessThan_9 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
+    IStream<Integer, Integer> _doubleLessThan_10 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_9, Integer.valueOf(9));
+    IStream<Integer, Integer> _doubleLessThan_11 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_10, Integer.valueOf(10));
+    Finish<Integer, Integer> _finish_2 = StreamExtensions.<Integer, Integer>finish(0);
+    IStream<Integer, Integer> _doubleLessThan_12 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_11, _finish_2);
+    Finish<Integer, Integer> _finish_3 = StreamExtensions.<Integer, Integer>finish(1);
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_12, _finish_3);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      public Integer apply(final Integer it) {
+        try {
+          Integer _xblockexpression = null;
+          {
+            if ((((it).intValue() % 6) == 0)) {
+              throw new Exception();
+            }
+            _xblockexpression = it;
+          }
+          return _xblockexpression;
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
+    SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_map);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        InputOutput.<String>println(("error " + it));
+      }
+    };
+    SubStream<Integer, List<Integer>> _onError = StreamExtensions.<Integer, List<Integer>>onError(_collect, _function_1);
+    final Procedure1<List<Integer>> _function_2 = new Procedure1<List<Integer>>() {
+      public void apply(final List<Integer> it) {
+        InputOutput.<String>println(("result : " + it));
+      }
+    };
+    Task _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_onError, _function_2);
+    final Procedure1<Boolean> _function_3 = new Procedure1<Boolean>() {
+      public void apply(final Boolean it) {
+        InputOutput.<String>println("done");
+      }
+    };
+    Task _then = _onEach.then(_function_3);
+    final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        InputOutput.<String>println("error");
+        String _message = it.getMessage();
+        Assert.fail(_message);
+      }
+    };
+    _then.onError(_function_4);
+  }
+  
+  @Test
+  public void testSplit() {
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 4) == 0));
+      }
+    };
+    SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(_stream, _function);
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            InputOutput.<Integer>println($1);
+            it.stream.next();
+          }
+        };
+        it.each(_function);
+        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            InputOutput.<String>println(("finish " + $1));
+            it.stream.next();
+          }
+        };
+        it.finish(_function_1);
+        it.stream.next();
+      }
+    };
+    StreamExtensions.<Integer, Integer>on(_split, _function_1);
   }
   
   @Atomic

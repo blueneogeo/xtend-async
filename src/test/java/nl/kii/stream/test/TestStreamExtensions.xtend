@@ -118,6 +118,32 @@ class TestStreamExtensions {
 		val split = s.split [ it % 2 == 0]
 		split.assertStreamContains(1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1))
 	}
+
+	@Test
+	def void testSplitWithSkip() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
+		val split = s.split [ it % 4 == 0]
+		val collect = int.stream
+		split.on [
+			each [ 
+				if($1 == 1) stream.skip
+				collect << $1
+			]
+			finish [ 
+				collect << finish($1)
+			]
+		]
+		split.next
+		split.next
+		split.next
+		split.next
+		split.next
+		split.next
+		split.next
+		split.next
+		collect.assertStreamContains(1.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1))
+	}
+
 	
 	@Test
 	def void testMerge() {

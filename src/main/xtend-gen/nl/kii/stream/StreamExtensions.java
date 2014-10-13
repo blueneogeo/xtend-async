@@ -55,6 +55,8 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
+import org.eclipse.xtext.xbase.lib.Functions.Function4;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
@@ -103,7 +105,7 @@ public class StreamExtensions {
   /**
    * Create a stream of values out of a Promise of a list. If the promise throws an error,
    */
-  public static <T extends Object, T2 extends Iterable<T>> Stream<T> stream(final IPromise<T2> promise) {
+  public static <R extends Object, T extends Object, T2 extends Iterable<T>> Stream<T> stream(final IPromise<R, T2> promise) {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
@@ -112,7 +114,7 @@ public class StreamExtensions {
           newStream.error(it);
         }
       };
-      IPromise<T2> _onError = promise.onError(_function);
+      IPromise<R, T2> _onError = promise.onError(_function);
       final Procedure1<T2> _function_1 = new Procedure1<T2>() {
         public void apply(final T2 it) {
           Stream<T> _stream = StreamExtensions.<T>stream(it);
@@ -579,7 +581,7 @@ public class StreamExtensions {
     return new Finish<R, T>(null, level);
   }
   
-  public static <R extends Object, R2 extends Object, T extends Object, T2 extends Object> void controls(final IStream<R, T2> newStream, final IStream<R2, T> parent) {
+  public static <R extends Object, R2 extends Object, T extends Object, T2 extends Object> IStream<R, T2> controls(final IStream<R, T2> newStream, final IStream<R2, T> parent) {
     final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
       public void apply(final StreamResponder it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
@@ -602,7 +604,7 @@ public class StreamExtensions {
         it.close(_function_2);
       }
     };
-    StreamExtensions.<R, T2>monitor(newStream, _function);
+    return StreamExtensions.<R, T2>monitor(newStream, _function);
   }
   
   /**
@@ -641,6 +643,18 @@ public class StreamExtensions {
    * Transform each item in the stream using the passed mappingFn
    */
   public static <R extends Object, T extends Object, P extends Object> SubStream<R, P> map(final IStream<R, T> stream, final Function1<? super T, ? extends P> mappingFn) {
+    final Function2<R, T, P> _function = new Function2<R, T, P>() {
+      public P apply(final R r, final T it) {
+        return mappingFn.apply(it);
+      }
+    };
+    return StreamExtensions.<R, T, P>map(stream, _function);
+  }
+  
+  /**
+   * Transform each item in the stream using the passed mappingFn.
+   */
+  public static <R extends Object, T extends Object, P extends Object> SubStream<R, P> map(final IStream<R, T> stream, final Function2<? super R, ? super T, ? extends P> mappingFn) {
     SubStream<R, P> _xblockexpression = null;
     {
       final SubStream<R, P> newStream = new SubStream<R, P>(stream);
@@ -648,7 +662,7 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
-              final P mapped = mappingFn.apply($1);
+              final P mapped = mappingFn.apply($0, $1);
               newStream.push($0, mapped);
             }
           };
@@ -702,6 +716,22 @@ public class StreamExtensions {
    * are reset by a finish.
    */
   public static <R extends Object, T extends Object> SubStream<R, T> filter(final IStream<R, T> stream, final Function3<? super T, ? super Long, ? super Long, ? extends Boolean> filterFn) {
+    final Function4<R, T, Long, Long, Boolean> _function = new Function4<R, T, Long, Long, Boolean>() {
+      public Boolean apply(final R r, final T it, final Long index, final Long passed) {
+        return filterFn.apply(it, index, passed);
+      }
+    };
+    return StreamExtensions.<R, T>filter(stream, _function);
+  }
+  
+  /**
+   * Filter items in a stream to only the ones that the filterFn
+   * returns a true for. This version also counts the number of
+   * items passed into the stream (the index) and the number of
+   * items passed by this filter so far. Both of these numbers
+   * are reset by a finish.
+   */
+  public static <R extends Object, T extends Object> SubStream<R, T> filter(final IStream<R, T> stream, final Function4<? super R, ? super T, ? super Long, ? super Long, ? extends Boolean> filterFn) {
     SubStream<R, T> _xblockexpression = null;
     {
       Stream<R> _root = stream.getRoot();
@@ -714,7 +744,7 @@ public class StreamExtensions {
             public void apply(final R $0, final T $1) {
               final long i = index.incrementAndGet();
               long _get = passed.get();
-              Boolean _apply = filterFn.apply($1, Long.valueOf(i), Long.valueOf(_get));
+              Boolean _apply = filterFn.apply($0, $1, Long.valueOf(i), Long.valueOf(_get));
               if ((_apply).booleanValue()) {
                 passed.incrementAndGet();
                 newStream.push($0, $1);
@@ -756,10 +786,9 @@ public class StreamExtensions {
   
   /**
    * Splits a stream into multiple parts. These parts are separated by Finish entries.
-   * Streams support multiple levels of finishes, to indicate multiple levels of splits.
-   * This allows you to split a stream, and then split it again.
    * <p>
-   * It follows these rules:
+   * Streams support multiple levels of finishes, to indicate multiple levels of splits.
+   * This allows you to split a stream, and then split it again. Rules for splitting a stream:
    * <ul>
    * <li>when a new split is applied, it is always at finish level 0
    * <li>all other stream operations that use finish, always use this level
@@ -767,77 +796,34 @@ public class StreamExtensions {
    * <li>splits at a higher level always are carried through to a lower level. so wherever there is a
    *     level 1 split for example, there is also a level 0 split
    * </ul>
-   * <p>
-   * The reason for these seemingly strange rules is that it allows us to split and merge a stream
-   * multiple times consistently. For example, consider the following stream, where finish(x) represents
-   * a finish of level x:
-   * <pre>
-   * val s = (1..10).stream
-   * // this stream contains:
-   * 1, 2, 3, 4, 5, 6, 7, finish(0)
-   * // the finish(0) is automatically added by the iterator as it ends
-   * </pre>
-   * If we split this stream at 4, we get this:
-   * <pre>
-   * val s2 = s.split[it==4]
-   * // s2 now contains:
-   * 1, 2, 3, 4, finish(0), 5, 6, 7, finish(0), finish(1)
-   * </pre>
-   * The split had as condition that it would occur at it==4, so after 4 a finish(0) was added.
-   * Also, the finish(0) at the end became upgraded to finish(1), and because a splits at
-   * a higher level always punch through, it also added a finish(0).
-   * <p>
-   * In the same manner we can keep splitting the stream and each time we will add another layer
-   * of finishes.
-   * <p>
-   * We can also merge the stream and this will reverse the process, reducing one level:
-   * <pre>
-   * val s3 = s2.merge
-   * // s3 now contains:
-   * 1, 2, 3, 4, 5, 6, 7, finish(0)
-   * </pre>
-   * <p>
-   * We can also merge by calling collect, which will transform the data between the splits into lists.
-   * The reason why splits of higher levels cut into the splits of lower levels is that the split levels
-   * are not independant. The finishes let you model a stream of stream. What essentially is simulated is:
-   * <pre>
-   * val s = int.stream
-   * val Stream<Stream<Integer>> s2 = s.split
-   * // and merge reverses:
-   * val Stream<Integer> s3 = s2.merge
-   * </pre>
-   * There are several reasons why this library does not use this substream approach:
-   * <ul>
-   * <li>Streams of streams are uncertain in their behavior, it is not guaranteed that this stream is serial or parallel.
-   * <li>Streams are not light objects, having queues, and having streams of streams would be memory and performance expensive
-   * <li>Streams of streams are not easily serializable and cannot easliy be throught of as a linear stream
-   * <li>Streams of streams are harder to reason and program with than a single stream
-   * </ul>
-   * <p>
-   * However the split and merge commands are there to simulate having substreams. To think of it more simply like a
-   * List<List<T>>, you cannot have a separation at the higher list level, which is not represented at the <List<T>> level.
    */
   public static <R extends Object, T extends Object> SubStream<R, T> split(final IStream<R, T> stream, final Function1<? super T, ? extends Boolean> splitConditionFn) {
     SubStream<R, T> _xblockexpression = null;
     {
       final SubStream<R, T> newStream = new SubStream<R, T>(stream);
+      final AtomicBoolean skipping = new AtomicBoolean(false);
       final AtomicBoolean justPostedFinish0 = new AtomicBoolean(false);
       final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
-              Boolean _apply = splitConditionFn.apply($1);
-              if ((_apply).booleanValue()) {
-                Value<R, T> _value = new Value<R, T>($0, $1);
-                Finish<R, T> _finish = new Finish<R, T>($0, 0);
-                final List<? extends Entry<R, T>> entries = Collections.<Entry<R, T>>unmodifiableList(CollectionLiterals.<Entry<R, T>>newArrayList(_value, _finish));
-                justPostedFinish0.set(true);
-                Entries<R, T> _entries = new Entries<R, T>(((Entry<R, T>[])Conversions.unwrapArray(entries, Entry.class)));
-                newStream.apply(_entries);
+              boolean _get = skipping.get();
+              if (_get) {
+                stream.next();
               } else {
-                justPostedFinish0.set(false);
-                Value<R, T> _value_1 = new Value<R, T>($0, $1);
-                newStream.apply(_value_1);
+                Boolean _apply = splitConditionFn.apply($1);
+                if ((_apply).booleanValue()) {
+                  Value<R, T> _value = new Value<R, T>($0, $1);
+                  Finish<R, T> _finish = new Finish<R, T>($0, 0);
+                  final List<? extends Entry<R, T>> entries = Collections.<Entry<R, T>>unmodifiableList(CollectionLiterals.<Entry<R, T>>newArrayList(_value, _finish));
+                  justPostedFinish0.set(true);
+                  Entries<R, T> _entries = new Entries<R, T>(((Entry<R, T>[])Conversions.unwrapArray(entries, Entry.class)));
+                  newStream.apply(_entries);
+                } else {
+                  justPostedFinish0.set(false);
+                  Value<R, T> _value_1 = new Value<R, T>($0, $1);
+                  newStream.apply(_value_1);
+                }
               }
             }
           };
@@ -850,6 +836,9 @@ public class StreamExtensions {
           it.error(_function_1);
           final Procedure2<R, Integer> _function_2 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
+              if ((($1).intValue() == 0)) {
+                skipping.set(false);
+              }
               boolean _get = justPostedFinish0.get();
               if (_get) {
                 Finish<R, Object> _finish = new Finish<R, Object>($0, (($1).intValue() + 1));
@@ -875,7 +864,29 @@ public class StreamExtensions {
       };
       StreamExtensions.<R, T>on(stream, _function);
       stream.setOperation("split");
-      StreamExtensions.<R, R, T, T>controls(newStream, stream);
+      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
+        public void apply(final StreamResponder it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              stream.next();
+            }
+          };
+          it.next(_function);
+          final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              stream.close();
+            }
+          };
+          it.close(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              skipping.set(true);
+            }
+          };
+          it.skip(_function_2);
+        }
+      };
+      StreamExtensions.<R, T>monitor(newStream, _function_1);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1561,8 +1572,8 @@ public class StreamExtensions {
    * values, and builds a stream of that.
    * It only asks the next promise from the stream when the previous promise has been resolved.
    */
-  public static <R extends Object, T extends Object> SubStream<R, T> resolve(final IStream<R, ? extends IPromise<T>> stream) {
-    SubStream<R, T> _resolve = StreamExtensions.<R, T>resolve(stream, 1);
+  public static <R extends Object, R2 extends Object, T extends Object> SubStream<R, T> resolve(final IStream<R, ? extends IPromise<R2, T>> stream) {
+    SubStream<R, T> _resolve = StreamExtensions.<R, R2, T>resolve(stream, 1);
     final Procedure1<SubStream<R, T>> _function = new Procedure1<SubStream<R, T>>() {
       public void apply(final SubStream<R, T> it) {
         stream.setOperation("resolve");
@@ -1577,16 +1588,16 @@ public class StreamExtensions {
    * <p>
    * Allows concurrent promises to be resolved in parallel.
    */
-  public static <R extends Object, T extends Object> SubStream<R, T> resolve(final IStream<R, ? extends IPromise<T>> stream, final int concurrency) {
+  public static <R extends Object, R2 extends Object, T extends Object> SubStream<R, T> resolve(final IStream<R, ? extends IPromise<R2, T>> stream, final int concurrency) {
     SubStream<R, T> _xblockexpression = null;
     {
       final SubStream<R, T> newStream = new SubStream<R, T>(stream);
       final AtomicBoolean isFinished = new AtomicBoolean(false);
       final AtomicInteger processes = new AtomicInteger(0);
-      final Procedure1<StreamHandlerBuilder<R, ? extends IPromise<T>>> _function = new Procedure1<StreamHandlerBuilder<R, ? extends IPromise<T>>>() {
-        public void apply(final StreamHandlerBuilder<R, ? extends IPromise<T>> it) {
-          final Procedure2<R, IPromise<T>> _function = new Procedure2<R, IPromise<T>>() {
-            public void apply(final R r, final IPromise<T> promise) {
+      final Procedure1<StreamHandlerBuilder<R, ? extends IPromise<R2, T>>> _function = new Procedure1<StreamHandlerBuilder<R, ? extends IPromise<R2, T>>>() {
+        public void apply(final StreamHandlerBuilder<R, ? extends IPromise<R2, T>> it) {
+          final Procedure2<R, IPromise<R2, T>> _function = new Procedure2<R, IPromise<R2, T>>() {
+            public void apply(final R r, final IPromise<R2, T> promise) {
               processes.incrementAndGet();
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
@@ -1599,7 +1610,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              IPromise<T> _onError = promise.onError(_function);
+              IPromise<R2, T> _onError = promise.onError(_function);
               final Procedure1<T> _function_1 = new Procedure1<T>() {
                 public void apply(final T it) {
                   processes.decrementAndGet();
@@ -1678,29 +1689,29 @@ public class StreamExtensions {
    * Make an asynchronous call.
    * This is an alias for stream.call(1)
    */
-  public static <T extends Object, R extends Object, P extends IPromise<R>> SubStream<T, R> call(final Stream<T> stream, final Function1<? super T, ? extends P> promiseFn) {
-    SubStream<T, R> _call = StreamExtensions.<T, R, P>call(stream, 1, promiseFn);
-    final Procedure1<SubStream<T, R>> _function = new Procedure1<SubStream<T, R>>() {
-      public void apply(final SubStream<T, R> it) {
+  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> SubStream<T, M> call(final Stream<T> stream, final Function1<? super T, ? extends P> promiseFn) {
+    SubStream<T, M> _call = StreamExtensions.<R, T, M, P>call(stream, 1, promiseFn);
+    final Procedure1<SubStream<T, M>> _function = new Procedure1<SubStream<T, M>>() {
+      public void apply(final SubStream<T, M> it) {
         stream.setOperation("call");
       }
     };
-    return ObjectExtensions.<SubStream<T, R>>operator_doubleArrow(_call, _function);
+    return ObjectExtensions.<SubStream<T, M>>operator_doubleArrow(_call, _function);
   }
   
   /**
    * Make an asynchronous call.
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
-  public static <T extends Object, R extends Object, P extends IPromise<R>> SubStream<T, R> call(final Stream<T> stream, final int concurrency, final Function1<? super T, ? extends P> promiseFn) {
+  public static <R extends Object, T extends Object, M extends Object, P extends IPromise<R, M>> SubStream<T, M> call(final Stream<T> stream, final int concurrency, final Function1<? super T, ? extends P> promiseFn) {
     SubStream<T, P> _map = StreamExtensions.<T, T, P>map(stream, promiseFn);
-    SubStream<T, R> _resolve = StreamExtensions.<T, R>resolve(_map, concurrency);
-    final Procedure1<SubStream<T, R>> _function = new Procedure1<SubStream<T, R>>() {
-      public void apply(final SubStream<T, R> it) {
+    SubStream<T, M> _resolve = StreamExtensions.<T, R, M>resolve(_map, concurrency);
+    final Procedure1<SubStream<T, M>> _function = new Procedure1<SubStream<T, M>>() {
+      public void apply(final SubStream<T, M> it) {
         stream.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<T, R>>operator_doubleArrow(_resolve, _function);
+    return ObjectExtensions.<SubStream<T, M>>operator_doubleArrow(_resolve, _function);
   }
   
   /**
@@ -1866,6 +1877,19 @@ public class StreamExtensions {
    * Returns a task that completes once the stream finishes or closes.
    */
   public static <R extends Object, T extends Object> Task onEach(final IStream<R, T> stream, final Procedure1<? super T> handler) {
+    final Procedure2<R, T> _function = new Procedure2<R, T>() {
+      public void apply(final R r, final T it) {
+        handler.apply(it);
+      }
+    };
+    return StreamExtensions.<R, T>onEach(stream, _function);
+  }
+  
+  /**
+   * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
+   * Returns a task that completes once the stream finishes or closes.
+   */
+  public static <R extends Object, T extends Object> Task onEach(final IStream<R, T> stream, final Procedure2<? super R, ? super T> handler) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
@@ -1873,7 +1897,7 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
-              handler.apply($1);
+              handler.apply($0, $1);
               stream.next();
             }
           };
@@ -1915,9 +1939,30 @@ public class StreamExtensions {
    * Performs the task for every value, and only requests the next value from the stream once the task has finished.
    * Returns a task that completes once the stream finishes or closes.
    */
-  public static <R extends Object, T extends Object, V extends Object, P extends IPromise<V>> Task onEachCall(final IStream<R, T> stream, final Function1<? super T, ? extends P> taskFn) {
+  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> Task onEachCall(final IStream<R, T> stream, final Function2<? super R, ? super T, ? extends P> taskFn) {
     SubStream<R, P> _map = StreamExtensions.<R, T, P>map(stream, taskFn);
-    SubStream<R, V> _resolve = StreamExtensions.<R, V>resolve(_map);
+    SubStream<R, V> _resolve = StreamExtensions.<R, R2, V>resolve(_map);
+    final Procedure1<V> _function = new Procedure1<V>() {
+      public void apply(final V it) {
+      }
+    };
+    Task _onEach = StreamExtensions.<R, V>onEach(_resolve, _function);
+    final Procedure1<Task> _function_1 = new Procedure1<Task>() {
+      public void apply(final Task it) {
+        stream.setOperation("onEachCall");
+      }
+    };
+    return ObjectExtensions.<Task>operator_doubleArrow(_onEach, _function_1);
+  }
+  
+  /**
+   * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
+   * Performs the task for every value, and only requests the next value from the stream once the task has finished.
+   * Returns a task that completes once the stream finishes or closes.
+   */
+  public static <R extends Object, R2 extends Object, T extends Object, V extends Object, P extends IPromise<R2, V>> Task onEachCall(final IStream<R, T> stream, final Function1<? super T, ? extends P> taskFn) {
+    SubStream<R, P> _map = StreamExtensions.<R, T, P>map(stream, taskFn);
+    SubStream<R, V> _resolve = StreamExtensions.<R, R2, V>resolve(_map);
     final Procedure1<V> _function = new Procedure1<V>() {
       public void apply(final V it) {
       }
@@ -1949,6 +1994,7 @@ public class StreamExtensions {
   /**
    * Start the stream and promise the first value coming from the stream.
    * Closes the stream once it has the value or an error.
+   * TODO: IPromise<R, T>
    */
   public static <R extends Object, T extends Object> Promise<T> first(final IStream<R, T> stream) {
     Promise<T> _xblockexpression = null;
@@ -1980,14 +2026,14 @@ public class StreamExtensions {
           it.error(_function_1);
           final Procedure2<R, Integer> _function_2 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
-              PromiseExtensions.<T>error(promise, "Stream.first: stream finished without returning a value");
+              PromiseExtensions.<T, T>error(promise, "Stream.first: stream finished without returning a value");
               stream.close();
             }
           };
           it.finish(_function_2);
           final Procedure1<Void> _function_3 = new Procedure1<Void>() {
             public void apply(final Void it) {
-              PromiseExtensions.<T>error(promise, "Stream.first: stream closed without returning a value");
+              PromiseExtensions.<T, T>error(promise, "Stream.first: stream closed without returning a value");
             }
           };
           it.closed(_function_3);
@@ -2005,6 +2051,7 @@ public class StreamExtensions {
    * Start the stream and promise the first value coming from the stream.
    * Will keep asking next on the stream until it gets to the last value!
    * Skips any stream errors, and closes the stream when it is done.
+   * TODO: IPromise<R, T>
    */
   public static <R extends Object, T extends Object> Promise<T> last(final IStream<R, T> stream) {
     Promise<T> _xblockexpression = null;
@@ -2042,7 +2089,7 @@ public class StreamExtensions {
                   promise.set(_get_1);
                   stream.close();
                 } else {
-                  PromiseExtensions.<T>error(promise, "stream finished without passing a value, no last entry found.");
+                  PromiseExtensions.<T, T>error(promise, "stream finished without passing a value, no last entry found.");
                 }
               } else {
                 stream.next();
@@ -2067,7 +2114,7 @@ public class StreamExtensions {
                 promise.set(_get_1);
                 stream.close();
               } else {
-                PromiseExtensions.<T>error(promise, "stream closed without passing a value, no last entry found.");
+                PromiseExtensions.<T, T>error(promise, "stream closed without passing a value, no last entry found.");
               }
             }
           };
@@ -2128,6 +2175,7 @@ public class StreamExtensions {
   
   /**
    * Start the stream and and promise the first value from it.
+   * TODO: Task<R>
    */
   public static <R extends Object, T extends Object> Task then(final IStream<R, T> stream, final Procedure1<T> listener) {
     Promise<T> _first = StreamExtensions.<R, T>first(stream);
@@ -2158,42 +2206,47 @@ public class StreamExtensions {
    * @return a task that completes on finish(0) or closed, or that gives an error
    * if the stream passed an error.
    */
-  public static <R extends Object, T extends Object> void on(final IStream<R, T> stream, final Procedure1<? super StreamHandlerBuilder<R, T>> handlerFn) {
+  public static <R extends Object, T extends Object> IStream<R, T> on(final IStream<R, T> stream, final Procedure1<? super StreamHandlerBuilder<R, T>> handlerFn) {
     final Procedure2<IStream<R, T>, StreamHandlerBuilder<R, T>> _function = new Procedure2<IStream<R, T>, StreamHandlerBuilder<R, T>>() {
       public void apply(final IStream<R, T> s, final StreamHandlerBuilder<R, T> builder) {
         handlerFn.apply(builder);
       }
     };
-    StreamExtensions.<R, T>on(stream, _function);
+    return StreamExtensions.<R, T>on(stream, _function);
   }
   
-  public static <R extends Object, T extends Object> void on(final IStream<R, T> stream, final Procedure2<? super IStream<R, T>, ? super StreamHandlerBuilder<R, T>> handlerFn) {
-    StreamHandlerBuilder<R, T> _streamHandlerBuilder = new StreamHandlerBuilder<R, T>(stream);
-    final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
-      public void apply(final StreamHandlerBuilder<R, T> it) {
-        final Procedure2<R, T> _function = new Procedure2<R, T>() {
-          public void apply(final R $0, final T $1) {
-            stream.next();
-          }
-        };
-        it.each(_function);
-        final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
-          public void apply(final R $0, final Integer $1) {
-            stream.next();
-          }
-        };
-        it.finish(_function_1);
-        final Procedure2<R, Throwable> _function_2 = new Procedure2<R, Throwable>() {
-          public void apply(final R $0, final Throwable $1) {
-            stream.next();
-          }
-        };
-        it.error(_function_2);
-      }
-    };
-    final StreamHandlerBuilder<R, T> handler = ObjectExtensions.<StreamHandlerBuilder<R, T>>operator_doubleArrow(_streamHandlerBuilder, _function);
-    StreamExtensions.<R, T>observe(stream, handler);
-    handlerFn.apply(stream, handler);
+  public static <R extends Object, T extends Object> IStream<R, T> on(final IStream<R, T> stream, final Procedure2<? super IStream<R, T>, ? super StreamHandlerBuilder<R, T>> handlerFn) {
+    IStream<R, T> _xblockexpression = null;
+    {
+      StreamHandlerBuilder<R, T> _streamHandlerBuilder = new StreamHandlerBuilder<R, T>(stream);
+      final Procedure1<StreamHandlerBuilder<R, T>> _function = new Procedure1<StreamHandlerBuilder<R, T>>() {
+        public void apply(final StreamHandlerBuilder<R, T> it) {
+          final Procedure2<R, T> _function = new Procedure2<R, T>() {
+            public void apply(final R $0, final T $1) {
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
+            public void apply(final R $0, final Integer $1) {
+              stream.next();
+            }
+          };
+          it.finish(_function_1);
+          final Procedure2<R, Throwable> _function_2 = new Procedure2<R, Throwable>() {
+            public void apply(final R $0, final Throwable $1) {
+              stream.next();
+            }
+          };
+          it.error(_function_2);
+        }
+      };
+      final StreamHandlerBuilder<R, T> handler = ObjectExtensions.<StreamHandlerBuilder<R, T>>operator_doubleArrow(_streamHandlerBuilder, _function);
+      StreamExtensions.<R, T>observe(stream, handler);
+      handlerFn.apply(stream, handler);
+      _xblockexpression = stream;
+    }
+    return _xblockexpression;
   }
   
   /**
@@ -2209,21 +2262,38 @@ public class StreamExtensions {
    * ]
    * </pre>
    */
-  public static <R extends Object, T extends Object> void monitor(final IStream<R, T> stream, final Procedure1<? super StreamResponder> handlerFn) {
-    final StreamResponderBuilder handler = new StreamResponderBuilder();
-    handlerFn.apply(handler);
-    StreamExtensions.<R, T>monitor(stream, handler);
+  public static <R extends Object, T extends Object> IStream<R, T> monitor(final IStream<R, T> stream, final Procedure1<? super StreamResponder> handlerFn) {
+    IStream<R, T> _xblockexpression = null;
+    {
+      final StreamResponderBuilder handler = new StreamResponderBuilder();
+      handlerFn.apply(handler);
+      StreamExtensions.<R, T>monitor(stream, handler);
+      _xblockexpression = stream;
+    }
+    return _xblockexpression;
   }
   
   /**
    * Perform some side-effect action based on the stream.
    */
   public static <R extends Object, T extends Object> SubStream<R, T> effect(final IStream<R, T> stream, final Procedure1<? super T> listener) {
-    final Function1<T, T> _function = new Function1<T, T>() {
-      public T apply(final T it) {
+    final Procedure2<R, T> _function = new Procedure2<R, T>() {
+      public void apply(final R r, final T it) {
+        listener.apply(it);
+      }
+    };
+    return StreamExtensions.<R, T>effect(stream, _function);
+  }
+  
+  /**
+   * Perform some side-effect action based on the stream.
+   */
+  public static <R extends Object, T extends Object> SubStream<R, T> effect(final IStream<R, T> stream, final Procedure2<? super R, ? super T> listener) {
+    final Function2<R, T, T> _function = new Function2<R, T, T>() {
+      public T apply(final R r, final T it) {
         T _xblockexpression = null;
         {
-          listener.apply(it);
+          listener.apply(r, it);
           _xblockexpression = it;
         }
         return _xblockexpression;
@@ -2488,6 +2558,7 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
+              InputOutput.<String>println(("value " + $1));
               try {
                 P _get = reduced.get();
                 P _apply = reducerFn.apply(_get, $1);
@@ -2501,13 +2572,15 @@ public class StreamExtensions {
           final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
             public void apply(final R $0, final Integer $1) {
               if ((($1).intValue() == 0)) {
+                InputOutput.<String>println("finish, resetting to initial");
                 final P result = reduced.getAndSet(initial);
                 boolean _notEquals = (!Objects.equal(result, null));
                 if (_notEquals) {
+                  InputOutput.<String>println("not null, continue!");
                   newStream.push($0, result);
                 } else {
-                  Exception _exception = new Exception("no result found when reducing");
-                  newStream.error($0, _exception);
+                  InputOutput.<String>println("null... do not send a finish!");
+                  stream.next();
                 }
               } else {
                 newStream.finish($0, (($1).intValue() - 1));
@@ -2517,7 +2590,7 @@ public class StreamExtensions {
           it.finish(_function_1);
           final Procedure2<R, Throwable> _function_2 = new Procedure2<R, Throwable>() {
             public void apply(final R $0, final Throwable $1) {
-              reduced.set(initial);
+              reduced.set(null);
               stream.skip();
               newStream.error($0, $1);
             }
@@ -2540,6 +2613,15 @@ public class StreamExtensions {
   }
   
   public static <R extends Object, T extends Object, P extends Object> SubStream<R, P> scan(final IStream<R, T> stream, final P initial, final Function2<? super P, ? super T, ? extends P> reducerFn) {
+    final Function3<P, R, T, P> _function = new Function3<P, R, T, P>() {
+      public P apply(final P p, final R r, final T it) {
+        return reducerFn.apply(p, it);
+      }
+    };
+    return StreamExtensions.<R, T, P>scan(stream, initial, _function);
+  }
+  
+  public static <R extends Object, T extends Object, P extends Object> SubStream<R, P> scan(final IStream<R, T> stream, final P initial, final Function3<? super P, ? super R, ? super T, ? extends P> reducerFn) {
     SubStream<R, P> _xblockexpression = null;
     {
       final AtomicReference<P> reduced = new AtomicReference<P>(initial);
@@ -2549,7 +2631,7 @@ public class StreamExtensions {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
               P _get = reduced.get();
-              final P result = reducerFn.apply(_get, $1);
+              final P result = reducerFn.apply(_get, $0, $1);
               reduced.set(result);
               boolean _notEquals = (!Objects.equal(result, null));
               if (_notEquals) {
@@ -2709,6 +2791,22 @@ public class StreamExtensions {
    * values are skipped.
    */
   public static <R extends Object, T extends Object> SubStream<R, T> first(final IStream<R, T> stream, final Function1<? super T, ? extends Boolean> testFn) {
+    final Function2<R, T, Boolean> _function = new Function2<R, T, Boolean>() {
+      public Boolean apply(final R r, final T it) {
+        return testFn.apply(it);
+      }
+    };
+    return StreamExtensions.<R, T>first(stream, _function);
+  }
+  
+  /**
+   * Streams the first value that matches the testFn
+   * <p>
+   * Note that this is not a normal reduction, since no finish is needed to fire a value.
+   * The moment testFn gives off true, the value is streamed and the rest of the incoming
+   * values are skipped.
+   */
+  public static <R extends Object, T extends Object> SubStream<R, T> first(final IStream<R, T> stream, final Function2<? super R, ? super T, ? extends Boolean> testFn) {
     SubStream<R, T> _xblockexpression = null;
     {
       final AtomicReference<T> match = new AtomicReference<T>();
@@ -2717,7 +2815,7 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<R, T> it) {
           final Procedure2<R, T> _function = new Procedure2<R, T>() {
             public void apply(final R $0, final T $1) {
-              Boolean _apply = testFn.apply($1);
+              Boolean _apply = testFn.apply($0, $1);
               if ((_apply).booleanValue()) {
                 match.set($1);
                 newStream.push($0, $1);

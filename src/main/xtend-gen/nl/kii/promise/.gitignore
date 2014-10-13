@@ -14,3 +14,6 @@
 /Task.java
 /.ExecutorExtensions.java._trace
 /.AbstractPromise.java._trace
+/.BasePromise.java._trace
+/.SubPromise.java._trace
+/.SubTask.java._trace

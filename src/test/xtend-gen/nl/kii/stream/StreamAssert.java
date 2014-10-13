@@ -66,7 +66,7 @@ public class StreamAssert {
     Assert.assertArrayEquals(entries, ((Object[])Conversions.unwrapArray(data, Object.class)));
   }
   
-  public static void assertFulfilled(final IPromise<Boolean> promise) {
+  public static void assertFulfilled(final IPromise<?, Boolean> promise) {
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
       }
@@ -76,7 +76,7 @@ public class StreamAssert {
     Assert.assertTrue((_fulfilled).booleanValue());
   }
   
-  public static <T extends Object> void assertPromiseEquals(final IPromise<T> promise, final T value) {
+  public static <T extends Object> void assertPromiseEquals(final IPromise<?, T> promise, final T value) {
     final AtomicReference<T> ref = new AtomicReference<T>();
     final Procedure1<T> _function = new Procedure1<T>() {
       public void apply(final T it) {
@@ -90,7 +90,7 @@ public class StreamAssert {
     Assert.assertEquals(_get, value);
   }
   
-  public static <T extends Object> void assertPromiseEquals(final IPromise<List<T>> promise, final List<T> value) {
+  public static <T extends Object> void assertPromiseEquals(final IPromise<?, List<T>> promise, final List<T> value) {
     final AtomicReference<List<T>> ref = new AtomicReference<List<T>>();
     final Procedure1<List<T>> _function = new Procedure1<List<T>>() {
       public void apply(final List<T> it) {

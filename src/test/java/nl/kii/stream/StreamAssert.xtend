@@ -28,19 +28,19 @@ class StreamAssert {
 		assertArrayEquals(entries, data)
 	}
 
-	def static assertFulfilled(IPromise<Boolean> promise) {
+	def static assertFulfilled(IPromise<?, Boolean> promise) {
 		promise.then[] // force start
 		promise.fulfilled.assertTrue
 	}
 
-	def static <T> assertPromiseEquals(IPromise<T> promise, T value) {
+	def static <T> assertPromiseEquals(IPromise<?, T> promise, T value) {
 		val ref = new AtomicReference<T>
 		promise.then[ ref.set(it) ]
 		promise.fulfilled.assertTrue
 		ref.get.assertEquals(value)
 	}
 
-	def static <T> void assertPromiseEquals(IPromise<List<T>> promise, List<T> value) {
+	def static <T> void assertPromiseEquals(IPromise<?, List<T>> promise, List<T> value) {
 		val ref = new AtomicReference<List<T>>
 		promise.then[ ref.set(it) ]
 		promise.fulfilled.assertTrue

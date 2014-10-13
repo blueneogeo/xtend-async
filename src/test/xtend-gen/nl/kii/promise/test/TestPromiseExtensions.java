@@ -7,9 +7,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
@@ -28,8 +28,8 @@ public class TestPromiseExtensions {
   public void testFuture() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
-      PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf(2));
+      final Future<Integer> future = ExecutorExtensions.<Integer, Integer>future(promise);
+      PromiseExtensions.<Integer, Integer>operator_doubleLessThan(promise, Integer.valueOf(2));
       boolean _isDone = future.isDone();
       Assert.assertTrue(_isDone);
       Integer _get = future.get();
@@ -43,7 +43,7 @@ public class TestPromiseExtensions {
   public void testFutureError() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
+      final Future<Integer> future = ExecutorExtensions.<Integer, Integer>future(promise);
       Exception _exception = new Exception();
       promise.error(_exception);
       try {
@@ -69,17 +69,14 @@ public class TestPromiseExtensions {
         return Integer.valueOf(((it).intValue() + 10));
       }
     };
-    final Promise<Integer> mapped = PromiseExtensions.<Integer, Integer>map(p, _function);
+    final SubPromise<Integer, Integer> mapped = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     StreamAssert.<Integer>assertPromiseEquals(mapped, Integer.valueOf(14));
   }
   
   @Test
   public void testFlatten() {
-    final Promise<Integer> p1 = new Promise<Integer>(Integer.valueOf(3));
-    Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
-    final IPromise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
-    final Promise<Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>>flatten(p2);
-    StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
+    throw new Error("Unresolved compilation problems:"
+      + "\nBounds mismatch: The type arguments <Promise<Integer>, Integer, Promise<Integer>> are not a valid substitute for the bounded type parameters <R, T, P extends IPromise<R, T>> of the method flatten(IPromise<R, P>)");
   }
   
   @Test
@@ -90,15 +87,15 @@ public class TestPromiseExtensions {
         return TestPromiseExtensions.this.power2((it).intValue());
       }
     };
-    Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
-    final Promise<Integer> asynced = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map);
+    SubPromise<Integer, Promise<Integer>> _map = PromiseExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
+    final SubPromise<Integer, Integer> asynced = PromiseExtensions.<Integer, Integer, Promise<Integer>>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   
   @Test
   public void testListPromiseToStream() {
     final Promise<List<Integer>> p = new Promise<List<Integer>>(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
-    Stream<Integer> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
+    Stream<Integer> _stream = StreamExtensions.<List<Integer>, Integer, List<Integer>>stream(p);
     SubStream<Integer, Double> _sum = StreamExtensions.<Integer, Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
       public void apply(final Double it) {
@@ -201,7 +198,7 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    final Task a = PromiseExtensions.<Boolean, Task>any(t1, t2, t3);
+    final Task a = PromiseExtensions.<Boolean, Boolean, Task>any(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
@@ -226,8 +223,8 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    Task _or = PromiseExtensions.<Boolean>operator_or(t1, t2);
-    final Task a = PromiseExtensions.<Boolean>operator_or(_or, t3);
+    Task _or = PromiseExtensions.<Boolean, Boolean>operator_or(t1, t2);
+    final Task a = PromiseExtensions.<Boolean, Boolean>operator_or(_or, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));

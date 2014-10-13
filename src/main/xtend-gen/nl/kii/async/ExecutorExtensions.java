@@ -26,7 +26,7 @@ public class ExecutorExtensions {
    * <pre>
    * val result = promise.future.get // blocks code until the promise is fulfilled
    */
-  public static <T extends Object> Future<T> future(final IPromise<T> promise) {
+  public static <R extends Object, T extends Object> Future<T> future(final IPromise<R, T> promise) {
     return new PromiseFuture<T>(promise);
   }
   
@@ -37,7 +37,7 @@ public class ExecutorExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
    */
-  public static <T extends Object> IPromise<T> promise(final ExecutorService service, final Callable<T> callable) {
+  public static <T extends Object> Promise<T> promise(final ExecutorService service, final Callable<T> callable) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();

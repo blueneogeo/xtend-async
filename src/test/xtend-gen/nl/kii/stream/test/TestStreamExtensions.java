@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
-import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
@@ -261,6 +260,65 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_6 = StreamExtensions.<Integer, Integer>finish(0);
     Finish<Integer, Integer> _finish_7 = StreamExtensions.<Integer, Integer>finish(1);
     StreamAssert.<Integer, Integer>assertStreamContains(split, _value, _value_1, _finish_2, _value_2, _finish_3, _finish_4, _value_3, _finish_5, _value_4, _finish_6, _finish_7);
+  }
+  
+  @Test
+  public void testSplitWithSkip() {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(Integer.class);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
+    IStream<Integer, Integer> _doubleLessThan_5 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
+    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      public Boolean apply(final Integer it) {
+        return Boolean.valueOf((((it).intValue() % 4) == 0));
+      }
+    };
+    final SubStream<Integer, Integer> split = StreamExtensions.<Integer, Integer>split(s, _function);
+    final Stream<Integer> collect = StreamExtensions.<Integer>stream(int.class);
+    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
+      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            if ((($1).intValue() == 1)) {
+              it.stream.skip();
+            }
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(collect, $1);
+          }
+        };
+        it.each(_function);
+        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          public void apply(final Integer $0, final Integer $1) {
+            Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish(($1).intValue());
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(collect, _finish);
+          }
+        };
+        it.finish(_function_1);
+      }
+    };
+    StreamExtensions.<Integer, Integer>on(split, _function_1);
+    split.next();
+    split.next();
+    split.next();
+    split.next();
+    split.next();
+    split.next();
+    split.next();
+    split.next();
+    Value<Integer, Integer> _value = StreamAssert.<Integer, Integer>value(Integer.valueOf(1));
+    Finish<Integer, Integer> _finish_2 = StreamExtensions.<Integer, Integer>finish(0);
+    Finish<Integer, Integer> _finish_3 = StreamExtensions.<Integer, Integer>finish(1);
+    Value<Integer, Integer> _value_1 = StreamAssert.<Integer, Integer>value(Integer.valueOf(4));
+    Finish<Integer, Integer> _finish_4 = StreamExtensions.<Integer, Integer>finish(0);
+    Value<Integer, Integer> _value_2 = StreamAssert.<Integer, Integer>value(Integer.valueOf(5));
+    Finish<Integer, Integer> _finish_5 = StreamExtensions.<Integer, Integer>finish(0);
+    Finish<Integer, Integer> _finish_6 = StreamExtensions.<Integer, Integer>finish(1);
+    StreamAssert.<Integer, Integer>assertStreamContains(collect, _value, _finish_2, _finish_3, _value_1, _finish_4, _value_2, _finish_5, _finish_6);
   }
   
   @Test
@@ -932,7 +990,7 @@ public class TestStreamExtensions {
     final Promise<Integer> t1 = PromiseExtensions.<Integer>promise(int.class);
     final Promise<Integer> t2 = PromiseExtensions.<Integer>promise(int.class);
     Stream<Promise<Integer>> _stream = StreamExtensions.<Promise<Integer>>stream(Collections.<Promise<Integer>>unmodifiableList(CollectionLiterals.<Promise<Integer>>newArrayList(t1, t2)));
-    final SubStream<Promise<Integer>, Integer> s = StreamExtensions.<Promise<Integer>, Integer>resolve(_stream);
+    final SubStream<Promise<Integer>, Integer> s = StreamExtensions.<Promise<Integer>, Integer, Integer>resolve(_stream);
     final Procedure1<Entry<Promise<Integer>, Integer>> _function = new Procedure1<Entry<Promise<Integer>, Integer>>() {
       public void apply(final Entry<Promise<Integer>, Integer> it) {
         boolean _matched = false;
@@ -960,8 +1018,8 @@ public class TestStreamExtensions {
   @Test
   public void testResolving() {
     try {
-      final Function1<String, IPromise<String>> _function = new Function1<String, IPromise<String>>() {
-        public IPromise<String> apply(final String x) {
+      final Function1<String, Promise<String>> _function = new Function1<String, Promise<String>>() {
+        public Promise<String> apply(final String x) {
           final Callable<String> _function = new Callable<String>() {
             public String call() throws Exception {
               String _xblockexpression = null;
@@ -981,7 +1039,7 @@ public class TestStreamExtensions {
           return ExecutorExtensions.<String>promise(TestStreamExtensions.this.threads, _function);
         }
       };
-      final Function1<String, IPromise<String>> doSomethingAsync = _function;
+      final Function1<String, Promise<String>> doSomethingAsync = _function;
       final Stream<String> s = StreamExtensions.<String>stream(String.class);
       IStream<String, String> _doubleLessThan = StreamExtensions.<String, String>operator_doubleLessThan(s, "a");
       IStream<String, String> _doubleLessThan_1 = StreamExtensions.<String, String>operator_doubleLessThan(_doubleLessThan, "b");
@@ -1003,8 +1061,8 @@ public class TestStreamExtensions {
         }
       };
       SubStream<String, String> _map = StreamExtensions.<String, String, String>map(s, _function_1);
-      SubStream<String, IPromise<String>> _map_1 = StreamExtensions.<String, String, IPromise<String>>map(_map, doSomethingAsync);
-      SubStream<String, String> _resolve = StreamExtensions.<String, String>resolve(_map_1, 3);
+      SubStream<String, Promise<String>> _map_1 = StreamExtensions.<String, String, Promise<String>>map(_map, doSomethingAsync);
+      SubStream<String, String> _resolve = StreamExtensions.<String, String, String>resolve(_map_1, 3);
       SubStream<String, List<String>> _collect = StreamExtensions.<String, String>collect(_resolve);
       final Procedure1<List<String>> _function_2 = new Procedure1<List<String>>() {
         public void apply(final List<String> it) {
@@ -1128,7 +1186,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
-    final Stream<Integer> s2 = PromiseExtensions.<Promise<Stream<Integer>>, Integer>toStream(p);
+    final Stream<Integer> s2 = PromiseExtensions.<Stream<Integer>, Promise<Stream<Integer>>, Integer>toStream(p);
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         String _message = it.getMessage();
@@ -1153,7 +1211,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
-    final Stream<Integer> s2 = PromiseExtensions.<Promise<Stream<Integer>>, Integer>toStream(p);
+    final Stream<Integer> s2 = PromiseExtensions.<Stream<Integer>, Promise<Stream<Integer>>, Integer>toStream(p);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);

@@ -56,7 +56,7 @@ class TestStreamErrorHandling {
 	}
 
 	@Test
-	def void testStreamAggregationsShouldFailOnInternalErrrorsButNotBreakTheStream() {
+	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream() {
 		(1..20).stream
 			.split [ it % 4 == 0 ]
 			.map [
@@ -65,37 +65,64 @@ class TestStreamErrorHandling {
 			]
 			.collect
 			.onError [ println('error ' + it) ]
-			.onEach [ println(it) ]
+			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
+			.onError [ fail(message) ]
 	}
-
-
-
-
-
-
-
-
-
-
-
 
 	@Test
-	def void testHandlingAboveErrorShouldTriggerException() {
-		try {
-			val s = int.stream
-			s
-				.map [ it ]
-				.onError [ fail('should not trigger') ]
-				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
-				.map [ it ]
-				.onEach [ ]
-			s << 1 << 2 << finish
-			fail('we expected an error for /0')
-		} catch(Exception e) {
-			// success
-		}
+	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream2() {
+		val s = int.stream << 1 << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9 << 10 << finish(0) << finish(1)
+
+		s
+			.split [ it % 4 == 0 ]
+			.map [
+				if(it % 6 == 0) throw new Exception
+				it
+			]
+			.collect
+			.onError [ println('error ' + it) ]
+			.onEach [ println('result : ' + it) ]
+			.then [ println('done') ]
+			.onError [ fail(message) ]
 	}
+
+	@Test
+	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream3() {
+		val s = int.stream << 1 << 2 << 3 << 4 << finish(0) << 5 << 6 << 7 << 8 << finish(0) << 9 << 10 << finish(0) << finish(1)
+			//.split [ it % 4 == 0 ]
+		s
+			.map [
+				if(it % 6 == 0) throw new Exception
+				it
+			]
+			.collect
+			.onError [ println('error ' + it) ]
+			.onEach [ println('result : ' + it) ]
+			.then [ println('done') ]
+			.onError [ 
+				println('error')
+				fail(message)
+			]
+	}
+
+	@Test
+	def void testSplit() {
+		(1..10).stream.split [ it % 4 == 0 ]
+			.on [ 
+				each [ println($1) stream.next ]
+				finish [ println('finish ' + $1) stream.next ]
+				stream.next
+			]
+			
+	}
+
+
+
+
+
+
+
 
 	@Atomic Throwable caught
 
