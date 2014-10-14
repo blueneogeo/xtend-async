@@ -61,17 +61,17 @@ public class PromiseExtensions {
   /**
    * Distribute work using an asynchronous method
    */
-  public static <T extends Object, R extends Object, P extends IPromise<T, R>> IPromise<T, List<R>> call(final List<T> data, final int concurrency, final Function1<? super T, ? extends P> operationFn) {
-    Stream<T> _stream = StreamExtensions.<T>stream(data);
-    SubStream<T, R> _call = StreamExtensions.<T, T, T, R, P>call(_stream, concurrency, operationFn);
-    SubStream<T, List<R>> _collect = StreamExtensions.<T, R>collect(_call);
-    IPromise<T, List<R>> _first = StreamExtensions.<T, List<R>>first(_collect);
-    final Procedure1<IPromise<T, List<R>>> _function = new Procedure1<IPromise<T, List<R>>>() {
-      public void apply(final IPromise<T, List<R>> it) {
+  public static <I extends Object, I2 extends Object, O extends Object, P extends IPromise<I2, O>> IPromise<I, List<O>> call(final List<I> data, final int concurrency, final Function1<? super I, ? extends P> operationFn) {
+    Stream<I> _stream = StreamExtensions.<I>stream(data);
+    SubStream<I, O> _call = StreamExtensions.<I, I2, I, O, P>call(_stream, concurrency, operationFn);
+    SubStream<I, List<O>> _collect = StreamExtensions.<I, O>collect(_call);
+    IPromise<I, List<O>> _first = StreamExtensions.<I, List<O>>first(_collect);
+    final Procedure1<IPromise<I, List<O>>> _function = new Procedure1<IPromise<I, List<O>>>() {
+      public void apply(final IPromise<I, List<O>> it) {
         it.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<IPromise<T, List<R>>>operator_doubleArrow(_first, _function);
+    return ObjectExtensions.<IPromise<I, List<O>>>operator_doubleArrow(_first, _function);
   }
   
   /**
