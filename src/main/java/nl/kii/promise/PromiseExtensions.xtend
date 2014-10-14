@@ -241,7 +241,7 @@ class PromiseExtensions {
 					.then [ r2, it | newPromise.set(r, it) ]
 			]
 		newPromise => [ operation = 'resolve' ]
-	}	
+	}
 
 	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
 	def static <R, T, M, P extends IPromise<R, M>> IPromise<R, M> flatMap(IPromise<R, T> promise, (T)=>P promiseFn) {
@@ -323,10 +323,10 @@ class PromiseExtensions {
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <R, T> completes(IPromise<R, T> promise, Task task) {
+	def static <R, T> completes(IPromise<R, T> promise, IPromise<?, Boolean> task) {
 		promise
-			.onError[ task.error(it) ]
-			.then [ task.complete ]
+			.onError [ r, it | task.error(r, it) ]
+			.then [ r, it | task.set(r, it) ]
 	}
 
 }

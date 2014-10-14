@@ -640,18 +640,10 @@ public class PromiseExtensions {
   /**
    * Forward the events from this promise to another promise of the same type
    */
-  public static <R extends Object, T extends Object> Task completes(final IPromise<R, T> promise, final Task task) {
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      public void apply(final Throwable it) {
-        task.error(it);
-      }
-    };
-    IPromise<R, T> _onError = promise.onError(_function);
-    final Procedure1<T> _function_1 = new Procedure1<T>() {
-      public void apply(final T it) {
-        task.complete();
-      }
-    };
-    return _onError.then(_function_1);
+  public static <R extends Object, T extends Object> Task completes(final IPromise<R, T> promise, final IPromise<?, Boolean> task) {
+    throw new Error("Unresolved compilation problems:"
+      + "\nInvalid number of arguments. The method set(R) is not applicable for the arguments (R,T)"
+      + "\nType mismatch: cannot convert from R to String"
+      + "\nType mismatch: type R is not applicable at this location");
   }
 }
