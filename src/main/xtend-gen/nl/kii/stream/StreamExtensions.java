@@ -1573,7 +1573,7 @@ public class StreamExtensions {
    * It only asks the next promise from the stream when the previous promise has been resolved.
    */
   public static <I extends Object, I2 extends Object, O extends Object> SubStream<I, O> resolve(final IStream<I, ? extends IPromise<I2, O>> stream) {
-    SubStream<I, O> _resolve = StreamExtensions.<I, I2, O>resolve(stream, 1);
+    SubStream<I, O> _resolve = StreamExtensions.<I, O>resolve(stream, 1);
     final Procedure1<SubStream<I, O>> _function = new Procedure1<SubStream<I, O>>() {
       public void apply(final SubStream<I, O> it) {
         stream.setOperation("resolve");
@@ -1588,16 +1588,16 @@ public class StreamExtensions {
    * <p>
    * Allows concurrent promises to be resolved in parallel.
    */
-  public static <I extends Object, I2 extends Object, O extends Object> SubStream<I, O> resolve(final IStream<I, ? extends IPromise<I2, O>> stream, final int concurrency) {
+  public static <I extends Object, O extends Object> SubStream<I, O> resolve(final IStream<I, ? extends IPromise<?, O>> stream, final int concurrency) {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
       final AtomicBoolean isFinished = new AtomicBoolean(false);
       final AtomicInteger processes = new AtomicInteger(0);
-      final Procedure1<StreamHandlerBuilder<I, ? extends IPromise<I2, O>>> _function = new Procedure1<StreamHandlerBuilder<I, ? extends IPromise<I2, O>>>() {
-        public void apply(final StreamHandlerBuilder<I, ? extends IPromise<I2, O>> it) {
-          final Procedure2<I, IPromise<I2, O>> _function = new Procedure2<I, IPromise<I2, O>>() {
-            public void apply(final I r, final IPromise<I2, O> promise) {
+      final Procedure1<StreamHandlerBuilder<I, ? extends IPromise<?, O>>> _function = new Procedure1<StreamHandlerBuilder<I, ? extends IPromise<?, O>>>() {
+        public void apply(final StreamHandlerBuilder<I, ? extends IPromise<?, O>> it) {
+          final Procedure2<I, IPromise<?, O>> _function = new Procedure2<I, IPromise<?, O>>() {
+            public void apply(final I r, final IPromise<?, O> promise) {
               processes.incrementAndGet();
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
@@ -1610,7 +1610,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              IPromise<I2, O> _onError = promise.onError(_function);
+              IPromise<?, O> _onError = promise.onError(_function);
               final Procedure1<O> _function_1 = new Procedure1<O>() {
                 public void apply(final O it) {
                   processes.decrementAndGet();
@@ -1689,8 +1689,8 @@ public class StreamExtensions {
    * Make an asynchronous call.
    * This is an alias for stream.call(1)
    */
-  public static <I extends Object, I2 extends Object, O extends Object, R extends Object, P extends IPromise<I2, R>> SubStream<I, R> call(final IStream<I, O> stream, final Function1<? super O, ? extends P> promiseFn) {
-    SubStream<I, R> _call = StreamExtensions.<I, I2, O, R, P>call(stream, 1, promiseFn);
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final Function1<? super O, ? extends P> promiseFn) {
+    SubStream<I, R> _call = StreamExtensions.<I, O, R, P>call(stream, 1, promiseFn);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
       public void apply(final SubStream<I, R> it) {
         stream.setOperation("call");
@@ -1703,9 +1703,9 @@ public class StreamExtensions {
    * Make an asynchronous call.
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
-  public static <I extends Object, I2 extends Object, O extends Object, R extends Object, P extends IPromise<I2, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function1<? super O, ? extends P> promiseFn) {
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function1<? super O, ? extends P> promiseFn) {
     SubStream<I, P> _map = StreamExtensions.<I, O, P>map(stream, promiseFn);
-    SubStream<I, R> _resolve = StreamExtensions.<I, I2, R>resolve(_map, concurrency);
+    SubStream<I, R> _resolve = StreamExtensions.<I, R>resolve(_map, concurrency);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
       public void apply(final SubStream<I, R> it) {
         stream.setOperation((("call(concurrency=" + Integer.valueOf(concurrency)) + ")"));

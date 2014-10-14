@@ -97,7 +97,7 @@ public class TestMultiThreadedProcessing {
         }
       };
       SubStream<Integer, Promise<Integer>> _map = StreamExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
-      SubStream<Integer, Integer> _resolve = StreamExtensions.<Integer, Integer, Integer>resolve(_map, 2);
+      SubStream<Integer, Integer> _resolve = StreamExtensions.<Integer, Integer>resolve(_map, 2);
       final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
         public Integer apply(final Integer it) {
           return Integer.valueOf(((it).intValue() + 1));
@@ -110,7 +110,7 @@ public class TestMultiThreadedProcessing {
         }
       };
       SubStream<Integer, Promise<Integer>> _map_2 = StreamExtensions.<Integer, Integer, Promise<Integer>>map(_map_1, _function_2);
-      SubStream<Integer, Integer> _resolve_1 = StreamExtensions.<Integer, Integer, Integer>resolve(_map_2, 3);
+      SubStream<Integer, Integer> _resolve_1 = StreamExtensions.<Integer, Integer>resolve(_map_2, 3);
       final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           LinkedList<Integer> _get = result.get();
@@ -153,7 +153,7 @@ public class TestMultiThreadedProcessing {
         }
       };
       SubStream<Integer, Promise<Integer>> _map = StreamExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
-      SubStream<Integer, Integer> _resolve = StreamExtensions.<Integer, Integer, Integer>resolve(_map, 1);
+      SubStream<Integer, Integer> _resolve = StreamExtensions.<Integer, Integer>resolve(_map, 1);
       final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
         public Integer apply(final Integer it) {
           return Integer.valueOf(((it).intValue() + 1));

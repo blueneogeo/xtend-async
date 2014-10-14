@@ -1064,7 +1064,7 @@ public class TestStreamExtensions {
       };
       SubStream<String, String> _map = StreamExtensions.<String, String, String>map(s, _function_1);
       SubStream<String, Promise<String>> _map_1 = StreamExtensions.<String, String, Promise<String>>map(_map, doSomethingAsync);
-      SubStream<String, String> _resolve = StreamExtensions.<String, String, String>resolve(_map_1, 3);
+      SubStream<String, String> _resolve = StreamExtensions.<String, String>resolve(_map_1, 3);
       SubStream<String, List<String>> _collect = StreamExtensions.<String, String>collect(_resolve);
       final Procedure1<List<String>> _function_2 = new Procedure1<List<String>>() {
         public void apply(final List<String> it) {

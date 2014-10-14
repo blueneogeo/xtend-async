@@ -495,7 +495,7 @@ public class TestActor {
         }
       };
       SubStream<Integer, Task> _map = StreamExtensions.<Integer, Integer, Task>map(_stream, _function);
-      SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean, Boolean>resolve(_map, threads);
+      SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean>resolve(_map, threads);
       SubStream<Integer, List<Boolean>> _collect = StreamExtensions.<Integer, Boolean>collect(_resolve);
       IPromise<Integer, List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
       final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {

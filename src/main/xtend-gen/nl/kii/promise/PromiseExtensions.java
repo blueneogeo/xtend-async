@@ -51,6 +51,16 @@ public class PromiseExtensions {
     return new Promise<T>(value);
   }
   
+  public static <I extends Object, O extends Object> SubPromise<I, O> promise(final I from, final O value) {
+    SubPromise<I, O> _subPromise = new SubPromise<I, O>();
+    final Procedure1<SubPromise<I, O>> _function = new Procedure1<SubPromise<I, O>>() {
+      public void apply(final SubPromise<I, O> it) {
+        it.set(from, value);
+      }
+    };
+    return ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(_subPromise, _function);
+  }
+  
   /**
    * Create a promise of a pair
    */
@@ -63,7 +73,7 @@ public class PromiseExtensions {
    */
   public static <I extends Object, I2 extends Object, O extends Object, P extends IPromise<I2, O>> IPromise<I, List<O>> call(final List<I> data, final int concurrency, final Function1<? super I, ? extends P> operationFn) {
     Stream<I> _stream = StreamExtensions.<I>stream(data);
-    SubStream<I, O> _call = StreamExtensions.<I, I2, I, O, P>call(_stream, concurrency, operationFn);
+    SubStream<I, O> _call = StreamExtensions.<I, I, O, P>call(_stream, concurrency, operationFn);
     SubStream<I, List<O>> _collect = StreamExtensions.<I, O>collect(_call);
     IPromise<I, List<O>> _first = StreamExtensions.<I, List<O>>first(_collect);
     final Procedure1<IPromise<I, List<O>>> _function = new Procedure1<IPromise<I, List<O>>>() {
@@ -126,7 +136,7 @@ public class PromiseExtensions {
         return it;
       }
     };
-    SubStream<Task, Boolean> _call = StreamExtensions.<Task, Boolean, Task, Boolean, Task>call(_stream, _function_1);
+    SubStream<Task, Boolean> _call = StreamExtensions.<Task, Task, Boolean, Task>call(_stream, _function_1);
     SubStream<Task, List<Boolean>> _collect = StreamExtensions.<Task, Boolean>collect(_call);
     IPromise<Task, List<Boolean>> _first = StreamExtensions.<Task, List<Boolean>>first(_collect);
     return PromiseExtensions.<Task, List<Boolean>>asTask(_first);
@@ -369,7 +379,7 @@ public class PromiseExtensions {
    * Maps errors back into values, using an async call.
    * Good for alternative path resolving and providing defaults.
    */
-  public static <I extends Object, O extends Object> SubPromise<I, O> onErrorCall(final IPromise<I, O> promise, final Function1<? super Throwable, ? extends IPromise<I, O>> mappingFn) {
+  public static <I extends Object, I2 extends Object, O extends Object> SubPromise<I, O> onErrorCall(final IPromise<I, O> promise, final Function1<? super Throwable, ? extends IPromise<I2, O>> mappingFn) {
     SubPromise<I, O> _xblockexpression = null;
     {
       Promise<I> _promise = new Promise<I>();
@@ -377,13 +387,13 @@ public class PromiseExtensions {
       final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
         public void apply(final I i, final Throwable it) {
           try {
-            IPromise<I, O> _apply = mappingFn.apply(it);
+            IPromise<I2, O> _apply = mappingFn.apply(it);
             final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
               public void apply(final Throwable it) {
                 newPromise.error(i, it);
               }
             };
-            IPromise<I, O> _onError = _apply.onError(_function);
+            IPromise<I2, O> _onError = _apply.onError(_function);
             final Procedure1<O> _function_1 = new Procedure1<O>() {
               public void apply(final O it) {
                 newPromise.set(i, it);

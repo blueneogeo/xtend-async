@@ -34,6 +34,10 @@ class PromiseExtensions {
 	def static <T> promise(T value) {
 		new Promise<T>(value)
 	}
+
+	def static <I, O> promise(I from, O value) {
+		new SubPromise<I, O> => [ set(from, value) ]
+	}
 	
 	/** Create a promise of a pair */
 	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
@@ -197,7 +201,7 @@ class PromiseExtensions {
 	 * Maps errors back into values, using an async call. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
-	def static <I, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I, O> mappingFn) {
+	def static <I, I2, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I2, O> mappingFn) {
 		val newPromise = new SubPromise<I, O>(new Promise<I>)
 		promise
 			.onError [ i, it |

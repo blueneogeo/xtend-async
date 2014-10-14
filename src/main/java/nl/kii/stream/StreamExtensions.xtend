@@ -753,7 +753,7 @@ class StreamExtensions {
 	 * <p>
 	 * Allows concurrent promises to be resolved in parallel.
 	 */
-	def static <I, I2, O> SubStream<I, O> resolve(IStream<I, ? extends IPromise<I2, O>> stream, int concurrency) {
+	def static <I, O> SubStream<I, O> resolve(IStream<I, ? extends IPromise<?, O>> stream, int concurrency) {
 		val newStream = new SubStream<I, O>(stream)
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
@@ -798,7 +798,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.call(1)
 	 */	
-	def static <I, I2, O, R, P extends IPromise<I2, R>> call(IStream<I, O> stream, (O)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (O)=>P promiseFn) {
 		stream.call(1, promiseFn)
 			=> [ stream.operation = 'call' ]
 	}
@@ -807,7 +807,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
-	def static <I, I2, O, R, P extends IPromise<I2, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
