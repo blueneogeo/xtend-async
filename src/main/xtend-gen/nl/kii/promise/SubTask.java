@@ -11,6 +11,10 @@ import org.eclipse.xtend2.lib.StringConcatenation;
  */
 @SuppressWarnings("all")
 public class SubTask<R extends Object> extends SubPromise<R, Boolean> {
+  public SubTask() {
+    super();
+  }
+  
   public SubTask(final IPromise<R, ?> parentPromise) {
     super(parentPromise);
   }

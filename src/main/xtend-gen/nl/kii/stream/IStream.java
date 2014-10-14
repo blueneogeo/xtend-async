@@ -3,7 +3,6 @@ package nl.kii.stream;
 import java.util.Collection;
 import nl.kii.observe.Observable;
 import nl.kii.stream.Entry;
-import nl.kii.stream.Stream;
 import nl.kii.stream.StreamMessage;
 import nl.kii.stream.StreamNotification;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
@@ -25,10 +24,10 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * </ul>
  */
 @SuppressWarnings("all")
-public interface IStream<R extends Object, T extends Object> extends Procedure1<StreamMessage>, Observable<Entry<R, T>> {
+public interface IStream<I extends Object, O extends Object> extends Procedure1<StreamMessage>, Observable<Entry<I, O>> {
   public abstract void apply(final StreamMessage message);
   
-  public abstract void push(final R value);
+  public abstract void push(final I value);
   
   public abstract void error(final Throwable error);
   
@@ -42,11 +41,11 @@ public interface IStream<R extends Object, T extends Object> extends Procedure1<
   
   public abstract void close();
   
-  public abstract Procedure0 onChange(final Procedure1<? super Entry<R, T>> observeFn);
+  public abstract Procedure0 onChange(final Procedure1<? super Entry<I, O>> observeFn);
   
   public abstract Procedure0 onNotify(final Procedure1<? super StreamNotification> notificationListener);
   
-  public abstract Stream<R> getRoot();
+  public abstract IStream<I, I> getInput();
   
   public abstract boolean isOpen();
   
@@ -56,7 +55,7 @@ public interface IStream<R extends Object, T extends Object> extends Procedure1<
   
   public abstract int getBufferSize();
   
-  public abstract Collection<Entry<R, T>> getQueue();
+  public abstract Collection<Entry<I, O>> getQueue();
   
   public abstract String setOperation(final String operationName);
   

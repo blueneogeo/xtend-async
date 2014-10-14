@@ -4,16 +4,16 @@ import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
-interface StreamObserver<R, T> {
+interface StreamObserver<I, O> {
 	
 	/** handle an incoming value */
-	def void onValue(R from, T value)
+	def void onValue(I from, O value)
 	
 	/** handle an incoming error */
-	def void onError(R from, Throwable t)
+	def void onError(I from, Throwable t)
 	
 	/** handle an imcoming finish of a given level */
-	def void onFinish(R from, int level)
+	def void onFinish(I from, int level)
 	
 	/** handle the stream being closed */
 	def void onClosed()
@@ -21,16 +21,16 @@ interface StreamObserver<R, T> {
 }
 
 /** Lets you create builders for handling the entries coming from a stream */
-interface StreamHandler<R, T> {
+interface StreamHandler<I, O> {
 	
 	/** handle each incoming value. remember to call stream.next after handling a value! */
-	def void each((R, T)=>void handler)
+	def void each((I, O)=>void handler)
 	
 	/** handle each incoming error. remember to call stream.next after handling an error! */
-	def void error((R, Throwable)=>void handler)
+	def void error((I, Throwable)=>void handler)
 	
 	/** handle each incoming finish. remember to call stream.next after handling a finish! */
-	def void finish((R, Integer)=>void handler)
+	def void finish((I, Integer)=>void handler)
 	
 	/** handled that the stream has closed. */
 	def void closed((Void)=>void stream)
@@ -52,33 +52,33 @@ interface StreamHandler<R, T> {
  * <p>
  * Remember to call stream.next to start the stream!
  */
-class StreamHandlerBuilder<R, T> implements StreamHandler<R, T>, StreamObserver<R, T> {
+class StreamHandlerBuilder<I, O> implements StreamHandler<I, O>, StreamObserver<I, O> {
 	
-	public val IStream<R, T> stream
+	public val IStream<I, O> stream
 	
-	@Atomic Procedure2<R, T> valueFn
-	@Atomic Procedure2<R, Throwable> errorFn
-	@Atomic Procedure2<R, Integer> finishFn
+	@Atomic Procedure2<I, O> valueFn
+	@Atomic Procedure2<I, Throwable> errorFn
+	@Atomic Procedure2<I, Integer> finishFn
 	@Atomic Procedure1<Void> closedFn
 
-	new(IStream<R, T> stream) {
+	new(IStream<I, O> stream) {
 		this.stream = stream
 	}
 
 	// BUILDER METHODS ////////////////////////////////////////////////////////
 
 	/** listen for each incoming value */
-	override each((R, T)=>void handler) {
+	override each((I, O)=>void handler) {
 		this.valueFn = handler
 	}
 	
 	/** listen for any finish */
-	override finish((R, Integer)=>void handler) {
+	override finish((I, Integer)=>void handler) {
 		this.finishFn = handler
 	}
 
 	/** listen for any uncaught errors */
-	override error((R, Throwable)=>void handler) {
+	override error((I, Throwable)=>void handler) {
 		this.errorFn = handler
 	}
 	
@@ -89,15 +89,15 @@ class StreamHandlerBuilder<R, T> implements StreamHandler<R, T>, StreamObserver<
 	
 	// STREAMOBSERVER IMPLEMENTATION //////////////////////////////////////////
 	
-	override onValue(R from, T value) {
+	override onValue(I from, O value) {
 		valueFn?.apply(from, value)
 	}
 	
-	override onError(R from, Throwable t) {
+	override onError(I from, Throwable t) {
 		errorFn?.apply(from, t)
 	}
 	
-	override onFinish(R from, int level) {
+	override onFinish(I from, int level) {
 		finishFn?.apply(from, level)
 	}
 	

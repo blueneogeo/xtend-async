@@ -24,13 +24,13 @@ import static com.google.common.collect.Queues.*
  * <li>wraps errors and lets you listen for them at the end of the stream chain
  * </ul>
  */
-interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T>> {
+interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O>> {
 
 	// PUSH DATA IN ///////////////////////////////////////////////////////////
 
 	override apply(StreamMessage message)
 
-	def void push(R value) 
+	def void push(I value) 
 	def void error(Throwable error)
 	def void finish()
 	def void finish(int level)
@@ -43,19 +43,19 @@ interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T
 	
 	// LISTEN /////////////////////////////////////////////////////////////////
 	
-	override =>void onChange((Entry<R, T>)=>void observeFn)
+	override =>void onChange((Entry<I, O>)=>void observeFn)
 	def =>void onNotify((StreamNotification)=>void notificationListener)
 
 	// STATUS /////////////////////////////////////////////////////////////////
 	
-	def Stream<R> getRoot()
+	def IStream<I, I> getInput()
 	
 	def boolean isOpen()
 	def boolean isReady()
 	def boolean isSkipping()
 
 	def int getBufferSize()
-	def Collection<Entry<R, T>> getQueue()
+	def Collection<Entry<I, O>> getQueue()
 
 	def String setOperation(String operationName)
 	def String getOperation()
@@ -64,7 +64,7 @@ interface IStream<R, T> extends Procedure1<StreamMessage>, Observable<Entry<R, T
 
 class Stream<T> extends BaseStream<T, T> {
 
-	override getRoot() { this }
+	override getInput() { this }
 
 	/** Queue a value on the stream for pushing to the listener */
 	override push(T value) { apply(new Value(value, value)) }
@@ -83,69 +83,69 @@ class Stream<T> extends BaseStream<T, T> {
  	
 }
 
-class SubStream<R, T> extends BaseStream<R, T> {
+class SubStream<I, O> extends BaseStream<I, O> {
 
-	val protected Stream<R> root
+	val protected IStream<I, I> input
 
-	new (IStream<R, ?> parent) {
-		this.root = parent.root
+	new (IStream<I, ?> parent) {
+		this.input = parent.input
 	}
 
-	new (IStream<R, ?> parent, int maxSize) {
+	new (IStream<I, ?> parent, int maxSize) {
 		super(maxSize)
-		this.root = parent.root
+		this.input = parent.input
 	}
 
-	override getRoot() { root }
+	override getInput() { input }
 
 	// APPLYING VALUES TO THE ROOT STREAM
 
 	/** Queue a value on the stream for pushing to the listener */
-	override push(R value) { root.push(value) }
+	override push(I value) { input.push(value) }
 	
 	/** 
 	 * Tell the stream an error occurred. the error will not be thrown directly,
 	 * but passed and can be listened for down the stream.
 	 */
-	override error(Throwable t) { root.error(t) }
+	override error(Throwable t) { input.error(t) }
 	
 	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	override finish() { root.finish }	
+	override finish() { input.finish }	
 
 	/** Tell the stream a batch of the given level has finished. */
-	override finish(int level) { root.finish(level) }	
+	override finish(int level) { input.finish(level) }	
 
 	// APPLYING PAIRS TO THE SUBSTREAM
 
 	/** Queue a value on the stream for pushing to the listener */
-	def push(R from, T value) { apply(new Value(from, value)) }
+	def push(I from, O value) { apply(new Value(from, value)) }
 	
 	/** 
 	 * Tell the stream an error occurred. the error will not be thrown directly,
 	 * but passed and can be listened for down the stream.
 	 */
-	def error(R from, Throwable error) { apply(new Error(from, error)) }
+	def error(I from, Throwable error) { apply(new Error(from, error)) }
 	
 	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	def finish(R from) { apply(new Finish(from, 0)) }	
+	def finish(I from) { apply(new Finish(from, 0)) }	
 
 	/** Tell the stream a batch of the given level has finished. */
-	def finish(R from, int level) { apply(new Finish(from, level)) }	
+	def finish(I from, int level) { apply(new Finish(from, level)) }	
 	
 }
 
-abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<R, T> {
+abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<I, O> {
 
 	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
 
-	val protected Queue<Entry<R, T>> queue // queue for incoming values, for buffering when there is no ready listener
+	val protected Queue<Entry<I, O>> queue // queue for incoming values, for buffering when there is no ready listener
 
 	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
 	@Atomic val boolean open = true // whether the stream is open
 	@Atomic val boolean ready = false // whether the listener is ready
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
 
-	@Atomic val (Entry<R, T>)=>void entryListener // listener for entries from the stream queue
+	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
 
 	@Atomic public val int maxBufferSize // the maximum size of the queue
@@ -157,7 +157,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	new(int maxBufferSize) { this(newConcurrentLinkedQueue, maxBufferSize) }
 
 	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
-	new(Queue<Entry<R, T>> queue, int maxBufferSize) { 
+	new(Queue<Entry<I, O>> queue, int maxBufferSize) { 
 		this.queue = queue
 		this.maxBufferSize = maxBufferSize
 	}
@@ -193,7 +193,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	override =>void onChange((Entry<R, T>)=>void entryListener) {
+	override =>void onChange((Entry<I, O>)=>void entryListener) {
 		this.entryListener = entryListener
 		return [| this.entryListener = null ]
 	}
@@ -216,7 +216,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 	override protected act(StreamMessage entry, =>void done) {
 		if(isOpen) {
 			switch entry {
-				Value<R, T>, Finish<R, T>, Error<R, T>: {
+				Value<I, O>, Finish<I, O>, Error<I, O>: {
 					// check for buffer overflow
 					if(buffersize >= maxBufferSize) {
 						notify(new Overflow(entry))
@@ -228,7 +228,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 					incBuffersize
 					publishNext
 				}
-				Entries<R, T>: {
+				Entries<I, O>: {
 					// add the entries to the queue 
 					queue.addAll(entry.entries)
 					incBuffersize(entry.entries.size)
@@ -247,7 +247,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 					// discard everything up to finish from the queue
 					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
-							Finish<R, T> case level==0: skipping = false
+							Finish<I, O> case level==0: skipping = false
 							default: { queue.poll decBuffersize }
 						}
 					}
@@ -285,7 +285,7 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 			// check for some exceptional cases
 			switch it: entry {
 				// a finish of level 0 stops the skipping
-				Finish<R, T>: if(level == 0) skipping = false
+				Finish<I, O>: if(level == 0) skipping = false
 			}
 			// publish the value on the entryListener
 			entryListener.apply(entry)
@@ -308,8 +308,8 @@ abstract class BaseStream<R, T> extends Actor<StreamMessage> implements IStream<
 			ready = true
 			// otherwise push the error on the stream
 			switch entry {
-				Value<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
-				Error<R, T>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+				Value<I, O>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+				Error<I, O>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
 			}
 			// if next was not called, it would halt the stream, so call it now
 			if(!nextCalled) this.next

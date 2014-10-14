@@ -55,19 +55,23 @@ class SubPromise<R, T> extends BasePromise<R, T> {
 	
 	val protected IPromise<R, ?> root
 
+	new() {
+		this.root = null
+	}
+
 	/** Constructor for easily creating a child promise. */
 	new(IPromise<R, ?> parentPromise) {
 		this.root = parentPromise.root
-		parentPromise.onError [ error(it) ]
+		// parentPromise.onError [ i, it | error(i, it) ]
 	}
 
 	override getRoot() { root }
 
 	/** set the promised value */
-	override set(R value) { root.set(value) }
+	override set(R value) { root?.set(value) }
 
 	/** report an error to the listener of the promise. */
-	override error(Throwable t) { root.error(t) this }
+	override error(Throwable t) { root?.error(t) this }
 	
 	/** set the promised value */
 	def void set(R from, T value) { apply(new Value(from, value)) }
@@ -214,6 +218,8 @@ class Task extends Promise<Boolean> {
 
 /** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
 class SubTask<R> extends SubPromise<R, Boolean> {
+	
+	new() { super() }
 	
 	new(IPromise<R, ?> parentPromise) {
 		super(parentPromise)

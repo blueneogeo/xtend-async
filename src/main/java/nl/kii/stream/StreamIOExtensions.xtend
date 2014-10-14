@@ -43,29 +43,29 @@ class StreamIOExtensions {
 	
 	// WRITING TO OUTPUT STREAMS AND FILES ///////////////////////////////////
 
-	def static <R> SubStream<R, String> toText(IStream<R, List<Byte>> stream) {
+	def static <I> SubStream<I, String> toText(IStream<I, List<Byte>> stream) {
 		stream.toText('UTF-8')
 	}
 	
-	def static <R> SubStream<R, String> toText(IStream<R, List<Byte>> stream, String encoding) {
+	def static <I> SubStream<I, String> toText(IStream<I, List<Byte>> stream, String encoding) {
 		stream
 			.map [ new String(it, encoding).split('\n').toList ]
 			.separate
 			=> [ stream.operation = 'toText(encoding=' +  encoding + ')' ]
 	}
 	
-	def static <R> SubStream<R, List<Byte>> toBytes(IStream<R, String> stream) {
+	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream) {
 		stream.toBytes('UTF-8')
 	}
 
-	def static <R> SubStream<R, List<Byte>> toBytes(IStream<R, String> stream, String encoding) {
+	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream, String encoding) {
 		stream
 			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
 			=> [ stream.operation = 'toBytes(encoding=' +  encoding + ')' ]
 	}
 
 	/** write a buffered bytestream to an standard java outputstream */
-	def static <R> Task writeTo(IStream<R, List<Byte>> stream, OutputStream out) {
+	def static <I> Task writeTo(IStream<I, List<Byte>> stream, OutputStream out) {
 		val task = new Task
 		stream.on [
 			closed [ out.close task.complete ]
@@ -88,7 +88,7 @@ class StreamIOExtensions {
 	}
 
 	/** write a buffered bytestream to a file */
-	def static <R> Task writeTo(IStream<R, List<Byte>> stream, File file) {
+	def static <I> Task writeTo(IStream<I, List<Byte>> stream, File file) {
 		val task = new Task
 		val sink = Files.asByteSink(file)
 		val out = sink.openBufferedStream

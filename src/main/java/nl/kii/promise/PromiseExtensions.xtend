@@ -41,7 +41,7 @@ class PromiseExtensions {
 	}
 
 	/** Distribute work using an asynchronous method */	
-	def static <R, T, M, P extends IPromise<R, M>> IPromise<T, List<M>> call(List<T> data, int concurrency, (T)=>P operationFn) {
+	def static <T, R, P extends IPromise<T, R>> IPromise<T, List<R>> call(List<T> data, int concurrency, (T)=>P operationFn) {
 		data.stream
 			.call(concurrency, operationFn)
 			.collect // see it as a list of results
@@ -79,7 +79,7 @@ class PromiseExtensions {
 	 * Create a new Task that completes when any of the wrapped tasks are completed
 	 * Errors created by the promises are propagated into the resulting task
 	 */
-	def static <R, T, P extends IPromise<R, T>> Task any(P... promises) {
+	def static <I, O, P extends IPromise<I, O>> Task any(P... promises) {
 		any(promises.toList)
 	}
 	
@@ -87,7 +87,7 @@ class PromiseExtensions {
 	 * Create a new Task that completes when any of the wrapped tasks are completed
 	 * Errors created by the promises are propagated into the resulting task
 	 */
-	def static <R, T> Task any(List<? extends IPromise<R, T>> promises) {
+	def static <I, O> Task any(List<? extends IPromise<I, O>> promises) {
 		val Task task = new Task
 		for(promise : promises) {
 			promise
@@ -100,32 +100,32 @@ class PromiseExtensions {
 	// COMPLETING TASKS ///////////////////////////////////////////////////////
 
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
-	def static <R, T> always(IPromise<R, T> promise, Procedures.Procedure1<Entry<?, T>> resultFn) {
+	def static <I, O> always(IPromise<I, O> promise, Procedures.Procedure1<Entry<?, O>> resultFn) {
 		promise.onError [ resultFn.apply(new Error(null, it)) ]
 		promise.then [ resultFn.apply(new Value(null, it)) ]
 		promise
 	}
 	
 	/** Tell the promise it went wrong */
-	def static <R, T> error(IPromise<R, T> promise, String message) {
+	def static <I, O> error(IPromise<I, O> promise, String message) {
 		promise.error(new Exception(message))
 	}
 
 	/** Tell the promise it went wrong, with the cause throwable */
-	def static <R, T> error(IPromise<R, T> promise, String message, Throwable cause) {
+	def static <I, O> error(IPromise<I, O> promise, String message, Throwable cause) {
 		promise.error(new Exception(message, cause))
 	}
 
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
-	def static <R, T> >> (R value, IPromise<R, T> promise) {
+	def static <I, O> >> (I value, IPromise<I, O> promise) {
 		promise.set(value)
 		promise
 	}
 	
 	/** Fulfill a promise */
-	def static <R, T> << (IPromise<R, T> promise, R value) {
+	def static <I, O> << (IPromise<I, O> promise, I value) {
 		promise.set(value)
 		promise
 	}
@@ -136,7 +136,7 @@ class PromiseExtensions {
 	}
 	
 	/** Any/Or */
-	def static <R, T> Task || (IPromise<R, T> p1, IPromise<R, T> p2) {
+	def static <I, O> Task || (IPromise<I, O> p1, IPromise<I, O> p2) {
 		any(p1, p2)
 	}
 
@@ -147,7 +147,7 @@ class PromiseExtensions {
 	 * that transforms the value of the promise
 	 * once the existing promise is resolved.
 	 */
-	def static <R, T, M> map(IPromise<R, T> promise, (T)=>M mappingFn) {
+	def static <I, O, R> map(IPromise<I, O> promise, (O)=>R mappingFn) {
 		promise.map [ r, it | mappingFn.apply(it) ]
 	}
 
@@ -156,8 +156,8 @@ class PromiseExtensions {
 	 * that transforms the value of the promise
 	 * once the existing promise is resolved.
 	 */
-	def static <R, T, M> map(IPromise<R, T> promise, (R, T)=>M mappingFn) {
-		val newPromise = new SubPromise<R, M>(promise)
+	def static <I, O, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
+		val newPromise = new SubPromise<I, R>(promise)
 		promise
 			.onError [ r, it | newPromise.error(r, it) ]
 			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
@@ -165,13 +165,13 @@ class PromiseExtensions {
 	}
 	
 	/**
-	 * Create a new promise with a new root, defined by the rootFn
+	 * Create a new promise with a new input, defined by the inputFn
 	 */
-	def static <R, R2, T> root(IPromise<R, T> promise, (R, T)=>R2 rootFn) {
-		val subPromise = new SubPromise<R2, T>(new Promise<R2>)
+	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
+		val subPromise = new SubPromise<I2, O>(new Promise<I2>)
 		promise
-			.onError [ r, it | subPromise.error(rootFn.apply(r, null), it) ]
-			.then [ r, it | subPromise.set(rootFn.apply(r, it), it) ]
+			.onError [ r, it | subPromise.error(inputFn.apply(r, null), it) ]
+			.then [ r, it | subPromise.set(inputFn.apply(r, it), it) ]
 		subPromise => [ operation = 'root' ]
 	}
 	
@@ -179,47 +179,47 @@ class PromiseExtensions {
 	 * Maps errors back into values. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
-	def static <R, T> onErrorMap(IPromise<R, T> promise, (Throwable)=>T mappingFn) {
-		val newPromise = new SubPromise<R, T>(promise)
+	def static <I, O> onErrorMap(IPromise<I, O> promise, (Throwable)=>O mappingFn) {
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
-			.onError [ r, it |
+			.onError [ i, it |
 				try {
-					newPromise.set(r, mappingFn.apply(it))
+					newPromise.set(i, mappingFn.apply(it))
 				} catch(Exception e) {
 					newPromise.error(e)
 				}
 			]
-			.then [ r, it | newPromise.set(r, it) ]
+			.then [ i, it | newPromise.set(i, it) ]
 		newPromise => [ operation = 'onErrorMap' ]
 	}
 
 	/**
-	 * Maps errors back into values. 
+	 * Maps errors back into values, using an async call. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
-	def static <R, T> onErrorCall(IPromise<R, T> promise, (Throwable)=>Promise<T> mappingFn) {
-		val newPromise = new Promise<T>
+	def static <I, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I, O> mappingFn) {
+		val newPromise = new SubPromise<I, O>(new Promise<I>)
 		promise
-			.onError [
+			.onError [ i, it |
 				try {
 					mappingFn.apply(it)
-						.onError [ newPromise.error(it) ]
-						.then [ newPromise.set(it) ]
+						.onError [ newPromise.error(i, it) ]
+						.then [ newPromise.set(i, it) ]
 				} catch(Exception e) {
 					newPromise.error(e)
 				}
 			]
-			.then [ newPromise.set(it) ]
+			.then [ i, it | newPromise.set(i, it) ]
 		newPromise => [ operation = 'onErrorCall' ]
 	}
 
 	/** Flattens a promise of a promise to directly a promise. */
-	def static <R1, R2, T, P extends IPromise<R1, T>> flatten(IPromise<R2, P> promise) {
+	def static <I1, I2, O, P extends IPromise<I1, O>> flatten(IPromise<I2, P> promise) {
 		promise.resolve => [ operation = 'flatten' ]
 	}
 
 	/** Create a stream out of a promise of a stream. */
-	def static <R, P extends IPromise<R, Stream<T>>, T> toStream(P promise) {
+	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
 		promise
 			.onError [ newStream.error(it) ]
@@ -231,8 +231,8 @@ class PromiseExtensions {
 	 * Resolve a promise of a promise to directly a promise.
 	 * Alias for Promise.flatten, added for consistent syntax with streams 
 	 * */
-	def static <R, R2, T, P extends IPromise<R2, T>> resolve(IPromise<R, P> promise) {
-		val newPromise = new SubPromise<R, T>(promise)
+	def static <I, I2, O, P extends IPromise<I2, O>> resolve(IPromise<I, P> promise) {
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.onError [ r, it | newPromise.error(r, it) ]
 			.then [ r, p |
@@ -244,7 +244,7 @@ class PromiseExtensions {
 	}
 
 	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
-	def static <R, T, M, P extends IPromise<R, M>> IPromise<R, M> flatMap(IPromise<R, T> promise, (T)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<I, R>> IPromise<I, R> flatMap(IPromise<I, O> promise, (O)=>P promiseFn) {
 		promise.map(promiseFn).flatten
 			=> [ operation = 'flatMap' ]
 	}
@@ -256,7 +256,7 @@ class PromiseExtensions {
 	 * the promise itself however if an error is thrown, this is propagated to
 	 * the new generated promise.
 	 */
-	def static <R, T> effect(IPromise<R, T> promise, (T)=>void listener) {
+	def static <I, O> effect(IPromise<I, O> promise, (O)=>void listener) {
 		promise.effect [ r, it | listener.apply(it) ]
 	}
 
@@ -265,7 +265,7 @@ class PromiseExtensions {
 	 * the promise itself however if an error is thrown, this is propagated to
 	 * the new generated promise.
 	 */
-	def static <R, T> effect(IPromise<R, T> promise, (R, T)=>void listener) {
+	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
 		promise.map [ r, it | listener.apply(r, it) return it ]
 			=> [ operation = 'effect' ]
 	}
@@ -289,44 +289,36 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <R, R2, T, M, P extends IPromise<R2, M>> call(IPromise<R, T> promise, (T)=>P promiseFn) {
+	def static <I, I2, O, R, P extends IPromise<I2, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
 		promise.map(promiseFn).resolve
 			=> [ operation = 'call' ]
 	}
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	def static <R, T> onErrorThrow(IPromise<R, T> promise, (Throwable, T)=>Exception exceptionFn) {
-		promise.onError [ t |
-			throw switch t {
-				PromiseException case t.value != null: exceptionFn.apply(t, t.value as T)
-				default: exceptionFn.apply(t, null)
-			}
-		]
+	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
+		promise.onError [ i, t | throw exceptionFn.apply(i, t) ]
 	}
 	
 	/** Convert or forward a promise to a task */	
-	def static asTask(IPromise<?, ?> promise) {
+	def static <I, O> asTask(IPromise<I, O> promise) {
 		val task = new Task
 		promise.completes(task)
 		task
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <T> pipe(IPromise<?, T> promise, IPromise<T, ?> target) {
-		promise.always [
-			switch it {
-				Value<?, T>: target.set(value)
-				Error<?, T>: target.error(error)
-			}
-		]
+	def static <I, O, O2> pipe(IPromise<I, O> promise, IPromise<O, O2> target) {
+		promise
+			.onError [ target.error(it) ]
+			.then [ target.set(it) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <R, T> completes(IPromise<R, T> promise, IPromise<?, Boolean> task) {
+	def static <I, I2, O> completes(IPromise<I, O> promise, Task task) {
 		promise
-			.onError [ r, it | task.error(r, it) ]
-			.then [ r, it | task.set(r, it) ]
+			.onError [ r, it | task.error(it) ]
+			.then [ r, it | task.set(true) ]
 	}
 
 }

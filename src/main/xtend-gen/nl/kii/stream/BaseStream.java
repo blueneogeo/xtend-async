@@ -30,10 +30,10 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public abstract class BaseStream<R extends Object, T extends Object> extends Actor<StreamMessage> implements IStream<R, T> {
+public abstract class BaseStream<I extends Object, O extends Object> extends Actor<StreamMessage> implements IStream<I, O> {
   public final static int DEFAULT_MAX_BUFFERSIZE = 1000;
   
-  protected final Queue<Entry<R, T>> queue;
+  protected final Queue<Entry<I, O>> queue;
   
   @Atomic
   private final AtomicInteger _buffersize = new AtomicInteger(0);
@@ -48,7 +48,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
   private final AtomicBoolean _skipping = new AtomicBoolean(false);
   
   @Atomic
-  private final AtomicReference<Procedure1<? super Entry<R, T>>> _entryListener = new AtomicReference<Procedure1<? super Entry<R, T>>>();
+  private final AtomicReference<Procedure1<? super Entry<I, O>>> _entryListener = new AtomicReference<Procedure1<? super Entry<I, O>>>();
   
   @Atomic
   private final AtomicReference<Procedure1<? super StreamNotification>> _notificationListener = new AtomicReference<Procedure1<? super StreamNotification>>();
@@ -63,17 +63,17 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
    * create the stream with a memory concurrent queue
    */
   public BaseStream() {
-    this(Queues.<Entry<R, T>>newConcurrentLinkedQueue(), BaseStream.DEFAULT_MAX_BUFFERSIZE);
+    this(Queues.<Entry<I, O>>newConcurrentLinkedQueue(), BaseStream.DEFAULT_MAX_BUFFERSIZE);
   }
   
   public BaseStream(final int maxBufferSize) {
-    this(Queues.<Entry<R, T>>newConcurrentLinkedQueue(), maxBufferSize);
+    this(Queues.<Entry<I, O>>newConcurrentLinkedQueue(), maxBufferSize);
   }
   
   /**
    * create the stream with your own provided queue. Note: the queue must be threadsafe!
    */
-  public BaseStream(final Queue<Entry<R, T>> queue, final int maxBufferSize) {
+  public BaseStream(final Queue<Entry<I, O>> queue, final int maxBufferSize) {
     this.queue = queue;
     this.setMaxBufferSize(Integer.valueOf(maxBufferSize));
   }
@@ -81,8 +81,8 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
   /**
    * get the queue of the stream. will only be an unmodifiable view of the queue.
    */
-  public Collection<Entry<R, T>> getQueue() {
-    return Collections.<Entry<R, T>>unmodifiableCollection(this.queue);
+  public Collection<Entry<I, O>> getQueue() {
+    return Collections.<Entry<I, O>>unmodifiableCollection(this.queue);
   }
   
   public boolean isOpen() {
@@ -132,7 +132,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
    * the StreamExtensions instead.
    * @return unsubscribe function
    */
-  public Procedure0 onChange(final Procedure1<? super Entry<R, T>> entryListener) {
+  public Procedure0 onChange(final Procedure1<? super Entry<I, O>> entryListener) {
     this.setEntryListener(entryListener);
     final Procedure0 _function = new Procedure0() {
       public void apply() {
@@ -190,7 +190,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
             done.apply();
             return;
           }
-          this.queue.add(((Entry<R, T>)entry));
+          this.queue.add(((Entry<I, O>)entry));
           this.incBuffersize();
           this.publishNext();
         }
@@ -198,8 +198,8 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
       if (!_matched) {
         if (entry instanceof Entries) {
           _matched=true;
-          this.queue.addAll(((Entries<R, T>)entry).entries);
-          int _size = ((Entries<R, T>)entry).entries.size();
+          this.queue.addAll(((Entries<I, O>)entry).entries);
+          int _size = ((Entries<I, O>)entry).entries.size();
           this.incBuffersize(Integer.valueOf(_size));
           this.publishNext();
         }
@@ -224,12 +224,12 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
             this.setSkipping(Boolean.valueOf(true));
           }
           while ((this.isSkipping() && (!this.queue.isEmpty()))) {
-            Entry<R, T> _peek = this.queue.peek();
-            final Entry<R, T> it = _peek;
+            Entry<I, O> _peek = this.queue.peek();
+            final Entry<I, O> it = _peek;
             boolean _matched_1 = false;
             if (!_matched_1) {
               if (it instanceof Finish) {
-                if ((((Finish<R, T>)it).level == 0)) {
+                if ((((Finish<I, O>)it).level == 0)) {
                   _matched_1=true;
                   this.setSkipping(Boolean.valueOf(false));
                 }
@@ -251,7 +251,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
       if (!_matched) {
         if (entry instanceof Close) {
           _matched=true;
-          Closed<R, T> _closed = new Closed<R, T>();
+          Closed<I, O> _closed = new Closed<I, O>();
           this.queue.add(_closed);
           this.incBuffersize();
           this.publishNext();
@@ -288,7 +288,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
         if (_or_2) {
           _or_1 = true;
         } else {
-          Procedure1<? super Entry<R, T>> _entryListener = this.getEntryListener();
+          Procedure1<? super Entry<I, O>> _entryListener = this.getEntryListener();
           boolean _equals = Objects.equal(_entryListener, null);
           _or_1 = _equals;
         }
@@ -302,23 +302,23 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
           return false;
         }
         this.setReady(Boolean.valueOf(false));
-        final Entry<R, T> entry = this.queue.poll();
+        final Entry<I, O> entry = this.queue.poll();
         this.decBuffersize();
         boolean _xtrycatchfinallyexpression = false;
         try {
           boolean _xblockexpression_1 = false;
           {
-            final Entry<R, T> it = entry;
+            final Entry<I, O> it = entry;
             boolean _matched = false;
             if (!_matched) {
               if (it instanceof Finish) {
                 _matched=true;
-                if ((((Finish<R, T>)it).level == 0)) {
+                if ((((Finish<I, O>)it).level == 0)) {
                   this.setSkipping(Boolean.valueOf(false));
                 }
               }
             }
-            Procedure1<? super Entry<R, T>> _entryListener_1 = this.getEntryListener();
+            Procedure1<? super Entry<I, O>> _entryListener_1 = this.getEntryListener();
             _entryListener_1.apply(entry);
             _xblockexpression_1 = true;
           }
@@ -350,7 +350,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
                   _matched_1=true;
                   String _operation_1 = this.getOperation();
                   StreamException _streamException = new StreamException(_operation_1, entry, t);
-                  nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((Value<R, T>)entry).from, _streamException);
+                  nl.kii.stream.Error<I, Object> _error = new nl.kii.stream.Error<I, Object>(((Value<I, O>)entry).from, _streamException);
                   this.apply(_error);
                 }
               }
@@ -359,7 +359,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
                   _matched_1=true;
                   String _operation_1 = this.getOperation();
                   StreamException _streamException = new StreamException(_operation_1, entry, t);
-                  nl.kii.stream.Error<R, Object> _error = new nl.kii.stream.Error<R, Object>(((nl.kii.stream.Error<R, T>)entry).from, _streamException);
+                  nl.kii.stream.Error<I, Object> _error = new nl.kii.stream.Error<I, Object>(((nl.kii.stream.Error<I, O>)entry).from, _streamException);
                   this.apply(_error);
                 }
               }
@@ -411,7 +411,7 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
     int _size = this.queue.size();
     _builder.append(_size, "");
     _builder.append(", hasListener: ");
-    Procedure1<? super Entry<R, T>> _entryListener = this.getEntryListener();
+    Procedure1<? super Entry<I, O>> _entryListener = this.getEntryListener();
     boolean _notEquals = (!Objects.equal(_entryListener, null));
     _builder.append(_notEquals, "");
     _builder.append(" }");
@@ -462,11 +462,11 @@ public abstract class BaseStream<R extends Object, T extends Object> extends Act
     return this._skipping.get();
   }
   
-  private Procedure1<? super Entry<R, T>> setEntryListener(final Procedure1<? super Entry<R, T>> value) {
+  private Procedure1<? super Entry<I, O>> setEntryListener(final Procedure1<? super Entry<I, O>> value) {
     return this._entryListener.getAndSet(value);
   }
   
-  private Procedure1<? super Entry<R, T>> getEntryListener() {
+  private Procedure1<? super Entry<I, O>> getEntryListener() {
     return this._entryListener.get();
   }
   

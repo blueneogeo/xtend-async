@@ -24,44 +24,44 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
  * Remember to call stream.next to start the stream!
  */
 @SuppressWarnings("all")
-public class StreamHandlerBuilder<R extends Object, T extends Object> implements StreamHandler<R, T>, StreamObserver<R, T> {
-  public final IStream<R, T> stream;
+public class StreamHandlerBuilder<I extends Object, O extends Object> implements StreamHandler<I, O>, StreamObserver<I, O> {
+  public final IStream<I, O> stream;
   
   @Atomic
-  private final AtomicReference<Procedure2<R, T>> _valueFn = new AtomicReference<Procedure2<R, T>>();
+  private final AtomicReference<Procedure2<I, O>> _valueFn = new AtomicReference<Procedure2<I, O>>();
   
   @Atomic
-  private final AtomicReference<Procedure2<R, Throwable>> _errorFn = new AtomicReference<Procedure2<R, Throwable>>();
+  private final AtomicReference<Procedure2<I, Throwable>> _errorFn = new AtomicReference<Procedure2<I, Throwable>>();
   
   @Atomic
-  private final AtomicReference<Procedure2<R, Integer>> _finishFn = new AtomicReference<Procedure2<R, Integer>>();
+  private final AtomicReference<Procedure2<I, Integer>> _finishFn = new AtomicReference<Procedure2<I, Integer>>();
   
   @Atomic
   private final AtomicReference<Procedure1<Void>> _closedFn = new AtomicReference<Procedure1<Void>>();
   
-  public StreamHandlerBuilder(final IStream<R, T> stream) {
+  public StreamHandlerBuilder(final IStream<I, O> stream) {
     this.stream = stream;
   }
   
   /**
    * listen for each incoming value
    */
-  public void each(final Procedure2<? super R, ? super T> handler) {
-    this.setValueFn(((Procedure2<R, T>)handler));
+  public void each(final Procedure2<? super I, ? super O> handler) {
+    this.setValueFn(((Procedure2<I, O>)handler));
   }
   
   /**
    * listen for any finish
    */
-  public void finish(final Procedure2<? super R, ? super Integer> handler) {
-    this.setFinishFn(((Procedure2<R, Integer>)handler));
+  public void finish(final Procedure2<? super I, ? super Integer> handler) {
+    this.setFinishFn(((Procedure2<I, Integer>)handler));
   }
   
   /**
    * listen for any uncaught errors
    */
-  public void error(final Procedure2<? super R, ? super Throwable> handler) {
-    this.setErrorFn(((Procedure2<R, Throwable>)handler));
+  public void error(final Procedure2<? super I, ? super Throwable> handler) {
+    this.setErrorFn(((Procedure2<I, Throwable>)handler));
   }
   
   /**
@@ -71,22 +71,22 @@ public class StreamHandlerBuilder<R extends Object, T extends Object> implements
     this.setClosedFn(((Procedure1<Void>)handler));
   }
   
-  public void onValue(final R from, final T value) {
-    Procedure2<R, T> _valueFn = this.getValueFn();
+  public void onValue(final I from, final O value) {
+    Procedure2<I, O> _valueFn = this.getValueFn();
     if (_valueFn!=null) {
       _valueFn.apply(from, value);
     }
   }
   
-  public void onError(final R from, final Throwable t) {
-    Procedure2<R, Throwable> _errorFn = this.getErrorFn();
+  public void onError(final I from, final Throwable t) {
+    Procedure2<I, Throwable> _errorFn = this.getErrorFn();
     if (_errorFn!=null) {
       _errorFn.apply(from, t);
     }
   }
   
-  public void onFinish(final R from, final int level) {
-    Procedure2<R, Integer> _finishFn = this.getFinishFn();
+  public void onFinish(final I from, final int level) {
+    Procedure2<I, Integer> _finishFn = this.getFinishFn();
     if (_finishFn!=null) {
       _finishFn.apply(from, Integer.valueOf(level));
     }
@@ -99,27 +99,27 @@ public class StreamHandlerBuilder<R extends Object, T extends Object> implements
     }
   }
   
-  private Procedure2<R, T> setValueFn(final Procedure2<R, T> value) {
+  private Procedure2<I, O> setValueFn(final Procedure2<I, O> value) {
     return this._valueFn.getAndSet(value);
   }
   
-  private Procedure2<R, T> getValueFn() {
+  private Procedure2<I, O> getValueFn() {
     return this._valueFn.get();
   }
   
-  private Procedure2<R, Throwable> setErrorFn(final Procedure2<R, Throwable> value) {
+  private Procedure2<I, Throwable> setErrorFn(final Procedure2<I, Throwable> value) {
     return this._errorFn.getAndSet(value);
   }
   
-  private Procedure2<R, Throwable> getErrorFn() {
+  private Procedure2<I, Throwable> getErrorFn() {
     return this._errorFn.get();
   }
   
-  private Procedure2<R, Integer> setFinishFn(final Procedure2<R, Integer> value) {
+  private Procedure2<I, Integer> setFinishFn(final Procedure2<I, Integer> value) {
     return this._finishFn.getAndSet(value);
   }
   
-  private Procedure2<R, Integer> getFinishFn() {
+  private Procedure2<I, Integer> getFinishFn() {
     return this._finishFn.get();
   }
   

@@ -33,25 +33,25 @@ class Overflow implements StreamNotification{
  * An entry is a stream message that contains either a value or stream state information.
  * Entries travel downwards a stream towards the listeners of the stream at the end.
  */
-interface Entry<R, T> extends StreamMessage { }
+interface Entry<I, O> extends StreamMessage { }
 
 /** 
  * Use entries to push multiple entries onto the stream for one recieved entry.
  * Consider it an atomic push of multiple entries onto the stream.
  */
-class Entries<R, T> implements StreamMessage {
-	public val List<Entry<R, T>> entries
-	new(Entry<R, T>... entries) { this.entries = entries }
+class Entries<I, O> implements StreamMessage {
+	public val List<Entry<I, O>> entries
+	new(Entry<I, O>... entries) { this.entries = entries }
 	override toString() { entries.toString }
 	// FIX: this is not correct, needs to iterate through entries
 	override equals(Object o) { o instanceof Entries<?,?> && (o as Entries<?,?>).entries == this.entries }
 }
 
 /** Wraps a streamed data value of type T */
-class Value<R, T> implements Entry<R, T> {
-	public val R from
-	public val T value
-	new(R from, T value) { this.from = from this.value = value }
+class Value<I, O> implements Entry<I, O> {
+	public val I from
+	public val O value
+	new(I from, O value) { this.from = from this.value = value }
 	override toString() { value.toString }
 	override equals(Object o) { o instanceof Value<?, ?> && (o as Value<?, ?>).value == this.value }
 }
@@ -61,24 +61,24 @@ class Value<R, T> implements Entry<R, T> {
  * Batches of data can be of different levels. The finish has a level property that indicates
  * which level of data was finished.
  */
-class Finish<R, T> implements Entry<R, T> {
-	public val R from
+class Finish<I, O> implements Entry<I, O> {
+	public val I from
 	public val int level
 	new() { this(null, 0) }
-	new(R from, int level) { this.from = from this.level = level }
+	new(I from, int level) { this.from = from this.level = level }
 	override toString() { 'finish(' + level + ')' }
 	override equals(Object o) { o instanceof Finish<?,?> && (o as Finish<?,?>).level == level }
 }
 
 /** Indicates that the stream was closed and no more data will be passed */
-class Closed<R, T> implements Entry<R, T> {
+class Closed<I, O> implements Entry<I, O> {
 	override toString() { 'closed stream' }
 }
 
 /**  Indicates that the stream encountered an error while processing information. */
-class Error<R, T> implements Entry<R, T> {
-	public val R from
+class Error<I, O> implements Entry<I, O> {
+	public val I from
 	public val Throwable error
-	new(R from, Throwable error) { this.from = from this.error = error }
+	new(I from, Throwable error) { this.from = from this.error = error }
 	override toString() { 'error: ' + error.message }
 }

@@ -113,11 +113,11 @@ public class StreamIOExtensions {
     }
   }
   
-  public static <R extends Object> SubStream<R, String> toText(final IStream<R, List<Byte>> stream) {
-    return StreamIOExtensions.<R>toText(stream, "UTF-8");
+  public static <I extends Object> SubStream<I, String> toText(final IStream<I, List<Byte>> stream) {
+    return StreamIOExtensions.<I>toText(stream, "UTF-8");
   }
   
-  public static <R extends Object> SubStream<R, String> toText(final IStream<R, List<Byte>> stream, final String encoding) {
+  public static <I extends Object> SubStream<I, String> toText(final IStream<I, List<Byte>> stream, final String encoding) {
     final Function1<List<Byte>, List<String>> _function = new Function1<List<Byte>, List<String>>() {
       public List<String> apply(final List<Byte> it) {
         try {
@@ -129,21 +129,21 @@ public class StreamIOExtensions {
         }
       }
     };
-    SubStream<R, List<String>> _map = StreamExtensions.<R, List<Byte>, List<String>>map(stream, _function);
-    SubStream<R, String> _separate = StreamExtensions.<R, String>separate(_map);
-    final Procedure1<SubStream<R, String>> _function_1 = new Procedure1<SubStream<R, String>>() {
-      public void apply(final SubStream<R, String> it) {
+    SubStream<I, List<String>> _map = StreamExtensions.<I, List<Byte>, List<String>>map(stream, _function);
+    SubStream<I, String> _separate = StreamExtensions.<I, String>separate(_map);
+    final Procedure1<SubStream<I, String>> _function_1 = new Procedure1<SubStream<I, String>>() {
+      public void apply(final SubStream<I, String> it) {
         stream.setOperation((("toText(encoding=" + encoding) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<R, String>>operator_doubleArrow(_separate, _function_1);
+    return ObjectExtensions.<SubStream<I, String>>operator_doubleArrow(_separate, _function_1);
   }
   
-  public static <R extends Object> SubStream<R, List<Byte>> toBytes(final IStream<R, String> stream) {
-    return StreamIOExtensions.<R>toBytes(stream, "UTF-8");
+  public static <I extends Object> SubStream<I, List<Byte>> toBytes(final IStream<I, String> stream) {
+    return StreamIOExtensions.<I>toBytes(stream, "UTF-8");
   }
   
-  public static <R extends Object> SubStream<R, List<Byte>> toBytes(final IStream<R, String> stream, final String encoding) {
+  public static <I extends Object> SubStream<I, List<Byte>> toBytes(final IStream<I, String> stream, final String encoding) {
     final Function1<String, List<Byte>> _function = new Function1<String, List<Byte>>() {
       public List<Byte> apply(final String it) {
         try {
@@ -154,24 +154,24 @@ public class StreamIOExtensions {
         }
       }
     };
-    SubStream<R, List<Byte>> _map = StreamExtensions.<R, String, List<Byte>>map(stream, _function);
-    final Procedure1<SubStream<R, List<Byte>>> _function_1 = new Procedure1<SubStream<R, List<Byte>>>() {
-      public void apply(final SubStream<R, List<Byte>> it) {
+    SubStream<I, List<Byte>> _map = StreamExtensions.<I, String, List<Byte>>map(stream, _function);
+    final Procedure1<SubStream<I, List<Byte>>> _function_1 = new Procedure1<SubStream<I, List<Byte>>>() {
+      public void apply(final SubStream<I, List<Byte>> it) {
         stream.setOperation((("toBytes(encoding=" + encoding) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<R, List<Byte>>>operator_doubleArrow(_map, _function_1);
+    return ObjectExtensions.<SubStream<I, List<Byte>>>operator_doubleArrow(_map, _function_1);
   }
   
   /**
    * write a buffered bytestream to an standard java outputstream
    */
-  public static <R extends Object> Task writeTo(final IStream<R, List<Byte>> stream, final OutputStream out) {
+  public static <I extends Object> Task writeTo(final IStream<I, List<Byte>> stream, final OutputStream out) {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
-      final Procedure1<StreamHandlerBuilder<R, List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<R, List<Byte>>>() {
-        public void apply(final StreamHandlerBuilder<R, List<Byte>> it) {
+      final Procedure1<StreamHandlerBuilder<I, List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<I, List<Byte>>>() {
+        public void apply(final StreamHandlerBuilder<I, List<Byte>> it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               try {
@@ -183,8 +183,8 @@ public class StreamIOExtensions {
             }
           };
           it.closed(_function);
-          final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
-            public void apply(final R $0, final Integer $1) {
+          final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
+            public void apply(final I $0, final Integer $1) {
               try {
                 boolean _equals = Objects.equal(it, Integer.valueOf(0));
                 if (_equals) {
@@ -198,15 +198,15 @@ public class StreamIOExtensions {
             }
           };
           it.finish(_function_1);
-          final Procedure2<R, Throwable> _function_2 = new Procedure2<R, Throwable>() {
-            public void apply(final R $0, final Throwable $1) {
+          final Procedure2<I, Throwable> _function_2 = new Procedure2<I, Throwable>() {
+            public void apply(final I $0, final Throwable $1) {
               task.error($1);
               stream.close();
             }
           };
           it.error(_function_2);
-          final Procedure2<R, List<Byte>> _function_3 = new Procedure2<R, List<Byte>>() {
-            public void apply(final R $0, final List<Byte> $1) {
+          final Procedure2<I, List<Byte>> _function_3 = new Procedure2<I, List<Byte>>() {
+            public void apply(final I $0, final List<Byte> $1) {
               try {
                 out.write(((byte[])Conversions.unwrapArray($1, byte.class)));
                 stream.next();
@@ -218,7 +218,7 @@ public class StreamIOExtensions {
           it.each(_function_3);
         }
       };
-      StreamExtensions.<R, List<Byte>>on(stream, _function);
+      StreamExtensions.<I, List<Byte>>on(stream, _function);
       stream.setOperation("writeTo");
       stream.next();
       _xblockexpression = task;
@@ -229,15 +229,15 @@ public class StreamIOExtensions {
   /**
    * write a buffered bytestream to a file
    */
-  public static <R extends Object> Task writeTo(final IStream<R, List<Byte>> stream, final File file) {
+  public static <I extends Object> Task writeTo(final IStream<I, List<Byte>> stream, final File file) {
     try {
       Task _xblockexpression = null;
       {
         final Task task = new Task();
         final ByteSink sink = Files.asByteSink(file);
         final BufferedOutputStream out = sink.openBufferedStream();
-        Task _writeTo = StreamIOExtensions.<R>writeTo(stream, out);
-        PromiseExtensions.<Boolean>pipe(_writeTo, task);
+        Task _writeTo = StreamIOExtensions.<I>writeTo(stream, out);
+        PromiseExtensions.<Boolean, Boolean, Boolean>pipe(_writeTo, task);
         String _absolutePath = file.getAbsolutePath();
         String _plus = ("writeTo(file=" + _absolutePath);
         String _plus_1 = (_plus + ")");
