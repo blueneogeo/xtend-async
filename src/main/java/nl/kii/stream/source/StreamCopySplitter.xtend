@@ -19,16 +19,16 @@ import nl.kii.stream.StreamNotification
  * streams do not block their flow, since one blocking stream
  * will block all streams from flowing.
  */
-class StreamCopySplitter<R, T> extends StreamSplitter<R, T> {
+class StreamCopySplitter<I, O> extends StreamSplitter<I, O> {
 	
-	@Atomic Entry<R, T> buffer
+	@Atomic Entry<I, O> buffer
 	
-	new(IStream<R, T> source) {
+	new(IStream<I, O> source) {
 		super(source)
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	protected override onEntry(Entry<R, T> entry) {
+	protected override onEntry(Entry<I, O> entry) {
 		buffer = entry
 		// only proceed if all streams are ready
 		if(streams.all[ready]) publish

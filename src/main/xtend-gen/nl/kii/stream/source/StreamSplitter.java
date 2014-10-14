@@ -24,34 +24,34 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  * distribution system.
  */
 @SuppressWarnings("all")
-public abstract class StreamSplitter<R extends Object, T extends Object> extends Actor<StreamMessage> implements StreamSource<R, T> {
+public abstract class StreamSplitter<I extends Object, O extends Object> extends Actor<StreamMessage> implements StreamSource<I, O> {
   /**
    * the source stream that gets distributed
    */
-  protected final IStream<R, T> source;
+  protected final IStream<I, O> source;
   
   /**
    * the connected listening streams
    */
   @Atomic
-  private final AtomicReference<List<IStream<R, T>>> _streams = new AtomicReference<List<IStream<R, T>>>();
+  private final AtomicReference<List<IStream<I, O>>> _streams = new AtomicReference<List<IStream<I, O>>>();
   
-  public StreamSplitter(final IStream<R, T> source) {
+  public StreamSplitter(final IStream<I, O> source) {
     this.source = source;
-    CopyOnWriteArrayList<IStream<R, T>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<R, T>>();
+    CopyOnWriteArrayList<IStream<I, O>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<I, O>>();
     this.setStreams(_copyOnWriteArrayList);
-    final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
-      public void apply(final Entry<R, T> it) {
+    final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
+      public void apply(final Entry<I, O> it) {
         StreamSplitter.this.apply(it);
       }
     };
     source.onChange(_function);
   }
   
-  public StreamSource<R, T> pipe(final IStream<R, T> stream) {
-    StreamSplitter<R, T> _xblockexpression = null;
+  public StreamSource<I, O> pipe(final IStream<I, O> stream) {
+    StreamSplitter<I, O> _xblockexpression = null;
     {
-      List<IStream<R, T>> _streams = this.getStreams();
+      List<IStream<I, O>> _streams = this.getStreams();
       _streams.add(stream);
       final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
         public void apply(final StreamNotification it) {
@@ -68,14 +68,14 @@ public abstract class StreamSplitter<R extends Object, T extends Object> extends
     return _xblockexpression;
   }
   
-  public IStream<R, T> stream() {
-    SubStream<R, T> _subStream = new SubStream<R, T>(this.source);
-    final Procedure1<SubStream<R, T>> _function = new Procedure1<SubStream<R, T>>() {
-      public void apply(final SubStream<R, T> it) {
+  public IStream<I, O> stream() {
+    SubStream<I, O> _subStream = new SubStream<I, O>(this.source);
+    final Procedure1<SubStream<I, O>> _function = new Procedure1<SubStream<I, O>>() {
+      public void apply(final SubStream<I, O> it) {
         StreamSplitter.this.pipe(it);
       }
     };
-    return ObjectExtensions.<SubStream<R, T>>operator_doubleArrow(_subStream, _function);
+    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_subStream, _function);
   }
   
   /**
@@ -86,7 +86,7 @@ public abstract class StreamSplitter<R extends Object, T extends Object> extends
     if (!_matched) {
       if (message instanceof Entry) {
         _matched=true;
-        this.onEntry(((Entry<R, T>)message));
+        this.onEntry(((Entry<I, O>)message));
       }
     }
     if (!_matched) {
@@ -101,7 +101,7 @@ public abstract class StreamSplitter<R extends Object, T extends Object> extends
   /**
    * Handle an entry coming in from the source stream
    */
-  protected abstract void onEntry(final Entry<R, T> entry);
+  protected abstract void onEntry(final Entry<I, O> entry);
   
   /**
    * Handle a message coming from a piped stream
@@ -122,11 +122,11 @@ public abstract class StreamSplitter<R extends Object, T extends Object> extends
     return Objects.equal(_findFirst, null);
   }
   
-  protected List<IStream<R, T>> setStreams(final List<IStream<R, T>> value) {
+  protected List<IStream<I, O>> setStreams(final List<IStream<I, O>> value) {
     return this._streams.getAndSet(value);
   }
   
-  protected List<IStream<R, T>> getStreams() {
+  protected List<IStream<I, O>> getStreams() {
     return this._streams.get();
   }
 }

@@ -14,16 +14,16 @@ import nl.kii.stream.Value
  * This splitter sends each message to the first stream that is ready.
  * This means that each attached stream receives different messages. 
  */
-class LoadBalancer<R, T> extends StreamSplitter<R, T> {
+class LoadBalancer<I, O> extends StreamSplitter<I, O> {
 	
-	new(IStream<R, T> source) {
+	new(IStream<I, O> source) {
 		super(source)
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	protected override onEntry(Entry<R, T> entry) {
+	protected override onEntry(Entry<I, O> entry) {
 		switch entry {
-			Value<R, T>: {
+			Value<I, O>: {
 				for(stream : streams) {
 					if(stream.ready) {
 						stream.apply(entry)
@@ -31,12 +31,12 @@ class LoadBalancer<R, T> extends StreamSplitter<R, T> {
 					}
 				}
 			}
-			Finish<R, T>: {
+			Finish<I, O>: {
 				for(stream : streams) {
 					stream.finish
 				}
 			}
-			Error<R, T>: {
+			Error<I, O>: {
 				for(stream : streams) {
 					stream.error(entry.error)
 				}
