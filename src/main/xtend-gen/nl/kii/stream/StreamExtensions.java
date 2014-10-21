@@ -304,6 +304,47 @@ public class StreamExtensions {
   }
   
   /**
+   * Transform the stream input based on the existing input and output type.
+   */
+  public static <I extends Object, I2 extends Object, O extends Object> IStream<I2, O> mapInput(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends I2> mapFn) {
+    SubStream<I2, O> _xblockexpression = null;
+    {
+      Stream<I2> _stream = new Stream<I2>();
+      final SubStream<I2, O> newStream = new SubStream<I2, O>(_stream);
+      final Procedure1<StreamHandlerBuilder<I, O>> _function = new Procedure1<StreamHandlerBuilder<I, O>>() {
+        public void apply(final StreamHandlerBuilder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            public void apply(final I $0, final O $1) {
+              I2 _apply = mapFn.apply($0, $1);
+              newStream.push(_apply);
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish(($1).intValue());
+              stream.next();
+            }
+          };
+          it.finish(_function_1);
+          final Procedure2<I, Throwable> _function_2 = new Procedure2<I, Throwable>() {
+            public void apply(final I $0, final Throwable $1) {
+              newStream.error($1);
+              stream.next();
+            }
+          };
+          it.error(_function_2);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      StreamExtensions.<I2, I, O, O>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Observe the entries coming off this stream using a StreamObserver.
    * Note that you can only have ONE stream observer for every stream!
    * If you want more than one observer, you can split the stream.

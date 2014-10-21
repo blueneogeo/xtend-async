@@ -131,6 +131,18 @@ class StreamExtensions {
 		]
 		newStream
 	}
+	
+	/** Transform the stream input based on the existing input and output type. */
+	def static <I, I2, O> IStream<I2, O> mapInput(IStream<I, O> stream, (I, O)=>I2 mapFn) {
+		val newStream = new SubStream<I2, O>(new Stream<I2>)
+		stream.on [
+			each [ newStream.push(mapFn.apply($0, $1)) stream.next ]
+			finish [ newStream.finish($1) stream.next ]
+			error [ newStream.error($1) stream.next ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
 
 	// OBSERVING //////////////////////////////////////////////////////////////
 
