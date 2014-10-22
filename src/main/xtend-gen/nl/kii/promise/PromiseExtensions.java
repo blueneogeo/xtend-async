@@ -18,6 +18,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
@@ -580,6 +581,35 @@ public class PromiseExtensions {
       }
     };
     return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_resolve, _function);
+  }
+  
+  /**
+   * Create a new promise that delays the output (not the error) of the existing promise
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> wait(final IPromise<I, O> promise, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+    SubPromise<I, O> _xblockexpression = null;
+    {
+      final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise);
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          newPromise.error(it);
+        }
+      };
+      IPromise<I, O> _onError = promise.onError(_function);
+      final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
+        public void apply(final I input, final O value) {
+          final Procedure0 _function = new Procedure0() {
+            public void apply() {
+              newPromise.set(input, value);
+            }
+          };
+          timerFn.apply(Long.valueOf(periodMs), _function);
+        }
+      };
+      _onError.then(_function_1);
+      _xblockexpression = newPromise;
+    }
+    return _xblockexpression;
   }
   
   public static <I extends Object, O extends Object> IPromise<I, O> onErrorThrow(final IPromise<I, O> promise, final Function2<? super I, ? super Throwable, ? extends Exception> exceptionFn) {

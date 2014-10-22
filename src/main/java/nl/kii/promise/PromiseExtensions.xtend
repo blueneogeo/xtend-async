@@ -297,6 +297,21 @@ class PromiseExtensions {
 		promise.map(promiseFn).resolve
 			=> [ operation = 'call' ]
 	}
+	
+	// TIMING /////////////////////////////////////////////////////////////////
+
+	/** Create a new promise that delays the output (not the error) of the existing promise */	
+	def static <I, O> wait(IPromise<I, O> promise, long periodMs, (long, =>void)=>void timerFn) {
+		val newPromise = new SubPromise<I, O>(promise)
+		promise
+			.onError [ newPromise.error(it) ]
+			.then [ input, value |
+				timerFn.apply(periodMs) [
+					newPromise.set(input, value)
+				]
+			]
+		newPromise
+	}
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
