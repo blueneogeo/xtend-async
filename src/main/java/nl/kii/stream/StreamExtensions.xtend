@@ -131,10 +131,15 @@ class StreamExtensions {
 		]
 		newStream
 	}
+
+	/** Create from the stream a new stream of just the output type */
+	def static <I, O> IStream<O, O> newStream(IStream<I, O> stream) {
+		stream.newStreamOf [ in, out | out ]
+	}
 	
 	/** Transform the stream input based on the existing input and output type. */
-	def static <I, I2, O> IStream<I2, O> mapInput(IStream<I, O> stream, (I, O)=>I2 mapFn) {
-		val newStream = new SubStream<I2, O>(new Stream<I2>)
+	def static <I, O, T> Stream<T> newStreamOf(IStream<I, O> stream, (I, O)=>T mapFn) {
+		val newStream = new Stream<T>
 		stream.on [
 			each [ newStream.push(mapFn.apply($0, $1)) stream.next ]
 			finish [ newStream.finish($1) stream.next ]

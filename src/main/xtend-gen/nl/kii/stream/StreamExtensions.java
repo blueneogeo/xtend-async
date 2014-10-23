@@ -304,18 +304,29 @@ public class StreamExtensions {
   }
   
   /**
+   * Create from the stream a new stream of just the output type
+   */
+  public static <I extends Object, O extends Object> IStream<O, O> newStream(final IStream<I, O> stream) {
+    final Function2<I, O, O> _function = new Function2<I, O, O>() {
+      public O apply(final I in, final O out) {
+        return out;
+      }
+    };
+    return StreamExtensions.<I, O, O>newStreamOf(stream, _function);
+  }
+  
+  /**
    * Transform the stream input based on the existing input and output type.
    */
-  public static <I extends Object, I2 extends Object, O extends Object> IStream<I2, O> mapInput(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends I2> mapFn) {
-    SubStream<I2, O> _xblockexpression = null;
+  public static <I extends Object, O extends Object, T extends Object> Stream<T> newStreamOf(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends T> mapFn) {
+    Stream<T> _xblockexpression = null;
     {
-      Stream<I2> _stream = new Stream<I2>();
-      final SubStream<I2, O> newStream = new SubStream<I2, O>(_stream);
+      final Stream<T> newStream = new Stream<T>();
       final Procedure1<StreamHandlerBuilder<I, O>> _function = new Procedure1<StreamHandlerBuilder<I, O>>() {
         public void apply(final StreamHandlerBuilder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
-              I2 _apply = mapFn.apply($0, $1);
+              T _apply = mapFn.apply($0, $1);
               newStream.push(_apply);
               stream.next();
             }
@@ -338,7 +349,7 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<I, O>on(stream, _function);
-      StreamExtensions.<I2, I, O, O>controls(newStream, stream);
+      StreamExtensions.<T, I, O, T>controls(newStream, stream);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
