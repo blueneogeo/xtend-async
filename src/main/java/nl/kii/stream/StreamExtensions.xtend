@@ -691,6 +691,8 @@ class StreamExtensions {
 	 * </pre>
 	 */
 	def static <I, O> ratelimit(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+		// check if we really need to ratelimit at all!
+		if(periodMs <= 0) return stream
 		// -1 means allow, we want to allow the first incoming value
 		val lastNextMs = new AtomicLong(-1)
 		val isTiming = new AtomicBoolean
@@ -816,15 +818,30 @@ class StreamExtensions {
 	 * This is an alias for stream.call(1)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (O)=>P promiseFn) {
-		stream.call(1, promiseFn)
-			=> [ stream.operation = 'call' ]
+		stream.call(1, promiseFn) => [ stream.operation = 'call' ]
 	}
+
+//	/**
+//	 * Make an asynchronous call.
+//	 * This is an alias for stream.call(1)
+//	 */	
+//	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (I, O)=>P promiseFn) {
+//		stream.call(1, promiseFn) => [ stream.operation = 'call' ]
+//	}
 
 	/**
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
+		stream.call(concurrency) [ i, o | promiseFn.apply(o) ]
+	}
+
+	/**
+	 * Make an asynchronous call.
+	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
+	 */	
+	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
@@ -1118,6 +1135,33 @@ class StreamExtensions {
 			listener.apply(r, it)
 			it
 		] => [ stream.operation = 'effect' ]
+	}
+
+	/** Perform some side-effect action based on the stream. */
+	def static <I, O> perform(IStream<I, O> stream, (O)=>IPromise<?,?> promiseFn) {
+		stream.perform(1, promiseFn)
+	}
+
+	/** Perform some side-effect action based on the stream. */
+	def static <I, O> perform(IStream<I, O> stream, (I, O)=>IPromise<?,?> promiseFn) {
+		stream.perform(1, promiseFn)
+	}
+
+	/** 
+	 * Perform some asynchronous side-effect action based on the stream.
+	 * Perform at most 'concurrency' calls in parallel.
+	 */
+	def static <I, O> perform(IStream<I, O> stream, int concurrency, (O)=>IPromise<?, ?> promiseFn) {
+		stream.perform(concurrency) [ i, o | promiseFn.apply(o) ]
+	}
+
+	/** 
+	 * Perform some asynchronous side-effect action based on the stream.
+	 * Perform at most 'concurrency' calls in parallel.
+	 */
+	def static <I, O> perform(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
+		stream.call(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
+			=> [ stream.operation = 'perform(concurrency=' + concurrency + ')' ]
 	}
 
 	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////

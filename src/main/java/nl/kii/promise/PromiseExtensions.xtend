@@ -235,14 +235,14 @@ class PromiseExtensions {
 	 * Resolve a promise of a promise to directly a promise.
 	 * Alias for Promise.flatten, added for consistent syntax with streams 
 	 * */
-	def static <I, I2, O, P extends IPromise<I2, O>> resolve(IPromise<I, P> promise) {
+	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.onError [ r, it | newPromise.error(r, it) ]
 			.then [ r, p |
 				p
-					.onError [ r2, it | newPromise.error(r, it) ] 
-					.then [ r2, it | newPromise.set(r, it) ]
+					.onError [ newPromise.error(r, it) ] 
+					.then [ newPromise.set(r, it) ]
 			]
 		newPromise => [ operation = 'resolve' ]
 	}
@@ -274,6 +274,25 @@ class PromiseExtensions {
 			=> [ operation = 'effect' ]
 	}
 	
+	/**
+	 * Asynchronously perform some side-effect action based on the promise. It should not affect
+	 * the promise itself however if an error is thrown, this is propagated to
+	 * the new generated promise.
+	 */
+	def static <I, O> perform(IPromise<I, O> promise, (I, O)=>IPromise<?,?> promiseFn) {
+		promise.map[ i, o | promiseFn.apply(i, o).map[o] ].resolve
+			=> [ operation = 'perform' ]
+	}
+	
+	/**
+	 * Asynchronously perform some side-effect action based on the promise. It should not affect
+	 * the promise itself however if an error is thrown, this is propagated to
+	 * the new generated promise.
+	 */
+	def static <I, O> perform(IPromise<I, O> promise, (O)=>IPromise<?,?> promiseFn) {
+		promise.perform [ i, o | promiseFn.apply(o) ]
+	}
+	
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
 	
 	/** 
@@ -293,7 +312,7 @@ class PromiseExtensions {
 	 *   .then [ println('success!') ]
 	 * </pre>
 	 */
-	def static <I, I2, O, R, P extends IPromise<I2, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
 		promise.map(promiseFn).resolve
 			=> [ operation = 'call' ]
 	}

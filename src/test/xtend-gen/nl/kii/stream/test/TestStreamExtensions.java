@@ -1253,7 +1253,7 @@ public class TestStreamExtensions {
         }
       };
       final Procedure2<Long, Procedure0> delayFn = _function;
-      final SubStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer>ratelimit(stream, 500, delayFn);
+      final IStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer>ratelimit(stream, 500, delayFn);
       final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           InputOutput.<Integer>println(it);

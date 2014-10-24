@@ -101,7 +101,7 @@ public class TestPromise {
       }
     };
     SubPromise<Integer, Promise<Integer>> _map = PromiseExtensions.<Integer, Integer, Promise<Integer>>map(p, _function);
-    final SubPromise<Integer, Integer> p2 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>resolve(_map);
+    final SubPromise<Integer, Integer> p2 = PromiseExtensions.<Integer, Integer, Promise<Integer>>resolve(_map);
     StreamAssert.<Integer>assertPromiseEquals(p2, Integer.valueOf(2));
   }
   
@@ -114,14 +114,14 @@ public class TestPromise {
       }
     };
     SubPromise<Boolean, Task> _map = PromiseExtensions.<Boolean, Boolean, Task>map(_sayHello, _function);
-    SubPromise<Boolean, Boolean> _resolve = PromiseExtensions.<Boolean, Boolean, Boolean, Task>resolve(_map);
+    SubPromise<Boolean, Boolean> _resolve = PromiseExtensions.<Boolean, Boolean, Task>resolve(_map);
     final Function1<Boolean, Task> _function_1 = new Function1<Boolean, Task>() {
       public Task apply(final Boolean it) {
         return TestPromise.this.sayHello();
       }
     };
     SubPromise<Boolean, Task> _map_1 = PromiseExtensions.<Boolean, Boolean, Task>map(_resolve, _function_1);
-    SubPromise<Boolean, Boolean> _resolve_1 = PromiseExtensions.<Boolean, Boolean, Boolean, Task>resolve(_map_1);
+    SubPromise<Boolean, Boolean> _resolve_1 = PromiseExtensions.<Boolean, Boolean, Task>resolve(_map_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
       public void apply(final Boolean it) {
         TestPromise.this.sayHello();
@@ -140,49 +140,49 @@ public class TestPromise {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
+    SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
+    SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
+    SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
+    SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
+    SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
+    SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
+    SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
+    SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
     final Procedure1<Throwable> _function_8 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         caughtError.set(it);
@@ -216,37 +216,37 @@ public class TestPromise {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
+    SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
+    SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
+    SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
+    SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
+    SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
+    SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         try {
@@ -265,31 +265,31 @@ public class TestPromise {
         }
       }
     };
-    SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
+    SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
+    SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
     final Function1<Integer, Promise<Integer>> _function_8 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_8 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_7, _function_8);
+    SubPromise<Integer, Integer> _call_8 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_7, _function_8);
     final Function1<Integer, Promise<Integer>> _function_9 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_9 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_8, _function_9);
+    SubPromise<Integer, Integer> _call_9 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_8, _function_9);
     final Function1<Integer, Promise<Integer>> _function_10 = new Function1<Integer, Promise<Integer>>() {
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
-    SubPromise<Integer, Integer> _call_10 = PromiseExtensions.<Integer, Integer, Integer, Integer, Promise<Integer>>call(_call_9, _function_10);
+    SubPromise<Integer, Integer> _call_10 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_9, _function_10);
     final Procedure1<Throwable> _function_11 = new Procedure1<Throwable>() {
       public void apply(final Throwable it) {
         InputOutput.<String>println("xxx");

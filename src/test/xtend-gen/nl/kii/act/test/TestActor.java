@@ -299,7 +299,7 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_complete, _function_2);
+      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_complete, _function_2);
       final Procedure1<Long> _function_3 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("function took: " + it));
@@ -318,7 +318,7 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then, _function_4);
+      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then, _function_4);
       final Procedure1<Long> _function_5 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("unsynced method took: " + it));
@@ -337,7 +337,7 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then_1, _function_6);
+      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_1, _function_6);
       final Procedure1<Long> _function_7 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("synced method took: " + it));
@@ -356,7 +356,7 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, Integer, Boolean, Long, SubPromise<Integer, Long>>call(_then_2, _function_8);
+      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_2, _function_8);
       final Procedure1<Long> _function_9 = new Procedure1<Long>() {
         public void apply(final Long it) {
           InputOutput.<String>println(("actor took: " + it));

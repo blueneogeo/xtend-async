@@ -1444,9 +1444,12 @@ public class StreamExtensions {
    *    .onEach [ ... ]
    * </pre>
    */
-  public static <I extends Object, O extends Object> SubStream<I, O> ratelimit(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+  public static <I extends Object, O extends Object> IStream<I, O> ratelimit(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     SubStream<I, O> _xblockexpression = null;
     {
+      if ((periodMs <= 0)) {
+        return stream;
+      }
       final AtomicLong lastNextMs = new AtomicLong((-1));
       final AtomicBoolean isTiming = new AtomicBoolean();
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
@@ -1756,6 +1759,19 @@ public class StreamExtensions {
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
   public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function1<? super O, ? extends P> promiseFn) {
+    final Function2<I, O, P> _function = new Function2<I, O, P>() {
+      public P apply(final I i, final O o) {
+        return promiseFn.apply(o);
+      }
+    };
+    return StreamExtensions.<I, O, R, P>call(stream, concurrency, _function);
+  }
+  
+  /**
+   * Make an asynchronous call.
+   * This is an alias for stream.map(mappingFn).resolve(concurrency)
+   */
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends P> promiseFn) {
     SubStream<I, P> _map = StreamExtensions.<I, O, P>map(stream, promiseFn);
     SubStream<I, R> _resolve = StreamExtensions.<I, R>resolve(_map, concurrency);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
@@ -2358,6 +2374,58 @@ public class StreamExtensions {
       }
     };
     return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_map, _function_1);
+  }
+  
+  /**
+   * Perform some side-effect action based on the stream.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final Function1<? super O, ? extends IPromise<?, ?>> promiseFn) {
+    return StreamExtensions.<I, O>perform(stream, 1, promiseFn);
+  }
+  
+  /**
+   * Perform some side-effect action based on the stream.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
+    return StreamExtensions.<I, O>perform(stream, 1, promiseFn);
+  }
+  
+  /**
+   * Perform some asynchronous side-effect action based on the stream.
+   * Perform at most 'concurrency' calls in parallel.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final int concurrency, final Function1<? super O, ? extends IPromise<?, ?>> promiseFn) {
+    final Function2<I, O, IPromise<?, ?>> _function = new Function2<I, O, IPromise<?, ?>>() {
+      public IPromise<?, ?> apply(final I i, final O o) {
+        return promiseFn.apply(o);
+      }
+    };
+    return StreamExtensions.<I, O>perform(stream, concurrency, _function);
+  }
+  
+  /**
+   * Perform some asynchronous side-effect action based on the stream.
+   * Perform at most 'concurrency' calls in parallel.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
+    final Function2<I, O, SubPromise<?, O>> _function = new Function2<I, O, SubPromise<?, O>>() {
+      public SubPromise<?, O> apply(final I i, final O o) {
+        IPromise<?, ?> _apply = promiseFn.apply(i, o);
+        final Function1<Object, O> _function = new Function1<Object, O>() {
+          public O apply(final Object it) {
+            return o;
+          }
+        };
+        return PromiseExtensions.map(_apply, _function);
+      }
+    };
+    SubStream<I, O> _call = StreamExtensions.<I, O, O, SubPromise<?, O>>call(stream, concurrency, _function);
+    final Procedure1<SubStream<I, O>> _function_1 = new Procedure1<SubStream<I, O>>() {
+      public void apply(final SubStream<I, O> it) {
+        stream.setOperation((("perform(concurrency=" + Integer.valueOf(concurrency)) + ")"));
+      }
+    };
+    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_call, _function_1);
   }
   
   /**
