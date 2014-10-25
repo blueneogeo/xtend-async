@@ -722,6 +722,79 @@ class StreamExtensions {
 		]
 		newStream => [ stream.operation = 'ratelimit(periodMs=' + periodMs + ')' ]
 	}
+
+	/**
+	 * Incrementally slow down the stream on errors, and recovering to full speed once a normal value is processed.
+	 * <p>
+	 * When an error occurs, delay the next call by a given period, and if the next stream value again generates
+	 * an error, multiply the period by 2 and wait that period. This way increasing the period
+	 * up to a maximum period of one hour per error. The moment a normal value gets processed, the period is reset 
+	 * to the initial period.
+	 */
+	def static <I, O> onErrorBackOff(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+		val hourMs = 60 * 60 * 1000
+		stream.onErrorBackOff(periodMs, 2, hourMs, timerFn)
+	}
+	
+	/**
+	 * Incrementally slow down the stream on errors, and recovering to full speed once a normal value is processed.
+	 * <p>
+	 * When an error occurs, delay the next call by a given period, and if the next stream value again generates
+	 * an error, multiply the period by the given factor and wait that period. This way increasing the period
+	 * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
+	 * initial period.
+	 */
+	def static <I, O> onErrorBackOff(IStream<I, O> stream, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
+		if(periodMs <= 0 || maxPeriodMs <= 0) return stream
+		val delay = new AtomicLong(periodMs)
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [
+				newStream.push($0, $1)
+				delay.set(periodMs)
+			]
+			finish [ newStream.finish($0, $1) ]
+			closed [ newStream.close ]
+			error [
+				// delay the error for the period
+				timerFn.apply(delay.get) [ newStream.error($0, $1) ]
+				// double the delay for a next error, up to the maxiumum
+				val newDelay = Math.min(delay.get * factor, maxPeriodMs)
+				delay.set(newDelay)
+			]
+		]
+		newStream.controls(stream)
+		newStream => [ stream.operation = 'onErrorBackoff(periodMs=' + periodMs + ', factor=' + factor + ', maxPeriodMs=' + maxPeriodMs + ')' ]
+	}
+
+	/** 
+	 * Splits a stream of values up into a stream of lists of those values, 
+	 * where each new list is started at each period interval.
+	 * <p>
+	 * FIX: this can break the finishes, lists may come in after a finish.
+	 * FIX: somehow ratelimit and window in a single stream do not time well together
+	 */
+	def static <I, O> window(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+		val newStream = new SubStream<I, List<O>>(stream)
+		val list = new AtomicReference<List<O>>
+		stream.on [
+			each [
+				if(list.get == null) {
+					list.set(newLinkedList)
+					timerFn.apply(periodMs) [
+						newStream.push($0, list.getAndSet(null))
+					]
+				}
+				list.get?.add($1)
+				stream.next
+			]
+			finish [ newStream.finish($0, $1) ]
+			closed [ newStream.close ]
+			error [ newStream.error($0, $1) ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
 	
 	/** 
 	 * Push a value onto the stream from the parent stream every time the timerstream pushes a new value.

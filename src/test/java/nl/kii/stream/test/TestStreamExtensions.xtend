@@ -567,14 +567,32 @@ class TestStreamExtensions {
 		(1..1000).stream.throttle(10).onEach [ println(it) ]
 	}
 	
-	//@Test
+	@Test
 	def void testRateLimit() {
 		val stream = (1..1000).stream
 		val delayFn = [ long period, =>void doneFn | 
 			new Timer().schedule([ doneFn.apply ], period)
 		]
-		val limited = stream.ratelimit(500, delayFn) 
+		val limited = stream.ratelimit(100, delayFn).ratelimit(500, delayFn)
 		limited.onEach [ println(it) ]
+		Thread.sleep(5000)
+	}
+	
+	@Test
+	def void testWindow() {
+		val delayFn = [ long period, =>void doneFn | 
+			new Timer().schedule([ doneFn.apply ], period)
+		]
+
+		val newStream = int.stream			
+		newStream
+			.window(500, delayFn)
+			.onEach [ println(it) ]
+
+		(1..1000).stream
+			.ratelimit(100, delayFn)
+			.pipe(newStream)
+			
 		Thread.sleep(5000)
 	}
 	

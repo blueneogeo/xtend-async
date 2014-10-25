@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -1519,6 +1520,154 @@ public class StreamExtensions {
         }
       };
       _xblockexpression = ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(newStream, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Incrementally slow down the stream on errors, and recovering to full speed once a normal value is processed.
+   * <p>
+   * When an error occurs, delay the next call by a given period, and if the next stream value again generates
+   * an error, multiply the period by 2 and wait that period. This way increasing the period
+   * up to a maximum period of one hour per error. The moment a normal value gets processed, the period is reset
+   * to the initial period.
+   */
+  public static <I extends Object, O extends Object> IStream<I, O> onErrorBackOff(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+    IStream<I, O> _xblockexpression = null;
+    {
+      final int hourMs = ((60 * 60) * 1000);
+      _xblockexpression = StreamExtensions.<I, O>onErrorBackOff(stream, periodMs, 2, hourMs, timerFn);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Incrementally slow down the stream on errors, and recovering to full speed once a normal value is processed.
+   * <p>
+   * When an error occurs, delay the next call by a given period, and if the next stream value again generates
+   * an error, multiply the period by the given factor and wait that period. This way increasing the period
+   * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
+   * initial period.
+   */
+  public static <I extends Object, O extends Object> IStream<I, O> onErrorBackOff(final IStream<I, O> stream, final long periodMs, final int factor, final long maxPeriodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+    SubStream<I, O> _xblockexpression = null;
+    {
+      if (((periodMs <= 0) || (maxPeriodMs <= 0))) {
+        return stream;
+      }
+      final AtomicLong delay = new AtomicLong(periodMs);
+      final SubStream<I, O> newStream = new SubStream<I, O>(stream);
+      final Procedure1<StreamHandlerBuilder<I, O>> _function = new Procedure1<StreamHandlerBuilder<I, O>>() {
+        public void apply(final StreamHandlerBuilder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            public void apply(final I $0, final O $1) {
+              newStream.push($0, $1);
+              delay.set(periodMs);
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish($0, ($1).intValue());
+            }
+          };
+          it.finish(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_2);
+          final Procedure2<I, Throwable> _function_3 = new Procedure2<I, Throwable>() {
+            public void apply(final I $0, final Throwable $1) {
+              long _get = delay.get();
+              final Procedure0 _function = new Procedure0() {
+                public void apply() {
+                  newStream.error($0, $1);
+                }
+              };
+              timerFn.apply(Long.valueOf(_get), _function);
+              long _get_1 = delay.get();
+              long _multiply = (_get_1 * factor);
+              final long newDelay = Math.min(_multiply, maxPeriodMs);
+              delay.set(newDelay);
+            }
+          };
+          it.error(_function_3);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      StreamExtensions.<I, I, O, O>controls(newStream, stream);
+      final Procedure1<SubStream<I, O>> _function_1 = new Procedure1<SubStream<I, O>>() {
+        public void apply(final SubStream<I, O> it) {
+          stream.setOperation((((((("onErrorBackoff(periodMs=" + Long.valueOf(periodMs)) + ", factor=") + Integer.valueOf(factor)) + ", maxPeriodMs=") + Long.valueOf(maxPeriodMs)) + ")"));
+        }
+      };
+      _xblockexpression = ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(newStream, _function_1);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Splits a stream of values up into a stream of lists of those values,
+   * where each new list is started at each period interval.
+   * <p>
+   * FIX: this can break the finishes, lists may come in after a finish.
+   * FIX: somehow ratelimit and window in a single stream do not time well together
+   */
+  public static <I extends Object, O extends Object> SubStream<I, List<O>> window(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+    SubStream<I, List<O>> _xblockexpression = null;
+    {
+      final SubStream<I, List<O>> newStream = new SubStream<I, List<O>>(stream);
+      final AtomicReference<List<O>> list = new AtomicReference<List<O>>();
+      final Procedure1<StreamHandlerBuilder<I, O>> _function = new Procedure1<StreamHandlerBuilder<I, O>>() {
+        public void apply(final StreamHandlerBuilder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            public void apply(final I $0, final O $1) {
+              List<O> _get = list.get();
+              boolean _equals = Objects.equal(_get, null);
+              if (_equals) {
+                LinkedList<O> _newLinkedList = CollectionLiterals.<O>newLinkedList();
+                list.set(_newLinkedList);
+                final Procedure0 _function = new Procedure0() {
+                  public void apply() {
+                    List<O> _andSet = list.getAndSet(null);
+                    newStream.push($0, _andSet);
+                  }
+                };
+                timerFn.apply(Long.valueOf(periodMs), _function);
+              }
+              List<O> _get_1 = list.get();
+              if (_get_1!=null) {
+                _get_1.add($1);
+              }
+              stream.next();
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish($0, ($1).intValue());
+            }
+          };
+          it.finish(_function_1);
+          final Procedure1<Void> _function_2 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_2);
+          final Procedure2<I, Throwable> _function_3 = new Procedure2<I, Throwable>() {
+            public void apply(final I $0, final Throwable $1) {
+              newStream.error($0, $1);
+            }
+          };
+          it.error(_function_3);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      StreamExtensions.<I, I, O, List<O>>controls(newStream, stream);
+      _xblockexpression = newStream;
     }
     return _xblockexpression;
   }

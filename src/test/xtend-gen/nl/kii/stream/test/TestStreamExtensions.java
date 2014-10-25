@@ -1236,6 +1236,7 @@ public class TestStreamExtensions {
     StreamExtensions.<Integer, Integer>onEach(_throttle, _function);
   }
   
+  @Test
   public void testRateLimit() {
     try {
       IntegerRange _upTo = new IntegerRange(1, 1000);
@@ -1253,13 +1254,48 @@ public class TestStreamExtensions {
         }
       };
       final Procedure2<Long, Procedure0> delayFn = _function;
-      final IStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer>ratelimit(stream, 500, delayFn);
+      IStream<Integer, Integer> _ratelimit = StreamExtensions.<Integer, Integer>ratelimit(stream, 100, delayFn);
+      final IStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer>ratelimit(_ratelimit, 500, delayFn);
       final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
         public void apply(final Integer it) {
           InputOutput.<Integer>println(it);
         }
       };
       StreamExtensions.<Integer, Integer>onEach(limited, _function_1);
+      Thread.sleep(5000);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  @Test
+  public void testWindow() {
+    try {
+      final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        public void apply(final Long period, final Procedure0 doneFn) {
+          Timer _timer = new Timer();
+          final TimerTask _function = new TimerTask() {
+            @Override
+            public void run() {
+              doneFn.apply();
+            }
+          };
+          _timer.schedule(_function, period);
+        }
+      };
+      final Procedure2<Long, Procedure0> delayFn = _function;
+      final Stream<Integer> newStream = StreamExtensions.<Integer>stream(int.class);
+      SubStream<Integer, List<Integer>> _window = StreamExtensions.<Integer, Integer>window(newStream, 500, delayFn);
+      final Procedure1<List<Integer>> _function_1 = new Procedure1<List<Integer>>() {
+        public void apply(final List<Integer> it) {
+          InputOutput.<List<Integer>>println(it);
+        }
+      };
+      StreamExtensions.<Integer, List<Integer>>onEach(_window, _function_1);
+      IntegerRange _upTo = new IntegerRange(1, 1000);
+      Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+      IStream<Integer, Integer> _ratelimit = StreamExtensions.<Integer, Integer>ratelimit(_stream, 100, delayFn);
+      StreamExtensions.<Integer, Integer>pipe(_ratelimit, newStream);
       Thread.sleep(5000);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
