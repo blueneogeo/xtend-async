@@ -838,7 +838,7 @@ public class TestStreamExtensions {
   }
   
   @Test
-  public void testFragment() {
+  public void testSeparate() {
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
@@ -854,6 +854,25 @@ public class TestStreamExtensions {
     IntegerRange _upTo_1 = new IntegerRange(1, 10);
     List<Integer> _list = IterableExtensions.<Integer>toList(_upTo_1);
     StreamAssert.<Integer>assertPromiseEquals(_first, _list);
+  }
+  
+  @Test
+  public void testSeparate2() {
+    Stream<List<Integer>> _stream = StreamExtensions.<List<Integer>>stream(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5))))));
+    SubStream<List<Integer>, Integer> _separate = StreamExtensions.<List<Integer>, Integer>separate(_stream);
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    SubTask<List<Integer>> _onEach = StreamExtensions.<List<Integer>, Integer>onEach(_separate, _function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      public void apply(final Throwable it) {
+        String _message = it.getMessage();
+        Assert.fail(_message);
+      }
+    };
+    _onEach.onError(_function_1);
   }
   
   @Test

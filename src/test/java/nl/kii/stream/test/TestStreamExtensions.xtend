@@ -351,7 +351,7 @@ class TestStreamExtensions {
 	}
 	
 	@Test
-	def void testFragment() {
+	def void testSeparate() {
 		(1..10).stream
 			.split [ it % 3 == 0 ]
 			.collect
@@ -359,6 +359,15 @@ class TestStreamExtensions {
 			.collect
 			.first
 			.assertPromiseEquals((1..10).toList)
+	}
+	
+	@Test
+	def void testSeparate2() {
+		#[ #[1, 2, 3], #[4, 5] ]
+			.stream
+			.separate
+			.onEach [ println(it) ]
+			.onError [ fail(message) ]
 	}
 	
 	// ERRORS /////////////////////////////////////////////////////////////////
