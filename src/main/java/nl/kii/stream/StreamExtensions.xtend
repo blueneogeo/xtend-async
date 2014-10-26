@@ -1495,6 +1495,22 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+	
+	/**
+	 * Keeps an atomic reference that you pass updated with the latest values
+	 * that comes from the stream.
+	 */
+	def static <I, O> latest(IStream<I, O> stream, AtomicReference<O> latestValue) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ latestValue.set($1) newStream.push($0, $1) ]
+			error [ newStream.error($0, $1) ]
+			finish [ newStream.finish($0, $1) ]
+		]
+		stream.operation = 'latest'
+		newStream.controls(stream)
+		newStream
+	}
 
 	// OTHER //////////////////////////////////////////////////////////////////
 
@@ -1509,7 +1525,7 @@ class StreamExtensions {
 			error [ stream.close task.error($1) ]
 			each [ /* discard values */]
 		]
-		stream.operation = 'toTask'
+		stream.operation = 'pipe'
 	}
 
 	def static Task toTask(IStream<?, ?> stream) {

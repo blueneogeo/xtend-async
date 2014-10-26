@@ -3123,6 +3123,45 @@ public class StreamExtensions {
   }
   
   /**
+   * Keeps an atomic reference that you pass updated with the latest values
+   * that comes from the stream.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> latest(final IStream<I, O> stream, final AtomicReference<O> latestValue) {
+    SubStream<I, O> _xblockexpression = null;
+    {
+      final SubStream<I, O> newStream = new SubStream<I, O>(stream);
+      final Procedure1<StreamHandlerBuilder<I, O>> _function = new Procedure1<StreamHandlerBuilder<I, O>>() {
+        public void apply(final StreamHandlerBuilder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            public void apply(final I $0, final O $1) {
+              latestValue.set($1);
+              newStream.push($0, $1);
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Throwable> _function_1 = new Procedure2<I, Throwable>() {
+            public void apply(final I $0, final Throwable $1) {
+              newStream.error($0, $1);
+            }
+          };
+          it.error(_function_1);
+          final Procedure2<I, Integer> _function_2 = new Procedure2<I, Integer>() {
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish($0, ($1).intValue());
+            }
+          };
+          it.finish(_function_2);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      stream.setOperation("latest");
+      StreamExtensions.<I, I, O, O>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Complete a task when the stream finishes or closes,
    * or give an error on the task when the stream gives an error.
    */
@@ -3157,7 +3196,7 @@ public class StreamExtensions {
       }
     };
     StreamExtensions.on(stream, _function);
-    stream.setOperation("toTask");
+    stream.setOperation("pipe");
   }
   
   public static Task toTask(final IStream<?, ?> stream) {
