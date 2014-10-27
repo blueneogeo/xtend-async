@@ -3123,6 +3123,26 @@ public class StreamExtensions {
   }
   
   /**
+   * Returns an atomic reference which updates as new values come in.
+   * This way you can always get the latest value that came from the stream.
+   * @return the latest value, self updating. may be null if no value has yet come in.
+   */
+  public static <I extends Object, O extends Object> AtomicReference<O> latest(final IStream<I, O> stream) {
+    AtomicReference<O> _xblockexpression = null;
+    {
+      final AtomicReference<O> value = new AtomicReference<O>();
+      SubStream<I, O> _latest = StreamExtensions.<I, O>latest(stream, value);
+      final Procedure1<O> _function = new Procedure1<O>() {
+        public void apply(final O it) {
+        }
+      };
+      StreamExtensions.<I, O>onEach(_latest, _function);
+      _xblockexpression = value;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Keeps an atomic reference that you pass updated with the latest values
    * that comes from the stream.
    */

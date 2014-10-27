@@ -1495,6 +1495,19 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+
+	/** 
+	 * Returns an atomic reference which updates as new values come in.
+	 * This way you can always get the latest value that came from the stream.
+	 * @return the latest value, self updating. may be null if no value has yet come in.
+	 */
+	def static <I, O> latest(IStream<I, O> stream) {
+		val value = new AtomicReference<O>
+		stream.latest(value).onEach [
+			// do nothing
+		]
+		value
+	}
 	
 	/**
 	 * Keeps an atomic reference that you pass updated with the latest values
