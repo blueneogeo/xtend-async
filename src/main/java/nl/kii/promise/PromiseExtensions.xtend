@@ -337,6 +337,10 @@ class PromiseExtensions {
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
 		promise.onError [ i, t | throw exceptionFn.apply(i, t) ]
 	}
+
+	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
+		promise.onError [ i, t | throw new Exception(message + ', for input ' + i) ]
+	}
 	
 	/** Convert or forward a promise to a task */	
 	def static <I, O> asTask(IPromise<I, O> promise) {

@@ -666,6 +666,19 @@ public class PromiseExtensions {
     return promise.onError(_function);
   }
   
+  public static <I extends Object, O extends Object> IPromise<I, O> onErrorThrow(final IPromise<I, O> promise, final String message) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      public void apply(final I i, final Throwable t) {
+        try {
+          throw new Exception(((message + ", for input ") + i));
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    return promise.onError(_function);
+  }
+  
   /**
    * Convert or forward a promise to a task
    */
