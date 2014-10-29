@@ -339,7 +339,7 @@ class PromiseExtensions {
 	}
 
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
-		promise.onError [ i, t | throw new Exception(message + ', for input ' + i) ]
+		promise.onError [ i, t | throw new Exception(message + ', for input ' + i, t) ]
 	}
 	
 	/** Convert or forward a promise to a task */	

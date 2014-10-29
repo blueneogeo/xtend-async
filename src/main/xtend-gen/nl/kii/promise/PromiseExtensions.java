@@ -670,7 +670,7 @@ public class PromiseExtensions {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       public void apply(final I i, final Throwable t) {
         try {
-          throw new Exception(((message + ", for input ") + i));
+          throw new Exception(((message + ", for input ") + i), t);
         } catch (Throwable _e) {
           throw Exceptions.sneakyThrow(_e);
         }
