@@ -347,12 +347,16 @@ public class TestStream {
     Assert.assertEquals(2, (_overflowCount).intValue());
   }
   
-  private Integer setCounter(final Integer value) {
-    return this._counter.getAndSet(value);
+  private void setCounter(final Integer value) {
+    this._counter.set(value);
   }
   
   private Integer getCounter() {
     return this._counter.get();
+  }
+  
+  private Integer getAndSetCounter(final Integer value) {
+    return this._counter.getAndSet(value);
   }
   
   private Integer incCounter() {
@@ -367,12 +371,16 @@ public class TestStream {
     return this._counter.addAndGet(value);
   }
   
-  private Integer setResult(final Integer value) {
-    return this._result.getAndSet(value);
+  private void setResult(final Integer value) {
+    this._result.set(value);
   }
   
   private Integer getResult() {
     return this._result.get();
+  }
+  
+  private Integer getAndSetResult(final Integer value) {
+    return this._result.getAndSet(value);
   }
   
   private Integer incResult() {
@@ -387,20 +395,28 @@ public class TestStream {
     return this._result.addAndGet(value);
   }
   
-  private Throwable setError(final Throwable value) {
-    return this._error.getAndSet(value);
+  private void setError(final Throwable value) {
+    this._error.set(value);
   }
   
   private Throwable getError() {
     return this._error.get();
   }
   
-  private Integer setSum(final Integer value) {
-    return this._sum.getAndSet(value);
+  private Throwable getAndSetError(final Throwable value) {
+    return this._error.getAndSet(value);
+  }
+  
+  private void setSum(final Integer value) {
+    this._sum.set(value);
   }
   
   private Integer getSum() {
     return this._sum.get();
+  }
+  
+  private Integer getAndSetSum(final Integer value) {
+    return this._sum.getAndSet(value);
   }
   
   private Integer incSum() {
@@ -415,12 +431,16 @@ public class TestStream {
     return this._sum.addAndGet(value);
   }
   
-  private Integer setOverflow(final Integer value) {
-    return this._overflow.getAndSet(value);
+  private void setOverflow(final Integer value) {
+    this._overflow.set(value);
   }
   
   private Integer getOverflow() {
     return this._overflow.get();
+  }
+  
+  private Integer getAndSetOverflow(final Integer value) {
+    return this._overflow.getAndSet(value);
   }
   
   private Integer incOverflow() {
@@ -435,12 +455,16 @@ public class TestStream {
     return this._overflow.addAndGet(value);
   }
   
-  private Integer setOverflowCount(final Integer value) {
-    return this._overflowCount.getAndSet(value);
+  private void setOverflowCount(final Integer value) {
+    this._overflowCount.set(value);
   }
   
   private Integer getOverflowCount() {
     return this._overflowCount.get();
+  }
+  
+  private Integer getAndSetOverflowCount(final Integer value) {
+    return this._overflowCount.getAndSet(value);
   }
   
   private Integer incOverflowCount() {

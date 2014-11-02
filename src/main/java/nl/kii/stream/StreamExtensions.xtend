@@ -313,6 +313,10 @@ class StreamExtensions {
 		stream.error(new StreamException(message, value, cause))
 	}
 
+	def static <I, O> concurrency(IStream<I, O> stream, int value) {
+		stream.concurrency = value
+		stream
+	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
@@ -689,7 +693,9 @@ class StreamExtensions {
 	 *    .ratelimit(100) [ period, timeoutFn, | vertx.setTimer(period, timeoutFn) ]
 	 *    .onEach [ ... ]
 	 * </pre>
+	 * FIX: BREAKS ON ERRORS
 	 */
+	@Deprecated
 	def static <I, O> ratelimit(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
 		// check if we really need to ratelimit at all!
 		if(periodMs <= 0) return stream
@@ -836,7 +842,7 @@ class StreamExtensions {
 	 * It only asks the next promise from the stream when the previous promise has been resolved.  
 	 */
 	def static <I, I2, O> resolve(IStream<I, ? extends IPromise<I2, O>> stream) {
-		stream.resolve(1) => [ stream.operation = 'resolve' ]
+		stream.resolve(stream.concurrency) => [ stream.operation = 'resolve' ]
 	}
 
 	/** 
@@ -856,12 +862,12 @@ class StreamExtensions {
 					.onError [
 						processes.decrementAndGet
 						newStream.error(r, new StreamException('resolve', r, it))
-						if(isFinished.get) newStream.finish(r)
+						if(isFinished.compareAndSet(true, false)) newStream.finish(r)
 					]
 					.then [
 						processes.decrementAndGet
 						newStream.push(r, it)
-						if(isFinished.get) newStream.finish(r)
+						if(isFinished.compareAndSet(true, false)) newStream.finish(r)
 					]
 			]
 			error [ newStream.error($0, $1) ]
@@ -888,33 +894,33 @@ class StreamExtensions {
 
 	/**
 	 * Make an asynchronous call.
-	 * This is an alias for stream.call(1)
+	 * This is an alias for stream.call(stream.concurrency)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (O)=>P promiseFn) {
-		stream.call(1, promiseFn) => [ stream.operation = 'call' ]
+		stream.call(stream.concurrency, promiseFn) => [ stream.operation = 'call' ]
 	}
 
-//	/**
-//	 * Make an asynchronous call.
-//	 * This is an alias for stream.call(1)
-//	 */	
-//	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (I, O)=>P promiseFn) {
-//		stream.call(1, promiseFn) => [ stream.operation = 'call' ]
-//	}
+	/**
+	 * Make an asynchronous call.
+	 * This is an alias for stream.call(stream.concurrency)
+	 */	
+	def static <I, O, R, P extends IPromise<?, R>> call2(IStream<I, O> stream, (I, O)=>P promiseFn) {
+		stream.call2(stream.concurrency, promiseFn) => [ stream.operation = 'call' ]
+	}
 
 	/**
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
-		stream.call(concurrency) [ i, o | promiseFn.apply(o) ]
+		stream.call2(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
 
 	/**
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
-	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<?, R>> call2(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
@@ -1197,6 +1203,16 @@ class StreamExtensions {
 
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 
+	/** 
+	 * Check on each value if the assert/check description is valid.
+	 * Throws an Exception with the check description if not.
+	 */
+	def static <I, O> check(IStream<I, O> stream, String checkDescription, (O)=>boolean checkFn) {
+		stream.effect [
+			if(!checkFn.apply(it)) throw new Exception(checkDescription + '- for value ' + it)
+		]
+	}
+
 	/** Perform some side-effect action based on the stream. */
 	def static <I, O> effect(IStream<I, O> stream, (O)=>void listener) {
 		stream.effect [ r, it | listener.apply(it)]
@@ -1212,12 +1228,12 @@ class StreamExtensions {
 
 	/** Perform some side-effect action based on the stream. */
 	def static <I, O> perform(IStream<I, O> stream, (O)=>IPromise<?,?> promiseFn) {
-		stream.perform(1, promiseFn)
+		stream.perform(stream.concurrency, promiseFn)
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	def static <I, O> perform(IStream<I, O> stream, (I, O)=>IPromise<?,?> promiseFn) {
-		stream.perform(1, promiseFn)
+		stream.perform2(stream.concurrency, promiseFn)
 	}
 
 	/** 
@@ -1225,15 +1241,15 @@ class StreamExtensions {
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
 	def static <I, O> perform(IStream<I, O> stream, int concurrency, (O)=>IPromise<?, ?> promiseFn) {
-		stream.perform(concurrency) [ i, o | promiseFn.apply(o) ]
+		stream.perform2(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
 
 	/** 
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
-	def static <I, O> perform(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
-		stream.call(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
+	def static <I, O> perform2(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
+		stream.call2(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
 			=> [ stream.operation = 'perform(concurrency=' + concurrency + ')' ]
 	}
 

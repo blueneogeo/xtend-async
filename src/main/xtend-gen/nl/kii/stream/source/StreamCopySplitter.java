@@ -73,23 +73,17 @@ public class StreamCopySplitter<I extends Object, O extends Object> extends Stre
     }
   }
   
-  protected Entry<I, O> publish() {
-    Entry<I, O> _xifexpression = null;
+  protected void publish() {
     Entry<I, O> _buffer = this.getBuffer();
     boolean _notEquals = (!Objects.equal(_buffer, null));
     if (_notEquals) {
-      Entry<I, O> _xblockexpression = null;
-      {
-        List<IStream<I, O>> _streams = this.getStreams();
-        for (final IStream<I, O> s : _streams) {
-          Entry<I, O> _buffer_1 = this.getBuffer();
-          s.apply(_buffer_1);
-        }
-        _xblockexpression = this.setBuffer(null);
+      List<IStream<I, O>> _streams = this.getStreams();
+      for (final IStream<I, O> s : _streams) {
+        Entry<I, O> _buffer_1 = this.getBuffer();
+        s.apply(_buffer_1);
       }
-      _xifexpression = _xblockexpression;
+      this.setBuffer(null);
     }
-    return _xifexpression;
   }
   
   protected void next() {
@@ -141,11 +135,15 @@ public class StreamCopySplitter<I extends Object, O extends Object> extends Stre
     this.source.close();
   }
   
-  private Entry<I, O> setBuffer(final Entry<I, O> value) {
-    return this._buffer.getAndSet(value);
+  private void setBuffer(final Entry<I, O> value) {
+    this._buffer.set(value);
   }
   
   private Entry<I, O> getBuffer() {
     return this._buffer.get();
+  }
+  
+  private Entry<I, O> getAndSetBuffer(final Entry<I, O> value) {
+    return this._buffer.getAndSet(value);
   }
 }

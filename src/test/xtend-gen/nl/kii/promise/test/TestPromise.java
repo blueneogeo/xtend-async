@@ -432,28 +432,40 @@ public class TestPromise {
     Assert.assertTrue((_foundError).booleanValue());
   }
   
-  private Boolean setAlwaysDone(final Boolean value) {
-    return this._alwaysDone.getAndSet(value);
+  private void setAlwaysDone(final Boolean value) {
+    this._alwaysDone.set(value);
   }
   
   private Boolean getAlwaysDone() {
     return this._alwaysDone.get();
   }
   
-  private Throwable setCaughtError(final Throwable value) {
-    return this._caughtError.getAndSet(value);
+  private Boolean getAndSetAlwaysDone(final Boolean value) {
+    return this._alwaysDone.getAndSet(value);
+  }
+  
+  private void setCaughtError(final Throwable value) {
+    this._caughtError.set(value);
   }
   
   private Throwable getCaughtError() {
     return this._caughtError.get();
   }
   
-  private Boolean setFoundError(final Boolean value) {
-    return this._foundError.getAndSet(value);
+  private Throwable getAndSetCaughtError(final Throwable value) {
+    return this._caughtError.getAndSet(value);
+  }
+  
+  private void setFoundError(final Boolean value) {
+    this._foundError.set(value);
   }
   
   private Boolean getFoundError() {
     return this._foundError.get();
+  }
+  
+  private Boolean getAndSetFoundError(final Boolean value) {
+    return this._foundError.getAndSet(value);
   }
   
   public Promise<Integer> addOne(final int n) {

@@ -509,12 +509,16 @@ public class TestActor {
     return _xblockexpression;
   }
   
-  private Integer setAccess(final Integer value) {
-    return this._access.getAndSet(value);
+  private void setAccess(final Integer value) {
+    this._access.set(value);
   }
   
   private Integer getAccess() {
     return this._access.get();
+  }
+  
+  private Integer getAndSetAccess(final Integer value) {
+    return this._access.getAndSet(value);
   }
   
   private Integer incAccess() {
@@ -529,12 +533,16 @@ public class TestActor {
     return this._access.addAndGet(value);
   }
   
-  private Integer setValue(final Integer value) {
-    return this._value.getAndSet(value);
+  private void setValue(final Integer value) {
+    this._value.set(value);
   }
   
   private Integer getValue() {
     return this._value.get();
+  }
+  
+  private Integer getAndSetValue(final Integer value) {
+    return this._value.getAndSet(value);
   }
   
   private Integer incValue() {
@@ -549,12 +557,16 @@ public class TestActor {
     return this._value.addAndGet(value);
   }
   
-  private Integer setMultipleThreadAccessViolation(final Integer value) {
-    return this._multipleThreadAccessViolation.getAndSet(value);
+  private void setMultipleThreadAccessViolation(final Integer value) {
+    this._multipleThreadAccessViolation.set(value);
   }
   
   private Integer getMultipleThreadAccessViolation() {
     return this._multipleThreadAccessViolation.get();
+  }
+  
+  private Integer getAndSetMultipleThreadAccessViolation(final Integer value) {
+    return this._multipleThreadAccessViolation.getAndSet(value);
   }
   
   private Integer incMultipleThreadAccessViolation() {
@@ -569,20 +581,28 @@ public class TestActor {
     return this._multipleThreadAccessViolation.addAndGet(value);
   }
   
-  private Actor<Integer> setDecreaser(final Actor<Integer> value) {
-    return this._decreaser.getAndSet(value);
+  private void setDecreaser(final Actor<Integer> value) {
+    this._decreaser.set(value);
   }
   
   private Actor<Integer> getDecreaser() {
     return this._decreaser.get();
   }
   
-  private Integer setActorCounter(final Integer value) {
-    return this._actorCounter.getAndSet(value);
+  private Actor<Integer> getAndSetDecreaser(final Actor<Integer> value) {
+    return this._decreaser.getAndSet(value);
+  }
+  
+  private void setActorCounter(final Integer value) {
+    this._actorCounter.set(value);
   }
   
   private Integer getActorCounter() {
     return this._actorCounter.get();
+  }
+  
+  private Integer getAndSetActorCounter(final Integer value) {
+    return this._actorCounter.getAndSet(value);
   }
   
   private Integer incActorCounter() {
@@ -597,12 +617,16 @@ public class TestActor {
     return this._actorCounter.addAndGet(value);
   }
   
-  private Integer setFunctCounter(final Integer value) {
-    return this._functCounter.getAndSet(value);
+  private void setFunctCounter(final Integer value) {
+    this._functCounter.set(value);
   }
   
   private Integer getFunctCounter() {
     return this._functCounter.get();
+  }
+  
+  private Integer getAndSetFunctCounter(final Integer value) {
+    return this._functCounter.getAndSet(value);
   }
   
   private Integer incFunctCounter() {
@@ -617,12 +641,16 @@ public class TestActor {
     return this._functCounter.addAndGet(value);
   }
   
-  private Integer setUnsyncedCounter(final Integer value) {
-    return this._unsyncedCounter.getAndSet(value);
+  private void setUnsyncedCounter(final Integer value) {
+    this._unsyncedCounter.set(value);
   }
   
   private Integer getUnsyncedCounter() {
     return this._unsyncedCounter.get();
+  }
+  
+  private Integer getAndSetUnsyncedCounter(final Integer value) {
+    return this._unsyncedCounter.getAndSet(value);
   }
   
   private Integer incUnsyncedCounter() {
@@ -637,12 +665,16 @@ public class TestActor {
     return this._unsyncedCounter.addAndGet(value);
   }
   
-  private Integer setSyncedCounter(final Integer value) {
-    return this._syncedCounter.getAndSet(value);
+  private void setSyncedCounter(final Integer value) {
+    this._syncedCounter.set(value);
   }
   
   private Integer getSyncedCounter() {
     return this._syncedCounter.get();
+  }
+  
+  private Integer getAndSetSyncedCounter(final Integer value) {
+    return this._syncedCounter.getAndSet(value);
   }
   
   private Integer incSyncedCounter() {

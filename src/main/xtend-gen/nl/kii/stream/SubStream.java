@@ -12,6 +12,8 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
   public SubStream(final IStream<I, ?> parent) {
     IStream<I, I> _input = parent.getInput();
     this.input = _input;
+    Integer _concurrency = parent.getConcurrency();
+    this.setConcurrency(_concurrency);
   }
   
   public SubStream(final IStream<I, ?> parent, final int maxSize) {

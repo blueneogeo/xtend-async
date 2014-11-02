@@ -243,43 +243,63 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return _builder.toString();
   }
   
-  public Boolean setFulfilled(final Boolean value) {
-    return this._fulfilled.getAndSet(value);
+  public void setFulfilled(final Boolean value) {
+    this._fulfilled.set(value);
   }
   
   public Boolean getFulfilled() {
     return this._fulfilled.get();
   }
   
-  public Boolean setHasErrorHandler(final Boolean value) {
-    return this._hasErrorHandler.getAndSet(value);
+  public Boolean getAndSetFulfilled(final Boolean value) {
+    return this._fulfilled.getAndSet(value);
+  }
+  
+  public void setHasErrorHandler(final Boolean value) {
+    this._hasErrorHandler.set(value);
   }
   
   public Boolean getHasErrorHandler() {
     return this._hasErrorHandler.get();
   }
   
-  public Boolean setHasValueHandler(final Boolean value) {
-    return this._hasValueHandler.getAndSet(value);
+  public Boolean getAndSetHasErrorHandler(final Boolean value) {
+    return this._hasErrorHandler.getAndSet(value);
+  }
+  
+  public void setHasValueHandler(final Boolean value) {
+    this._hasValueHandler.set(value);
   }
   
   public Boolean getHasValueHandler() {
     return this._hasValueHandler.get();
   }
   
-  protected Entry<R, T> setEntry(final Entry<R, T> value) {
-    return this._entry.getAndSet(value);
+  public Boolean getAndSetHasValueHandler(final Boolean value) {
+    return this._hasValueHandler.getAndSet(value);
+  }
+  
+  protected void setEntry(final Entry<R, T> value) {
+    this._entry.set(value);
   }
   
   protected Entry<R, T> getEntry() {
     return this._entry.get();
   }
   
-  private String set_operation(final String value) {
-    return this.__operation.getAndSet(value);
+  protected Entry<R, T> getAndSetEntry(final Entry<R, T> value) {
+    return this._entry.getAndSet(value);
+  }
+  
+  private void set_operation(final String value) {
+    this.__operation.set(value);
   }
   
   private String get_operation() {
     return this.__operation.get();
+  }
+  
+  private String getAndSet_operation(final String value) {
+    return this.__operation.getAndSet(value);
   }
 }

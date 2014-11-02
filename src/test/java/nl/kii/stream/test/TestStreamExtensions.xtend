@@ -1,5 +1,6 @@
 package nl.kii.stream.test
 
+import java.util.Timer
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
@@ -14,7 +15,6 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
-import java.util.Timer
 
 class TestStreamExtensions {
 
@@ -584,6 +584,22 @@ class TestStreamExtensions {
 		]
 		val limited = stream.ratelimit(100, delayFn).ratelimit(500, delayFn)
 		limited.onEach [ println(it) ]
+		Thread.sleep(5000)
+	}
+
+	@Test
+	def void testRateLimitWithErrors() {
+		val stream = (1..4).stream
+		val delayFn = [ long period, =>void doneFn | 
+			new Timer().schedule([ doneFn.apply ], period)
+		]
+		val limited = stream
+			.map [ 1000 / (2-it) * 1000 ]
+			.ratelimit(1000, delayFn)
+			.map [ 1000 / (2-it) * 1000 ]
+		limited
+			.onError [ println(it) ]
+			.onEach [ println(it) ]
 		Thread.sleep(5000)
 	}
 	

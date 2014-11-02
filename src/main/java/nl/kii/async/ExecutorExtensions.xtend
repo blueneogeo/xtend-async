@@ -5,17 +5,19 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.promise.PromiseFuture
 import nl.kii.promise.Task
+import nl.kii.stream.IStream
 import nl.kii.stream.Stream
+import nl.kii.stream.SubStream
+
 import static java.util.concurrent.TimeUnit.*
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.IStream
-import nl.kii.stream.SubStream
 
 class ExecutorExtensions {
 	
@@ -70,6 +72,12 @@ class ExecutorExtensions {
 		]
 		service.submit(processor)
 		task
+	}
+	
+	def static (long, =>void)=>void newTimer(ScheduledExecutorService executor) {
+		[ long period, =>void doneFn |
+			executor.schedule(doneFn, period, TimeUnit.MILLISECONDS)
+		]
 	}
 	
 	/** 

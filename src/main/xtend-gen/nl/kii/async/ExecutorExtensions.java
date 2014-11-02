@@ -16,6 +16,8 @@ import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class ExecutorExtensions {
@@ -94,6 +96,19 @@ public class ExecutorExtensions {
       _xblockexpression = task;
     }
     return _xblockexpression;
+  }
+  
+  public static Procedure2<? super Long, ? super Procedure0> newTimer(final ScheduledExecutorService executor) {
+    final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+      public void apply(final Long period, final Procedure0 doneFn) {
+        executor.schedule(new Runnable() {
+            public void run() {
+              doneFn.apply();
+            }
+        }, period, TimeUnit.MILLISECONDS);
+      }
+    };
+    return _function;
   }
   
   /**

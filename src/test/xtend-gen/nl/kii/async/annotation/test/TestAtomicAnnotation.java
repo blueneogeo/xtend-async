@@ -27,8 +27,8 @@ public class TestAtomicAnnotation {
   
   @Test
   public void testInteger() {
-    Integer _setCounter = this.setCounter(Integer.valueOf(3));
-    Assert.assertEquals(2, (_setCounter).intValue());
+    Integer _andSetCounter = this.getAndSetCounter(Integer.valueOf(3));
+    Assert.assertEquals(2, (_andSetCounter).intValue());
     Integer _incCounter = this.incCounter();
     Assert.assertEquals(4, (_incCounter).intValue());
     Integer _decCounter = this.decCounter();
@@ -62,7 +62,7 @@ public class TestAtomicAnnotation {
     Tester _tester_1 = new Tester("christian");
     this.setTester(_tester_1);
     Tester _tester_2 = new Tester("Floris");
-    final Tester oldTester = this.setTester(_tester_2);
+    final Tester oldTester = this.getAndSetTester(_tester_2);
     String _name_1 = oldTester.getName();
     Assert.assertEquals("christian", _name_1);
     Tester _tester_3 = this.getTester();
@@ -84,12 +84,16 @@ public class TestAtomicAnnotation {
     closure.apply();
   }
   
-  public Integer setCounter(final Integer value) {
-    return this._counter.getAndSet(value);
+  public void setCounter(final Integer value) {
+    this._counter.set(value);
   }
   
   public Integer getCounter() {
     return this._counter.get();
+  }
+  
+  public Integer getAndSetCounter(final Integer value) {
+    return this._counter.getAndSet(value);
   }
   
   public Integer incCounter() {
@@ -104,12 +108,16 @@ public class TestAtomicAnnotation {
     return this._counter.addAndGet(value);
   }
   
-  private Long setLongNumber(final Long value) {
-    return this._longNumber.getAndSet(value);
+  private void setLongNumber(final Long value) {
+    this._longNumber.set(value);
   }
   
   private Long getLongNumber() {
     return this._longNumber.get();
+  }
+  
+  private Long getAndSetLongNumber(final Long value) {
+    return this._longNumber.getAndSet(value);
   }
   
   private Long incLongNumber() {
@@ -124,32 +132,44 @@ public class TestAtomicAnnotation {
     return this._longNumber.addAndGet(value);
   }
   
-  private Double setPrice(final Double value) {
-    return this._price.getAndSet(value);
+  private void setPrice(final Double value) {
+    this._price.set(value);
   }
   
   private Double getPrice() {
     return this._price.get();
   }
   
+  private Double getAndSetPrice(final Double value) {
+    return this._price.getAndSet(value);
+  }
+  
   private Double incPrice(final Double value) {
     return this._price.addAndGet(value);
   }
   
-  private Tester setTester(final Tester value) {
-    return this._tester.getAndSet(value);
+  private void setTester(final Tester value) {
+    this._tester.set(value);
   }
   
   private Tester getTester() {
     return this._tester.get();
   }
   
-  private Integer setI(final Integer value) {
-    return this._i.getAndSet(value);
+  private Tester getAndSetTester(final Tester value) {
+    return this._tester.getAndSet(value);
+  }
+  
+  private void setI(final Integer value) {
+    this._i.set(value);
   }
   
   private Integer getI() {
     return this._i.get();
+  }
+  
+  private Integer getAndSetI(final Integer value) {
+    return this._i.getAndSet(value);
   }
   
   private Integer incI() {

@@ -252,27 +252,39 @@ public class TestPromiseExtensions {
     return new Promise<Integer>(Integer.valueOf((i * i)));
   }
   
-  private Boolean setAllDone(final Boolean value) {
-    return this._allDone.getAndSet(value);
+  private void setAllDone(final Boolean value) {
+    this._allDone.set(value);
   }
   
   private Boolean getAllDone() {
     return this._allDone.get();
   }
   
-  private Boolean setT2Done(final Boolean value) {
-    return this._t2Done.getAndSet(value);
+  private Boolean getAndSetAllDone(final Boolean value) {
+    return this._allDone.getAndSet(value);
+  }
+  
+  private void setT2Done(final Boolean value) {
+    this._t2Done.set(value);
   }
   
   private Boolean getT2Done() {
     return this._t2Done.get();
   }
   
-  private Boolean setAnyDone(final Boolean value) {
-    return this._anyDone.getAndSet(value);
+  private Boolean getAndSetT2Done(final Boolean value) {
+    return this._t2Done.getAndSet(value);
+  }
+  
+  private void setAnyDone(final Boolean value) {
+    this._anyDone.set(value);
   }
   
   private Boolean getAnyDone() {
     return this._anyDone.get();
+  }
+  
+  private Boolean getAndSetAnyDone(final Boolean value) {
+    return this._anyDone.getAndSet(value);
   }
 }

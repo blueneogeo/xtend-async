@@ -1288,6 +1288,55 @@ public class TestStreamExtensions {
   }
   
   @Test
+  public void testRateLimitWithErrors() {
+    try {
+      IntegerRange _upTo = new IntegerRange(1, 4);
+      final Stream<Integer> stream = StreamExtensions.<Integer>stream(_upTo);
+      final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        public void apply(final Long period, final Procedure0 doneFn) {
+          Timer _timer = new Timer();
+          final TimerTask _function = new TimerTask() {
+            @Override
+            public void run() {
+              doneFn.apply();
+            }
+          };
+          _timer.schedule(_function, period);
+        }
+      };
+      final Procedure2<Long, Procedure0> delayFn = _function;
+      final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+        public Integer apply(final Integer it) {
+          return Integer.valueOf(((1000 / (2 - (it).intValue())) * 1000));
+        }
+      };
+      SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(stream, _function_1);
+      IStream<Integer, Integer> _ratelimit = StreamExtensions.<Integer, Integer>ratelimit(_map, 1000, delayFn);
+      final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
+        public Integer apply(final Integer it) {
+          return Integer.valueOf(((1000 / (2 - (it).intValue())) * 1000));
+        }
+      };
+      final SubStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer, Integer>map(_ratelimit, _function_2);
+      final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+        public void apply(final Throwable it) {
+          InputOutput.<Throwable>println(it);
+        }
+      };
+      SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(limited, _function_3);
+      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        public void apply(final Integer it) {
+          InputOutput.<Integer>println(it);
+        }
+      };
+      StreamExtensions.<Integer, Integer>onEach(_onError, _function_4);
+      Thread.sleep(5000);
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
+  }
+  
+  @Test
   public void testWindow() {
     try {
       final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
@@ -1324,20 +1373,28 @@ public class TestStreamExtensions {
   public void testLatest() {
   }
   
-  private Boolean setCalledThen(final Boolean value) {
-    return this._calledThen.getAndSet(value);
+  private void setCalledThen(final Boolean value) {
+    this._calledThen.set(value);
   }
   
   private Boolean getCalledThen() {
     return this._calledThen.get();
   }
   
-  private Integer setCounter(final Integer value) {
-    return this._counter.getAndSet(value);
+  private Boolean getAndSetCalledThen(final Boolean value) {
+    return this._calledThen.getAndSet(value);
+  }
+  
+  private void setCounter(final Integer value) {
+    this._counter.set(value);
   }
   
   private Integer getCounter() {
     return this._counter.get();
+  }
+  
+  private Integer getAndSetCounter(final Integer value) {
+    return this._counter.getAndSet(value);
   }
   
   private Integer incCounter() {
@@ -1352,12 +1409,16 @@ public class TestStreamExtensions {
     return this._counter.addAndGet(value);
   }
   
-  private Integer setValueCount(final Integer value) {
-    return this._valueCount.getAndSet(value);
+  private void setValueCount(final Integer value) {
+    this._valueCount.set(value);
   }
   
   private Integer getValueCount() {
     return this._valueCount.get();
+  }
+  
+  private Integer getAndSetValueCount(final Integer value) {
+    return this._valueCount.getAndSet(value);
   }
   
   private Integer incValueCount() {
@@ -1372,12 +1433,16 @@ public class TestStreamExtensions {
     return this._valueCount.addAndGet(value);
   }
   
-  private Integer setErrorCount(final Integer value) {
-    return this._errorCount.getAndSet(value);
+  private void setErrorCount(final Integer value) {
+    this._errorCount.set(value);
   }
   
   private Integer getErrorCount() {
     return this._errorCount.get();
+  }
+  
+  private Integer getAndSetErrorCount(final Integer value) {
+    return this._errorCount.getAndSet(value);
   }
   
   private Integer incErrorCount() {
@@ -1392,12 +1457,16 @@ public class TestStreamExtensions {
     return this._errorCount.addAndGet(value);
   }
   
-  private Integer setOverflowCount(final Integer value) {
-    return this._overflowCount.getAndSet(value);
+  private void setOverflowCount(final Integer value) {
+    this._overflowCount.set(value);
   }
   
   private Integer getOverflowCount() {
     return this._overflowCount.get();
+  }
+  
+  private Integer getAndSetOverflowCount(final Integer value) {
+    return this._overflowCount.getAndSet(value);
   }
   
   private Integer incOverflowCount() {

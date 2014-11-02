@@ -53,11 +53,14 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	def boolean isOpen()
 	def boolean isReady()
 	def boolean isSkipping()
+	
+	def Integer getConcurrency()
+	def void setConcurrency(Integer concurrency)
 
 	def int getBufferSize()
 	def Collection<Entry<I, O>> getQueue()
 
-	def String setOperation(String operationName)
+	def void setOperation(String operationName)
 	def String getOperation()
 	
 }
@@ -89,6 +92,7 @@ class SubStream<I, O> extends BaseStream<I, O> {
 
 	new (IStream<I, ?> parent) {
 		this.input = parent.input
+		this.concurrency = parent.concurrency
 	}
 
 	new (IStream<I, ?> parent, int maxSize) {
@@ -148,21 +152,25 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
 
+	@Atomic public val int concurrency = 1 // the default concurrency to use for async processing
 	@Atomic public val int maxBufferSize // the maximum size of the queue
 	@Atomic public val String operation // name of the operation the listener is performing
 
-	/** create the stream with a memory concurrent queue */
+	/** Create the stream with a memory concurrent queue */
 	new() { this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE) }
 
 	new(int maxBufferSize) { this(newConcurrentLinkedQueue, maxBufferSize) }
 
-	/** create the stream with your own provided queue. Note: the queue must be threadsafe! */
+	/** 
+	 * Create the stream with your own provided queue. 
+	 * Note: the queue must be threadsafe for streams to be threadsafe!
+	 */
 	new(Queue<Entry<I, O>> queue, int maxBufferSize) { 
 		this.queue = queue
 		this.maxBufferSize = maxBufferSize
 	}
 	
-	/** get the queue of the stream. will only be an unmodifiable view of the queue. */
+	/** Get the queue of the stream. will only be an unmodifiable view of the queue. */
 	override getQueue() { queue.unmodifiableView	}
 
 	override isOpen() { getOpen }

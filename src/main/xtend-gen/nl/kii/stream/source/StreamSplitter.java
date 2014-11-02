@@ -122,11 +122,15 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     return Objects.equal(_findFirst, null);
   }
   
-  protected List<IStream<I, O>> setStreams(final List<IStream<I, O>> value) {
-    return this._streams.getAndSet(value);
+  protected void setStreams(final List<IStream<I, O>> value) {
+    this._streams.set(value);
   }
   
   protected List<IStream<I, O>> getStreams() {
     return this._streams.get();
+  }
+  
+  protected List<IStream<I, O>> getAndSetStreams(final List<IStream<I, O>> value) {
+    return this._streams.getAndSet(value);
   }
 }

@@ -148,19 +148,27 @@ public class TestSplitter {
     s2.next();
   }
   
-  private Boolean setDid1(final Boolean value) {
-    return this._did1.getAndSet(value);
+  private void setDid1(final Boolean value) {
+    this._did1.set(value);
   }
   
   private Boolean getDid1() {
     return this._did1.get();
   }
   
-  private Boolean setDid2(final Boolean value) {
-    return this._did2.getAndSet(value);
+  private Boolean getAndSetDid1(final Boolean value) {
+    return this._did1.getAndSet(value);
+  }
+  
+  private void setDid2(final Boolean value) {
+    this._did2.set(value);
   }
   
   private Boolean getDid2() {
     return this._did2.get();
+  }
+  
+  private Boolean getAndSetDid2(final Boolean value) {
+    return this._did2.getAndSet(value);
   }
 }

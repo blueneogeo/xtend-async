@@ -65,35 +65,51 @@ public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
     }
   }
   
-  private Procedure1<Void> setNextFn(final Procedure1<Void> value) {
-    return this._nextFn.getAndSet(value);
+  private void setNextFn(final Procedure1<Void> value) {
+    this._nextFn.set(value);
   }
   
   private Procedure1<Void> getNextFn() {
     return this._nextFn.get();
   }
   
-  private Procedure1<Void> setSkipFn(final Procedure1<Void> value) {
-    return this._skipFn.getAndSet(value);
+  private Procedure1<Void> getAndSetNextFn(final Procedure1<Void> value) {
+    return this._nextFn.getAndSet(value);
+  }
+  
+  private void setSkipFn(final Procedure1<Void> value) {
+    this._skipFn.set(value);
   }
   
   private Procedure1<Void> getSkipFn() {
     return this._skipFn.get();
   }
   
-  private Procedure1<Void> setCloseFn(final Procedure1<Void> value) {
-    return this._closeFn.getAndSet(value);
+  private Procedure1<Void> getAndSetSkipFn(final Procedure1<Void> value) {
+    return this._skipFn.getAndSet(value);
+  }
+  
+  private void setCloseFn(final Procedure1<Void> value) {
+    this._closeFn.set(value);
   }
   
   private Procedure1<Void> getCloseFn() {
     return this._closeFn.get();
   }
   
-  private Procedure1<Entry<?, ?>> setOverflowFn(final Procedure1<Entry<?, ?>> value) {
-    return this._overflowFn.getAndSet(value);
+  private Procedure1<Void> getAndSetCloseFn(final Procedure1<Void> value) {
+    return this._closeFn.getAndSet(value);
+  }
+  
+  private void setOverflowFn(final Procedure1<Entry<?, ?>> value) {
+    this._overflowFn.set(value);
   }
   
   private Procedure1<Entry<?, ?>> getOverflowFn() {
     return this._overflowFn.get();
+  }
+  
+  private Procedure1<Entry<?, ?>> getAndSetOverflowFn(final Procedure1<Entry<?, ?>> value) {
+    return this._overflowFn.getAndSet(value);
   }
 }

@@ -109,19 +109,27 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     return _builder.toString();
   }
   
-  public Boolean setPublishing(final Boolean value) {
-    return this._publishing.getAndSet(value);
+  public void setPublishing(final Boolean value) {
+    this._publishing.set(value);
   }
   
   public Boolean getPublishing() {
     return this._publishing.get();
   }
   
-  private List<Procedure1<T>> setObservers(final List<Procedure1<T>> value) {
-    return this._observers.getAndSet(value);
+  public Boolean getAndSetPublishing(final Boolean value) {
+    return this._publishing.getAndSet(value);
+  }
+  
+  private void setObservers(final List<Procedure1<T>> value) {
+    this._observers.set(value);
   }
   
   private List<Procedure1<T>> getObservers() {
     return this._observers.get();
+  }
+  
+  private List<Procedure1<T>> getAndSetObservers(final List<Procedure1<T>> value) {
+    return this._observers.getAndSet(value);
   }
 }

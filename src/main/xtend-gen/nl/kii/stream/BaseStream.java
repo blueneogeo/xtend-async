@@ -54,13 +54,16 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   private final AtomicReference<Procedure1<? super StreamNotification>> _notificationListener = new AtomicReference<Procedure1<? super StreamNotification>>();
   
   @Atomic
+  private final AtomicInteger _concurrency = new AtomicInteger(1);
+  
+  @Atomic
   private final AtomicInteger _maxBufferSize = new AtomicInteger();
   
   @Atomic
   private final AtomicReference<String> _operation = new AtomicReference<String>();
   
   /**
-   * create the stream with a memory concurrent queue
+   * Create the stream with a memory concurrent queue
    */
   public BaseStream() {
     this(Queues.<Entry<I, O>>newConcurrentLinkedQueue(), BaseStream.DEFAULT_MAX_BUFFERSIZE);
@@ -71,7 +74,8 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   }
   
   /**
-   * create the stream with your own provided queue. Note: the queue must be threadsafe!
+   * Create the stream with your own provided queue.
+   * Note: the queue must be threadsafe for streams to be threadsafe!
    */
   public BaseStream(final Queue<Entry<I, O>> queue, final int maxBufferSize) {
     this.queue = queue;
@@ -79,7 +83,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   }
   
   /**
-   * get the queue of the stream. will only be an unmodifiable view of the queue.
+   * Get the queue of the stream. will only be an unmodifiable view of the queue.
    */
   public Collection<Entry<I, O>> getQueue() {
     return Collections.<Entry<I, O>>unmodifiableCollection(this.queue);
@@ -418,12 +422,16 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return _builder.toString();
   }
   
-  private Integer setBuffersize(final Integer value) {
-    return this._buffersize.getAndSet(value);
+  private void setBuffersize(final Integer value) {
+    this._buffersize.set(value);
   }
   
   private Integer getBuffersize() {
     return this._buffersize.get();
+  }
+  
+  private Integer getAndSetBuffersize(final Integer value) {
+    return this._buffersize.getAndSet(value);
   }
   
   private Integer incBuffersize() {
@@ -438,52 +446,100 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._buffersize.addAndGet(value);
   }
   
-  private Boolean setOpen(final Boolean value) {
-    return this._open.getAndSet(value);
+  private void setOpen(final Boolean value) {
+    this._open.set(value);
   }
   
   private Boolean getOpen() {
     return this._open.get();
   }
   
-  private Boolean setReady(final Boolean value) {
-    return this._ready.getAndSet(value);
+  private Boolean getAndSetOpen(final Boolean value) {
+    return this._open.getAndSet(value);
+  }
+  
+  private void setReady(final Boolean value) {
+    this._ready.set(value);
   }
   
   private Boolean getReady() {
     return this._ready.get();
   }
   
-  private Boolean setSkipping(final Boolean value) {
-    return this._skipping.getAndSet(value);
+  private Boolean getAndSetReady(final Boolean value) {
+    return this._ready.getAndSet(value);
+  }
+  
+  private void setSkipping(final Boolean value) {
+    this._skipping.set(value);
   }
   
   private Boolean getSkipping() {
     return this._skipping.get();
   }
   
-  private Procedure1<? super Entry<I, O>> setEntryListener(final Procedure1<? super Entry<I, O>> value) {
-    return this._entryListener.getAndSet(value);
+  private Boolean getAndSetSkipping(final Boolean value) {
+    return this._skipping.getAndSet(value);
+  }
+  
+  private void setEntryListener(final Procedure1<? super Entry<I, O>> value) {
+    this._entryListener.set(value);
   }
   
   private Procedure1<? super Entry<I, O>> getEntryListener() {
     return this._entryListener.get();
   }
   
-  private Procedure1<? super StreamNotification> setNotificationListener(final Procedure1<? super StreamNotification> value) {
-    return this._notificationListener.getAndSet(value);
+  private Procedure1<? super Entry<I, O>> getAndSetEntryListener(final Procedure1<? super Entry<I, O>> value) {
+    return this._entryListener.getAndSet(value);
+  }
+  
+  private void setNotificationListener(final Procedure1<? super StreamNotification> value) {
+    this._notificationListener.set(value);
   }
   
   private Procedure1<? super StreamNotification> getNotificationListener() {
     return this._notificationListener.get();
   }
   
-  public Integer setMaxBufferSize(final Integer value) {
-    return this._maxBufferSize.getAndSet(value);
+  private Procedure1<? super StreamNotification> getAndSetNotificationListener(final Procedure1<? super StreamNotification> value) {
+    return this._notificationListener.getAndSet(value);
+  }
+  
+  public void setConcurrency(final Integer value) {
+    this._concurrency.set(value);
+  }
+  
+  public Integer getConcurrency() {
+    return this._concurrency.get();
+  }
+  
+  public Integer getAndSetConcurrency(final Integer value) {
+    return this._concurrency.getAndSet(value);
+  }
+  
+  public Integer incConcurrency() {
+    return this._concurrency.incrementAndGet();
+  }
+  
+  public Integer decConcurrency() {
+    return this._concurrency.decrementAndGet();
+  }
+  
+  public Integer incConcurrency(final Integer value) {
+    return this._concurrency.addAndGet(value);
+  }
+  
+  public void setMaxBufferSize(final Integer value) {
+    this._maxBufferSize.set(value);
   }
   
   public Integer getMaxBufferSize() {
     return this._maxBufferSize.get();
+  }
+  
+  public Integer getAndSetMaxBufferSize(final Integer value) {
+    return this._maxBufferSize.getAndSet(value);
   }
   
   public Integer incMaxBufferSize() {
@@ -498,11 +554,15 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._maxBufferSize.addAndGet(value);
   }
   
-  public String setOperation(final String value) {
-    return this._operation.getAndSet(value);
+  public void setOperation(final String value) {
+    this._operation.set(value);
   }
   
   public String getOperation() {
     return this._operation.get();
+  }
+  
+  public String getAndSetOperation(final String value) {
+    return this._operation.getAndSet(value);
   }
 }

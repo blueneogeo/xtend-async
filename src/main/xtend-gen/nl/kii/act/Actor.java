@@ -246,11 +246,15 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     return _builder.toString();
   }
   
-  private Boolean setProcessing(final Boolean value) {
-    return this._processing.getAndSet(value);
+  private void setProcessing(final Boolean value) {
+    this._processing.set(value);
   }
   
   private Boolean getProcessing() {
     return this._processing.get();
+  }
+  
+  private Boolean getAndSetProcessing(final Boolean value) {
+    return this._processing.getAndSet(value);
   }
 }

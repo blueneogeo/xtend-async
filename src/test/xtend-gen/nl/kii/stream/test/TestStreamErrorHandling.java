@@ -542,12 +542,16 @@ public class TestStreamErrorHandling {
     Assert.assertTrue((_finished).booleanValue());
   }
   
-  private Integer setCounter(final Integer value) {
-    return this._counter.getAndSet(value);
+  private void setCounter(final Integer value) {
+    this._counter.set(value);
   }
   
   private Integer getCounter() {
     return this._counter.get();
+  }
+  
+  private Integer getAndSetCounter(final Integer value) {
+    return this._counter.getAndSet(value);
   }
   
   private Integer incCounter() {
@@ -562,12 +566,16 @@ public class TestStreamErrorHandling {
     return this._counter.addAndGet(value);
   }
   
-  private Integer setErrors(final Integer value) {
-    return this._errors.getAndSet(value);
+  private void setErrors(final Integer value) {
+    this._errors.set(value);
   }
   
   private Integer getErrors() {
     return this._errors.get();
+  }
+  
+  private Integer getAndSetErrors(final Integer value) {
+    return this._errors.getAndSet(value);
   }
   
   private Integer incErrors() {
@@ -582,44 +590,64 @@ public class TestStreamErrorHandling {
     return this._errors.addAndGet(value);
   }
   
-  private Boolean setComplete(final Boolean value) {
-    return this._complete.getAndSet(value);
+  private void setComplete(final Boolean value) {
+    this._complete.set(value);
   }
   
   private Boolean getComplete() {
     return this._complete.get();
   }
   
-  private Boolean setFailed(final Boolean value) {
-    return this._failed.getAndSet(value);
+  private Boolean getAndSetComplete(final Boolean value) {
+    return this._complete.getAndSet(value);
+  }
+  
+  private void setFailed(final Boolean value) {
+    this._failed.set(value);
   }
   
   private Boolean getFailed() {
     return this._failed.get();
   }
   
-  private Throwable setCaught(final Throwable value) {
-    return this._caught.getAndSet(value);
+  private Boolean getAndSetFailed(final Boolean value) {
+    return this._failed.getAndSet(value);
+  }
+  
+  private void setCaught(final Throwable value) {
+    this._caught.set(value);
   }
   
   private Throwable getCaught() {
     return this._caught.get();
   }
   
-  private Boolean setFinished(final Boolean value) {
-    return this._finished.getAndSet(value);
+  private Throwable getAndSetCaught(final Throwable value) {
+    return this._caught.getAndSet(value);
+  }
+  
+  private void setFinished(final Boolean value) {
+    this._finished.set(value);
   }
   
   private Boolean getFinished() {
     return this._finished.get();
   }
   
-  private Integer setErrorCount(final Integer value) {
-    return this._errorCount.getAndSet(value);
+  private Boolean getAndSetFinished(final Boolean value) {
+    return this._finished.getAndSet(value);
+  }
+  
+  private void setErrorCount(final Integer value) {
+    this._errorCount.set(value);
   }
   
   private Integer getErrorCount() {
     return this._errorCount.get();
+  }
+  
+  private Integer getAndSetErrorCount(final Integer value) {
+    return this._errorCount.getAndSet(value);
   }
   
   private Integer incErrorCount() {
@@ -634,12 +662,16 @@ public class TestStreamErrorHandling {
     return this._errorCount.addAndGet(value);
   }
   
-  private Integer setCount(final Integer value) {
-    return this._count.getAndSet(value);
+  private void setCount(final Integer value) {
+    this._count.set(value);
   }
   
   private Integer getCount() {
     return this._count.get();
+  }
+  
+  private Integer getAndSetCount(final Integer value) {
+    return this._count.getAndSet(value);
   }
   
   private Integer incCount() {

@@ -53,11 +53,15 @@ public interface IStream<I extends Object, O extends Object> extends Procedure1<
   
   public abstract boolean isSkipping();
   
+  public abstract Integer getConcurrency();
+  
+  public abstract void setConcurrency(final Integer concurrency);
+  
   public abstract int getBufferSize();
   
   public abstract Collection<Entry<I, O>> getQueue();
   
-  public abstract String setOperation(final String operationName);
+  public abstract void setOperation(final String operationName);
   
   public abstract String getOperation();
 }

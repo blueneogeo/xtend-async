@@ -693,6 +693,15 @@ public class StreamExtensions {
     stream.error(_streamException);
   }
   
+  public static <I extends Object, O extends Object> IStream<I, O> concurrency(final IStream<I, O> stream, final int value) {
+    IStream<I, O> _xblockexpression = null;
+    {
+      stream.setConcurrency(Integer.valueOf(value));
+      _xblockexpression = stream;
+    }
+    return _xblockexpression;
+  }
+  
   /**
    * Transform each item in the stream using the passed mappingFn
    */
@@ -1444,7 +1453,9 @@ public class StreamExtensions {
    *    .ratelimit(100) [ period, timeoutFn, | vertx.setTimer(period, timeoutFn) ]
    *    .onEach [ ... ]
    * </pre>
+   * FIX: BREAKS ON ERRORS
    */
+  @Deprecated
   public static <I extends Object, O extends Object> IStream<I, O> ratelimit(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     SubStream<I, O> _xblockexpression = null;
     {
@@ -1777,7 +1788,8 @@ public class StreamExtensions {
    * It only asks the next promise from the stream when the previous promise has been resolved.
    */
   public static <I extends Object, I2 extends Object, O extends Object> SubStream<I, O> resolve(final IStream<I, ? extends IPromise<I2, O>> stream) {
-    SubStream<I, O> _resolve = StreamExtensions.<I, O>resolve(stream, 1);
+    Integer _concurrency = stream.getConcurrency();
+    SubStream<I, O> _resolve = StreamExtensions.<I, O>resolve(stream, (_concurrency).intValue());
     final Procedure1<SubStream<I, O>> _function = new Procedure1<SubStream<I, O>>() {
       public void apply(final SubStream<I, O> it) {
         stream.setOperation("resolve");
@@ -1808,8 +1820,8 @@ public class StreamExtensions {
                   processes.decrementAndGet();
                   StreamException _streamException = new StreamException("resolve", r, it);
                   newStream.error(r, _streamException);
-                  boolean _get = isFinished.get();
-                  if (_get) {
+                  boolean _compareAndSet = isFinished.compareAndSet(true, false);
+                  if (_compareAndSet) {
                     newStream.finish(r);
                   }
                 }
@@ -1819,8 +1831,8 @@ public class StreamExtensions {
                 public void apply(final O it) {
                   processes.decrementAndGet();
                   newStream.push(r, it);
-                  boolean _get = isFinished.get();
-                  if (_get) {
+                  boolean _compareAndSet = isFinished.compareAndSet(true, false);
+                  if (_compareAndSet) {
                     newStream.finish(r);
                   }
                 }
@@ -1891,16 +1903,32 @@ public class StreamExtensions {
   
   /**
    * Make an asynchronous call.
-   * This is an alias for stream.call(1)
+   * This is an alias for stream.call(stream.concurrency)
    */
   public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final Function1<? super O, ? extends P> promiseFn) {
-    SubStream<I, R> _call = StreamExtensions.<I, O, R, P>call(stream, 1, promiseFn);
+    Integer _concurrency = stream.getConcurrency();
+    SubStream<I, R> _call = StreamExtensions.<I, O, R, P>call(stream, (_concurrency).intValue(), promiseFn);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
       public void apply(final SubStream<I, R> it) {
         stream.setOperation("call");
       }
     };
     return ObjectExtensions.<SubStream<I, R>>operator_doubleArrow(_call, _function);
+  }
+  
+  /**
+   * Make an asynchronous call.
+   * This is an alias for stream.call(stream.concurrency)
+   */
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call2(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends P> promiseFn) {
+    Integer _concurrency = stream.getConcurrency();
+    SubStream<I, R> _call2 = StreamExtensions.<I, O, R, P>call2(stream, (_concurrency).intValue(), promiseFn);
+    final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
+      public void apply(final SubStream<I, R> it) {
+        stream.setOperation("call");
+      }
+    };
+    return ObjectExtensions.<SubStream<I, R>>operator_doubleArrow(_call2, _function);
   }
   
   /**
@@ -1913,14 +1941,14 @@ public class StreamExtensions {
         return promiseFn.apply(o);
       }
     };
-    return StreamExtensions.<I, O, R, P>call(stream, concurrency, _function);
+    return StreamExtensions.<I, O, R, P>call2(stream, concurrency, _function);
   }
   
   /**
    * Make an asynchronous call.
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends P> promiseFn) {
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call2(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends P> promiseFn) {
     SubStream<I, P> _map = StreamExtensions.<I, O, P>map(stream, promiseFn);
     SubStream<I, R> _resolve = StreamExtensions.<I, R>resolve(_map, concurrency);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
@@ -2491,6 +2519,27 @@ public class StreamExtensions {
   }
   
   /**
+   * Check on each value if the assert/check description is valid.
+   * Throws an Exception with the check description if not.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> check(final IStream<I, O> stream, final String checkDescription, final Function1<? super O, ? extends Boolean> checkFn) {
+    final Procedure1<O> _function = new Procedure1<O>() {
+      public void apply(final O it) {
+        try {
+          Boolean _apply = checkFn.apply(it);
+          boolean _not = (!(_apply).booleanValue());
+          if (_not) {
+            throw new Exception(((checkDescription + "- for value ") + it));
+          }
+        } catch (Throwable _e) {
+          throw Exceptions.sneakyThrow(_e);
+        }
+      }
+    };
+    return StreamExtensions.<I, O>effect(stream, _function);
+  }
+  
+  /**
    * Perform some side-effect action based on the stream.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> effect(final IStream<I, O> stream, final Procedure1<? super O> listener) {
@@ -2529,14 +2578,16 @@ public class StreamExtensions {
    * Perform some side-effect action based on the stream.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final Function1<? super O, ? extends IPromise<?, ?>> promiseFn) {
-    return StreamExtensions.<I, O>perform(stream, 1, promiseFn);
+    Integer _concurrency = stream.getConcurrency();
+    return StreamExtensions.<I, O>perform(stream, (_concurrency).intValue(), promiseFn);
   }
   
   /**
    * Perform some side-effect action based on the stream.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
-    return StreamExtensions.<I, O>perform(stream, 1, promiseFn);
+    Integer _concurrency = stream.getConcurrency();
+    return StreamExtensions.<I, O>perform2(stream, (_concurrency).intValue(), promiseFn);
   }
   
   /**
@@ -2549,14 +2600,14 @@ public class StreamExtensions {
         return promiseFn.apply(o);
       }
     };
-    return StreamExtensions.<I, O>perform(stream, concurrency, _function);
+    return StreamExtensions.<I, O>perform2(stream, concurrency, _function);
   }
   
   /**
    * Perform some asynchronous side-effect action based on the stream.
    * Perform at most 'concurrency' calls in parallel.
    */
-  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
+  public static <I extends Object, O extends Object> SubStream<I, O> perform2(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
     final Function2<I, O, SubPromise<?, O>> _function = new Function2<I, O, SubPromise<?, O>>() {
       public SubPromise<?, O> apply(final I i, final O o) {
         IPromise<?, ?> _apply = promiseFn.apply(i, o);
@@ -2568,13 +2619,13 @@ public class StreamExtensions {
         return PromiseExtensions.map(_apply, _function);
       }
     };
-    SubStream<I, O> _call = StreamExtensions.<I, O, O, SubPromise<?, O>>call(stream, concurrency, _function);
+    SubStream<I, O> _call2 = StreamExtensions.<I, O, O, SubPromise<?, O>>call2(stream, concurrency, _function);
     final Procedure1<SubStream<I, O>> _function_1 = new Procedure1<SubStream<I, O>>() {
       public void apply(final SubStream<I, O> it) {
         stream.setOperation((("perform(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_call, _function_1);
+    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_call2, _function_1);
   }
   
   /**

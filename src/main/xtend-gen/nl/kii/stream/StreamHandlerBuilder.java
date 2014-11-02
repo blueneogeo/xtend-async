@@ -99,35 +99,51 @@ public class StreamHandlerBuilder<I extends Object, O extends Object> implements
     }
   }
   
-  private Procedure2<I, O> setValueFn(final Procedure2<I, O> value) {
-    return this._valueFn.getAndSet(value);
+  private void setValueFn(final Procedure2<I, O> value) {
+    this._valueFn.set(value);
   }
   
   private Procedure2<I, O> getValueFn() {
     return this._valueFn.get();
   }
   
-  private Procedure2<I, Throwable> setErrorFn(final Procedure2<I, Throwable> value) {
-    return this._errorFn.getAndSet(value);
+  private Procedure2<I, O> getAndSetValueFn(final Procedure2<I, O> value) {
+    return this._valueFn.getAndSet(value);
+  }
+  
+  private void setErrorFn(final Procedure2<I, Throwable> value) {
+    this._errorFn.set(value);
   }
   
   private Procedure2<I, Throwable> getErrorFn() {
     return this._errorFn.get();
   }
   
-  private Procedure2<I, Integer> setFinishFn(final Procedure2<I, Integer> value) {
-    return this._finishFn.getAndSet(value);
+  private Procedure2<I, Throwable> getAndSetErrorFn(final Procedure2<I, Throwable> value) {
+    return this._errorFn.getAndSet(value);
+  }
+  
+  private void setFinishFn(final Procedure2<I, Integer> value) {
+    this._finishFn.set(value);
   }
   
   private Procedure2<I, Integer> getFinishFn() {
     return this._finishFn.get();
   }
   
-  private Procedure1<Void> setClosedFn(final Procedure1<Void> value) {
-    return this._closedFn.getAndSet(value);
+  private Procedure2<I, Integer> getAndSetFinishFn(final Procedure2<I, Integer> value) {
+    return this._finishFn.getAndSet(value);
+  }
+  
+  private void setClosedFn(final Procedure1<Void> value) {
+    this._closedFn.set(value);
   }
   
   private Procedure1<Void> getClosedFn() {
     return this._closedFn.get();
+  }
+  
+  private Procedure1<Void> getAndSetClosedFn(final Procedure1<Void> value) {
+    return this._closedFn.getAndSet(value);
   }
 }
