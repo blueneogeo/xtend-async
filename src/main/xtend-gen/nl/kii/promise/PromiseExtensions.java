@@ -713,7 +713,7 @@ public class PromiseExtensions {
   /**
    * Forward the events from this promise to another promise of the same type
    */
-  public static <I extends Object, I2 extends Object, O extends Object> Task completes(final IPromise<I, O> promise, final Task task) {
+  public static <I extends Object, I2 extends Object, O extends Object> IPromise<Boolean, Boolean> completes(final IPromise<I, O> promise, final Task task) {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       public void apply(final I r, final Throwable it) {
         task.error(it);
@@ -725,6 +725,12 @@ public class PromiseExtensions {
         task.set(Boolean.valueOf(true));
       }
     };
-    return _onError.then(_function_1);
+    Task _then = _onError.then(_function_1);
+    final Procedure2<Boolean, Throwable> _function_2 = new Procedure2<Boolean, Throwable>() {
+      public void apply(final Boolean r, final Throwable it) {
+        task.error(it);
+      }
+    };
+    return _then.onError(_function_2);
   }
 }

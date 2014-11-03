@@ -361,6 +361,7 @@ class PromiseExtensions {
 		promise
 			.onError [ r, it | task.error(it) ]
 			.then [ r, it | task.set(true) ]
+			.onError [ r, it | task.error(it) ]
 	}
 
 }
