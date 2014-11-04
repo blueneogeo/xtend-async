@@ -1802,6 +1802,7 @@ public class StreamExtensions {
    * values, and builds a stream of that.
    * <p>
    * Allows concurrent promises to be resolved in parallel.
+   * Passing a concurrency of 0 means all incoming promises will be called concurrently.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> resolve(final IStream<I, ? extends IPromise<?, O>> stream, final int concurrency) {
     SubStream<I, O> _xblockexpression = null;
@@ -1813,14 +1814,20 @@ public class StreamExtensions {
         public void apply(final StreamHandlerBuilder<I, ? extends IPromise<?, O>> it) {
           final Procedure2<I, IPromise<?, O>> _function = new Procedure2<I, IPromise<?, O>>() {
             public void apply(final I r, final IPromise<?, O> promise) {
-              processes.incrementAndGet();
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
                 public void apply(final Throwable it) {
-                  processes.decrementAndGet();
                   StreamException _streamException = new StreamException("resolve", r, it);
                   newStream.error(r, _streamException);
-                  boolean _compareAndSet = isFinished.compareAndSet(true, false);
-                  if (_compareAndSet) {
+                  boolean _and = false;
+                  int _decrementAndGet = processes.decrementAndGet();
+                  boolean _equals = (_decrementAndGet == 0);
+                  if (!_equals) {
+                    _and = false;
+                  } else {
+                    boolean _compareAndSet = isFinished.compareAndSet(true, false);
+                    _and = _compareAndSet;
+                  }
+                  if (_and) {
                     newStream.finish(r);
                   }
                 }
@@ -1828,15 +1835,33 @@ public class StreamExtensions {
               IPromise<?, O> _onError = promise.onError(_function);
               final Procedure1<O> _function_1 = new Procedure1<O>() {
                 public void apply(final O it) {
-                  processes.decrementAndGet();
                   newStream.push(r, it);
-                  boolean _compareAndSet = isFinished.compareAndSet(true, false);
-                  if (_compareAndSet) {
+                  boolean _and = false;
+                  int _decrementAndGet = processes.decrementAndGet();
+                  boolean _equals = (_decrementAndGet == 0);
+                  if (!_equals) {
+                    _and = false;
+                  } else {
+                    boolean _compareAndSet = isFinished.compareAndSet(true, false);
+                    _and = _compareAndSet;
+                  }
+                  if (_and) {
                     newStream.finish(r);
                   }
                 }
               };
               _onError.then(_function_1);
+              boolean _or = false;
+              int _incrementAndGet = processes.incrementAndGet();
+              boolean _greaterThan = (concurrency > _incrementAndGet);
+              if (_greaterThan) {
+                _or = true;
+              } else {
+                _or = (concurrency == 0);
+              }
+              if (_or) {
+                stream.next();
+              }
             }
           };
           it.each(_function);
@@ -1871,11 +1896,7 @@ public class StreamExtensions {
         public void apply(final StreamResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
-              int _get = processes.get();
-              boolean _greaterThan = (concurrency > _get);
-              if (_greaterThan) {
-                stream.next();
-              }
+              stream.next();
             }
           };
           it.next(_function);

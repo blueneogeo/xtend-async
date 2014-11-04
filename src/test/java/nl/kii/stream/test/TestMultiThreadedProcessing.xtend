@@ -41,9 +41,9 @@ class TestMultiThreadedProcessing {
 		val result = new AtomicReference(new LinkedList<Integer>)
 		val s = int.stream << 1 << 2 << 3
 		s
-			.map [ power2 ].resolve(2)
+			.map [ power2 ].resolve(1)
 			.map [ it + 1 ]
-			.map[ power2 ].resolve(3)
+			.map[ power2 ].resolve(1)
 			.onEach [ result.get.add(it) ]
 		0.assertEquals(result.get.size)
 		Thread.sleep(700) 

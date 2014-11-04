@@ -152,7 +152,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
 
-	@Atomic public val int concurrency = 1 // the default concurrency to use for async processing
+	@Atomic public val int concurrency = 0 // the default concurrency to use for async processing
 	@Atomic public val int maxBufferSize // the maximum size of the queue
 	@Atomic public val String operation // name of the operation the listener is performing
 

@@ -849,39 +849,57 @@ class StreamExtensions {
 	 * values, and builds a stream of that.
 	 * <p>
 	 * Allows concurrent promises to be resolved in parallel.
+	 * Passing a concurrency of 0 means all incoming promises will be called concurrently.
 	 */
 	def static <I, O> SubStream<I, O> resolve(IStream<I, ? extends IPromise<?, O>> stream, int concurrency) {
 		val newStream = new SubStream<I, O>(stream)
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
 		stream.on [
+
+			// consider each incoming promise a new parallel process
 			each [ r, promise |
-				processes.incrementAndGet
+				// listen for the process to complete
 				promise
-					.onError [
-						processes.decrementAndGet
+					// in case of a processing error, report it to the listening stream
+					.onError [ 
 						newStream.error(r, new StreamException('resolve', r, it))
-						if(isFinished.compareAndSet(true, false)) newStream.finish(r)
+						// are we done processing? and did we finish? then finish now 
+						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
+							newStream.finish(r)
 					]
-					.then [
-						processes.decrementAndGet
+					// in case of a processing value, push it to the listening stream
+					.then [ 
+						// we are doing one less parallel process
 						newStream.push(r, it)
-						if(isFinished.compareAndSet(true, false)) newStream.finish(r)
+						// are we done processing? and did we finish? then finish now 
+						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
+							newStream.finish(r)
 					]
+				// if we have space for more parallel processes, ask for the next value
+				// concurrency of 0 is unlimited concurrency
+				if(concurrency > processes.incrementAndGet || concurrency == 0) stream.next
 			]
+
+			// forward errors to the listening stream directly
 			error [ newStream.error($0, $1) ]
+
+			// if we finish, we only want to forward the finish when all processes are done
 			finish [ 
 				if(processes.get == 0) {
+					// we are not parallel processing, you may inform the listening stream
 					newStream.finish($0, $1)
 				} else {
-					// we are still processing, so finish when we are done processing instead
+					// we are still busy, so remember to call finish when we are done
 					isFinished.set(true)
 				}
 			]
+
 			closed [ newStream.close ]
 		]
 		newStream.monitor [
-			next [ if(concurrency > processes.get) stream.next ]
+//			next [ if(concurrency > processes.get) stream.next ]
+			next [ stream.next ]
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]

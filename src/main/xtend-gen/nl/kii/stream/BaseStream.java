@@ -54,7 +54,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   private final AtomicReference<Procedure1<? super StreamNotification>> _notificationListener = new AtomicReference<Procedure1<? super StreamNotification>>();
   
   @Atomic
-  private final AtomicInteger _concurrency = new AtomicInteger(1);
+  private final AtomicInteger _concurrency = new AtomicInteger(0);
   
   @Atomic
   private final AtomicInteger _maxBufferSize = new AtomicInteger();
