@@ -1455,7 +1455,6 @@ public class StreamExtensions {
    * </pre>
    * FIX: BREAKS ON ERRORS
    */
-  @Deprecated
   public static <I extends Object, O extends Object> IStream<I, O> ratelimit(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     SubStream<I, O> _xblockexpression = null;
     {
@@ -2225,7 +2224,7 @@ public class StreamExtensions {
    * Shortcut for splitting a stream and then performing a pipe to another stream.
    * @return a CopySplitter source that you can connect more streams to.
    */
-  public static <I extends Object, O extends Object> StreamSource<I, O> pipe(final IStream<I, O> stream, final IStream<I, O> target) {
+  public static <I extends Object, O extends Object> StreamSource<I, O> pipe(final IStream<I, O> stream, final IStream<I, ?> target) {
     StreamCopySplitter<I, O> _split = StreamExtensions.<I, O>split(stream);
     StreamSource<I, O> _pipe = _split.pipe(target);
     final Procedure1<StreamSource<I, O>> _function = new Procedure1<StreamSource<I, O>>() {

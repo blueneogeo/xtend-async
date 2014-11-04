@@ -34,11 +34,11 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
    * the connected listening streams
    */
   @Atomic
-  private final AtomicReference<List<IStream<I, O>>> _streams = new AtomicReference<List<IStream<I, O>>>();
+  private final AtomicReference<List<IStream<I, ?>>> _streams = new AtomicReference<List<IStream<I, ?>>>();
   
   public StreamSplitter(final IStream<I, O> source) {
     this.source = source;
-    CopyOnWriteArrayList<IStream<I, O>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<I, O>>();
+    CopyOnWriteArrayList<IStream<I, ?>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<I, ?>>();
     this.setStreams(_copyOnWriteArrayList);
     final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
       public void apply(final Entry<I, O> it) {
@@ -48,10 +48,10 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     source.onChange(_function);
   }
   
-  public StreamSource<I, O> pipe(final IStream<I, O> stream) {
+  public StreamSource<I, O> pipe(final IStream<I, ?> stream) {
     StreamSplitter<I, O> _xblockexpression = null;
     {
-      List<IStream<I, O>> _streams = this.getStreams();
+      List<IStream<I, ?>> _streams = this.getStreams();
       _streams.add(stream);
       final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
         public void apply(final StreamNotification it) {
@@ -122,15 +122,15 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     return Objects.equal(_findFirst, null);
   }
   
-  protected void setStreams(final List<IStream<I, O>> value) {
+  protected void setStreams(final List<IStream<I, ?>> value) {
     this._streams.set(value);
   }
   
-  protected List<IStream<I, O>> getStreams() {
+  protected List<IStream<I, ?>> getStreams() {
     return this._streams.get();
   }
   
-  protected List<IStream<I, O>> getAndSetStreams(final List<IStream<I, O>> value) {
+  protected List<IStream<I, ?>> getAndSetStreams(final List<IStream<I, ?>> value) {
     return this._streams.getAndSet(value);
   }
 }

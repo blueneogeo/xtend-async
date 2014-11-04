@@ -98,7 +98,7 @@ public class ExecutorExtensions {
     return _xblockexpression;
   }
   
-  public static Procedure2<? super Long, ? super Procedure0> newTimer(final ScheduledExecutorService executor) {
+  public static Procedure2<? super Long, ? super Procedure0> scheduler(final ScheduledExecutorService executor) {
     final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
       public void apply(final Long period, final Procedure0 doneFn) {
         executor.schedule(new Runnable() {

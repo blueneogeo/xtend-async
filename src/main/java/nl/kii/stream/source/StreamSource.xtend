@@ -19,7 +19,7 @@ interface StreamSource<I, O> {
 	def IStream<I, O> stream()
 	
 	/** Connect an existing stream as a listener to the source stream */
-	def StreamSource<I, O> pipe(IStream<I, O> stream)
+	def StreamSource<I, O> pipe(IStream<I, ?> stream)
 
 }
 
@@ -34,7 +34,7 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 	protected val IStream<I, O> source
 	
 	/** the connected listening streams */
-	@Atomic protected val List<IStream<I, O>> streams
+	@Atomic protected val List<IStream<I, ?>> streams
 	
 	new(IStream<I, O> source) {
 		this.source = source
@@ -42,7 +42,7 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 		source.onChange [ apply ]
 	}
 	
-	override StreamSource<I, O> pipe(IStream<I, O> stream) {
+	override StreamSource<I, O> pipe(IStream<I, ?> stream) {
 		streams += stream
 		stream.onNotify [ apply ]
 		// if the stream already asked for a next value, 

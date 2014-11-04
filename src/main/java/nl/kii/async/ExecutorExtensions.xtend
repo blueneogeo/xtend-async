@@ -74,7 +74,7 @@ class ExecutorExtensions {
 		task
 	}
 	
-	def static (long, =>void)=>void newTimer(ScheduledExecutorService executor) {
+	def static (long, =>void)=>void scheduler(ScheduledExecutorService executor) {
 		[ long period, =>void doneFn |
 			executor.schedule(doneFn, period, TimeUnit.MILLISECONDS)
 		]

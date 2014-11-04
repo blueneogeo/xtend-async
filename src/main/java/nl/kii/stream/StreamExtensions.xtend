@@ -695,7 +695,6 @@ class StreamExtensions {
 	 * </pre>
 	 * FIX: BREAKS ON ERRORS
 	 */
-	@Deprecated
 	def static <I, O> ratelimit(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
 		// check if we really need to ratelimit at all!
 		if(periodMs <= 0) return stream
@@ -1047,7 +1046,7 @@ class StreamExtensions {
 	 * Shortcut for splitting a stream and then performing a pipe to another stream.
 	 * @return a CopySplitter source that you can connect more streams to. 
 	 */
-	def static <I, O> pipe(IStream<I, O> stream, IStream<I, O> target) {
+	def static <I, O> pipe(IStream<I, O> stream, IStream<I, ?> target) {
 		stream.split.pipe(target)
 			=> [ stream.operation = 'pipe' ]
 	}

@@ -15,5 +15,5 @@ public interface StreamSource<I extends Object, O extends Object> {
   /**
    * Connect an existing stream as a listener to the source stream
    */
-  public abstract StreamSource<I, O> pipe(final IStream<I, O> stream);
+  public abstract StreamSource<I, O> pipe(final IStream<I, ?> stream);
 }
