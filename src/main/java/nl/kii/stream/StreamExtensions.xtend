@@ -85,7 +85,7 @@ class StreamExtensions {
 				stream.finish
 			}
 		]
-		stream.monitor [
+		stream.listen [
 			next [ pushNext.apply ]
 			skip [ finished.set(true) stream.finish ]
 		]
@@ -108,7 +108,7 @@ class StreamExtensions {
 			}
 			
 		})
-		newStream.monitor [
+		newStream.listen [
 			skip [ stream.close]
 			close [ stream.close ]
 		]
@@ -119,7 +119,7 @@ class StreamExtensions {
 	def static streamRandom(IntegerRange range) {
 		val randomizer = new Random
 		val newStream = int.stream
-		newStream.monitor [
+		newStream.listen [
 			next [
 				if(newStream.open) {
 					val next = range.start + randomizer.nextInt(range.size)
@@ -171,8 +171,8 @@ class StreamExtensions {
 		]
 	}
 	
-	/** Monitor commands given to the stream. */
-	def static <I, O> void monitor(IStream<I, O> stream, StreamMonitor monitor) {
+	/** Listen to commands given to the stream. */
+	def static <I, O> void listen(IStream<I, O> stream, StreamListener monitor) {
 		stream.onNotify [ notification |
 			switch it : notification {
 				Next: monitor.onNext
@@ -212,7 +212,7 @@ class StreamExtensions {
 		val stopObserving = observable.onChange [
 			newStream.push(it)
 		]
-		newStream.monitor [
+		newStream.listen [
 			close [ stopObserving.apply ]
 		]
 		newStream
@@ -287,7 +287,7 @@ class StreamExtensions {
 	}
 
 	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
-		newStream.monitor [
+		newStream.listen [
 			next [ parent.next ]
 			skip [ parent.skip ]
 			close [ parent.close ]
@@ -449,7 +449,7 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		stream.operation = 'split'
-		newStream.monitor [
+		newStream.listen [
 			next [ stream.next ]
 			close[ stream.close ]
 			skip [ skipping.set(true) ]
@@ -646,13 +646,13 @@ class StreamExtensions {
 			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 		]
-		newStream.monitor [
+		newStream.listen [
 			next[ stream.next ]
 			skip [ stream.skip ]
 			close [ stream.close ]
 			overflow [ onOverflow.apply(it) ]
 		]
-		stream.monitor [
+		stream.listen [
 			overflow [ onOverflow.apply(it) ]
 		]
 		newStream => [ operation = stream.operation ]
@@ -703,7 +703,7 @@ class StreamExtensions {
 		val isTiming = new AtomicBoolean
 		val newStream = new SubStream<I, O>(stream)
 		stream.onChange [ newStream.apply(it) ]
-		newStream.monitor [
+		newStream.listen [
 			next [
 				val now = System.currentTimeMillis
 				// perform a next right now?
@@ -824,7 +824,7 @@ class StreamExtensions {
 			error [ newStream.error($0, $1) ]
 			closed [ newStream.close ]
 		]
-		newStream.monitor [
+		newStream.listen [
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
@@ -897,9 +897,9 @@ class StreamExtensions {
 
 			closed [ newStream.close ]
 		]
-		newStream.monitor [
-//			next [ if(concurrency > processes.get) stream.next ]
+		newStream.listen [
 			next [ stream.next ]
+			// next [ if(concurrency > processes.incrementAndGet || concurrency == 0) stream.next ]
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
@@ -1180,12 +1180,12 @@ class StreamExtensions {
 	 * @return a task that completes on finish(0) or closed, or that gives an error
 	 * if the stream passed an error. 
 	 */
-	def static <I, O> on(IStream<I, O> stream, (StreamHandlerBuilder<I, O>)=>void handlerFn) {
+	def static <I, O> on(IStream<I, O> stream, (StreamObserverBuilder<I, O>)=>void handlerFn) {
 		stream.on [ s, builder | handlerFn.apply(builder) ]
 	}
 
-	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamHandlerBuilder<I, O>)=>void handlerFn) {
-		val handler = new StreamHandlerBuilder<I, O>(stream) => [
+	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamObserverBuilder<I, O>)=>void handlerFn) {
+		val handler = new StreamObserverBuilder<I, O>(stream) => [
 			// by default, do nothing but call the next item from the stream
 			each [ stream.next ]
 			finish [ stream.next ]
@@ -1211,10 +1211,10 @@ class StreamExtensions {
 	 * ]
 	 * </pre>
 	 */
-	def static <I, O> monitor(IStream<I, O> stream, (StreamResponder)=>void handlerFn) {
-		val handler = new StreamResponderBuilder
+	def static <I, O> listen(IStream<I, O> stream, (StreamResponder)=>void handlerFn) {
+		val handler = new StreamListenerBuilder
 		handlerFn.apply(handler)
-		stream.monitor(handler)
+		stream.listen(handler)
 		stream
 	}
 

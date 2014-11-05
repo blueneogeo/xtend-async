@@ -52,7 +52,7 @@ interface StreamHandler<I, O> {
  * <p>
  * Remember to call stream.next to start the stream!
  */
-class StreamHandlerBuilder<I, O> implements StreamHandler<I, O>, StreamObserver<I, O> {
+class StreamObserverBuilder<I, O> implements StreamHandler<I, O>, StreamObserver<I, O> {
 	
 	public val IStream<I, O> stream
 	

@@ -18,7 +18,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.StreamResponder;
 import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Conversions;
@@ -87,7 +87,7 @@ public class StreamIOExtensions {
             it.close(_function_1);
           }
         };
-        StreamExtensions.<List<Byte>, List<Byte>>monitor(newStream, _function);
+        StreamExtensions.<List<Byte>, List<Byte>>listen(newStream, _function);
         _xblockexpression = newStream;
       }
       return _xblockexpression;
@@ -170,8 +170,8 @@ public class StreamIOExtensions {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
-      final Procedure1<StreamHandlerBuilder<I, List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<I, List<Byte>>>() {
-        public void apply(final StreamHandlerBuilder<I, List<Byte>> it) {
+      final Procedure1<StreamObserverBuilder<I, List<Byte>>> _function = new Procedure1<StreamObserverBuilder<I, List<Byte>>>() {
+        public void apply(final StreamObserverBuilder<I, List<Byte>> it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               try {

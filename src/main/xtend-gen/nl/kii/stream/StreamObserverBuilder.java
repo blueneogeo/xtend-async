@@ -24,7 +24,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
  * Remember to call stream.next to start the stream!
  */
 @SuppressWarnings("all")
-public class StreamHandlerBuilder<I extends Object, O extends Object> implements StreamHandler<I, O>, StreamObserver<I, O> {
+public class StreamObserverBuilder<I extends Object, O extends Object> implements StreamHandler<I, O>, StreamObserver<I, O> {
   public final IStream<I, O> stream;
   
   @Atomic
@@ -39,7 +39,7 @@ public class StreamHandlerBuilder<I extends Object, O extends Object> implements
   @Atomic
   private final AtomicReference<Procedure1<Void>> _closedFn = new AtomicReference<Procedure1<Void>>();
   
-  public StreamHandlerBuilder(final IStream<I, O> stream) {
+  public StreamObserverBuilder(final IStream<I, O> stream) {
     this.stream = stream;
   }
   

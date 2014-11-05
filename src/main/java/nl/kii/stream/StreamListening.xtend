@@ -3,7 +3,7 @@ package nl.kii.stream
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-interface StreamMonitor {
+interface StreamListener {
 	
 	def void onNext()
 	
@@ -27,7 +27,7 @@ interface StreamResponder {
 
 }
 
-class StreamResponderBuilder implements StreamMonitor, StreamResponder {
+class StreamListenerBuilder implements StreamListener, StreamResponder {
 	
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn
@@ -52,7 +52,7 @@ class StreamResponderBuilder implements StreamMonitor, StreamResponder {
 		overflowFn = handler
 	}
 	
-	// STREAMMONITOR IMPLEMENTATION ///////////////////////////////////////////
+	// STREAMLISTENER IMPLEMENTATION ///////////////////////////////////////////
 	
 	override onNext() {
 		nextFn?.apply(null)

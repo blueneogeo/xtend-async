@@ -28,7 +28,7 @@ class StreamIOExtensions {
 			}
 			
 		})
-		newStream.monitor [
+		newStream.listen [
 			skip [ stream.close]
 			close [ stream.close ]
 		]

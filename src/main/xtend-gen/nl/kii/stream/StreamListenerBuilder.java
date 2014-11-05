@@ -3,12 +3,12 @@ package nl.kii.stream;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
-import nl.kii.stream.StreamMonitor;
+import nl.kii.stream.StreamListener;
 import nl.kii.stream.StreamResponder;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 @SuppressWarnings("all")
-public class StreamResponderBuilder implements StreamMonitor, StreamResponder {
+public class StreamListenerBuilder implements StreamListener, StreamResponder {
   @Atomic
   private final AtomicReference<Procedure1<Void>> _nextFn = new AtomicReference<Procedure1<Void>>();
   

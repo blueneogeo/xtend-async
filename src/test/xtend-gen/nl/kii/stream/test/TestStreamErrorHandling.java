@@ -11,7 +11,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -365,8 +365,8 @@ public class TestStreamErrorHandling {
       }
     };
     SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(_stream, _function);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             InputOutput.<Integer>println($1);

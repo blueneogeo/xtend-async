@@ -24,3 +24,8 @@
 /.UncaughtStreamException.java._trace
 /.Value.java._trace
 /.StreamExtensions.java._trace
+/.StreamStats.java._trace
+/.StreamMonitorX.java._trace
+/.StreamListener.java._trace
+/.StreamListenerBuilder.java._trace
+/.StreamObserverBuilder.java._trace

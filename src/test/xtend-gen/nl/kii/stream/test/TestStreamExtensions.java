@@ -25,7 +25,7 @@ import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.SubStream;
 import nl.kii.stream.Value;
 import nl.kii.stream.source.StreamCopySplitter;
@@ -111,8 +111,8 @@ public class TestStreamExtensions {
   public void testRandomStream() {
     IntegerRange _upTo = new IntegerRange(1, 3);
     final Stream<Integer> s = StreamExtensions.streamRandom(_upTo);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             Assert.assertTrue(((($1).intValue() >= 1) && (($1).intValue() <= 3)));
@@ -283,8 +283,8 @@ public class TestStreamExtensions {
     };
     final SubStream<Integer, Integer> split = StreamExtensions.<Integer, Integer>split(s, _function);
     final Stream<Integer> collect = StreamExtensions.<Integer>stream(int.class);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             if ((($1).intValue() == 1)) {
@@ -1164,8 +1164,8 @@ public class TestStreamExtensions {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     StreamCopySplitter<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(s);
     final IStream<Integer, Integer> s2 = _split.stream();
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             InputOutput.<String>println(("x" + $1));

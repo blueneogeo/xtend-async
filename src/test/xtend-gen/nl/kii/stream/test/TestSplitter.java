@@ -6,7 +6,7 @@ import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
@@ -31,8 +31,8 @@ public class TestSplitter {
     StreamCopySplitter<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(source);
     StreamSource<Integer, Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -42,8 +42,8 @@ public class TestSplitter {
       }
     };
     StreamExtensions.<Integer, Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
@@ -95,8 +95,8 @@ public class TestSplitter {
     LoadBalancer<Integer, Integer> _balance = StreamExtensions.<Integer>balance(source);
     StreamSource<Integer, Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
@@ -106,8 +106,8 @@ public class TestSplitter {
       }
     };
     StreamExtensions.<Integer, Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer, Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer, Integer> it) {
+    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
+      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
