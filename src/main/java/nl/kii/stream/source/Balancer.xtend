@@ -7,8 +7,8 @@ import nl.kii.stream.Finish
 import nl.kii.stream.IStream
 import nl.kii.stream.Next
 import nl.kii.stream.Skip
-import nl.kii.stream.StreamNotification
 import nl.kii.stream.Value
+import nl.kii.stream.StreamEvent
 
 /**
  * This splitter sends each message to the first stream that is ready.
@@ -44,7 +44,7 @@ class LoadBalancer<I, O> extends StreamSplitter<I, O> {
 		}
 	}
 	
-	protected override onCommand(extension StreamNotification msg) {
+	protected override onCommand(extension StreamEvent msg) {
 		switch msg {
 			Next: next
 			Skip: skip

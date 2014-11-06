@@ -7,8 +7,8 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
 import nl.kii.stream.IStream
 import nl.kii.stream.StreamMessage
-import nl.kii.stream.StreamNotification
 import nl.kii.stream.SubStream
+import nl.kii.stream.StreamEvent
 
 /**
  * A source is a streamable source of information.
@@ -59,7 +59,7 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 	override protected act(StreamMessage message, =>void done) {
 		switch message {
 			Entry<I, O>: onEntry(message)
-			StreamNotification: onCommand(message)
+			StreamEvent: onCommand(message)
 		}
 		done.apply
 	}
@@ -68,7 +68,7 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 	abstract protected def void onEntry(Entry<I, O> entry)
 
 	/** Handle a message coming from a piped stream */
-	abstract protected def void onCommand(StreamNotification msg)
+	abstract protected def void onCommand(StreamEvent msg)
 
 	/** Utility method that only returns true if all members match the condition */	
 	protected static def <T> boolean all(Iterable<T> list, (T)=>boolean conditionFn) {

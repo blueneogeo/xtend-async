@@ -117,7 +117,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     return this._publishing.get();
   }
   
-  public Boolean getAndSetPublishing(final Boolean value) {
+  protected Boolean getAndSetPublishing(final Boolean value) {
     return this._publishing.getAndSet(value);
   }
   

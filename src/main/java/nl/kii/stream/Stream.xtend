@@ -44,7 +44,7 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	// LISTEN /////////////////////////////////////////////////////////////////
 	
 	override =>void onChange((Entry<I, O>)=>void observeFn)
-	def =>void onNotify((StreamNotification)=>void notificationListener)
+	def =>void onNotify((StreamEvent)=>void notificationListener)
 
 	// STATUS /////////////////////////////////////////////////////////////////
 	
@@ -150,7 +150,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
 
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
-	@Atomic val (StreamNotification)=>void notificationListener // listener for notifications give by this stream
+	@Atomic val (StreamEvent)=>void notificationListener // listener for notifications give by this stream
 
 	@Atomic public val int concurrency = 0 // the default concurrency to use for async processing
 	@Atomic public val int maxBufferSize // the maximum size of the queue
@@ -213,7 +213,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	override =>void onNotify((StreamNotification)=>void notificationListener) {
+	override =>void onNotify((StreamEvent)=>void notificationListener) {
 		this.notificationListener = notificationListener
 		return [| this.notificationListener = null ]
 	}
@@ -327,7 +327,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	}
 
 	/** helper function for informing the notify listener */
-	def protected notify(StreamNotification command) {
+	def protected notify(StreamEvent command) {
 		if(notificationListener != null)
 			notificationListener.apply(command)
 	}

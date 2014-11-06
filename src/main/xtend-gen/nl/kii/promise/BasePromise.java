@@ -251,7 +251,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return this._fulfilled.get();
   }
   
-  public Boolean getAndSetFulfilled(final Boolean value) {
+  protected Boolean getAndSetFulfilled(final Boolean value) {
     return this._fulfilled.getAndSet(value);
   }
   
@@ -263,7 +263,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return this._hasErrorHandler.get();
   }
   
-  public Boolean getAndSetHasErrorHandler(final Boolean value) {
+  protected Boolean getAndSetHasErrorHandler(final Boolean value) {
     return this._hasErrorHandler.getAndSet(value);
   }
   
@@ -275,7 +275,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return this._hasValueHandler.get();
   }
   
-  public Boolean getAndSetHasValueHandler(final Boolean value) {
+  protected Boolean getAndSetHasValueHandler(final Boolean value) {
     return this._hasValueHandler.getAndSet(value);
   }
   

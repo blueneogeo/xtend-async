@@ -28,8 +28,8 @@ class StreamIOExtensions {
 			}
 			
 		})
-		newStream.listen [
-			skip [ stream.close]
+		newStream.when [
+			skip [ stream.close ]
 			close [ stream.close ]
 		]
 		newStream

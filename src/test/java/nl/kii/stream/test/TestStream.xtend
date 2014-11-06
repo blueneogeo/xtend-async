@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Entry
 import nl.kii.stream.Stream
-import nl.kii.stream.StreamListener
+import nl.kii.stream.StreamEventResponder
 import nl.kii.stream.StreamObserver
 import org.junit.Test
 
@@ -13,6 +13,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.stream.StreamEventHandler
 
 class TestStream {
 
@@ -22,7 +23,7 @@ class TestStream {
 	def void testObservingAStream() {
 		//val Stream<Integer> s = (1..3).stream
 		val s = new Stream<Integer>
-		s.listen(new StreamListener {
+		s.handle(new StreamEventHandler {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
@@ -45,6 +46,7 @@ class TestStream {
 			override onClosed() {
 				println('closed')
 			}
+			
 		})
 			// .then [ println('done!') ]
 			// .onError [ println('caught: ' + it)]
@@ -164,7 +166,7 @@ class TestStream {
 	@Test
 	def void testStreamBufferOverflow() {
 		val stream = int.stream => [ maxBufferSize = 3 ]
-		stream.listen [ overflow [ incOverflowCount ] ]
+		stream.when [ overflow [ incOverflowCount ] ]
 		stream << 1 << 2 << 3 // so far so good
 		stream << 4 // should break here
 		stream << 5 // should break here too

@@ -38,12 +38,11 @@ import nl.kii.stream.Next;
 import nl.kii.stream.Overflow;
 import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamEvent;
+import nl.kii.stream.StreamEventHandler;
+import nl.kii.stream.StreamEventResponder;
 import nl.kii.stream.StreamException;
-import nl.kii.stream.StreamListener;
-import nl.kii.stream.StreamListenerBuilder;
-import nl.kii.stream.StreamNotification;
 import nl.kii.stream.StreamObserver;
-import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.StreamResponder;
 import nl.kii.stream.SubStream;
 import nl.kii.stream.UncaughtStreamException;
@@ -171,8 +170,8 @@ public class StreamExtensions {
         }
       };
       final Procedure0 pushNext = _function;
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               pushNext.apply();
@@ -188,7 +187,7 @@ public class StreamExtensions {
           it.skip(_function_1);
         }
       };
-      StreamExtensions.<T, T>listen(stream, _function_1);
+      StreamExtensions.<T, T>when(stream, _function_1);
       stream.setOperation("iterate");
       pushNext.apply();
       _xblockexpression = stream;
@@ -228,8 +227,8 @@ public class StreamExtensions {
             return _xblockexpression;
           }
         });
-        final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
-          public void apply(final StreamResponder it) {
+        final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
+          public void apply(final StreamEventResponder it) {
             final Procedure1<Void> _function = new Procedure1<Void>() {
               public void apply(final Void it) {
                 try {
@@ -252,7 +251,7 @@ public class StreamExtensions {
             it.close(_function_1);
           }
         };
-        StreamExtensions.<List<Byte>, List<Byte>>listen(newStream, _function);
+        StreamExtensions.<List<Byte>, List<Byte>>when(newStream, _function);
         _xblockexpression = newStream;
       }
       return _xblockexpression;
@@ -269,8 +268,8 @@ public class StreamExtensions {
     {
       final Random randomizer = new Random();
       final Stream<Integer> newStream = StreamExtensions.<Integer>stream(int.class);
-      final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               boolean _isOpen = newStream.isOpen();
@@ -298,7 +297,7 @@ public class StreamExtensions {
           it.close(_function_2);
         }
       };
-      StreamExtensions.<Integer, Integer>listen(newStream, _function);
+      StreamExtensions.<Integer, Integer>when(newStream, _function);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -323,8 +322,8 @@ public class StreamExtensions {
     Stream<T> _xblockexpression = null;
     {
       final Stream<T> newStream = new Stream<T>();
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               T _apply = mapFn.apply($0, $1);
@@ -359,7 +358,8 @@ public class StreamExtensions {
   /**
    * Observe the entries coming off this stream using a StreamObserver.
    * Note that you can only have ONE stream observer for every stream!
-   * If you want more than one observer, you can split the stream.
+   * If you want more than one observer, you can split the stream, or
+   * use StreamExtensions.monitor, which does this for you.
    * <p>
    * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
    * instead, for a more concise and elegant builder syntax.
@@ -402,33 +402,33 @@ public class StreamExtensions {
   /**
    * Listen to commands given to the stream.
    */
-  public static <I extends Object, O extends Object> void listen(final IStream<I, O> stream, final StreamListener monitor) {
-    final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
-      public void apply(final StreamNotification notification) {
-        final StreamNotification it = notification;
+  public static <I extends Object, O extends Object> void handle(final IStream<I, O> stream, final StreamEventHandler controller) {
+    final Procedure1<StreamEvent> _function = new Procedure1<StreamEvent>() {
+      public void apply(final StreamEvent notification) {
+        final StreamEvent it = notification;
         boolean _matched = false;
         if (!_matched) {
           if (it instanceof Next) {
             _matched=true;
-            monitor.onNext();
+            controller.onNext();
           }
         }
         if (!_matched) {
           if (it instanceof Skip) {
             _matched=true;
-            monitor.onSkip();
+            controller.onSkip();
           }
         }
         if (!_matched) {
           if (it instanceof Close) {
             _matched=true;
-            monitor.onClose();
+            controller.onClose();
           }
         }
         if (!_matched) {
           if (it instanceof Overflow) {
             _matched=true;
-            monitor.onOverflow(((Overflow)it).entry);
+            controller.onOverflow(((Overflow)it).entry);
           }
         }
       }
@@ -445,8 +445,8 @@ public class StreamExtensions {
     Publisher<O> _xblockexpression = null;
     {
       final Publisher<O> publisher = new Publisher<O>();
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               publisher.apply($1);
@@ -488,8 +488,8 @@ public class StreamExtensions {
         }
       };
       final Procedure0 stopObserving = observable.onChange(_function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stopObserving.apply();
@@ -498,7 +498,7 @@ public class StreamExtensions {
           it.close(_function);
         }
       };
-      StreamExtensions.<T, T>listen(newStream, _function_1);
+      StreamExtensions.<T, T>when(newStream, _function_1);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -636,8 +636,8 @@ public class StreamExtensions {
   }
   
   public static <I1 extends Object, I2 extends Object, O1 extends Object, O2 extends Object> IStream<I1, O2> controls(final IStream<I1, O2> newStream, final IStream<I2, O1> parent) {
-    final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
-      public void apply(final StreamResponder it) {
+    final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
+      public void apply(final StreamEventResponder it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             parent.next();
@@ -658,7 +658,7 @@ public class StreamExtensions {
         it.close(_function_2);
       }
     };
-    return StreamExtensions.<I1, O2>listen(newStream, _function);
+    return StreamExtensions.<I1, O2>when(newStream, _function);
   }
   
   /**
@@ -721,8 +721,8 @@ public class StreamExtensions {
     SubStream<I, R> _xblockexpression = null;
     {
       final SubStream<I, R> newStream = new SubStream<I, R>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               final R mapped = mappingFn.apply($0, $1);
@@ -800,8 +800,8 @@ public class StreamExtensions {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
       final AtomicLong index = new AtomicLong(0);
       final AtomicLong passed = new AtomicLong(0);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               final long i = index.incrementAndGet();
@@ -865,8 +865,8 @@ public class StreamExtensions {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
       final AtomicBoolean skipping = new AtomicBoolean(false);
       final AtomicBoolean justPostedFinish0 = new AtomicBoolean(false);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               boolean _get = skipping.get();
@@ -926,8 +926,8 @@ public class StreamExtensions {
       };
       StreamExtensions.<I, O>on(stream, _function);
       stream.setOperation("split");
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stream.next();
@@ -948,7 +948,7 @@ public class StreamExtensions {
           it.skip(_function_2);
         }
       };
-      StreamExtensions.<I, O>listen(newStream, _function_1);
+      StreamExtensions.<I, O>when(newStream, _function_1);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -962,8 +962,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               Value<I, O> _value = new Value<I, O>($0, $1);
@@ -1046,8 +1046,8 @@ public class StreamExtensions {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
       final AtomicLong index = new AtomicLong(0);
       final AtomicLong passed = new AtomicLong(0);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               final long i = index.incrementAndGet();
@@ -1102,8 +1102,8 @@ public class StreamExtensions {
     {
       final AtomicLong count = new AtomicLong(0);
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               long _incrementAndGet = count.incrementAndGet();
@@ -1155,12 +1155,12 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, S>> _function = new Procedure1<StreamObserverBuilder<I, S>>() {
-        public void apply(final StreamObserverBuilder<I, S> it) {
+      final Procedure1<StreamResponder<I, S>> _function = new Procedure1<StreamResponder<I, S>>() {
+        public void apply(final StreamResponder<I, S> it) {
           final Procedure2<I, S> _function = new Procedure2<I, S>() {
             public void apply(final I r, final S s) {
-              final Procedure1<StreamObserverBuilder<I2, O>> _function = new Procedure1<StreamObserverBuilder<I2, O>>() {
-                public void apply(final StreamObserverBuilder<I2, O> it) {
+              final Procedure1<StreamResponder<I2, O>> _function = new Procedure1<StreamResponder<I2, O>>() {
+                public void apply(final StreamResponder<I2, O> it) {
                   final Procedure2<I2, O> _function = new Procedure2<I2, O>() {
                     public void apply(final I2 $0, final O $1) {
                       newStream.push(r, $1);
@@ -1233,8 +1233,8 @@ public class StreamExtensions {
     {
       final SubStream<I, Pair<Integer, O>> newStream = new SubStream<I, Pair<Integer, O>>(stream);
       final AtomicInteger counter = new AtomicInteger(0);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               int _incrementAndGet = counter.incrementAndGet();
@@ -1304,8 +1304,8 @@ public class StreamExtensions {
         }
       }
       final SubStream<I, O> newStream = new SubStream<I, O>(stream, maxSize);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -1333,8 +1333,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<I, O>on(stream, _function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stream.next();
@@ -1361,9 +1361,9 @@ public class StreamExtensions {
           it.overflow(_function_3);
         }
       };
-      StreamExtensions.<I, O>listen(newStream, _function_1);
-      final Procedure1<StreamResponder> _function_2 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      StreamExtensions.<I, O>when(newStream, _function_1);
+      final Procedure1<StreamEventResponder> _function_2 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
             public void apply(final Entry<?, ?> it) {
               onOverflow.apply(it);
@@ -1372,7 +1372,7 @@ public class StreamExtensions {
           it.overflow(_function);
         }
       };
-      StreamExtensions.<I, O>listen(stream, _function_2);
+      StreamExtensions.<I, O>when(stream, _function_2);
       final Procedure1<SubStream<I, O>> _function_3 = new Procedure1<SubStream<I, O>>() {
         public void apply(final SubStream<I, O> it) {
           String _operation = stream.getOperation();
@@ -1470,8 +1470,8 @@ public class StreamExtensions {
         }
       };
       stream.onChange(_function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               final long now = System.currentTimeMillis();
@@ -1523,7 +1523,7 @@ public class StreamExtensions {
           it.close(_function_2);
         }
       };
-      StreamExtensions.<I, O>listen(newStream, _function_1);
+      StreamExtensions.<I, O>when(newStream, _function_1);
       final Procedure1<SubStream<I, O>> _function_2 = new Procedure1<SubStream<I, O>>() {
         public void apply(final SubStream<I, O> it) {
           stream.setOperation((("ratelimit(periodMs=" + Long.valueOf(periodMs)) + ")"));
@@ -1567,8 +1567,8 @@ public class StreamExtensions {
       }
       final AtomicLong delay = new AtomicLong(periodMs);
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -1630,8 +1630,8 @@ public class StreamExtensions {
     {
       final SubStream<I, List<O>> newStream = new SubStream<I, List<O>>(stream);
       final AtomicReference<List<O>> list = new AtomicReference<List<O>>();
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               List<O> _get = list.get();
@@ -1691,8 +1691,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<?, ?>> _function = new Procedure1<StreamObserverBuilder<?, ?>>() {
-        public void apply(final StreamObserverBuilder<?, ?> it) {
+      final Procedure1<StreamResponder<?, ?>> _function = new Procedure1<StreamResponder<?, ?>>() {
+        public void apply(final StreamResponder<?, ?> it) {
           final Procedure2<Object, Throwable> _function = new Procedure2<Object, Throwable>() {
             public void apply(final Object $0, final Throwable $1) {
               newStream.error(null, $1);
@@ -1728,8 +1728,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.on(timerStream, _function);
-      final Procedure1<StreamObserverBuilder<I, O>> _function_1 = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function_1 = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -1757,8 +1757,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.<I, O>on(stream, _function_1);
-      final Procedure1<StreamResponder> _function_2 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_2 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stream.skip();
@@ -1773,7 +1773,7 @@ public class StreamExtensions {
           it.close(_function_1);
         }
       };
-      StreamExtensions.<I, O>listen(newStream, _function_2);
+      StreamExtensions.<I, O>when(newStream, _function_2);
       stream.setOperation("forEvery");
       timerStream.next();
       _xblockexpression = newStream;
@@ -1810,8 +1810,8 @@ public class StreamExtensions {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
       final AtomicBoolean isFinished = new AtomicBoolean(false);
       final AtomicInteger processes = new AtomicInteger(0);
-      final Procedure1<StreamObserverBuilder<I, ? extends IPromise<?, O>>> _function = new Procedure1<StreamObserverBuilder<I, ? extends IPromise<?, O>>>() {
-        public void apply(final StreamObserverBuilder<I, ? extends IPromise<?, O>> it) {
+      final Procedure1<StreamResponder<I, ? extends IPromise<?, O>>> _function = new Procedure1<StreamResponder<I, ? extends IPromise<?, O>>>() {
+        public void apply(final StreamResponder<I, ? extends IPromise<?, O>> it) {
           final Procedure2<I, IPromise<?, O>> _function = new Procedure2<I, IPromise<?, O>>() {
             public void apply(final I r, final IPromise<?, O> promise) {
               final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
@@ -1892,8 +1892,8 @@ public class StreamExtensions {
         }
       };
       StreamExtensions.on(stream, _function);
-      final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-        public void apply(final StreamResponder it) {
+      final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+        public void apply(final StreamEventResponder it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
             public void apply(final Void it) {
               stream.next();
@@ -1914,7 +1914,7 @@ public class StreamExtensions {
           it.close(_function_2);
         }
       };
-      StreamExtensions.<I, O>listen(newStream, _function_1);
+      StreamExtensions.<I, O>when(newStream, _function_1);
       stream.setOperation((("resolve(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       _xblockexpression = newStream;
     }
@@ -2002,8 +2002,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -2052,8 +2052,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -2098,8 +2098,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               newStream.push($0, $1);
@@ -2158,8 +2158,8 @@ public class StreamExtensions {
     SubTask<I> _xblockexpression = null;
     {
       final SubTask<I> task = new SubTask<I>();
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               handler.apply($0, $1);
@@ -2265,8 +2265,8 @@ public class StreamExtensions {
     {
       Promise<I> _promise = new Promise<I>();
       final SubPromise<I, O> promise = new SubPromise<I, O>(_promise);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               Boolean _fulfilled = promise.getFulfilled();
@@ -2323,8 +2323,8 @@ public class StreamExtensions {
       Promise<I> _promise = new Promise<I>();
       final SubPromise<I, O> promise = new SubPromise<I, O>(_promise);
       final AtomicReference<O> last = new AtomicReference<O>();
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               Boolean _fulfilled = promise.getFulfilled();
@@ -2471,21 +2471,22 @@ public class StreamExtensions {
    * @return a task that completes on finish(0) or closed, or that gives an error
    * if the stream passed an error.
    */
-  public static <I extends Object, O extends Object> IStream<I, O> on(final IStream<I, O> stream, final Procedure1<? super StreamObserverBuilder<I, O>> handlerFn) {
-    final Procedure2<IStream<I, O>, StreamObserverBuilder<I, O>> _function = new Procedure2<IStream<I, O>, StreamObserverBuilder<I, O>>() {
-      public void apply(final IStream<I, O> s, final StreamObserverBuilder<I, O> builder) {
+  public static <I extends Object, O extends Object> IStream<I, O> on(final IStream<I, O> stream, final Procedure1<? super StreamResponder<I, O>> handlerFn) {
+    final Procedure2<IStream<I, O>, StreamResponder<I, O>> _function = new Procedure2<IStream<I, O>, StreamResponder<I, O>>() {
+      public void apply(final IStream<I, O> s, final StreamResponder<I, O> builder) {
         handlerFn.apply(builder);
       }
     };
     return StreamExtensions.<I, O>on(stream, _function);
   }
   
-  public static <I extends Object, O extends Object> IStream<I, O> on(final IStream<I, O> stream, final Procedure2<? super IStream<I, O>, ? super StreamObserverBuilder<I, O>> handlerFn) {
+  public static <I extends Object, O extends Object> IStream<I, O> on(final IStream<I, O> stream, final Procedure2<? super IStream<I, O>, ? super StreamResponder<I, O>> handlerFn) {
     IStream<I, O> _xblockexpression = null;
     {
-      StreamObserverBuilder<I, O> _streamObserverBuilder = new StreamObserverBuilder<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      StreamResponder<I, O> _streamResponder = new StreamResponder<I, O>();
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
+          it.setStream(stream);
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               stream.next();
@@ -2506,7 +2507,7 @@ public class StreamExtensions {
           it.error(_function_2);
         }
       };
-      final StreamObserverBuilder<I, O> handler = ObjectExtensions.<StreamObserverBuilder<I, O>>operator_doubleArrow(_streamObserverBuilder, _function);
+      final StreamResponder<I, O> handler = ObjectExtensions.<StreamResponder<I, O>>operator_doubleArrow(_streamResponder, _function);
       StreamExtensions.<I, O>observe(stream, handler);
       handlerFn.apply(stream, handler);
       _xblockexpression = stream;
@@ -2527,12 +2528,12 @@ public class StreamExtensions {
    * ]
    * </pre>
    */
-  public static <I extends Object, O extends Object> IStream<I, O> listen(final IStream<I, O> stream, final Procedure1<? super StreamResponder> handlerFn) {
+  public static <I extends Object, O extends Object> IStream<I, O> when(final IStream<I, O> stream, final Procedure1<? super StreamEventResponder> handlerFn) {
     IStream<I, O> _xblockexpression = null;
     {
-      final StreamListenerBuilder handler = new StreamListenerBuilder();
+      final StreamEventResponder handler = new StreamEventResponder();
       handlerFn.apply(handler);
-      StreamExtensions.<I, O>listen(stream, handler);
+      StreamExtensions.<I, O>handle(stream, handler);
       _xblockexpression = stream;
     }
     return _xblockexpression;
@@ -2656,8 +2657,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, List<O>>> _function = new Procedure1<StreamObserverBuilder<I, List<O>>>() {
-        public void apply(final StreamObserverBuilder<I, List<O>> it) {
+      final Procedure1<StreamResponder<I, List<O>>> _function = new Procedure1<StreamResponder<I, List<O>>>() {
+        public void apply(final StreamResponder<I, List<O>> it) {
           final Procedure2<I, List<O>> _function = new Procedure2<I, List<O>>() {
             public void apply(final I r, final List<O> list) {
               final Function1<O, Value<I, O>> _function = new Function1<O, Value<I, O>>() {
@@ -2894,8 +2895,8 @@ public class StreamExtensions {
     {
       final AtomicReference<R> reduced = new AtomicReference<R>(initial);
       final SubStream<I, R> newStream = new SubStream<I, R>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               try {
@@ -2962,8 +2963,8 @@ public class StreamExtensions {
     {
       final AtomicReference<R> reduced = new AtomicReference<R>(initial);
       final SubStream<I, R> newStream = new SubStream<I, R>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               R _get = reduced.get();
@@ -3069,8 +3070,8 @@ public class StreamExtensions {
     {
       final AtomicBoolean anyMatch = new AtomicBoolean(false);
       final SubStream<I, Boolean> newStream = new SubStream<I, Boolean>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               Boolean _apply = testFn.apply($1);
@@ -3147,8 +3148,8 @@ public class StreamExtensions {
     {
       final AtomicReference<O> match = new AtomicReference<O>();
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               Boolean _apply = testFn.apply($0, $1);
@@ -3221,8 +3222,8 @@ public class StreamExtensions {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
-      final Procedure1<StreamObserverBuilder<I, O>> _function = new Procedure1<StreamObserverBuilder<I, O>>() {
-        public void apply(final StreamObserverBuilder<I, O> it) {
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(final StreamResponder<I, O> it) {
           final Procedure2<I, O> _function = new Procedure2<I, O>() {
             public void apply(final I $0, final O $1) {
               latestValue.set($1);
@@ -3253,12 +3254,30 @@ public class StreamExtensions {
   }
   
   /**
+   * Similar to StreamExtensions.observe, but this method splits the stream
+   * into two streams: one you can observe, and another it returns so you
+   * can continue the chain. This allows you to monitor a stream while not
+   * ending the chain. This comes at the price of creating a dual stream with
+   * extra overhead.
+   */
+  public static <I extends Object, O extends Object> IStream<I, O> monitor(final IStream<I, O> stream, final StreamObserver<I, O> observer) {
+    IStream<I, O> _xblockexpression = null;
+    {
+      final StreamCopySplitter<I, O> splitter = StreamExtensions.<I, O>split(stream);
+      IStream<I, O> _stream = splitter.stream();
+      StreamExtensions.<I, O>observe(_stream, observer);
+      _xblockexpression = splitter.stream();
+    }
+    return _xblockexpression;
+  }
+  
+  /**
    * Complete a task when the stream finishes or closes,
    * or give an error on the task when the stream gives an error.
    */
   public static void pipe(final IStream<?, ?> stream, final Task task) {
-    final Procedure1<StreamObserverBuilder<?, ?>> _function = new Procedure1<StreamObserverBuilder<?, ?>>() {
-      public void apply(final StreamObserverBuilder<?, ?> it) {
+    final Procedure1<StreamResponder<?, ?>> _function = new Procedure1<StreamResponder<?, ?>>() {
+      public void apply(final StreamResponder<?, ?> it) {
         final Procedure1<Void> _function = new Procedure1<Void>() {
           public void apply(final Void it) {
             task.complete();

@@ -85,7 +85,7 @@ class StreamExtensions {
 				stream.finish
 			}
 		]
-		stream.listen [
+		stream.when [
 			next [ pushNext.apply ]
 			skip [ finished.set(true) stream.finish ]
 		]
@@ -108,7 +108,7 @@ class StreamExtensions {
 			}
 			
 		})
-		newStream.listen [
+		newStream.when [
 			skip [ stream.close]
 			close [ stream.close ]
 		]
@@ -119,7 +119,7 @@ class StreamExtensions {
 	def static streamRandom(IntegerRange range) {
 		val randomizer = new Random
 		val newStream = int.stream
-		newStream.listen [
+		newStream.when [
 			next [
 				if(newStream.open) {
 					val next = range.start + randomizer.nextInt(range.size)
@@ -154,7 +154,8 @@ class StreamExtensions {
 	/**
 	 * Observe the entries coming off this stream using a StreamObserver.
 	 * Note that you can only have ONE stream observer for every stream!
-	 * If you want more than one observer, you can split the stream.
+	 * If you want more than one observer, you can split the stream, or
+	 * use StreamExtensions.monitor, which does this for you.
 	 * <p>
 	 * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
 	 * instead, for a more concise and elegant builder syntax.
@@ -172,13 +173,13 @@ class StreamExtensions {
 	}
 	
 	/** Listen to commands given to the stream. */
-	def static <I, O> void listen(IStream<I, O> stream, StreamListener monitor) {
+	def static <I, O> void handle(IStream<I, O> stream, StreamEventHandler controller) {
 		stream.onNotify [ notification |
 			switch it : notification {
-				Next: monitor.onNext
-				Skip: monitor.onSkip
-				Close: monitor.onClose
-				Overflow: monitor.onOverflow(entry)
+				Next: controller.onNext
+				Skip: controller.onSkip
+				Close: controller.onClose
+				Overflow: controller.onOverflow(entry)
 			}
 		]
 	}
@@ -212,7 +213,7 @@ class StreamExtensions {
 		val stopObserving = observable.onChange [
 			newStream.push(it)
 		]
-		newStream.listen [
+		newStream.when [
 			close [ stopObserving.apply ]
 		]
 		newStream
@@ -287,7 +288,7 @@ class StreamExtensions {
 	}
 
 	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
-		newStream.listen [
+		newStream.when [
 			next [ parent.next ]
 			skip [ parent.skip ]
 			close [ parent.close ]
@@ -449,7 +450,7 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		stream.operation = 'split'
-		newStream.listen [
+		newStream.when [
 			next [ stream.next ]
 			close[ stream.close ]
 			skip [ skipping.set(true) ]
@@ -646,13 +647,13 @@ class StreamExtensions {
 			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 		]
-		newStream.listen [
+		newStream.when [
 			next[ stream.next ]
 			skip [ stream.skip ]
 			close [ stream.close ]
 			overflow [ onOverflow.apply(it) ]
 		]
-		stream.listen [
+		stream.when [
 			overflow [ onOverflow.apply(it) ]
 		]
 		newStream => [ operation = stream.operation ]
@@ -703,7 +704,7 @@ class StreamExtensions {
 		val isTiming = new AtomicBoolean
 		val newStream = new SubStream<I, O>(stream)
 		stream.onChange [ newStream.apply(it) ]
-		newStream.listen [
+		newStream.when [
 			next [
 				val now = System.currentTimeMillis
 				// perform a next right now?
@@ -824,7 +825,7 @@ class StreamExtensions {
 			error [ newStream.error($0, $1) ]
 			closed [ newStream.close ]
 		]
-		newStream.listen [
+		newStream.when [
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
@@ -897,7 +898,7 @@ class StreamExtensions {
 
 			closed [ newStream.close ]
 		]
-		newStream.listen [
+		newStream.when [
 			next [ stream.next ]
 			// next [ if(concurrency > processes.incrementAndGet || concurrency == 0) stream.next ]
 			skip [ stream.skip ]
@@ -1180,12 +1181,13 @@ class StreamExtensions {
 	 * @return a task that completes on finish(0) or closed, or that gives an error
 	 * if the stream passed an error. 
 	 */
-	def static <I, O> on(IStream<I, O> stream, (StreamObserverBuilder<I, O>)=>void handlerFn) {
+	def static <I, O> on(IStream<I, O> stream, (StreamResponder<I, O>)=>void handlerFn) {
 		stream.on [ s, builder | handlerFn.apply(builder) ]
 	}
 
-	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamObserverBuilder<I, O>)=>void handlerFn) {
-		val handler = new StreamObserverBuilder<I, O>(stream) => [
+	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamResponder<I, O>)=>void handlerFn) {
+		val handler = new StreamResponder<I, O> => [
+			it.stream = stream
 			// by default, do nothing but call the next item from the stream
 			each [ stream.next ]
 			finish [ stream.next ]
@@ -1211,10 +1213,10 @@ class StreamExtensions {
 	 * ]
 	 * </pre>
 	 */
-	def static <I, O> listen(IStream<I, O> stream, (StreamResponder)=>void handlerFn) {
-		val handler = new StreamListenerBuilder
+	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder)=>void handlerFn) {
+		val handler = new StreamEventResponder
 		handlerFn.apply(handler)
-		stream.listen(handler)
+		stream.handle(handler)
 		stream
 	}
 
@@ -1559,6 +1561,19 @@ class StreamExtensions {
 	}
 
 	// OTHER //////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Similar to StreamExtensions.observe, but this method splits the stream
+	 * into two streams: one you can observe, and another it returns so you
+	 * can continue the chain. This allows you to monitor a stream while not
+	 * ending the chain. This comes at the price of creating a dual stream with
+	 * extra overhead.
+	 */
+	def static <I, O> monitor(IStream<I, O> stream, StreamObserver<I, O> observer) {
+		val splitter = stream.split
+		splitter.stream.observe(observer)
+		splitter.stream
+	}
 
 	/** 
 	 * Complete a task when the stream finishes or closes, 

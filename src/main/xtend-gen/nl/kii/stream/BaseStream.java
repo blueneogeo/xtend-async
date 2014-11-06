@@ -19,9 +19,9 @@ import nl.kii.stream.IStream;
 import nl.kii.stream.Next;
 import nl.kii.stream.Overflow;
 import nl.kii.stream.Skip;
+import nl.kii.stream.StreamEvent;
 import nl.kii.stream.StreamException;
 import nl.kii.stream.StreamMessage;
-import nl.kii.stream.StreamNotification;
 import nl.kii.stream.UncaughtStreamException;
 import nl.kii.stream.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
@@ -51,7 +51,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   private final AtomicReference<Procedure1<? super Entry<I, O>>> _entryListener = new AtomicReference<Procedure1<? super Entry<I, O>>>();
   
   @Atomic
-  private final AtomicReference<Procedure1<? super StreamNotification>> _notificationListener = new AtomicReference<Procedure1<? super StreamNotification>>();
+  private final AtomicReference<Procedure1<? super StreamEvent>> _notificationListener = new AtomicReference<Procedure1<? super StreamEvent>>();
   
   @Atomic
   private final AtomicInteger _concurrency = new AtomicInteger(0);
@@ -153,7 +153,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
    * the StreamExtensions instead.
    * @return unsubscribe function
    */
-  public Procedure0 onNotify(final Procedure1<? super StreamNotification> notificationListener) {
+  public Procedure0 onNotify(final Procedure1<? super StreamEvent> notificationListener) {
     this.setNotificationListener(notificationListener);
     final Procedure0 _function = new Procedure0() {
       public void apply() {
@@ -214,7 +214,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
           this.setReady(Boolean.valueOf(true));
           final boolean published = this.publishNext();
           if ((!published)) {
-            this.notify(((StreamNotification)entry));
+            this.notify(((StreamEvent)entry));
           }
         }
       }
@@ -248,7 +248,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
           }
           boolean _isSkipping_1 = this.isSkipping();
           if (_isSkipping_1) {
-            this.notify(((StreamNotification)entry));
+            this.notify(((StreamEvent)entry));
           }
         }
       }
@@ -259,7 +259,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
           this.queue.add(_closed);
           this.incBuffersize();
           this.publishNext();
-          this.notify(((StreamNotification)entry));
+          this.notify(((StreamEvent)entry));
           this.setOpen(Boolean.valueOf(false));
         }
       }
@@ -388,11 +388,11 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * helper function for informing the notify listener
    */
-  protected void notify(final StreamNotification command) {
-    Procedure1<? super StreamNotification> _notificationListener = this.getNotificationListener();
+  protected void notify(final StreamEvent command) {
+    Procedure1<? super StreamEvent> _notificationListener = this.getNotificationListener();
     boolean _notEquals = (!Objects.equal(_notificationListener, null));
     if (_notEquals) {
-      Procedure1<? super StreamNotification> _notificationListener_1 = this.getNotificationListener();
+      Procedure1<? super StreamEvent> _notificationListener_1 = this.getNotificationListener();
       _notificationListener_1.apply(command);
     }
   }
@@ -494,15 +494,15 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._entryListener.getAndSet(value);
   }
   
-  private void setNotificationListener(final Procedure1<? super StreamNotification> value) {
+  private void setNotificationListener(final Procedure1<? super StreamEvent> value) {
     this._notificationListener.set(value);
   }
   
-  private Procedure1<? super StreamNotification> getNotificationListener() {
+  private Procedure1<? super StreamEvent> getNotificationListener() {
     return this._notificationListener.get();
   }
   
-  private Procedure1<? super StreamNotification> getAndSetNotificationListener(final Procedure1<? super StreamNotification> value) {
+  private Procedure1<? super StreamEvent> getAndSetNotificationListener(final Procedure1<? super StreamEvent> value) {
     return this._notificationListener.getAndSet(value);
   }
   
@@ -514,19 +514,19 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._concurrency.get();
   }
   
-  public Integer getAndSetConcurrency(final Integer value) {
+  protected Integer getAndSetConcurrency(final Integer value) {
     return this._concurrency.getAndSet(value);
   }
   
-  public Integer incConcurrency() {
+  protected Integer incConcurrency() {
     return this._concurrency.incrementAndGet();
   }
   
-  public Integer decConcurrency() {
+  protected Integer decConcurrency() {
     return this._concurrency.decrementAndGet();
   }
   
-  public Integer incConcurrency(final Integer value) {
+  protected Integer incConcurrency(final Integer value) {
     return this._concurrency.addAndGet(value);
   }
   
@@ -538,19 +538,19 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._maxBufferSize.get();
   }
   
-  public Integer getAndSetMaxBufferSize(final Integer value) {
+  protected Integer getAndSetMaxBufferSize(final Integer value) {
     return this._maxBufferSize.getAndSet(value);
   }
   
-  public Integer incMaxBufferSize() {
+  protected Integer incMaxBufferSize() {
     return this._maxBufferSize.incrementAndGet();
   }
   
-  public Integer decMaxBufferSize() {
+  protected Integer decMaxBufferSize() {
     return this._maxBufferSize.decrementAndGet();
   }
   
-  public Integer incMaxBufferSize(final Integer value) {
+  protected Integer incMaxBufferSize(final Integer value) {
     return this._maxBufferSize.addAndGet(value);
   }
   
@@ -562,7 +562,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     return this._operation.get();
   }
   
-  public String getAndSetOperation(final String value) {
+  protected String getAndSetOperation(final String value) {
     return this._operation.getAndSet(value);
   }
 }

@@ -8,7 +8,7 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamObserverBuilder;
+import nl.kii.stream.StreamResponder;
 import nl.kii.stream.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -25,8 +25,8 @@ public class StreamAssert {
     LinkedList<Entry<R, T>> _xblockexpression = null;
     {
       final LinkedList<Entry<R, T>> data = new LinkedList<Entry<R, T>>();
-      final Procedure1<StreamObserverBuilder<R, T>> _function = new Procedure1<StreamObserverBuilder<R, T>>() {
-        public void apply(final StreamObserverBuilder<R, T> it) {
+      final Procedure1<StreamResponder<R, T>> _function = new Procedure1<StreamResponder<R, T>>() {
+        public void apply(final StreamResponder<R, T> it) {
           final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
             public void apply(final R $0, final Throwable $1) {
               nl.kii.stream.Error<R, T> _error = new nl.kii.stream.Error<R, T>($0, $1);

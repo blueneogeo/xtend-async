@@ -92,19 +92,19 @@ public class TestAtomicAnnotation {
     return this._counter.get();
   }
   
-  public Integer getAndSetCounter(final Integer value) {
+  protected Integer getAndSetCounter(final Integer value) {
     return this._counter.getAndSet(value);
   }
   
-  public Integer incCounter() {
+  protected Integer incCounter() {
     return this._counter.incrementAndGet();
   }
   
-  public Integer decCounter() {
+  protected Integer decCounter() {
     return this._counter.decrementAndGet();
   }
   
-  public Integer incCounter(final Integer value) {
+  protected Integer incCounter(final Integer value) {
     return this._counter.addAndGet(value);
   }
   

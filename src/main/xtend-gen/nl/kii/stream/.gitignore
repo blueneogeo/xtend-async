@@ -29,3 +29,9 @@
 /.StreamListener.java._trace
 /.StreamListenerBuilder.java._trace
 /.StreamObserverBuilder.java._trace
+/.StreamController.java._trace
+/.StreamControllerBuilder.java._trace
+/.StreamEvent.java._trace
+/.StreamEventHandler.java._trace
+/.StreamEventHandlerBuilder.java._trace
+/.StreamEventResponder.java._trace

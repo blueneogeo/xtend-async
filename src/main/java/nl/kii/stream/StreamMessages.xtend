@@ -10,19 +10,19 @@ interface StreamMessage { }
 /** A command given to a stream. 
  * Commands travel upwards towards the source of a stream, to control the stream.
  */
-interface StreamNotification extends StreamMessage { }
+interface StreamEvent extends StreamMessage { }
 
 /** Request the next entry from the stream */
-class Next implements StreamNotification { }
+class Next implements StreamEvent { }
 
 /** Request the stream to stop sending entries until after the next finish entry */
-class Skip implements StreamNotification { }
+class Skip implements StreamEvent { }
 
 /** Request the stream to close and stop sending */
-class Close implements StreamNotification{ }
+class Close implements StreamEvent{ }
 
 /** Warns that the buffer is full */
-class Overflow implements StreamNotification{
+class Overflow implements StreamEvent {
 	public val Entry<?,?> entry
 	new(Entry<?,?> entry) { this.entry = entry }
 }

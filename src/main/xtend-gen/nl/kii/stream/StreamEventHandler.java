@@ -3,7 +3,7 @@ package nl.kii.stream;
 import nl.kii.stream.Entry;
 
 @SuppressWarnings("all")
-public interface StreamListener {
+public interface StreamEventHandler {
   public abstract void onNext();
   
   public abstract void onSkip();

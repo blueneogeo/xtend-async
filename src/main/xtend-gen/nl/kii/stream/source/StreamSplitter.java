@@ -8,8 +8,8 @@ import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.Entry;
 import nl.kii.stream.IStream;
+import nl.kii.stream.StreamEvent;
 import nl.kii.stream.StreamMessage;
-import nl.kii.stream.StreamNotification;
 import nl.kii.stream.SubStream;
 import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -53,8 +53,8 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     {
       List<IStream<I, ?>> _streams = this.getStreams();
       _streams.add(stream);
-      final Procedure1<StreamNotification> _function = new Procedure1<StreamNotification>() {
-        public void apply(final StreamNotification it) {
+      final Procedure1<StreamEvent> _function = new Procedure1<StreamEvent>() {
+        public void apply(final StreamEvent it) {
           StreamSplitter.this.apply(it);
         }
       };
@@ -90,9 +90,9 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
       }
     }
     if (!_matched) {
-      if (message instanceof StreamNotification) {
+      if (message instanceof StreamEvent) {
         _matched=true;
-        this.onCommand(((StreamNotification)message));
+        this.onCommand(((StreamEvent)message));
       }
     }
     done.apply();
@@ -106,7 +106,7 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
   /**
    * Handle a message coming from a piped stream
    */
-  protected abstract void onCommand(final StreamNotification msg);
+  protected abstract void onCommand(final StreamEvent msg);
   
   /**
    * Utility method that only returns true if all members match the condition

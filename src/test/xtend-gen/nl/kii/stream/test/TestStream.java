@@ -11,10 +11,10 @@ import nl.kii.stream.Entry;
 import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamEventHandler;
+import nl.kii.stream.StreamEventResponder;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamListener;
 import nl.kii.stream.StreamObserver;
-import nl.kii.stream.StreamObserverBuilder;
 import nl.kii.stream.StreamResponder;
 import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -34,7 +34,7 @@ public class TestStream {
   @Test
   public void testObservingAStream() {
     final Stream<Integer> s = new Stream<Integer>();
-    StreamExtensions.<Integer, Integer>listen(s, new StreamListener() {
+    StreamExtensions.<Integer, Integer>handle(s, new StreamEventHandler() {
       public void onNext() {
         InputOutput.<String>println("next!");
       }
@@ -148,8 +148,8 @@ public class TestStream {
     IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
-      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
+    final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestStream.this.incCounter($1);
@@ -203,8 +203,8 @@ public class TestStream {
       }
     };
     final SubStream<Integer, Integer> s = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
-    final Procedure1<StreamObserverBuilder<Integer, Integer>> _function_1 = new Procedure1<StreamObserverBuilder<Integer, Integer>>() {
-      public void apply(final StreamObserverBuilder<Integer, Integer> it) {
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
           public void apply(final Integer $0, final Integer $1) {
             TestStream.this.setResult($1);
@@ -327,8 +327,8 @@ public class TestStream {
       }
     };
     final Stream<Integer> stream = ObjectExtensions.<Stream<Integer>>operator_doubleArrow(_stream, _function);
-    final Procedure1<StreamResponder> _function_1 = new Procedure1<StreamResponder>() {
-      public void apply(final StreamResponder it) {
+    final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+      public void apply(final StreamEventResponder it) {
         final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
           public void apply(final Entry<?, ?> it) {
             TestStream.this.incOverflowCount();
@@ -337,7 +337,7 @@ public class TestStream {
         it.overflow(_function);
       }
     };
-    StreamExtensions.<Integer, Integer>listen(stream, _function_1);
+    StreamExtensions.<Integer, Integer>when(stream, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));

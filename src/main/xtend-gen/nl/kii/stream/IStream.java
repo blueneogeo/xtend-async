@@ -3,8 +3,8 @@ package nl.kii.stream;
 import java.util.Collection;
 import nl.kii.observe.Observable;
 import nl.kii.stream.Entry;
+import nl.kii.stream.StreamEvent;
 import nl.kii.stream.StreamMessage;
-import nl.kii.stream.StreamNotification;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
@@ -43,7 +43,7 @@ public interface IStream<I extends Object, O extends Object> extends Procedure1<
   
   public abstract Procedure0 onChange(final Procedure1<? super Entry<I, O>> observeFn);
   
-  public abstract Procedure0 onNotify(final Procedure1<? super StreamNotification> notificationListener);
+  public abstract Procedure0 onNotify(final Procedure1<? super StreamEvent> notificationListener);
   
   public abstract IStream<I, I> getInput();
   
