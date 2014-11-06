@@ -4,6 +4,10 @@ import java.util.LinkedList
 import java.util.List
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.promise.IPromise
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Finish
+import nl.kii.stream.message.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*

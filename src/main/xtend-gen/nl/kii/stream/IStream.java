@@ -2,9 +2,9 @@ package nl.kii.stream;
 
 import java.util.Collection;
 import nl.kii.observe.Observable;
-import nl.kii.stream.Entry;
-import nl.kii.stream.StreamEvent;
-import nl.kii.stream.StreamMessage;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.StreamEvent;
+import nl.kii.stream.message.StreamMessage;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 

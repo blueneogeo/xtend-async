@@ -2,10 +2,10 @@ package nl.kii.promise
 
 import java.util.List
 import java.util.Map
-import nl.kii.stream.Entry
-import nl.kii.stream.Error
 import nl.kii.stream.Stream
-import nl.kii.stream.Value
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Value
 
 import static extension nl.kii.stream.StreamExtensions.*
 

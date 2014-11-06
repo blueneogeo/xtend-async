@@ -3,9 +3,9 @@ package nl.kii.promise
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Publisher
-import nl.kii.stream.Entry
-import nl.kii.stream.Error
-import nl.kii.stream.Value
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2

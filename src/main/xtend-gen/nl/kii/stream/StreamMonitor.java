@@ -8,7 +8,7 @@ import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
 import nl.kii.stream.IStream;
-import nl.kii.stream.StreamObserver;
+import nl.kii.stream.internal.StreamObserver;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;

@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.internal
 
 import static extension com.google.common.base.Throwables.*
 

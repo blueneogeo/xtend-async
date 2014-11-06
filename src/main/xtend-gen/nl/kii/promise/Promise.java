@@ -3,7 +3,7 @@ package nl.kii.promise;
 import com.google.common.base.Objects;
 import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
 public class Promise<T extends Object> extends BasePromise<T, T> {
@@ -36,7 +36,7 @@ public class Promise<T extends Object> extends BasePromise<T, T> {
   public IPromise<T, T> error(final Throwable t) {
     Promise<T> _xblockexpression = null;
     {
-      nl.kii.stream.Error<T, T> _error = new nl.kii.stream.Error<T, T>(null, t);
+      nl.kii.stream.message.Error<T, T> _error = new nl.kii.stream.message.Error<T, T>(null, t);
       this.apply(_error);
       _xblockexpression = this;
     }

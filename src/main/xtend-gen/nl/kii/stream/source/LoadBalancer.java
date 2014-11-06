@@ -1,14 +1,14 @@
 package nl.kii.stream.source;
 
 import java.util.List;
-import nl.kii.stream.Close;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
-import nl.kii.stream.Next;
-import nl.kii.stream.Skip;
-import nl.kii.stream.StreamEvent;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Close;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Next;
+import nl.kii.stream.message.Skip;
+import nl.kii.stream.message.StreamEvent;
+import nl.kii.stream.message.Value;
 import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -51,11 +51,11 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
       }
     }
     if (!_matched) {
-      if (entry instanceof nl.kii.stream.Error) {
+      if (entry instanceof nl.kii.stream.message.Error) {
         _matched=true;
         List<IStream<I, ?>> _streams = this.getStreams();
         for (final IStream<I, ?> stream : _streams) {
-          stream.error(((nl.kii.stream.Error<I, O>)entry).error);
+          stream.error(((nl.kii.stream.message.Error<I, O>)entry).error);
         }
       }
     }

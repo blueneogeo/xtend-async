@@ -6,11 +6,11 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
-import nl.kii.stream.Entry;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SubStream;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -187,7 +187,7 @@ public class PromiseExtensions {
     {
       final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
         public void apply(final Throwable it) {
-          nl.kii.stream.Error<Object, O> _error = new nl.kii.stream.Error<Object, O>(null, it);
+          nl.kii.stream.message.Error<Object, O> _error = new nl.kii.stream.message.Error<Object, O>(null, it);
           resultFn.apply(_error);
         }
       };

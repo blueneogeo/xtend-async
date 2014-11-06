@@ -1,9 +1,9 @@
 package nl.kii.stream;
 
 import nl.kii.stream.BaseStream;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
 public class SubStream<I extends Object, O extends Object> extends BaseStream<I, O> {
@@ -68,7 +68,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
    * but passed and can be listened for down the stream.
    */
   public void error(final I from, final Throwable error) {
-    nl.kii.stream.Error<I, Object> _error = new nl.kii.stream.Error<I, Object>(from, error);
+    nl.kii.stream.message.Error<I, Object> _error = new nl.kii.stream.message.Error<I, Object>(from, error);
     this.apply(_error);
   }
   

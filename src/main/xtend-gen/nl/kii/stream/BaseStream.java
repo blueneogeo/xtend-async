@@ -10,20 +10,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.stream.Close;
-import nl.kii.stream.Closed;
-import nl.kii.stream.Entries;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
-import nl.kii.stream.Next;
-import nl.kii.stream.Overflow;
-import nl.kii.stream.Skip;
-import nl.kii.stream.StreamEvent;
-import nl.kii.stream.StreamException;
-import nl.kii.stream.StreamMessage;
-import nl.kii.stream.UncaughtStreamException;
-import nl.kii.stream.Value;
+import nl.kii.stream.internal.StreamException;
+import nl.kii.stream.internal.UncaughtStreamException;
+import nl.kii.stream.message.Close;
+import nl.kii.stream.message.Closed;
+import nl.kii.stream.message.Entries;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Next;
+import nl.kii.stream.message.Overflow;
+import nl.kii.stream.message.Skip;
+import nl.kii.stream.message.StreamEvent;
+import nl.kii.stream.message.StreamMessage;
+import nl.kii.stream.message.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
@@ -180,7 +180,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
           }
         }
         if (!_matched) {
-          if (entry instanceof nl.kii.stream.Error) {
+          if (entry instanceof nl.kii.stream.message.Error) {
             _matched=true;
           }
         }
@@ -335,7 +335,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
             final Throwable t = (Throwable)_t;
             boolean _xblockexpression_2 = false;
             {
-              if ((entry instanceof nl.kii.stream.Error<?, ?>)) {
+              if ((entry instanceof nl.kii.stream.message.Error<?, ?>)) {
                 boolean _matched = false;
                 if (!_matched) {
                   if (t instanceof StreamException) {
@@ -354,16 +354,16 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
                   _matched_1=true;
                   String _operation_1 = this.getOperation();
                   StreamException _streamException = new StreamException(_operation_1, entry, t);
-                  nl.kii.stream.Error<I, Object> _error = new nl.kii.stream.Error<I, Object>(((Value<I, O>)entry).from, _streamException);
+                  nl.kii.stream.message.Error<I, Object> _error = new nl.kii.stream.message.Error<I, Object>(((Value<I, O>)entry).from, _streamException);
                   this.apply(_error);
                 }
               }
               if (!_matched_1) {
-                if (entry instanceof nl.kii.stream.Error) {
+                if (entry instanceof nl.kii.stream.message.Error) {
                   _matched_1=true;
                   String _operation_1 = this.getOperation();
                   StreamException _streamException = new StreamException(_operation_1, entry, t);
-                  nl.kii.stream.Error<I, Object> _error = new nl.kii.stream.Error<I, Object>(((nl.kii.stream.Error<I, O>)entry).from, _streamException);
+                  nl.kii.stream.message.Error<I, Object> _error = new nl.kii.stream.message.Error<I, Object>(((nl.kii.stream.message.Error<I, O>)entry).from, _streamException);
                   this.apply(_error);
                 }
               }

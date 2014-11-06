@@ -2,7 +2,7 @@ package nl.kii.promise;
 
 import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
 public class SubPromise<R extends Object, T extends Object> extends BasePromise<R, T> {
@@ -56,7 +56,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   }
   
   public void error(final R from, final Throwable t) {
-    nl.kii.stream.Error<R, T> _error = new nl.kii.stream.Error<R, T>(from, t);
+    nl.kii.stream.message.Error<R, T> _error = new nl.kii.stream.message.Error<R, T>(from, t);
     this.apply(_error);
   }
 }

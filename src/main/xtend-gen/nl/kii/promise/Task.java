@@ -1,7 +1,7 @@
 package nl.kii.promise;
 
 import nl.kii.promise.Promise;
-import nl.kii.stream.Entry;
+import nl.kii.stream.message.Entry;
 import org.eclipse.xtend2.lib.StringConcatenation;
 
 /**
@@ -26,10 +26,10 @@ public class Task extends Promise<Boolean> {
     _builder.append(" ");
     {
       Entry<Boolean, Boolean> _get = this.get();
-      if ((_get instanceof nl.kii.stream.Error<?, ?>)) {
+      if ((_get instanceof nl.kii.stream.message.Error<?, ?>)) {
         _builder.append(", error: ");
         Entry<Boolean, Boolean> _get_1 = this.get();
-        _builder.append(((nl.kii.stream.Error<?, ?>) _get_1).error, "");
+        _builder.append(((nl.kii.stream.message.Error<?, ?>) _get_1).error, "");
       }
     }
     _builder.append(" }");

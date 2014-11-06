@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
 import nl.kii.stream.Stream
-import nl.kii.stream.Value
+import nl.kii.stream.message.Value
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*

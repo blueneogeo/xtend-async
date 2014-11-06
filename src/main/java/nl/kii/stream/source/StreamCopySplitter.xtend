@@ -1,12 +1,12 @@
 package nl.kii.stream.source
 
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Close
-import nl.kii.stream.Entry
 import nl.kii.stream.IStream
-import nl.kii.stream.Next
-import nl.kii.stream.Skip
-import nl.kii.stream.StreamEvent
+import nl.kii.stream.message.Close
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Next
+import nl.kii.stream.message.Skip
+import nl.kii.stream.message.StreamEvent
 
 /**
  * This splitter simply tries to pass all incoming values

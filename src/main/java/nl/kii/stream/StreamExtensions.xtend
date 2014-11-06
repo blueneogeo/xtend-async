@@ -16,7 +16,25 @@ import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
+import nl.kii.promise.SubPromise
+import nl.kii.promise.SubTask
 import nl.kii.promise.Task
+import nl.kii.stream.internal.StreamEventHandler
+import nl.kii.stream.internal.StreamEventResponder
+import nl.kii.stream.internal.StreamException
+import nl.kii.stream.internal.StreamObserver
+import nl.kii.stream.internal.StreamResponder
+import nl.kii.stream.internal.UncaughtStreamException
+import nl.kii.stream.message.Close
+import nl.kii.stream.message.Closed
+import nl.kii.stream.message.Entries
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Finish
+import nl.kii.stream.message.Next
+import nl.kii.stream.message.Overflow
+import nl.kii.stream.message.Skip
+import nl.kii.stream.message.Value
 import nl.kii.stream.source.LoadBalancer
 import nl.kii.stream.source.StreamCopySplitter
 import nl.kii.stream.source.StreamSource
@@ -25,8 +43,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.promise.SubPromise
-import nl.kii.promise.SubTask
 
 class StreamExtensions {
 	

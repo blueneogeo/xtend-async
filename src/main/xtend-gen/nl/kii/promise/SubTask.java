@@ -2,8 +2,8 @@ package nl.kii.promise;
 
 import nl.kii.promise.IPromise;
 import nl.kii.promise.SubPromise;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 
 /**
@@ -32,10 +32,10 @@ public class SubTask<R extends Object> extends SubPromise<R, Boolean> {
     _builder.append(" ");
     {
       Entry<R, Boolean> _get = this.get();
-      if ((_get instanceof nl.kii.stream.Error<?, ?>)) {
+      if ((_get instanceof nl.kii.stream.message.Error<?, ?>)) {
         _builder.append(", error: ");
         Entry<R, Boolean> _get_1 = this.get();
-        _builder.append(((nl.kii.stream.Error<?, ?>) _get_1).error, "");
+        _builder.append(((nl.kii.stream.message.Error<?, ?>) _get_1).error, "");
       }
     }
     _builder.append(" }");

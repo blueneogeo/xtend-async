@@ -8,8 +8,8 @@ import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseException;
 import nl.kii.promise.Task;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Value;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -70,7 +70,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
       }
     }
     if (!_matched) {
-      if (it instanceof nl.kii.stream.Error) {
+      if (it instanceof nl.kii.stream.message.Error) {
         Boolean _fulfilled_1 = this.getFulfilled();
         if (_fulfilled_1) {
           _matched=true;
@@ -134,11 +134,11 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
           try {
             boolean _matched = false;
             if (!_matched) {
-              if (it instanceof nl.kii.stream.Error) {
+              if (it instanceof nl.kii.stream.message.Error) {
                 _matched=true;
                 Procedure0 _get = unregisterFn.get();
                 _get.apply();
-                errorFn.apply(((nl.kii.stream.Error<R, T>)it).from, ((nl.kii.stream.Error<R, T>)it).error);
+                errorFn.apply(((nl.kii.stream.message.Error<R, T>)it).from, ((nl.kii.stream.message.Error<R, T>)it).error);
               }
             }
           } catch (final Throwable _t) {
@@ -200,9 +200,9 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
               }
             }
             if (!_matched) {
-              if (it instanceof nl.kii.stream.Error) {
+              if (it instanceof nl.kii.stream.message.Error) {
                 _matched=true;
-                newTask.error(((nl.kii.stream.Error<R, T>)it).error);
+                newTask.error(((nl.kii.stream.message.Error<R, T>)it).error);
               }
             }
           } catch (final Throwable _t) {

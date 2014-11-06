@@ -4,11 +4,11 @@ import java.util.List
 import java.util.concurrent.CopyOnWriteArrayList
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Entry
 import nl.kii.stream.IStream
-import nl.kii.stream.StreamMessage
 import nl.kii.stream.SubStream
-import nl.kii.stream.StreamEvent
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.StreamEvent
+import nl.kii.stream.message.StreamMessage
 
 /**
  * A source is a streamable source of information.

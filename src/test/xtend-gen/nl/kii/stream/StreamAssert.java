@@ -4,12 +4,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.promise.IPromise;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamResponder;
-import nl.kii.stream.Value;
+import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
@@ -29,7 +29,7 @@ public class StreamAssert {
         public void apply(final StreamResponder<R, T> it) {
           final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
             public void apply(final R $0, final Throwable $1) {
-              nl.kii.stream.Error<R, T> _error = new nl.kii.stream.Error<R, T>($0, $1);
+              nl.kii.stream.message.Error<R, T> _error = new nl.kii.stream.message.Error<R, T>($0, $1);
               data.add(_error);
               stream.next();
             }

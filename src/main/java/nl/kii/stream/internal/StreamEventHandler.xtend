@@ -1,6 +1,7 @@
-package nl.kii.stream
+package nl.kii.stream.internal
 
 import nl.kii.async.annotation.Atomic
+import nl.kii.stream.message.Entry
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 interface StreamEventHandler {

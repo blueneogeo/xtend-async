@@ -2,11 +2,11 @@ package nl.kii.stream.test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamResponder;
+import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.message.Finish;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;

@@ -1,7 +1,7 @@
 package nl.kii.promise;
 
 import nl.kii.promise.Task;
-import nl.kii.stream.Entry;
+import nl.kii.stream.message.Entry;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 

@@ -5,6 +5,20 @@ import java.util.Queue
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Observable
+import nl.kii.stream.internal.StreamException
+import nl.kii.stream.internal.UncaughtStreamException
+import nl.kii.stream.message.Close
+import nl.kii.stream.message.Closed
+import nl.kii.stream.message.Entries
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Finish
+import nl.kii.stream.message.Next
+import nl.kii.stream.message.Overflow
+import nl.kii.stream.message.Skip
+import nl.kii.stream.message.StreamEvent
+import nl.kii.stream.message.StreamMessage
+import nl.kii.stream.message.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static com.google.common.collect.Queues.*

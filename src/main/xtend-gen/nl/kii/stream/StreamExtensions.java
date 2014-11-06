@@ -28,25 +28,25 @@ import nl.kii.promise.SubPromise;
 import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
 import nl.kii.stream.BaseStream;
-import nl.kii.stream.Close;
-import nl.kii.stream.Closed;
-import nl.kii.stream.Entries;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
 import nl.kii.stream.IStream;
-import nl.kii.stream.Next;
-import nl.kii.stream.Overflow;
-import nl.kii.stream.Skip;
 import nl.kii.stream.Stream;
-import nl.kii.stream.StreamEvent;
-import nl.kii.stream.StreamEventHandler;
-import nl.kii.stream.StreamEventResponder;
-import nl.kii.stream.StreamException;
-import nl.kii.stream.StreamObserver;
-import nl.kii.stream.StreamResponder;
 import nl.kii.stream.SubStream;
-import nl.kii.stream.UncaughtStreamException;
-import nl.kii.stream.Value;
+import nl.kii.stream.internal.StreamEventHandler;
+import nl.kii.stream.internal.StreamEventResponder;
+import nl.kii.stream.internal.StreamException;
+import nl.kii.stream.internal.StreamObserver;
+import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.internal.UncaughtStreamException;
+import nl.kii.stream.message.Close;
+import nl.kii.stream.message.Closed;
+import nl.kii.stream.message.Entries;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Next;
+import nl.kii.stream.message.Overflow;
+import nl.kii.stream.message.Skip;
+import nl.kii.stream.message.StreamEvent;
+import nl.kii.stream.message.Value;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
@@ -383,9 +383,9 @@ public class StreamExtensions {
           }
         }
         if (!_matched) {
-          if (it instanceof nl.kii.stream.Error) {
+          if (it instanceof nl.kii.stream.message.Error) {
             _matched=true;
-            observer.onError(((nl.kii.stream.Error<I, O>)it).from, ((nl.kii.stream.Error<I, O>)it).error);
+            observer.onError(((nl.kii.stream.message.Error<I, O>)it).from, ((nl.kii.stream.message.Error<I, O>)it).error);
           }
         }
         if (!_matched) {
@@ -582,7 +582,7 @@ public class StreamExtensions {
     IStream<I, O> _xblockexpression = null;
     {
       IStream<I, I> _input = stream.getInput();
-      nl.kii.stream.Error<I, O> _error = new nl.kii.stream.Error<I, O>(null, t);
+      nl.kii.stream.message.Error<I, O> _error = new nl.kii.stream.message.Error<I, O>(null, t);
       _input.apply(_error);
       _xblockexpression = stream;
     }
@@ -596,7 +596,7 @@ public class StreamExtensions {
     IStream<I, O> _xblockexpression = null;
     {
       IStream<I, I> _input = stream.getInput();
-      nl.kii.stream.Error<I, O> _error = new nl.kii.stream.Error<I, O>(null, t);
+      nl.kii.stream.message.Error<I, O> _error = new nl.kii.stream.message.Error<I, O>(null, t);
       _input.apply(_error);
       _xblockexpression = stream;
     }

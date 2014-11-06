@@ -1,14 +1,14 @@
 package nl.kii.stream.source
 
-import nl.kii.stream.Close
-import nl.kii.stream.Entry
-import nl.kii.stream.Error
-import nl.kii.stream.Finish
 import nl.kii.stream.IStream
-import nl.kii.stream.Next
-import nl.kii.stream.Skip
-import nl.kii.stream.Value
-import nl.kii.stream.StreamEvent
+import nl.kii.stream.message.Close
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Finish
+import nl.kii.stream.message.Next
+import nl.kii.stream.message.Skip
+import nl.kii.stream.message.StreamEvent
+import nl.kii.stream.message.Value
 
 /**
  * This splitter sends each message to the first stream that is ready.

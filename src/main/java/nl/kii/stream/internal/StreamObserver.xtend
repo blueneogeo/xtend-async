@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.internal
 
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
@@ -40,7 +40,7 @@ interface StreamObserver<I, O> {
  */
 class StreamResponder<I, O> implements StreamObserver<I, O> {
 	
-	@Atomic public val IStream<I, O> stream
+	@Atomic public val nl.kii.stream.IStream<I, O> stream
 	@Atomic Procedure2<I, O> valueFn
 	@Atomic Procedure2<I, Throwable> errorFn
 	@Atomic Procedure2<I, Integer> finishFn
