@@ -1575,22 +1575,65 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
-
-	// OTHER //////////////////////////////////////////////////////////////////
 	
-	/**
-	 * Similar to StreamExtensions.observe, but this method splits the stream
-	 * into two streams: one you can observe, and another it returns so you
-	 * can continue the chain. This allows you to monitor a stream while not
-	 * ending the chain. This comes at the price of creating a dual stream with
-	 * extra overhead.
-	 */
-	def static <I, O> monitor(IStream<I, O> stream, StreamObserver<I, O> observer) {
+	// MONITORING ///////////////////////////////////////////////////////////////
+
+	def static <I, O> monitor(IStream<I, O> stream, StreamStats stats) {
 		val splitter = stream.split
-		splitter.stream.observe(observer)
+		splitter.stream.on [ extension builder |
+
+			stats.startTS = now
+
+			each [ from, value |
+				stats => [
+					if(firstEntryTS == 0) firstEntryTS = now
+					if(firstValueTS == 0) firstValueTS = now
+					lastEntryTS = now
+					lastValueTS = now
+					lastValue = value
+					valueCount = valueCount + 1
+				]
+				builder.stream.next
+			]
+			
+			error [ from, t |
+				stats => [
+					if(firstEntryTS == 0) firstEntryTS = now
+					if(firstErrorTS == 0) firstErrorTS = now
+					lastEntryTS = now
+					lastErrorTS = now
+					lastError = t
+					errorCount = errorCount + 1
+				]
+				builder.stream.next
+			]
+			
+			finish [ from, t |
+				stats => [
+					if(firstEntryTS == 0) firstEntryTS = now
+					if(firstFinishTS == 0) firstFinishTS = now
+					lastEntryTS = now
+					lastFinishTS = now
+					finishCount = finishCount + 1
+				]
+				builder.stream.next
+			]
+			
+			closed [
+				stats => [
+					lastEntryTS = now
+					closeTS = now
+				]
+			]
+			
+			builder.stream.next
+		]
+
 		splitter.stream
 	}
 
+	// OTHER //////////////////////////////////////////////////////////////////
+	
 	/** 
 	 * Complete a task when the stream finishes or closes, 
 	 * or give an error on the task when the stream gives an error.
@@ -1615,5 +1658,9 @@ class StreamExtensions {
 	private def static <T> List<T> concat(Iterable<? extends T> list, T value) {
 		if(value != null) ImmutableList.builder.add
 		if(value != null) ImmutableList.builder.addAll(list).add(value).build
+	}
+	
+	private def static long now() {
+		System.currentTimeMillis
 	}
 }

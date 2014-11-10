@@ -30,6 +30,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.BaseStream;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamStats;
 import nl.kii.stream.SubStream;
 import nl.kii.stream.internal.StreamEventHandler;
 import nl.kii.stream.internal.StreamEventResponder;
@@ -54,6 +55,7 @@ import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.DoubleExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
 import org.eclipse.xtext.xbase.lib.Functions.Function3;
@@ -3253,19 +3255,129 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  /**
-   * Similar to StreamExtensions.observe, but this method splits the stream
-   * into two streams: one you can observe, and another it returns so you
-   * can continue the chain. This allows you to monitor a stream while not
-   * ending the chain. This comes at the price of creating a dual stream with
-   * extra overhead.
-   */
-  public static <I extends Object, O extends Object> IStream<I, O> monitor(final IStream<I, O> stream, final StreamObserver<I, O> observer) {
+  public static <I extends Object, O extends Object> IStream<I, O> monitor(final IStream<I, O> stream, final StreamStats stats) {
     IStream<I, O> _xblockexpression = null;
     {
       final StreamCopySplitter<I, O> splitter = StreamExtensions.<I, O>split(stream);
       IStream<I, O> _stream = splitter.stream();
-      StreamExtensions.<I, O>observe(_stream, observer);
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        public void apply(@Extension final StreamResponder<I, O> builder) {
+          long _now = StreamExtensions.now();
+          stats.setStartTS(Long.valueOf(_now));
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            public void apply(final I from, final O value) {
+              final Procedure1<StreamStats> _function = new Procedure1<StreamStats>() {
+                public void apply(final StreamStats it) {
+                  Long _firstEntryTS = it.getFirstEntryTS();
+                  boolean _equals = ((_firstEntryTS).longValue() == 0);
+                  if (_equals) {
+                    long _now = StreamExtensions.now();
+                    it.setFirstEntryTS(Long.valueOf(_now));
+                  }
+                  Long _firstValueTS = it.getFirstValueTS();
+                  boolean _equals_1 = ((_firstValueTS).longValue() == 0);
+                  if (_equals_1) {
+                    long _now_1 = StreamExtensions.now();
+                    it.setFirstValueTS(Long.valueOf(_now_1));
+                  }
+                  long _now_2 = StreamExtensions.now();
+                  it.setLastEntryTS(Long.valueOf(_now_2));
+                  long _now_3 = StreamExtensions.now();
+                  it.setLastValueTS(Long.valueOf(_now_3));
+                  it.setLastValue(value);
+                  Long _valueCount = it.getValueCount();
+                  long _plus = ((_valueCount).longValue() + 1);
+                  it.setValueCount(Long.valueOf(_plus));
+                }
+              };
+              ObjectExtensions.<StreamStats>operator_doubleArrow(stats, _function);
+              IStream<I, O> _stream = builder.getStream();
+              _stream.next();
+            }
+          };
+          builder.each(_function);
+          final Procedure2<I, Throwable> _function_1 = new Procedure2<I, Throwable>() {
+            public void apply(final I from, final Throwable t) {
+              final Procedure1<StreamStats> _function = new Procedure1<StreamStats>() {
+                public void apply(final StreamStats it) {
+                  Long _firstEntryTS = it.getFirstEntryTS();
+                  boolean _equals = ((_firstEntryTS).longValue() == 0);
+                  if (_equals) {
+                    long _now = StreamExtensions.now();
+                    it.setFirstEntryTS(Long.valueOf(_now));
+                  }
+                  Long _firstErrorTS = it.getFirstErrorTS();
+                  boolean _equals_1 = ((_firstErrorTS).longValue() == 0);
+                  if (_equals_1) {
+                    long _now_1 = StreamExtensions.now();
+                    it.setFirstErrorTS(Long.valueOf(_now_1));
+                  }
+                  long _now_2 = StreamExtensions.now();
+                  it.setLastEntryTS(Long.valueOf(_now_2));
+                  long _now_3 = StreamExtensions.now();
+                  it.setLastErrorTS(Long.valueOf(_now_3));
+                  it.setLastError(t);
+                  Long _errorCount = it.getErrorCount();
+                  long _plus = ((_errorCount).longValue() + 1);
+                  it.setErrorCount(Long.valueOf(_plus));
+                }
+              };
+              ObjectExtensions.<StreamStats>operator_doubleArrow(stats, _function);
+              IStream<I, O> _stream = builder.getStream();
+              _stream.next();
+            }
+          };
+          builder.error(_function_1);
+          final Procedure2<I, Integer> _function_2 = new Procedure2<I, Integer>() {
+            public void apply(final I from, final Integer t) {
+              final Procedure1<StreamStats> _function = new Procedure1<StreamStats>() {
+                public void apply(final StreamStats it) {
+                  Long _firstEntryTS = it.getFirstEntryTS();
+                  boolean _equals = ((_firstEntryTS).longValue() == 0);
+                  if (_equals) {
+                    long _now = StreamExtensions.now();
+                    it.setFirstEntryTS(Long.valueOf(_now));
+                  }
+                  Long _firstFinishTS = it.getFirstFinishTS();
+                  boolean _equals_1 = ((_firstFinishTS).longValue() == 0);
+                  if (_equals_1) {
+                    long _now_1 = StreamExtensions.now();
+                    it.setFirstFinishTS(Long.valueOf(_now_1));
+                  }
+                  long _now_2 = StreamExtensions.now();
+                  it.setLastEntryTS(Long.valueOf(_now_2));
+                  long _now_3 = StreamExtensions.now();
+                  it.setLastFinishTS(Long.valueOf(_now_3));
+                  Long _finishCount = it.getFinishCount();
+                  long _plus = ((_finishCount).longValue() + 1);
+                  it.setFinishCount(Long.valueOf(_plus));
+                }
+              };
+              ObjectExtensions.<StreamStats>operator_doubleArrow(stats, _function);
+              IStream<I, O> _stream = builder.getStream();
+              _stream.next();
+            }
+          };
+          builder.finish(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
+            public void apply(final Void it) {
+              final Procedure1<StreamStats> _function = new Procedure1<StreamStats>() {
+                public void apply(final StreamStats it) {
+                  long _now = StreamExtensions.now();
+                  it.setLastEntryTS(Long.valueOf(_now));
+                  long _now_1 = StreamExtensions.now();
+                  it.setCloseTS(Long.valueOf(_now_1));
+                }
+              };
+              ObjectExtensions.<StreamStats>operator_doubleArrow(stats, _function);
+            }
+          };
+          builder.closed(_function_3);
+          IStream<I, O> _stream = builder.getStream();
+          _stream.next();
+        }
+      };
+      StreamExtensions.<I, O>on(_stream, _function);
       _xblockexpression = splitter.stream();
     }
     return _xblockexpression;
@@ -3338,5 +3450,9 @@ public class StreamExtensions {
       _xblockexpression = _xifexpression;
     }
     return _xblockexpression;
+  }
+  
+  private static long now() {
+    return System.currentTimeMillis();
   }
 }

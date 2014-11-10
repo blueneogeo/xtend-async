@@ -1,17 +1,11 @@
 package nl.kii.stream
 
 import nl.kii.async.annotation.Atomic
-import nl.kii.observe.Observable
-import nl.kii.observe.Publisher
-import nl.kii.stream.internal.StreamObserver
+import java.util.Date
+import java.text.SimpleDateFormat
 
-@SuppressWarnings("unchecked")
-class StreamMonitor implements StreamObserver, Observable<StreamMonitor> {
+class StreamStats {
 
-	val publisher = new Publisher<StreamMonitor>
-	
-	@Atomic public boolean active
-	@Atomic public IStream<?, ?> stream
 	// counts
 	
 	@Atomic public long valueCount
@@ -37,55 +31,54 @@ class StreamMonitor implements StreamObserver, Observable<StreamMonitor> {
 
 	@Atomic public Object lastValue
 	@Atomic public Throwable lastError
+	
+	override toString() '''
+		values:   «valueCount»
+		errors:   «errorCount»
+		finishes: «finishCount»
+		
+		time taken: «timeTaken» ms
+		value rate: «valueRate» / ms
+		error rate: «errorRate» / ms
+		
+		«IF startTS > 0»
+			created at: «startTS.text»
+			
+			first entry at: «firstEntryTS.text» 
+			first value at: «firstValueTS.text» 
+			first error at: «firstErrorTS.text» 
+			first finish at: «firstFinishTS.text» 
+			
+			last entry at: «lastEntryTS.text» 
+			last value at: «lastValueTS.text» 
+			last  error at: «lastErrorTS.text» 
+			last finish at: «lastFinishTS.text» 
+			
+			closed at:  «closeTS.text»
+		«ELSE»
+			not started
+		«ENDIF»
 
-	def setPublishing(boolean isOn) {
-		publisher.publishing = isOn
+		«IF closeTS > 0»
+			closed at:  «closeTS.text»
+		«ELSE»
+			stream still open
+		«ENDIF»
+		
+	'''
+	
+	def timeTaken() { now - startTS }
+	def valueRate() { new Float(valueCount) / timeTaken }
+	def errorRate() { new Float(errorCount) / timeTaken }
+	
+	val static DATEFORMAT = new SimpleDateFormat('HH:mm:ss.SSS')
+	
+	private static def text(long timestamp) {
+		DATEFORMAT.format(new Date(timestamp))
 	}
 	
-	override onValue(Object from, Object value) {
-		println('yo!')
-		if(!active) return;
-		if(firstEntryTS == null) firstEntryTS = now
-		if(firstValueTS == null) firstValueTS = now
-		lastEntryTS = now
-		lastValueTS = now
-		lastValue = value
-		incValueCount
-		publisher.apply(this)
+	private static def now() {
+		System.currentTimeMillis
 	}
-	
-	override onError(Object from, Throwable t) {
-		if(!active) return;
-		if(firstEntryTS == null) firstEntryTS = now
-		if(firstErrorTS == null) firstErrorTS = now
-		lastEntryTS = now
-		lastErrorTS = now
-		lastError = t
-		incErrorCount
-		publisher.apply(this)
-	}
-	
-	override onFinish(Object from, int level) {
-		if(!active) return;
-		if(firstEntryTS == null) firstEntryTS = now
-		if(firstFinishTS == null) firstFinishTS = now
-		lastEntryTS = now
-		lastFinishTS = now
-		incFinishCount
-		publisher.apply(this)
-	}
-	
-	override onClosed() {
-		if(!active) return;
-		lastEntryTS = now
-		closeTS = now
-		publisher.apply(this)
-	}
-	
-	override onChange((StreamMonitor)=>void observeFn) {
-		publisher.onChange(observeFn)
-	}
-
-	private def now() { System.currentTimeMillis }
 	
 }

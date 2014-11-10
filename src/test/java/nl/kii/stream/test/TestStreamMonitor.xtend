@@ -1,23 +1,25 @@
 package nl.kii.stream.test
-import static extension nl.kii.stream.StreamExtensions.*
+
+import nl.kii.stream.StreamStats
 import org.junit.Test
-import nl.kii.stream.StreamMonitor
+
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStreamMonitor {
 	
 	@Test
 	def void testSimpleMonitoring() {
 		
-		val monitor = new StreamMonitor;
+		val stats = new StreamStats;
 		
 		(1..10).stream
 			.map [ it % 3 ]
 			.map [ 1 / it ]
-			.monitor(monitor)
+			.monitor(stats)
 			.onError [ println(it) ]
 			.onEach [ println(it) ]
 		
-		println(monitor.valueCount)
+		println(stats)
 	}
 	
 }
