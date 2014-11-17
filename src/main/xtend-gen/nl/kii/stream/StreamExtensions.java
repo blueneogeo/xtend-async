@@ -30,6 +30,7 @@ import nl.kii.promise.Task;
 import nl.kii.stream.BaseStream;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
+import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamStats;
 import nl.kii.stream.SubStream;
 import nl.kii.stream.internal.StreamEventHandler;
@@ -3251,6 +3252,21 @@ public class StreamExtensions {
       stream.setOperation("latest");
       StreamExtensions.<I, I, O, O>controls(newStream, stream);
       _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  public static <I extends Object, O extends Object> IStream<I, O> monitor(final IStream<I, O> stream, final StreamMonitor monitor) {
+    String _operation = stream.getOperation();
+    return StreamExtensions.<I, O>monitor(stream, _operation, monitor);
+  }
+  
+  public static <I extends Object, O extends Object> IStream<I, O> monitor(final IStream<I, O> stream, final String name, final StreamMonitor monitor) {
+    IStream<I, O> _xblockexpression = null;
+    {
+      final StreamStats stats = new StreamStats();
+      monitor.add(name, stats);
+      _xblockexpression = StreamExtensions.<I, O>monitor(stream, stats);
     }
     return _xblockexpression;
   }

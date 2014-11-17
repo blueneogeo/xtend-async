@@ -80,6 +80,7 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   public BaseStream(final Queue<Entry<I, O>> queue, final int maxBufferSize) {
     this.queue = queue;
     this.setMaxBufferSize(Integer.valueOf(maxBufferSize));
+    this.setOperation("source");
   }
   
   /**

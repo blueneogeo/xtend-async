@@ -1578,6 +1578,16 @@ class StreamExtensions {
 	
 	// MONITORING ///////////////////////////////////////////////////////////////
 
+	def static <I, O> monitor(IStream<I, O> stream, StreamMonitor monitor) {
+		stream.monitor(stream.operation, monitor)
+	}
+	
+	def static <I, O> monitor(IStream<I, O> stream, String name, StreamMonitor monitor) {
+		val stats = new StreamStats
+		monitor.add(name, stats)
+		stream.monitor(stats)
+	}
+
 	def static <I, O> monitor(IStream<I, O> stream, StreamStats stats) {
 		val splitter = stream.split
 		splitter.stream.on [ extension builder |

@@ -182,6 +182,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	new(Queue<Entry<I, O>> queue, int maxBufferSize) { 
 		this.queue = queue
 		this.maxBufferSize = maxBufferSize
+		this.operation = 'source'
 	}
 	
 	/** Get the queue of the stream. will only be an unmodifiable view of the queue. */

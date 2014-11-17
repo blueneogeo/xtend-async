@@ -197,8 +197,15 @@ public class StreamStats {
   private final static SimpleDateFormat DATEFORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
   
   private static String text(final long timestamp) {
-    Date _date = new Date(timestamp);
-    return StreamStats.DATEFORMAT.format(_date);
+    String _xblockexpression = null;
+    {
+      if ((timestamp == 0)) {
+        return "-";
+      }
+      Date _date = new Date(timestamp);
+      _xblockexpression = StreamStats.DATEFORMAT.format(_date);
+    }
+    return _xblockexpression;
   }
   
   private static long now() {

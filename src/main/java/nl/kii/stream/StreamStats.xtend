@@ -74,6 +74,7 @@ class StreamStats {
 	val static DATEFORMAT = new SimpleDateFormat('HH:mm:ss.SSS')
 	
 	private static def text(long timestamp) {
+		if(timestamp == 0) return '-'
 		DATEFORMAT.format(new Date(timestamp))
 	}
 	
