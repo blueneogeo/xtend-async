@@ -691,7 +691,7 @@ class StreamExtensions {
 			} else false
 		] => [ stream.operation = 'throttle(periodMs=' + periodMs + ')' ]
 	}
-	
+
 	/** 
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
 	 * All other values are buffered, and dropped only after the buffer has reached a given size.
