@@ -67,6 +67,7 @@ public class StreamResponder<I extends Object, O extends Object> implements Stre
     this.setClosedFn(((Procedure1<Void>)handler));
   }
   
+  @Override
   public void onValue(final I from, final O value) {
     Procedure2<I, O> _valueFn = this.getValueFn();
     if (_valueFn!=null) {
@@ -74,6 +75,7 @@ public class StreamResponder<I extends Object, O extends Object> implements Stre
     }
   }
   
+  @Override
   public void onError(final I from, final Throwable t) {
     Procedure2<I, Throwable> _errorFn = this.getErrorFn();
     if (_errorFn!=null) {
@@ -81,6 +83,7 @@ public class StreamResponder<I extends Object, O extends Object> implements Stre
     }
   }
   
+  @Override
   public void onFinish(final I from, final int level) {
     Procedure2<I, Integer> _finishFn = this.getFinishFn();
     if (_finishFn!=null) {
@@ -88,6 +91,7 @@ public class StreamResponder<I extends Object, O extends Object> implements Stre
     }
   }
   
+  @Override
   public void onClosed() {
     Procedure1<Void> _closedFn = this.getClosedFn();
     if (_closedFn!=null) {

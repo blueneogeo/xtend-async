@@ -24,6 +24,7 @@ public class TestAsyncAnnotation {
     final AtomicInteger result = new AtomicInteger();
     Promise<Integer> _increment = this.increment(5);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         result.set((it).intValue());
       }
@@ -38,6 +39,7 @@ public class TestAsyncAnnotation {
     final AtomicBoolean result = new AtomicBoolean();
     Task _printHello = this.printHello("world");
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         result.set((it).booleanValue());
       }
@@ -52,12 +54,14 @@ public class TestAsyncAnnotation {
     final AtomicBoolean isError = new AtomicBoolean();
     Task _printHello = this.printHello(null);
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         isError.set(true);
       }
     };
     IPromise<Boolean, Boolean> _onError = _printHello.onError(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         isError.set(false);
       }
@@ -74,6 +78,7 @@ public class TestAsyncAnnotation {
       final ExecutorService exec = Executors.newCachedThreadPool();
       Task _printHello = this.printHello(exec, "christian");
       final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+        @Override
         public void apply(final Boolean it) {
           success.set(true);
         }

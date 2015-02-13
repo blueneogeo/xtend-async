@@ -59,8 +59,13 @@ class PromiseExtensions {
 	}
 
 	/** Shortcut for quickly creating a promise with an error */	
-	def static <T> Promise<T> error(String message) {
-		new Promise<T> => [ error(message) ]
+	def static Task error(String message) {
+		new Task => [ it.error(message) ]
+	}
+
+	/** Shortcut for quickly creating a promise with an error */	
+	def static <T> Promise<T> error(Class<T> cls, String message) {
+		new Promise<T> => [ it.error(message) ]
 	}
 	
 	/** 
@@ -165,6 +170,7 @@ class PromiseExtensions {
 		promise
 			.onError [ r, it | newPromise.error(r, it) ]
 			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
+			.onError [ newPromise.error(it) ]
 		newPromise => [ operation = 'map' ]
 	}
 	

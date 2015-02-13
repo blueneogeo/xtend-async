@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+	compile 'com.kimengi.util:xtend-tools:7.0-SNAPSHOT'
 	compile 'com.kimengi.util:xtend-async-annotations:3.1'
 
 	testCompile 'junit:junit:4.+'

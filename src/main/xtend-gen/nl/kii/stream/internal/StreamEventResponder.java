@@ -36,6 +36,7 @@ public class StreamEventResponder implements StreamEventHandler {
     this.setOverflowFn(((Procedure1<Entry<?, ?>>)handler));
   }
   
+  @Override
   public void onNext() {
     Procedure1<Void> _nextFn = this.getNextFn();
     if (_nextFn!=null) {
@@ -43,6 +44,7 @@ public class StreamEventResponder implements StreamEventHandler {
     }
   }
   
+  @Override
   public void onSkip() {
     Procedure1<Void> _skipFn = this.getSkipFn();
     if (_skipFn!=null) {
@@ -50,6 +52,7 @@ public class StreamEventResponder implements StreamEventHandler {
     }
   }
   
+  @Override
   public void onClose() {
     Procedure1<Void> _closeFn = this.getCloseFn();
     if (_closeFn!=null) {
@@ -57,6 +60,7 @@ public class StreamEventResponder implements StreamEventHandler {
     }
   }
   
+  @Override
   public void onOverflow(final Entry<?, ?> entry) {
     Procedure1<Entry<?, ?>> _overflowFn = this.getOverflowFn();
     if (_overflowFn!=null) {

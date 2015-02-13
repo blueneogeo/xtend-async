@@ -54,6 +54,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(5, 7);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return it;
       }
@@ -72,6 +73,7 @@ public class TestStreamExtensions {
     Collection<Entry<Integer, Integer>> _queue = s.getQueue();
     InputOutput.<Collection<Entry<Integer, Integer>>>println(_queue);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
@@ -91,6 +93,7 @@ public class TestStreamExtensions {
     final Map<Integer, String> map = Collections.<Integer, String>unmodifiableMap(CollectionLiterals.<Integer, String>newHashMap(_mappedTo, _mappedTo_1));
     final Stream<Pair<Integer, String>> s = StreamExtensions.<Integer, String>stream(map);
     final Function1<Pair<Integer, String>, Pair<Integer, String>> _function = new Function1<Pair<Integer, String>, Pair<Integer, String>>() {
+      @Override
       public Pair<Integer, String> apply(final Pair<Integer, String> it) {
         Integer _key = it.getKey();
         int _plus = ((_key).intValue() + 1);
@@ -112,8 +115,10 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 3);
     final Stream<Integer> s = StreamExtensions.streamRandom(_upTo);
     final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             Assert.assertTrue(((($1).intValue() >= 1) && (($1).intValue() <= 3)));
           }
@@ -139,6 +144,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 3);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<String>println("x");
         TestStreamExtensions.this.incCounter();
@@ -158,12 +164,14 @@ public class TestStreamExtensions {
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(publisher);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(publisher);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         count1.addAndGet((it).intValue());
       }
     };
     StreamExtensions.<Integer, Integer>onEach(s1, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         count2.addAndGet((it).intValue());
       }
@@ -196,6 +204,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
@@ -221,6 +230,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -245,6 +255,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -277,6 +288,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 4) == 0));
       }
@@ -284,8 +296,10 @@ public class TestStreamExtensions {
     final SubStream<Integer, Integer> split = StreamExtensions.<Integer, Integer>split(s, _function);
     final Stream<Integer> collect = StreamExtensions.<Integer>stream(int.class);
     final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             if ((($1).intValue() == 1)) {
               IStream<Integer, Integer> _stream = it.getStream();
@@ -296,6 +310,7 @@ public class TestStreamExtensions {
         };
         it.each(_function);
         final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish(($1).intValue());
             StreamExtensions.<Integer, Integer>operator_doubleLessThan(collect, _finish);
@@ -372,12 +387,14 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 11);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 4) == 0));
       }
     };
     final SubStream<Integer, Integer> split = StreamExtensions.<Integer, Integer>split(s, _function);
     final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -388,6 +405,7 @@ public class TestStreamExtensions {
     final SubStream<Integer, List<List<List<Integer>>>> collect3 = StreamExtensions.<Integer, List<List<Integer>>>collect(collect2);
     IPromise<Integer, List<List<List<Integer>>>> _first = StreamExtensions.<Integer, List<List<List<Integer>>>>first(collect3);
     final Procedure1<List<List<List<Integer>>>> _function_2 = new Procedure1<List<List<List<Integer>>>>() {
+      @Override
       public void apply(final List<List<List<Integer>>> it) {
         Assert.assertEquals(it, 
           Collections.<List<List<Integer>>>unmodifiableList(CollectionLiterals.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(3), Integer.valueOf(4))))), Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(5), Integer.valueOf(6))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(7), Integer.valueOf(8))))), Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(9), Integer.valueOf(10))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(11))))))));
@@ -401,18 +419,21 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 11);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 4) == 0));
       }
     };
     final SubStream<Integer, Integer> split = StreamExtensions.<Integer, Integer>split(s, _function);
     final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 3) == 0));
       }
     };
     final SubStream<Integer, Integer> split2 = StreamExtensions.<Integer, Integer>split(split, _function_1);
     final Function1<Integer, Boolean> _function_2 = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -424,6 +445,7 @@ public class TestStreamExtensions {
     final SubStream<Integer, List<List<List<List<Integer>>>>> collect4 = StreamExtensions.<Integer, List<List<List<Integer>>>>collect(collect3);
     IPromise<Integer, List<List<List<List<Integer>>>>> _first = StreamExtensions.<Integer, List<List<List<List<Integer>>>>>first(collect4);
     final Procedure1<List<List<List<List<Integer>>>>> _function_3 = new Procedure1<List<List<List<List<Integer>>>>>() {
+      @Override
       public void apply(final List<List<List<List<Integer>>>> it) {
         Assert.assertEquals(it, 
           Collections.<List<List<List<Integer>>>>unmodifiableList(CollectionLiterals.<List<List<List<Integer>>>>newArrayList(Collections.<List<List<Integer>>>unmodifiableList(CollectionLiterals.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(3))))), Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4))))))), Collections.<List<List<Integer>>>unmodifiableList(CollectionLiterals.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(5), Integer.valueOf(6))))), Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(7), Integer.valueOf(8))))))), Collections.<List<List<Integer>>>unmodifiableList(CollectionLiterals.<List<List<Integer>>>newArrayList(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(9))))), Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(10))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(11))))))))));
@@ -526,6 +548,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf(((it).intValue() > 3));
       }
@@ -552,6 +575,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf(((it).intValue() < 3));
       }
@@ -580,6 +604,7 @@ public class TestStreamExtensions {
     IStream<Integer, Integer> _doubleLessThan_10 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_9, Integer.valueOf(1));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_10, Integer.valueOf(10));
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 2) == 0));
       }
@@ -622,12 +647,14 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
     final Function2<Integer, Integer, Integer> _function = new Function2<Integer, Integer, Integer>() {
+      @Override
       public Integer apply(final Integer a, final Integer b) {
         return Integer.valueOf(((a).intValue() + (b).intValue()));
       }
     };
     SubStream<Integer, Integer> _reduce = StreamExtensions.<Integer, Integer, Integer>reduce(s, Integer.valueOf(1), _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         InputOutput.<Throwable>println(it);
       }
@@ -651,6 +678,7 @@ public class TestStreamExtensions {
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish();
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, _finish_1);
     final Function2<Integer, Integer, Integer> _function = new Function2<Integer, Integer, Integer>() {
+      @Override
       public Integer apply(final Integer a, final Integer b) {
         return Integer.valueOf(((a).intValue() + (b).intValue()));
       }
@@ -672,6 +700,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo_1 = new IntegerRange(11, 20);
     IntegerRange _upTo_2 = new IntegerRange(21, 30);
     final Function1<IntegerRange, Stream<Integer>> _function = new Function1<IntegerRange, Stream<Integer>>() {
+      @Override
       public Stream<Integer> apply(final IntegerRange it) {
         return StreamExtensions.<Integer>stream(it);
       }
@@ -681,6 +710,7 @@ public class TestStreamExtensions {
     SubStream<Stream<Integer>, Integer> _flatten = StreamExtensions.<Stream<Integer>, Integer, Integer, Stream<Integer>>flatten(_datastream);
     IntegerRange _upTo_3 = new IntegerRange(1, 30);
     final Function1<Integer, Value<Stream<Integer>, Integer>> _function_1 = new Function1<Integer, Value<Stream<Integer>, Integer>>() {
+      @Override
       public Value<Stream<Integer>, Integer> apply(final Integer it) {
         return StreamAssert.<Stream<Integer>, Integer>value(it);
       }
@@ -696,12 +726,14 @@ public class TestStreamExtensions {
     IntegerRange _upTo_2 = new IntegerRange(21, 30);
     Stream<IntegerRange> _stream = StreamExtensions.<IntegerRange>stream(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)));
     final Function1<IntegerRange, Stream<IntegerRange>> _function = new Function1<IntegerRange, Stream<IntegerRange>>() {
+      @Override
       public Stream<IntegerRange> apply(final IntegerRange it) {
         return StreamExtensions.<IntegerRange>datastream(it, it);
       }
     };
     SubStream<IntegerRange, IntegerRange> _flatMap = StreamExtensions.<IntegerRange, IntegerRange, IntegerRange>flatMap(_stream, _function);
     final Procedure1<IntegerRange> _function_1 = new Procedure1<IntegerRange>() {
+      @Override
       public void apply(final IntegerRange it) {
         InputOutput.<IntegerRange>println(it);
       }
@@ -764,6 +796,7 @@ public class TestStreamExtensions {
     Finish<Long, Long> _finish_1 = StreamExtensions.<Long, Long>finish();
     final IStream<Long, Long> s = StreamExtensions.<Long, Long>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
     final Function1<Long, Boolean> _function = new Function1<Long, Boolean>() {
+      @Override
       public Boolean apply(final Long it) {
         return Boolean.valueOf(((it).longValue() == 2L));
       }
@@ -792,6 +825,7 @@ public class TestStreamExtensions {
     Finish<Long, Long> _finish_1 = StreamExtensions.<Long, Long>finish();
     final IStream<Long, Long> s = StreamExtensions.<Long, Long>operator_doubleLessThan(_doubleLessThan_8, _finish_1);
     final Function1<Long, Boolean> _function = new Function1<Long, Boolean>() {
+      @Override
       public Boolean apply(final Long it) {
         return Boolean.valueOf(((it).longValue() == 2L));
       }
@@ -811,6 +845,7 @@ public class TestStreamExtensions {
     IStream<Boolean, Boolean> _doubleLessThan_2 = StreamExtensions.<Boolean, Boolean>operator_doubleLessThan(_doubleLessThan_1, Boolean.valueOf(true));
     final IStream<Boolean, Boolean> s = StreamExtensions.<Boolean, Boolean>operator_doubleLessThan(_doubleLessThan_2, Boolean.valueOf(false));
     final Function1<Boolean, Boolean> _function = new Function1<Boolean, Boolean>() {
+      @Override
       public Boolean apply(final Boolean it) {
         return it;
       }
@@ -829,6 +864,7 @@ public class TestStreamExtensions {
     Finish<Boolean, Boolean> _finish = StreamExtensions.<Boolean, Boolean>finish();
     final IStream<Boolean, Boolean> s = StreamExtensions.<Boolean, Boolean>operator_doubleLessThan(_doubleLessThan_2, _finish);
     final Function1<Boolean, Boolean> _function = new Function1<Boolean, Boolean>() {
+      @Override
       public Boolean apply(final Boolean it) {
         return it;
       }
@@ -843,6 +879,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf((((it).intValue() % 3) == 0));
       }
@@ -862,12 +899,14 @@ public class TestStreamExtensions {
     Stream<List<Integer>> _stream = StreamExtensions.<List<Integer>>stream(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5))))));
     SubStream<List<Integer>, Integer> _separate = StreamExtensions.<List<Integer>, Integer>separate(_stream);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
     SubTask<List<Integer>> _onEach = StreamExtensions.<List<Integer>, Integer>onEach(_separate, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         String _message = it.getMessage();
         Assert.fail(_message);
@@ -882,18 +921,21 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf((((1 / ((it).intValue() - 5)) * 0) + (it).intValue()));
       }
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf((((1 / ((it).intValue() - 7)) * 0) + (it).intValue()));
       }
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         String _message = it.getMessage();
         StreamExtensions.<String, String>operator_doubleGreaterThan(_message, errors);
@@ -918,6 +960,7 @@ public class TestStreamExtensions {
   public void testErrorsDontStopStream2() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         try {
           if ((((it).intValue() == 3) || ((it).intValue() == 5))) {
@@ -932,6 +975,7 @@ public class TestStreamExtensions {
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         TestStreamExtensions.this.incErrorCount();
       }
@@ -952,6 +996,7 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         try {
           Integer _xblockexpression = null;
@@ -969,12 +1014,14 @@ public class TestStreamExtensions {
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         TestStreamExtensions.this.incErrorCount();
       }
     };
     SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_map, _function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         TestStreamExtensions.this.incValueCount();
       }
@@ -993,6 +1040,7 @@ public class TestStreamExtensions {
   public void testBufferOverflow() {
     final Stream<Integer> stream = StreamExtensions.<Integer>stream(int.class);
     final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+      @Override
       public void apply(final Entry<?, ?> it) {
         TestStreamExtensions.this.incOverflowCount();
       }
@@ -1014,6 +1062,7 @@ public class TestStreamExtensions {
     Stream<Promise<Integer>> _stream = StreamExtensions.<Promise<Integer>>stream(Collections.<Promise<Integer>>unmodifiableList(CollectionLiterals.<Promise<Integer>>newArrayList(t1, t2)));
     final SubStream<Promise<Integer>, Integer> s = StreamExtensions.<Promise<Integer>, Integer, Integer>resolve(_stream);
     final Procedure1<Entry<Promise<Integer>, Integer>> _function = new Procedure1<Entry<Promise<Integer>, Integer>>() {
+      @Override
       public void apply(final Entry<Promise<Integer>, Integer> it) {
         boolean _matched = false;
         if (!_matched) {
@@ -1041,8 +1090,10 @@ public class TestStreamExtensions {
   public void testResolving() {
     try {
       final Function1<String, Promise<String>> _function = new Function1<String, Promise<String>>() {
+        @Override
         public Promise<String> apply(final String x) {
           final Callable<String> _function = new Callable<String>() {
+            @Override
             public String call() throws Exception {
               String _xblockexpression = null;
               {
@@ -1078,6 +1129,7 @@ public class TestStreamExtensions {
       Collection<Entry<String, String>> _queue = s.getQueue();
       InputOutput.<Collection<Entry<String, String>>>println(_queue);
       final Function1<String, String> _function_1 = new Function1<String, String>() {
+        @Override
         public String apply(final String it) {
           return it;
         }
@@ -1087,6 +1139,7 @@ public class TestStreamExtensions {
       SubStream<String, String> _resolve = StreamExtensions.<String, String>resolve(_map_1, 3);
       SubStream<String, List<String>> _collect = StreamExtensions.<String, String>collect(_resolve);
       final Procedure1<List<String>> _function_2 = new Procedure1<List<String>>() {
+        @Override
         public void apply(final List<String> it) {
           InputOutput.<String>println(("got: " + it));
         }
@@ -1126,15 +1179,15 @@ public class TestStreamExtensions {
   
   @Test
   public void testLast() {
-    IntegerRange _upTo = new IntegerRange(1, 1000000);
+    IntegerRange _upTo = new IntegerRange(1, 1_000_000);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     SubPromise<Integer, Integer> _last = StreamExtensions.<Integer, Integer>last(s);
-    StreamAssert.<Integer>assertPromiseEquals(_last, Integer.valueOf(1000000));
+    StreamAssert.<Integer>assertPromiseEquals(_last, Integer.valueOf(1_000_000));
   }
   
   @Test
   public void testSkipAndTake() {
-    IntegerRange _upTo = new IntegerRange(1, 1000000000);
+    IntegerRange _upTo = new IntegerRange(1, 1_000_000_000);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
     SubStream<Integer, Integer> _skip = StreamExtensions.<Integer, Integer>skip(s, 3);
     SubStream<Integer, Integer> _take = StreamExtensions.<Integer, Integer>take(_skip, 3);
@@ -1166,8 +1219,10 @@ public class TestStreamExtensions {
     StreamCopySplitter<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(s);
     final IStream<Integer, Integer> s2 = _split.stream();
     final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             InputOutput.<String>println(("x" + $1));
           }
@@ -1188,12 +1243,14 @@ public class TestStreamExtensions {
     StreamCopySplitter<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(s1);
     final IStream<Integer, Integer> s2 = _split.stream();
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s2, _function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         InputOutput.<String>println("done");
       }
@@ -1210,6 +1267,7 @@ public class TestStreamExtensions {
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
     final Stream<Integer> s2 = PromiseExtensions.<Stream<Integer>, Promise<Stream<Integer>>, Integer>toStream(p);
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         String _message = it.getMessage();
         Assert.fail(_message);
@@ -1217,6 +1275,7 @@ public class TestStreamExtensions {
     };
     SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(s2, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
@@ -1235,6 +1294,7 @@ public class TestStreamExtensions {
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
     final Stream<Integer> s2 = PromiseExtensions.<Stream<Integer>, Promise<Stream<Integer>>, Integer>toStream(p);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
@@ -1249,6 +1309,7 @@ public class TestStreamExtensions {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
     SubStream<Integer, Integer> _throttle = StreamExtensions.<Integer, Integer>throttle(_stream, 10);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
@@ -1262,6 +1323,7 @@ public class TestStreamExtensions {
       IntegerRange _upTo = new IntegerRange(1, 1000);
       final Stream<Integer> stream = StreamExtensions.<Integer>stream(_upTo);
       final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        @Override
         public void apply(final Long period, final Procedure0 doneFn) {
           Timer _timer = new Timer();
           final TimerTask _function = new TimerTask() {
@@ -1277,6 +1339,7 @@ public class TestStreamExtensions {
       IStream<Integer, Integer> _ratelimit = StreamExtensions.<Integer, Integer>ratelimit(stream, 100, delayFn);
       final IStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer>ratelimit(_ratelimit, 500, delayFn);
       final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer it) {
           InputOutput.<Integer>println(it);
         }
@@ -1294,6 +1357,7 @@ public class TestStreamExtensions {
       IntegerRange _upTo = new IntegerRange(1, 4);
       final Stream<Integer> stream = StreamExtensions.<Integer>stream(_upTo);
       final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        @Override
         public void apply(final Long period, final Procedure0 doneFn) {
           Timer _timer = new Timer();
           final TimerTask _function = new TimerTask() {
@@ -1307,6 +1371,7 @@ public class TestStreamExtensions {
       };
       final Procedure2<Long, Procedure0> delayFn = _function;
       final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+        @Override
         public Integer apply(final Integer it) {
           return Integer.valueOf(((1000 / (2 - (it).intValue())) * 1000));
         }
@@ -1314,18 +1379,21 @@ public class TestStreamExtensions {
       SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(stream, _function_1);
       IStream<Integer, Integer> _ratelimit = StreamExtensions.<Integer, Integer>ratelimit(_map, 1000, delayFn);
       final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
+        @Override
         public Integer apply(final Integer it) {
           return Integer.valueOf(((1000 / (2 - (it).intValue())) * 1000));
         }
       };
       final SubStream<Integer, Integer> limited = StreamExtensions.<Integer, Integer, Integer>map(_ratelimit, _function_2);
       final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+        @Override
         public void apply(final Throwable it) {
           InputOutput.<Throwable>println(it);
         }
       };
       SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(limited, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer it) {
           InputOutput.<Integer>println(it);
         }
@@ -1341,6 +1409,7 @@ public class TestStreamExtensions {
   public void testWindow() {
     try {
       final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        @Override
         public void apply(final Long period, final Procedure0 doneFn) {
           Timer _timer = new Timer();
           final TimerTask _function = new TimerTask() {
@@ -1356,6 +1425,7 @@ public class TestStreamExtensions {
       final Stream<Integer> newStream = StreamExtensions.<Integer>stream(int.class);
       SubStream<Integer, List<Integer>> _window = StreamExtensions.<Integer, Integer>window(newStream, 500, delayFn);
       final Procedure1<List<Integer>> _function_1 = new Procedure1<List<Integer>>() {
+        @Override
         public void apply(final List<Integer> it) {
           InputOutput.<List<Integer>>println(it);
         }

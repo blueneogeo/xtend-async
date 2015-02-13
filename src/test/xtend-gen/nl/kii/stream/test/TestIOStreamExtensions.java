@@ -23,18 +23,21 @@ public class TestIOStreamExtensions {
     Stream<List<Byte>> _stream = StreamIOExtensions.stream(file);
     SubStream<List<Byte>, String> _text = StreamIOExtensions.<List<Byte>>toText(_stream);
     final Function1<String, String> _function = new Function1<String, String>() {
+      @Override
       public String apply(final String it) {
         return ("- " + it);
       }
     };
     SubStream<List<Byte>, String> _map = StreamExtensions.<List<Byte>, String, String>map(_text, _function);
     final Procedure1<String> _function_1 = new Procedure1<String>() {
+      @Override
       public void apply(final String it) {
         InputOutput.<String>println(it);
       }
     };
     SubTask<List<Byte>> _onEach = StreamExtensions.<List<Byte>, String>onEach(_map, _function_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         InputOutput.<String>println("finish");
       }
@@ -54,6 +57,7 @@ public class TestIOStreamExtensions {
     Stream<List<Byte>> _stream_1 = StreamIOExtensions.stream(source);
     Task _writeTo = StreamIOExtensions.<List<Byte>>writeTo(_stream_1, destination);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         source.delete();
         destination.delete();

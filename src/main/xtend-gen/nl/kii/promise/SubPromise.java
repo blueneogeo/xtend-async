@@ -20,6 +20,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
     this.root = _root;
   }
   
+  @Override
   public IPromise<R, ?> getRoot() {
     return this.root;
   }
@@ -27,6 +28,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   /**
    * set the promised value
    */
+  @Override
   public void set(final R value) {
     if (this.root!=null) {
       this.root.set(value);
@@ -36,6 +38,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   /**
    * report an error to the listener of the promise.
    */
+  @Override
   public IPromise<R, T> error(final Throwable t) {
     SubPromise<R, T> _xblockexpression = null;
     {

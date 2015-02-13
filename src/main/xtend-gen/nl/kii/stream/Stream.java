@@ -7,6 +7,7 @@ import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
 public class Stream<T extends Object> extends BaseStream<T, T> {
+  @Override
   public IStream<T, T> getInput() {
     return this;
   }
@@ -14,6 +15,7 @@ public class Stream<T extends Object> extends BaseStream<T, T> {
   /**
    * Queue a value on the stream for pushing to the listener
    */
+  @Override
   public void push(final T value) {
     Value<T, T> _value = new Value<T, T>(value, value);
     this.apply(_value);
@@ -23,6 +25,7 @@ public class Stream<T extends Object> extends BaseStream<T, T> {
    * Tell the stream an error occurred. the error will not be thrown directly,
    * but passed and can be listened for down the stream.
    */
+  @Override
   public void error(final Throwable error) {
     nl.kii.stream.message.Error<Object, Object> _error = new nl.kii.stream.message.Error<Object, Object>(null, error);
     this.apply(_error);
@@ -31,6 +34,7 @@ public class Stream<T extends Object> extends BaseStream<T, T> {
   /**
    * Tell the stream the current batch of data is finished. The same as finish(0).
    */
+  @Override
   public void finish() {
     Finish<Object, Object> _finish = new Finish<Object, Object>(null, 0);
     this.apply(_finish);
@@ -39,6 +43,7 @@ public class Stream<T extends Object> extends BaseStream<T, T> {
   /**
    * Tell the stream a batch of the given level has finished.
    */
+  @Override
   public void finish(final int level) {
     Finish<Object, Object> _finish = new Finish<Object, Object>(null, level);
     this.apply(_finish);
