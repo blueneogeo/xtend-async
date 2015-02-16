@@ -40,7 +40,6 @@ public class StreamIOExtensions {
       {
         final Stream<List<Byte>> newStream = new Stream<List<Byte>>();
         ByteStreams.<Object>readBytes(stream, new ByteProcessor() {
-          @Override
           public Object getResult() {
             Object _xblockexpression = null;
             {
@@ -50,7 +49,6 @@ public class StreamIOExtensions {
             return _xblockexpression;
           }
           
-          @Override
           public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
             boolean _xblockexpression = false;
             {
@@ -66,10 +64,8 @@ public class StreamIOExtensions {
           }
         });
         final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
-          @Override
           public void apply(final StreamEventResponder it) {
             final Procedure1<Void> _function = new Procedure1<Void>() {
-              @Override
               public void apply(final Void it) {
                 try {
                   stream.close();
@@ -80,7 +76,6 @@ public class StreamIOExtensions {
             };
             it.skip(_function);
             final Procedure1<Void> _function_1 = new Procedure1<Void>() {
-              @Override
               public void apply(final Void it) {
                 try {
                   stream.close();
@@ -124,7 +119,6 @@ public class StreamIOExtensions {
   
   public static <I extends Object> SubStream<I, String> toText(final IStream<I, List<Byte>> stream, final String encoding) {
     final Function1<List<Byte>, List<String>> _function = new Function1<List<Byte>, List<String>>() {
-      @Override
       public List<String> apply(final List<Byte> it) {
         try {
           String _string = new String(((byte[])Conversions.unwrapArray(it, byte.class)), encoding);
@@ -138,7 +132,6 @@ public class StreamIOExtensions {
     SubStream<I, List<String>> _map = StreamExtensions.<I, List<Byte>, List<String>>map(stream, _function);
     SubStream<I, String> _separate = StreamExtensions.<I, String>separate(_map);
     final Procedure1<SubStream<I, String>> _function_1 = new Procedure1<SubStream<I, String>>() {
-      @Override
       public void apply(final SubStream<I, String> it) {
         stream.setOperation((("toText(encoding=" + encoding) + ")"));
       }
@@ -152,7 +145,6 @@ public class StreamIOExtensions {
   
   public static <I extends Object> SubStream<I, List<Byte>> toBytes(final IStream<I, String> stream, final String encoding) {
     final Function1<String, List<Byte>> _function = new Function1<String, List<Byte>>() {
-      @Override
       public List<Byte> apply(final String it) {
         try {
           byte[] _bytes = (it + "\n").getBytes(encoding);
@@ -164,7 +156,6 @@ public class StreamIOExtensions {
     };
     SubStream<I, List<Byte>> _map = StreamExtensions.<I, String, List<Byte>>map(stream, _function);
     final Procedure1<SubStream<I, List<Byte>>> _function_1 = new Procedure1<SubStream<I, List<Byte>>>() {
-      @Override
       public void apply(final SubStream<I, List<Byte>> it) {
         stream.setOperation((("toBytes(encoding=" + encoding) + ")"));
       }
@@ -180,10 +171,8 @@ public class StreamIOExtensions {
     {
       final Task task = new Task();
       final Procedure1<StreamResponder<I, List<Byte>>> _function = new Procedure1<StreamResponder<I, List<Byte>>>() {
-        @Override
         public void apply(final StreamResponder<I, List<Byte>> it) {
           final Procedure1<Void> _function = new Procedure1<Void>() {
-            @Override
             public void apply(final Void it) {
               try {
                 out.close();
@@ -195,7 +184,6 @@ public class StreamIOExtensions {
           };
           it.closed(_function);
           final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
-            @Override
             public void apply(final I $0, final Integer $1) {
               try {
                 boolean _equals = Objects.equal(it, Integer.valueOf(0));
@@ -211,7 +199,6 @@ public class StreamIOExtensions {
           };
           it.finish(_function_1);
           final Procedure2<I, Throwable> _function_2 = new Procedure2<I, Throwable>() {
-            @Override
             public void apply(final I $0, final Throwable $1) {
               task.error($1);
               stream.close();
@@ -219,7 +206,6 @@ public class StreamIOExtensions {
           };
           it.error(_function_2);
           final Procedure2<I, List<Byte>> _function_3 = new Procedure2<I, List<Byte>>() {
-            @Override
             public void apply(final I $0, final List<Byte> $1) {
               try {
                 out.write(((byte[])Conversions.unwrapArray($1, byte.class)));

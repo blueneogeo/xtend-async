@@ -86,27 +86,22 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * Get the queue of the stream. will only be an unmodifiable view of the queue.
    */
-  @Override
   public Collection<Entry<I, O>> getQueue() {
     return Collections.<Entry<I, O>>unmodifiableCollection(this.queue);
   }
   
-  @Override
   public boolean isOpen() {
     return (this.getOpen()).booleanValue();
   }
   
-  @Override
   public boolean isReady() {
     return (this.getReady()).booleanValue();
   }
   
-  @Override
   public boolean isSkipping() {
     return (this.getSkipping()).booleanValue();
   }
   
-  @Override
   public int getBufferSize() {
     return (this.getBuffersize()).intValue();
   }
@@ -114,7 +109,6 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * Ask for the next value in the buffer to be delivered to the change listener
    */
-  @Override
   public void next() {
     Next _next = new Next();
     this.apply(_next);
@@ -123,7 +117,6 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * Tell the stream to stop sending values until the next Finish(0)
    */
-  @Override
   public void skip() {
     Skip _skip = new Skip();
     this.apply(_skip);
@@ -132,7 +125,6 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * Close the stream, which will stop the listener from recieving values
    */
-  @Override
   public void close() {
     Close _close = new Close();
     this.apply(_close);
@@ -145,11 +137,9 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
    * the StreamExtensions instead.
    * @return unsubscribe function
    */
-  @Override
   public Procedure0 onChange(final Procedure1<? super Entry<I, O>> entryListener) {
     this.setEntryListener(entryListener);
     final Procedure0 _function = new Procedure0() {
-      @Override
       public void apply() {
         BaseStream.this.setEntryListener(null);
       }
@@ -164,11 +154,9 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
    * the StreamExtensions instead.
    * @return unsubscribe function
    */
-  @Override
   public Procedure0 onNotify(final Procedure1<? super StreamEvent> notificationListener) {
     this.setNotificationListener(notificationListener);
     final Procedure0 _function = new Procedure0() {
-      @Override
       public void apply() {
         BaseStream.this.setNotificationListener(null);
       }
@@ -179,7 +167,6 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   /**
    * Process a single incoming stream message from the actor queue.
    */
-  @Override
   protected void act(final StreamMessage entry, final Procedure0 done) {
     boolean _isOpen = this.isOpen();
     if (_isOpen) {
@@ -411,7 +398,6 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
     }
   }
   
-  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Stream { operation: ");

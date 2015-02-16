@@ -7,7 +7,6 @@ import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
 public class Promise<T extends Object> extends BasePromise<T, T> {
-  @Override
   public IPromise<T, ?> getRoot() {
     return this;
   }
@@ -22,7 +21,6 @@ public class Promise<T extends Object> extends BasePromise<T, T> {
   /**
    * set the promised value
    */
-  @Override
   public void set(final T value) {
     boolean _equals = Objects.equal(value, null);
     if (_equals) {
@@ -35,7 +33,6 @@ public class Promise<T extends Object> extends BasePromise<T, T> {
   /**
    * report an error to the listener of the promise.
    */
-  @Override
   public IPromise<T, T> error(final Throwable t) {
     Promise<T> _xblockexpression = null;
     {

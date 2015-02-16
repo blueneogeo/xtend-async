@@ -25,7 +25,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
  */
 @SuppressWarnings("all")
 public interface IStream<I extends Object, O extends Object> extends Procedure1<StreamMessage>, Observable<Entry<I, O>> {
-  @Override
   public abstract void apply(final StreamMessage message);
   
   public abstract void push(final I value);
@@ -42,7 +41,6 @@ public interface IStream<I extends Object, O extends Object> extends Procedure1<
   
   public abstract void close();
   
-  @Override
   public abstract Procedure0 onChange(final Procedure1<? super Entry<I, O>> observeFn);
   
   public abstract Procedure0 onNotify(final Procedure1<? super StreamEvent> notificationListener);

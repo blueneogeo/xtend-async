@@ -69,7 +69,6 @@ public class TestAtomicAnnotation {
     String _name_2 = _tester_3.getName();
     Assert.assertEquals("Floris", _name_2);
     final Procedure0 _function = new Procedure0() {
-      @Override
       public void apply() {
         Integer _i = TestAtomicAnnotation.this.getI();
         int _plus = ((_i).intValue() + 1);

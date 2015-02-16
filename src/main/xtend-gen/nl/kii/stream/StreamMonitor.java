@@ -20,7 +20,6 @@ public class StreamMonitor {
   
   public StreamStats stats(final String name) {
     final Function1<Pair<String, StreamStats>, Boolean> _function = new Function1<Pair<String, StreamStats>, Boolean>() {
-      @Override
       public Boolean apply(final Pair<String, StreamStats> it) {
         String _key = it.getKey();
         return Boolean.valueOf(Objects.equal(_key, name));
@@ -56,7 +55,6 @@ public class StreamMonitor {
     return this.chain;
   }
   
-  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     {

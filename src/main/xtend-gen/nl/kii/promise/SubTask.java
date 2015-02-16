@@ -24,7 +24,6 @@ public class SubTask<R extends Object> extends SubPromise<R, Boolean> {
     this.apply(_value);
   }
   
-  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Task { fulfilled: ");

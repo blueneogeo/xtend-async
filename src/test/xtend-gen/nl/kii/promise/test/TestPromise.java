@@ -30,7 +30,6 @@ public class TestPromise {
     final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.class);
     final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         PromiseExtensions.<Integer, Integer>operator_doubleGreaterThan(it, p2);
       }
@@ -46,7 +45,6 @@ public class TestPromise {
     final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
     p.set(Integer.valueOf(10));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         PromiseExtensions.<Integer, Integer>operator_doubleGreaterThan(it, p2);
       }
@@ -60,14 +58,12 @@ public class TestPromise {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(0));
     final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      @Override
       public void apply(final Throwable it) {
         PromiseExtensions.<Boolean, Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
     p.onError(_function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
       }
@@ -81,7 +77,6 @@ public class TestPromise {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(0));
     try {
       final Procedure1<Integer> _function = new Procedure1<Integer>() {
-        @Override
         public void apply(final Integer it) {
           InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
         }
@@ -101,7 +96,6 @@ public class TestPromise {
   public void testPromiseChaining() {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(1));
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return new Promise<Integer>(Integer.valueOf(2));
       }
@@ -115,7 +109,6 @@ public class TestPromise {
   public void testTaskChain() {
     Task _sayHello = this.sayHello();
     final Function1<Boolean, Task> _function = new Function1<Boolean, Task>() {
-      @Override
       public Task apply(final Boolean it) {
         return TestPromise.this.sayHello();
       }
@@ -123,7 +116,6 @@ public class TestPromise {
     SubPromise<Boolean, Task> _map = PromiseExtensions.<Boolean, Boolean, Task>map(_sayHello, _function);
     SubPromise<Boolean, Boolean> _resolve = PromiseExtensions.<Boolean, Boolean, Task>resolve(_map);
     final Function1<Boolean, Task> _function_1 = new Function1<Boolean, Task>() {
-      @Override
       public Task apply(final Boolean it) {
         return TestPromise.this.sayHello();
       }
@@ -131,7 +123,6 @@ public class TestPromise {
     SubPromise<Boolean, Task> _map_1 = PromiseExtensions.<Boolean, Boolean, Task>map(_resolve, _function_1);
     SubPromise<Boolean, Boolean> _resolve_1 = PromiseExtensions.<Boolean, Boolean, Task>resolve(_map_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromise.this.sayHello();
       }
@@ -145,70 +136,60 @@ public class TestPromise {
     final AtomicReference<Throwable> caughtError = new AtomicReference<Throwable>();
     Promise<Integer> _addOne = this.addOne(1);
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
     final Procedure1<Throwable> _function_8 = new Procedure1<Throwable>() {
-      @Override
       public void apply(final Throwable it) {
         caughtError.set(it);
       }
     };
     IPromise<Integer, Integer> _onError = _call_7.onError(_function_8);
     final Procedure1<Entry<?, Integer>> _function_9 = new Procedure1<Entry<?, Integer>>() {
-      @Override
       public void apply(final Entry<?, Integer> it) {
         alwaysDone.set(true);
       }
@@ -231,49 +212,42 @@ public class TestPromise {
   public void testLongChainWithError() {
     Promise<Integer> _addOne = this.addOne(1);
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_addOne, _function);
     final Function1<Integer, Promise<Integer>> _function_1 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call, _function_1);
     final Function1<Integer, Promise<Integer>> _function_2 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_1, _function_2);
     final Function1<Integer, Promise<Integer>> _function_3 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_3 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_2, _function_3);
     final Function1<Integer, Promise<Integer>> _function_4 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_4 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_3, _function_4);
     final Function1<Integer, Promise<Integer>> _function_5 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_5 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_4, _function_5);
     final Function1<Integer, Promise<Integer>> _function_6 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         try {
           Promise<Integer> _xblockexpression = null;
@@ -293,35 +267,30 @@ public class TestPromise {
     };
     SubPromise<Integer, Integer> _call_6 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_5, _function_6);
     final Function1<Integer, Promise<Integer>> _function_7 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_7 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_6, _function_7);
     final Function1<Integer, Promise<Integer>> _function_8 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_8 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_7, _function_8);
     final Function1<Integer, Promise<Integer>> _function_9 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_9 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_8, _function_9);
     final Function1<Integer, Promise<Integer>> _function_10 = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromise.this.addOne((it).intValue());
       }
     };
     SubPromise<Integer, Integer> _call_10 = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>call(_call_9, _function_10);
     final Procedure1<Throwable> _function_11 = new Procedure1<Throwable>() {
-      @Override
       public void apply(final Throwable it) {
         InputOutput.<String>println("xxx");
         TestPromise.this.setCaughtError(it);
@@ -329,7 +298,6 @@ public class TestPromise {
     };
     IPromise<Integer, Integer> _onError = _call_10.onError(_function_11);
     final Procedure1<Integer> _function_12 = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         InputOutput.<String>println("hello");
         Assert.fail(("should not get here" + it));
@@ -345,7 +313,6 @@ public class TestPromise {
   @Async
   public Promise<IPromise<Integer, Integer>> addOne(final int n, final Promise<Integer> promise) {
     final Callable<IPromise<Integer, Integer>> _function = new Callable<IPromise<Integer, Integer>>() {
-      @Override
       public IPromise<Integer, Integer> call() throws Exception {
         return PromiseExtensions.<Integer, Integer>operator_doubleLessThan(promise, Integer.valueOf((n + 1)));
       }
@@ -356,7 +323,6 @@ public class TestPromise {
   @Async
   public Promise<Task> sayHello(final Task task) {
     final Callable<Task> _function = new Callable<Task>() {
-      @Override
       public Task call() throws Exception {
         Task _xblockexpression = null;
         {
@@ -374,35 +340,30 @@ public class TestPromise {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(1));
     final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() - 1));
       }
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf((1 / (it).intValue()));
       }
     };
     SubPromise<Integer, Integer> _map_1 = PromiseExtensions.<Integer, Integer, Integer>map(_map, _function_1);
     final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
     SubPromise<Integer, Integer> _map_2 = PromiseExtensions.<Integer, Integer, Integer>map(_map_1, _function_2);
     final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      @Override
       public void apply(final Throwable it) {
         PromiseExtensions.<Boolean, Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
     IPromise<Integer, Integer> _onError = _map_2.onError(_function_3);
     final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
@@ -415,28 +376,24 @@ public class TestPromise {
   public void testPromiseChain() {
     final Promise<Integer> p = PromiseExtensions.<Integer>promise(int.class);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
     Task _then = _map.then(_function_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         InputOutput.<Boolean>println(it);
       }
     };
     Task _then_1 = _then.then(_function_2);
     final Procedure1<Boolean> _function_3 = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         InputOutput.<Boolean>println(it);
       }
@@ -453,21 +410,18 @@ public class TestPromise {
     this.setFoundError(Boolean.valueOf(false));
     final Promise<Integer> p = PromiseExtensions.<Integer>promise(int.class);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() / 0));
       }
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
       public void apply(final Integer it) {
         Assert.fail("it/0 should not succeed");
       }
     };
     Task _then = _map.then(_function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
       public void apply(final Throwable it) {
         TestPromise.this.setFoundError(Boolean.valueOf(true));
       }

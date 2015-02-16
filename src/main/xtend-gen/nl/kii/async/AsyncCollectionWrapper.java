@@ -18,7 +18,6 @@ public class AsyncCollectionWrapper<T extends Object> implements AsyncCollection
     this.collection = collection;
   }
   
-  @Override
   public Task add(final T value) {
     Task _xblockexpression = null;
     {
@@ -29,7 +28,6 @@ public class AsyncCollectionWrapper<T extends Object> implements AsyncCollection
     return _xblockexpression;
   }
   
-  @Override
   public Task remove(final T value) {
     Task _xblockexpression = null;
     {
@@ -40,7 +38,6 @@ public class AsyncCollectionWrapper<T extends Object> implements AsyncCollection
     return _xblockexpression;
   }
   
-  @Override
   public Task clear() {
     Task _xblockexpression = null;
     {
@@ -51,19 +48,16 @@ public class AsyncCollectionWrapper<T extends Object> implements AsyncCollection
     return _xblockexpression;
   }
   
-  @Override
   public Promise<Boolean> isEmpty() {
     boolean _isEmpty = this.collection.isEmpty();
     return PromiseExtensions.<Boolean>promise(Boolean.valueOf(_isEmpty));
   }
   
-  @Override
   public Promise<Integer> size() {
     int _size = this.collection.size();
     return PromiseExtensions.<Integer>promise(Integer.valueOf(_size));
   }
   
-  @Override
   public Promise<Iterator<T>> iterator() {
     Iterator<T> _iterator = this.collection.iterator();
     return PromiseExtensions.<Iterator<T>>promise(_iterator);

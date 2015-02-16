@@ -54,7 +54,6 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   @Atomic
   private final AtomicReference<String> __operation = new AtomicReference<String>();
   
-  @Override
   public void apply(final Entry<R, T> it) {
     boolean _equals = Objects.equal(it, null);
     if (_equals) {
@@ -94,7 +93,6 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   /**
    * only has a value when finished, otherwise null
    */
-  @Override
   public Entry<R, T> get() {
     return this.getEntry();
   }
@@ -103,20 +101,16 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return this.publisher;
   }
   
-  @Override
   public String getOperation() {
     return this.get_operation();
   }
   
-  @Override
   public void setOperation(final String name) {
     this.set_operation(name);
   }
   
-  @Override
   public IPromise<R, T> onError(final Procedure1<Throwable> errorFn) {
     final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
-      @Override
       public void apply(final R r, final Throwable t) {
         errorFn.apply(t);
       }
@@ -131,13 +125,11 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * FIX: this method should return a subpromise with the error filtered out, but it returns this,
    * since there is a generics problem trying to assign the values.
    */
-  @Override
   public IPromise<R, T> onError(final Procedure2<R, Throwable> errorFn) {
     BasePromise<R, T> _xblockexpression = null;
     {
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
-        @Override
         public void apply(final Entry<R, T> it) {
           try {
             boolean _matched = false;
@@ -177,10 +169,8 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
-  @Override
   public Task then(final Procedure1<T> valueFn) {
     final Procedure2<R, T> _function = new Procedure2<R, T>() {
-      @Override
       public void apply(final R r, final T it) {
         valueFn.apply(it);
       }
@@ -191,14 +181,12 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   /**
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
-  @Override
   public Task then(final Procedure2<R, T> valueFn) {
     Task _xblockexpression = null;
     {
       final Task newTask = new Task();
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
-        @Override
         public void apply(final Entry<R, T> it) {
           try {
             boolean _matched = false;
@@ -243,7 +231,6 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return _xblockexpression;
   }
   
-  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Promise { fulfilled: ");

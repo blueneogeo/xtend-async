@@ -44,7 +44,6 @@ public class ExecutorExtensions {
     {
       final Promise<T> promise = new Promise<T>();
       final Runnable _function = new Runnable() {
-        @Override
         public void run() {
           try {
             final T result = callable.call();
@@ -78,7 +77,6 @@ public class ExecutorExtensions {
     {
       final Task task = new Task();
       final Runnable _function = new Runnable() {
-        @Override
         public void run() {
           try {
             runnable.run();
@@ -102,7 +100,6 @@ public class ExecutorExtensions {
   
   public static Procedure2<? super Long, ? super Procedure0> scheduler(final ScheduledExecutorService executor) {
     final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
-      @Override
       public void apply(final Long period, final Procedure0 doneFn) {
         executor.schedule(new Runnable() {
             public void run() {
@@ -134,7 +131,6 @@ public class ExecutorExtensions {
       final Stream<Long> newStream = StreamExtensions.<Long>stream(long.class);
       final long start = System.currentTimeMillis();
       final Runnable _function = new Runnable() {
-        @Override
         public void run() {
           final long now = System.currentTimeMillis();
           final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));

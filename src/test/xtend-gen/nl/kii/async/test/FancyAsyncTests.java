@@ -4,6 +4,7 @@ import java.util.concurrent.Future;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
@@ -23,21 +24,18 @@ public class FancyAsyncTests {
     try {
       Task _complete = PromiseExtensions.complete();
       final Function1<Boolean, String> _function = new Function1<Boolean, String>() {
-        @Override
         public String apply(final Boolean it) {
           return "hello world";
         }
       };
       SubPromise<Boolean, String> _map = PromiseExtensions.<Boolean, Boolean, String>map(_complete, _function);
       final Function1<SubPromise<Boolean, String>, SubPromise<Boolean, String>> _function_1 = new Function1<SubPromise<Boolean, String>, SubPromise<Boolean, String>>() {
-        @Override
         public SubPromise<Boolean, String> apply(final SubPromise<Boolean, String> it) {
           return it;
         }
       };
-      final Function1<SubPromise<Boolean, String>, BasePromise<? extends Object, String>> _function_2 = new Function1<SubPromise<Boolean, String>, BasePromise<? extends Object, String>>() {
-        @Override
-        public BasePromise<? extends Object, String> apply(final SubPromise<Boolean, String> it) {
+      final Function1<SubPromise<Boolean, String>, Promise<String>> _function_2 = new Function1<SubPromise<Boolean, String>, Promise<String>>() {
+        public Promise<String> apply(final SubPromise<Boolean, String> it) {
           return PromiseExtensions.<String>error(String.class, "test");
         }
       };
@@ -63,14 +61,12 @@ public class FancyAsyncTests {
     {
       final SubPromise<I, R> newPromise = new SubPromise<I, R>(promise);
       final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-        @Override
         public void apply(final I i, final Throwable e) {
           newPromise.error(i, e);
         }
       };
       IPromise<I, O> _onError = promise.onError(_function);
       final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
-        @Override
         public void apply(final I i, final O o) {
           try {
             P2 _xifexpression = null;
@@ -82,14 +78,12 @@ public class FancyAsyncTests {
             }
             final P2 result = _xifexpression;
             final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-              @Override
               public void apply(final Throwable it) {
                 newPromise.error(it);
               }
             };
             IPromise<?, R> _onError = result.onError(_function);
             final Procedure1<R> _function_1 = new Procedure1<R>() {
-              @Override
               public void apply(final R r) {
                 newPromise.set(i, r);
               }
@@ -107,7 +101,6 @@ public class FancyAsyncTests {
       };
       _onError.then(_function_1);
       final Procedure1<SubPromise<I, R>> _function_2 = new Procedure1<SubPromise<I, R>>() {
-        @Override
         public void apply(final SubPromise<I, R> it) {
           it.setOperation("when");
         }
@@ -119,7 +112,6 @@ public class FancyAsyncTests {
   
   public static <I extends Object, O extends Object, R extends Object, P extends IPromise<I, O>, P2 extends IPromise<?, R>> SubPromise<I, R> if_(final P promise, final boolean condition, final Function1<? super P, ? extends P2> thenFn, final Function1<? super P, ? extends P2> elseFn) {
     final Function1<O, Boolean> _function = new Function1<O, Boolean>() {
-      @Override
       public Boolean apply(final O it) {
         return Boolean.valueOf(condition);
       }

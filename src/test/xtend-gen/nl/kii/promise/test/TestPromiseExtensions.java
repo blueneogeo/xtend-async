@@ -66,7 +66,6 @@ public class TestPromiseExtensions {
   public void testMap() {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(4));
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 10));
       }
@@ -88,7 +87,6 @@ public class TestPromiseExtensions {
   public void testAsync() {
     final Promise<Integer> s = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromiseExtensions.this.power2((it).intValue());
       }
@@ -104,7 +102,6 @@ public class TestPromiseExtensions {
     Stream<Integer> _stream = StreamExtensions.<List<Integer>, Integer, List<Integer>>stream(p);
     SubStream<Integer, Double> _sum = StreamExtensions.<Integer, Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
-      @Override
       public void apply(final Double it) {
         Assert.assertEquals(6, (it).doubleValue(), 0);
       }
@@ -127,14 +124,12 @@ public class TestPromiseExtensions {
     final Task t3 = new Task();
     final Task a = PromiseExtensions.all(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
       }
     };
     t2.then(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
       }
@@ -169,14 +164,12 @@ public class TestPromiseExtensions {
     Task _and = PromiseExtensions.operator_and(t1, t2);
     final Task a = PromiseExtensions.operator_and(_and, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
       }
     };
     t2.then(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
       }
@@ -211,7 +204,6 @@ public class TestPromiseExtensions {
     final Task t3 = new Task();
     final Task a = PromiseExtensions.<Boolean, Boolean, Task>any(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
       }
@@ -238,7 +230,6 @@ public class TestPromiseExtensions {
     Task _or = PromiseExtensions.<Boolean, Boolean>operator_or(t1, t2);
     final Task a = PromiseExtensions.<Boolean, Boolean>operator_or(_or, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
       }

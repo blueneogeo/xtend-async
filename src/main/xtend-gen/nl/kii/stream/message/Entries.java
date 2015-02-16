@@ -18,12 +18,10 @@ public class Entries<I extends Object, O extends Object> implements StreamMessag
     this.entries = ((List<Entry<I, O>>)Conversions.doWrapArray(entries));
   }
   
-  @Override
   public String toString() {
     return this.entries.toString();
   }
   
-  @Override
   public boolean equals(final Object o) {
     boolean _and = false;
     if (!(o instanceof Entries<?, ?>)) {
