@@ -37,6 +37,7 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
     this.map = myMap;
   }
   
+  @Override
   public Task put(final K key, final V value) {
     Task _xblockexpression = null;
     {
@@ -47,11 +48,13 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
     return _xblockexpression;
   }
   
+  @Override
   public Promise<V> get(final K key) {
     V _get = this.map.get(key);
     return PromiseExtensions.<V>promise(_get);
   }
   
+  @Override
   public Task remove(final K key) {
     Task _xblockexpression = null;
     {
@@ -62,8 +65,10 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
     return _xblockexpression;
   }
   
+  @Override
   public Promise<Map<K, V>> get(final List<K> keys) {
     final Function1<K, Pair<K, V>> _function = new Function1<K, Pair<K, V>>() {
+      @Override
       public Pair<K, V> apply(final K it) {
         V _get = AsyncMapWrapper.this.map.get(it);
         return Pair.<K, V>of(it, _get);
@@ -81,6 +86,7 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
       boolean _notEquals = (!Objects.equal(pairs, null));
       if (_notEquals) {
         final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+          @Override
           public void apply(final Pair<K, V> it) {
             K _key = it.getKey();
             V _value = it.getValue();

@@ -31,6 +31,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
     this.input = _input;
   }
   
+  @Override
   public IStream<I, I> getInput() {
     return this.input;
   }
@@ -38,6 +39,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
   /**
    * Queue a value on the stream for pushing to the listener
    */
+  @Override
   public void push(final I value) {
     this.input.push(value);
   }
@@ -46,6 +48,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
    * Tell the stream an error occurred. the error will not be thrown directly,
    * but passed and can be listened for down the stream.
    */
+  @Override
   public void error(final Throwable t) {
     this.input.error(t);
   }
@@ -53,6 +56,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
   /**
    * Tell the stream the current batch of data is finished. The same as finish(0).
    */
+  @Override
   public void finish() {
     this.input.finish();
   }
@@ -60,6 +64,7 @@ public class SubStream<I extends Object, O extends Object> extends BaseStream<I,
   /**
    * Tell the stream a batch of the given level has finished.
    */
+  @Override
   public void finish(final int level) {
     this.input.finish(level);
   }

@@ -57,6 +57,7 @@ public class StreamException extends Exception {
     return _xifexpression;
   }
   
+  @Override
   public String getMessage() {
     String _xblockexpression = null;
     {

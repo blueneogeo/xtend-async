@@ -7,6 +7,7 @@ import nl.kii.stream.message.Entry;
  */
 @SuppressWarnings("all")
 public class Closed<I extends Object, O extends Object> implements Entry<I, O> {
+  @Override
   public String toString() {
     return "closed stream";
   }

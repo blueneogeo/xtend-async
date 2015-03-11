@@ -32,8 +32,10 @@ public class TestSplitter {
     StreamSource<Integer, Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
           }
@@ -43,8 +45,10 @@ public class TestSplitter {
     };
     StreamExtensions.<Integer, Integer>on(s1, _function);
     final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
           }
@@ -96,8 +100,10 @@ public class TestSplitter {
     StreamSource<Integer, Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
     final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
           }
@@ -107,8 +113,10 @@ public class TestSplitter {
     };
     StreamExtensions.<Integer, Integer>on(s1, _function);
     final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
           }

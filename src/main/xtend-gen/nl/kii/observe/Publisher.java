@@ -42,6 +42,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
   /**
    * Listen for publications from the publisher
    */
+  @Override
   public Procedure0 onChange(final Procedure1<? super T> observeFn) {
     List<Procedure1<T>> _observers = this.getObservers();
     boolean _equals = Objects.equal(_observers, null);
@@ -52,6 +53,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     List<Procedure1<T>> _observers_1 = this.getObservers();
     _observers_1.add(((Procedure1<T>)observeFn));
     final Procedure0 _function = new Procedure0() {
+      @Override
       public void apply() {
         List<Procedure1<T>> _observers = Publisher.this.getObservers();
         _observers.remove(observeFn);
@@ -60,6 +62,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     return _function;
   }
   
+  @Override
   public void act(final T message, final Procedure0 done) {
     boolean _and = false;
     List<Procedure1<T>> _observers = this.getObservers();
@@ -92,6 +95,7 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     return _xifexpression;
   }
   
+  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Publisher { publishing: ");

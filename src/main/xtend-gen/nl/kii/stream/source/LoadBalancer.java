@@ -26,6 +26,7 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
   /**
    * Handle an entry coming in from the source stream
    */
+  @Override
   protected void onEntry(final Entry<I, O> entry) {
     boolean _matched = false;
     if (!_matched) {
@@ -61,6 +62,7 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
     }
   }
   
+  @Override
   protected void onCommand(@Extension final StreamEvent msg) {
     boolean _matched = false;
     if (!_matched) {
@@ -90,6 +92,7 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
   protected void skip() {
     List<IStream<I, ?>> _streams = this.getStreams();
     final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
       public Boolean apply(final IStream<I, ?> it) {
         return Boolean.valueOf(it.isSkipping());
       }
@@ -105,6 +108,7 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
   protected void close() {
     List<IStream<I, ?>> _streams = this.getStreams();
     final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
       public Boolean apply(final IStream<I, ?> it) {
         boolean _isOpen = it.isOpen();
         return Boolean.valueOf((!_isOpen));

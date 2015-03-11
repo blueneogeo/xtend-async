@@ -22,10 +22,12 @@ public class Finish<I extends Object, O extends Object> implements Entry<I, O> {
     this.level = level;
   }
   
+  @Override
   public String toString() {
     return (("finish(" + Integer.valueOf(this.level)) + ")");
   }
   
+  @Override
   public boolean equals(final Object o) {
     boolean _and = false;
     if (!(o instanceof Finish<?, ?>)) {

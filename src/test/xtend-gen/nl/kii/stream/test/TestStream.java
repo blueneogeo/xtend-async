@@ -35,23 +35,28 @@ public class TestStream {
   public void testObservingAStream() {
     final Stream<Integer> s = new Stream<Integer>();
     StreamExtensions.<Integer, Integer>handle(s, new StreamEventHandler() {
+      @Override
       public void onNext() {
         InputOutput.<String>println("next!");
       }
       
+      @Override
       public void onSkip() {
         InputOutput.<String>println("skip!");
       }
       
+      @Override
       public void onClose() {
         InputOutput.<String>println("close!");
       }
       
+      @Override
       public void onOverflow(final Entry<?, ?> entry) {
         InputOutput.<String>println(("overflow! of " + entry));
       }
     });
     StreamExtensions.<Integer, Integer>observe(s, new StreamObserver<Integer, Integer>() {
+      @Override
       public void onValue(final Integer from, final Integer value) {
         try {
           InputOutput.<String>println(("value: " + value));
@@ -64,16 +69,19 @@ public class TestStream {
         }
       }
       
+      @Override
       public void onError(final Integer from, final Throwable t) {
         InputOutput.<String>println(("error:" + t));
         s.next();
       }
       
+      @Override
       public void onFinish(final Integer from, final int level) {
         InputOutput.<String>println("finished");
         s.next();
       }
       
+      @Override
       public void onClosed() {
         InputOutput.<String>println("closed");
       }
@@ -91,18 +99,21 @@ public class TestStream {
     final AtomicInteger counter = new AtomicInteger(0);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf(((it).intValue() != 2));
       }
     };
     SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(s, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
@@ -126,6 +137,7 @@ public class TestStream {
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
@@ -149,14 +161,17 @@ public class TestStream {
     IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
     final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestStream.this.incCounter($1);
           }
         };
         it.each(_function);
         final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
           }
         };
@@ -198,14 +213,17 @@ public class TestStream {
   public void testControlledChainedBufferedStream() {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return it;
       }
     };
     final SubStream<Integer, Integer> s = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
     final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
       public void apply(final StreamResponder<Integer, Integer> it) {
         final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
           public void apply(final Integer $0, final Integer $1) {
             TestStream.this.setResult($1);
           }
@@ -238,12 +256,14 @@ public class TestStream {
   public void testStreamErrors() {
     final Stream<Integer> s = new Stream<Integer>();
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
       }
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
         InputOutput.<String>println("!!");
         TestStream.this.setError(it);
@@ -267,12 +287,14 @@ public class TestStream {
     try {
       final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
       final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+        @Override
         public void apply(final Entry<?, ?> it) {
           TestStream.this.incOverflow();
         }
       };
       final SubStream<Integer, Integer> s2 = StreamExtensions.<Integer, Integer>buffer(s, 3000, _function);
       final Runnable _function_1 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(0, 999);
           for (final Integer i : _upTo) {
@@ -282,6 +304,7 @@ public class TestStream {
       };
       ExecutorExtensions.task(this.threads, _function_1);
       final Runnable _function_2 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1000, 1999);
           for (final Integer i : _upTo) {
@@ -291,6 +314,7 @@ public class TestStream {
       };
       ExecutorExtensions.task(this.threads, _function_2);
       final Runnable _function_3 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(2000, 2999);
           for (final Integer i : _upTo) {
@@ -300,6 +324,7 @@ public class TestStream {
       };
       ExecutorExtensions.task(this.threads, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer it) {
           TestStream.this.incSum();
         }
@@ -322,14 +347,17 @@ public class TestStream {
   public void testStreamBufferOverflow() {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
     final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
+      @Override
       public void apply(final Stream<Integer> it) {
         it.setMaxBufferSize(Integer.valueOf(3));
       }
     };
     final Stream<Integer> stream = ObjectExtensions.<Stream<Integer>>operator_doubleArrow(_stream, _function);
     final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+      @Override
       public void apply(final StreamEventResponder it) {
         final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+          @Override
           public void apply(final Entry<?, ?> it) {
             TestStream.this.incOverflowCount();
           }
