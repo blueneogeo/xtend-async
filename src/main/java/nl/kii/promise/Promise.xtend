@@ -58,6 +58,11 @@ class SubPromise<R, T> extends BasePromise<R, T> {
 	new() {
 		this.root = null
 	}
+	
+	/** Create a promise that was based on a parent value */
+	new(R parentValue) {
+		this.root = new Promise(parentValue)
+	}
 
 	/** Constructor for easily creating a child promise. */
 	new(IPromise<R, ?> parentPromise) {

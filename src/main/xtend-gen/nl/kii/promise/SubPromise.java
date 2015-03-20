@@ -2,6 +2,7 @@ package nl.kii.promise;
 
 import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.Promise;
 import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
@@ -10,6 +11,14 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   
   public SubPromise() {
     this.root = null;
+  }
+  
+  /**
+   * Create a promise that was based on a parent value
+   */
+  public SubPromise(final R parentValue) {
+    Promise<R> _promise = new Promise<R>(parentValue);
+    this.root = _promise;
   }
   
   /**
