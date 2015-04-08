@@ -29,7 +29,7 @@ class TestStreamExtensions {
 
 	@Test
 	def void testListStream() {
-		val s = #[1, 2, 3].stream
+		val s = #[1, 2, 3].streamList
 		println(s.queue)
 		val s2 = s.map[it+1]
 		s2.assertStreamContains(2.value, 3.value, 4.value, finish)
@@ -302,7 +302,7 @@ class TestStreamExtensions {
 
 	@Test
 	def void testFlatMap() {
-		#[1..10, 11..20, 21..30].stream
+		#[1..10, 11..20, 21..30].streamList
 			.flatMap [ datastream(it) ]
 			.onEach [ println(it) ]
 			// .assertStreamContains((1..30).map[value(null)])
@@ -364,7 +364,7 @@ class TestStreamExtensions {
 	@Test
 	def void testSeparate2() {
 		#[ #[1, 2, 3], #[4, 5] ]
-			.stream
+			.streamList
 			.separate
 			.onEach [ println(it) ]
 			.onError [ fail(message) ]
@@ -432,7 +432,7 @@ class TestStreamExtensions {
 	def void testResolve() {
 		val t1 = int.promise
 		val t2 = int.promise
-		val s = #[t1, t2].stream.resolve
+		val s = #[t1, t2].streamList.resolve
 		s.onChange [
 			switch it {
 				Value<?, Integer>: {

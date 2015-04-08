@@ -78,10 +78,9 @@ class StreamExtensions {
 	}
 
 	/** stream an list, ending with a finish. makes an immutable copy internally. */	
-	def static <T> stream(List<T> list) {
+	def static <T> streamList(List<T> list) {
 		ImmutableList.copyOf(list).iterator.stream
 	}
-
 
 	/** stream an interable, ending with a finish */	
 	def static <T> stream(Iterable<T> iterable) {

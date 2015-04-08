@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import nl.kii.observe.Observable;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
@@ -137,7 +138,7 @@ public class StreamExtensions {
   /**
    * stream an list, ending with a finish. makes an immutable copy internally.
    */
-  public static <T extends Object> Stream<T> stream(final List<T> list) {
+  public static <T extends Object> Stream<T> streamList(final List<T> list) {
     ImmutableList<T> _copyOf = ImmutableList.<T>copyOf(list);
     UnmodifiableIterator<T> _iterator = _copyOf.iterator();
     return StreamExtensions.<T>stream(_iterator);
@@ -566,13 +567,13 @@ public class StreamExtensions {
   public static <I extends Object, O extends Object> IStream<I, O> operator_doubleGreaterThan(final List<I> input, final IStream<I, O> stream) {
     IStream<I, O> _xblockexpression = null;
     {
-      final Procedure1<I> _function = new Procedure1<I>() {
+      final Consumer<I> _function = new Consumer<I>() {
         @Override
-        public void apply(final I it) {
+        public void accept(final I it) {
           stream.push(it);
         }
       };
-      IterableExtensions.<I>forEach(input, _function);
+      input.forEach(_function);
       _xblockexpression = stream;
     }
     return _xblockexpression;
@@ -584,13 +585,13 @@ public class StreamExtensions {
   public static <I extends Object, O extends Object> IStream<I, O> operator_doubleLessThan(final IStream<I, O> stream, final List<I> value) {
     IStream<I, O> _xblockexpression = null;
     {
-      final Procedure1<I> _function = new Procedure1<I>() {
+      final Consumer<I> _function = new Consumer<I>() {
         @Override
-        public void apply(final I it) {
+        public void accept(final I it) {
           stream.push(it);
         }
       };
-      IterableExtensions.<I>forEach(value, _function);
+      value.forEach(_function);
       _xblockexpression = stream;
     }
     return _xblockexpression;

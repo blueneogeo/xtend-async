@@ -5,16 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import nl.kii.async.AsyncMap;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
  * Converts a normal Map into an AsyncMap
@@ -85,15 +84,15 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
       final HashMap<K, V> map = CollectionLiterals.<K, V>newHashMap();
       boolean _notEquals = (!Objects.equal(pairs, null));
       if (_notEquals) {
-        final Procedure1<Pair<K, V>> _function = new Procedure1<Pair<K, V>>() {
+        final Consumer<Pair<K, V>> _function = new Consumer<Pair<K, V>>() {
           @Override
-          public void apply(final Pair<K, V> it) {
+          public void accept(final Pair<K, V> it) {
             K _key = it.getKey();
             V _value = it.getValue();
             map.put(_key, _value);
           }
         };
-        IterableExtensions.<Pair<K, V>>forEach(pairs, _function);
+        pairs.forEach(_function);
       }
       _xblockexpression = map;
     }

@@ -46,7 +46,7 @@ class PromiseExtensions {
 
 	/** Distribute work using an asynchronous method */	
 	def static <I, I2, O, P extends IPromise<I2, O>> IPromise<I, List<O>> call(List<I> data, int concurrency, (I)=>P operationFn) {
-		data.stream
+		stream(data)
 			.call(concurrency, operationFn)
 			.collect // see it as a list of results
 			.first

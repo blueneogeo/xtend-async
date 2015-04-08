@@ -69,7 +69,7 @@ public class TestStreamExtensions {
   
   @Test
   public void testListStream() {
-    final Stream<Integer> s = StreamExtensions.<Integer>stream(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
+    final Stream<Integer> s = StreamExtensions.<Integer>streamList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
     Collection<Entry<Integer, Integer>> _queue = s.getQueue();
     InputOutput.<Collection<Entry<Integer, Integer>>>println(_queue);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
@@ -724,14 +724,14 @@ public class TestStreamExtensions {
     IntegerRange _upTo = new IntegerRange(1, 10);
     IntegerRange _upTo_1 = new IntegerRange(11, 20);
     IntegerRange _upTo_2 = new IntegerRange(21, 30);
-    Stream<IntegerRange> _stream = StreamExtensions.<IntegerRange>stream(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)));
+    Stream<IntegerRange> _streamList = StreamExtensions.<IntegerRange>streamList(Collections.<IntegerRange>unmodifiableList(CollectionLiterals.<IntegerRange>newArrayList(_upTo, _upTo_1, _upTo_2)));
     final Function1<IntegerRange, Stream<IntegerRange>> _function = new Function1<IntegerRange, Stream<IntegerRange>>() {
       @Override
       public Stream<IntegerRange> apply(final IntegerRange it) {
         return StreamExtensions.<IntegerRange>datastream(it, it);
       }
     };
-    SubStream<IntegerRange, IntegerRange> _flatMap = StreamExtensions.<IntegerRange, IntegerRange, IntegerRange>flatMap(_stream, _function);
+    SubStream<IntegerRange, IntegerRange> _flatMap = StreamExtensions.<IntegerRange, IntegerRange, IntegerRange>flatMap(_streamList, _function);
     final Procedure1<IntegerRange> _function_1 = new Procedure1<IntegerRange>() {
       @Override
       public void apply(final IntegerRange it) {
@@ -896,8 +896,8 @@ public class TestStreamExtensions {
   
   @Test
   public void testSeparate2() {
-    Stream<List<Integer>> _stream = StreamExtensions.<List<Integer>>stream(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5))))));
-    SubStream<List<Integer>, Integer> _separate = StreamExtensions.<List<Integer>, Integer>separate(_stream);
+    Stream<List<Integer>> _streamList = StreamExtensions.<List<Integer>>streamList(Collections.<List<Integer>>unmodifiableList(CollectionLiterals.<List<Integer>>newArrayList(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))), Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(4), Integer.valueOf(5))))));
+    SubStream<List<Integer>, Integer> _separate = StreamExtensions.<List<Integer>, Integer>separate(_streamList);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
@@ -1059,8 +1059,8 @@ public class TestStreamExtensions {
   public void testResolve() {
     final Promise<Integer> t1 = PromiseExtensions.<Integer>promise(int.class);
     final Promise<Integer> t2 = PromiseExtensions.<Integer>promise(int.class);
-    Stream<Promise<Integer>> _stream = StreamExtensions.<Promise<Integer>>stream(Collections.<Promise<Integer>>unmodifiableList(CollectionLiterals.<Promise<Integer>>newArrayList(t1, t2)));
-    final SubStream<Promise<Integer>, Integer> s = StreamExtensions.<Promise<Integer>, Integer, Integer>resolve(_stream);
+    Stream<Promise<Integer>> _streamList = StreamExtensions.<Promise<Integer>>streamList(Collections.<Promise<Integer>>unmodifiableList(CollectionLiterals.<Promise<Integer>>newArrayList(t1, t2)));
+    final SubStream<Promise<Integer>, Integer> s = StreamExtensions.<Promise<Integer>, Integer, Integer>resolve(_streamList);
     final Procedure1<Entry<Promise<Integer>, Integer>> _function = new Procedure1<Entry<Promise<Integer>, Integer>>() {
       @Override
       public void apply(final Entry<Promise<Integer>, Integer> it) {

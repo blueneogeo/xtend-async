@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
@@ -433,13 +434,13 @@ public class TestActor {
           }
         };
         Iterable<Integer> _filter = IterableExtensions.<Integer>filter(_map, _function_1);
-        final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+        final Consumer<Integer> _function_2 = new Consumer<Integer>() {
           @Override
-          public void apply(final Integer it) {
+          public void accept(final Integer it) {
             TestActor.this.incFunctCounter();
           }
         };
-        IterableExtensions.<Integer>forEach(_filter, _function_2);
+        _filter.forEach(_function_2);
       }
     };
     final Procedure1<Integer> funct = _function;
