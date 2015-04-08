@@ -4,6 +4,7 @@ import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.stream.message.Value;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class SubPromise<R extends Object, T extends Object> extends BasePromise<R, T> {
@@ -17,8 +18,7 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
    * Create a promise that was based on a parent value
    */
   public SubPromise(final R parentValue) {
-    Promise<R> _promise = new Promise<R>(parentValue);
-    this.root = _promise;
+    this(new Promise<R>(parentValue));
   }
   
   /**
@@ -27,6 +27,13 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   public SubPromise(final IPromise<R, ?> parentPromise) {
     IPromise<R, ?> _root = parentPromise.getRoot();
     this.root = _root;
+    final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+      @Override
+      public void apply(final R i, final Throwable it) {
+        SubPromise.this.error(i, it);
+      }
+    };
+    this.root.onError(_function);
   }
   
   @Override

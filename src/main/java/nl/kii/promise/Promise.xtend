@@ -61,13 +61,13 @@ class SubPromise<R, T> extends BasePromise<R, T> {
 	
 	/** Create a promise that was based on a parent value */
 	new(R parentValue) {
-		this.root = new Promise(parentValue)
+		this(new Promise(parentValue))
 	}
 
 	/** Constructor for easily creating a child promise. */
 	new(IPromise<R, ?> parentPromise) {
 		this.root = parentPromise.root
-		// parentPromise.onError [ i, it | error(i, it) ]
+		this.root.onError [ i, it | error(i, it) ]
 	}
 
 	override getRoot() { root }
