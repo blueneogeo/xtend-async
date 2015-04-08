@@ -3,3 +3,5 @@
 /.settings
 /build
 /bin
+*.xtendbin
+*._trace
