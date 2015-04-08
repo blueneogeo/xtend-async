@@ -2,14 +2,16 @@ package nl.kii.stream.test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.stream.Finish;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
+import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.message.Finish;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,32 +28,36 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    StreamCopySplitter<Integer> _split = StreamExtensions.<Integer>split(source);
-    StreamSource<Integer> _pipe = _split.pipe(s1);
+    StreamCopySplitter<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(source);
+    StreamSource<Integer, Integer> _pipe = _split.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+    final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
           }
         };
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+    StreamExtensions.<Integer, Integer>on(s1, _function);
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
           }
         };
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s2, _function_1);
-    StreamExtensions.<Integer>operator_doubleLessThan(source, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>on(s2, _function_1);
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(source, Integer.valueOf(1));
     Boolean _did1 = this.getDid1();
     Assert.assertFalse((_did1).booleanValue());
     Boolean _did2 = this.getDid2();
@@ -68,7 +74,7 @@ public class TestSplitter {
     Assert.assertTrue((_did2_2).booleanValue());
     this.setDid1(Boolean.valueOf(false));
     this.setDid2(Boolean.valueOf(false));
-    StreamExtensions.<Integer>operator_doubleLessThan(source, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(source, Integer.valueOf(2));
     Boolean _did1_3 = this.getDid1();
     Assert.assertFalse((_did1_3).booleanValue());
     Boolean _did2_3 = this.getDid2();
@@ -90,38 +96,42 @@ public class TestSplitter {
     final Stream<Integer> source = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s1 = StreamExtensions.<Integer>stream(int.class);
     final Stream<Integer> s2 = StreamExtensions.<Integer>stream(int.class);
-    LoadBalancer<Integer> _balance = StreamExtensions.<Integer>balance(source);
-    StreamSource<Integer> _pipe = _balance.pipe(s1);
+    LoadBalancer<Integer, Integer> _balance = StreamExtensions.<Integer>balance(source);
+    StreamSource<Integer, Integer> _pipe = _balance.pipe(s1);
     _pipe.pipe(s2);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+    final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid1(Boolean.valueOf(true));
           }
         };
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s1, _function);
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+    StreamExtensions.<Integer, Integer>on(s1, _function);
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
             TestSplitter.this.setDid2(Boolean.valueOf(true));
           }
         };
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s2, _function_1);
+    StreamExtensions.<Integer, Integer>on(s2, _function_1);
     this.setDid1(Boolean.valueOf(false));
     this.setDid2(Boolean.valueOf(false));
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(source, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
-    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(source, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     Boolean _did1 = this.getDid1();
     Assert.assertFalse((_did1).booleanValue());
     Boolean _did2 = this.getDid2();
@@ -146,19 +156,27 @@ public class TestSplitter {
     s2.next();
   }
   
-  private Boolean setDid1(final Boolean value) {
-    return this._did1.getAndSet(value);
+  private void setDid1(final Boolean value) {
+    this._did1.set(value);
   }
   
   private Boolean getDid1() {
     return this._did1.get();
   }
   
-  private Boolean setDid2(final Boolean value) {
-    return this._did2.getAndSet(value);
+  private Boolean getAndSetDid1(final Boolean value) {
+    return this._did1.getAndSet(value);
+  }
+  
+  private void setDid2(final Boolean value) {
+    this._did2.set(value);
   }
   
   private Boolean getDid2() {
     return this._did2.get();
+  }
+  
+  private Boolean getAndSetDid2(final Boolean value) {
+    return this._did2.getAndSet(value);
   }
 }

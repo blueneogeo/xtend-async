@@ -3,34 +3,94 @@ package nl.kii.promise
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Publisher
-import nl.kii.stream.Entry
-import nl.kii.stream.Error
-import nl.kii.stream.Value
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Error
+import nl.kii.stream.message.Value
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-import nl.kii.async.AsyncException
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
-interface IPromise<T> extends Procedure1<Entry<T>> {
+interface IPromise<R, T> extends Procedure1<Entry<R, T>> {
+	
+	def IPromise<R, ?> getRoot()
 	
 	def Boolean getFulfilled()
-	def Entry<T> get()
-	def void set(T value)
-	def IPromise<T> error(Throwable t)
+	def Entry<R, T> get()
+	def void set(R value)
+	def IPromise<R, T> error(Throwable t)
 	
-	def IPromise<T> onError(Procedure1<Throwable> errorFn)
+	def IPromise<R, T> onError(Procedure1<Throwable> errorFn)
+	def IPromise<R, T> onError(Procedure2<R, Throwable> errorFn)
 	def Task then(Procedure1<T> valueFn)
+	def Task then(Procedure2<R, T> valueFn)
 	
 	def void setOperation(String operation)
 	def String getOperation()
 	
 }
 
+class Promise<T> extends BasePromise<T, T> {
+	
+	override getRoot() { this }
+	
+	new() { }
+	
+	new(T t) { set(t) }
+	
+	/** set the promised value */
+	override set(T value) {
+		if(value == null) throw new NullPointerException('cannot promise a null value')
+		apply(new Value(value, value))
+	}
+
+	/** report an error to the listener of the promise. */
+	override error(Throwable t) {
+		apply(new Error(null, t))
+		this
+	}
+	
+}
+
+class SubPromise<R, T> extends BasePromise<R, T> {
+	
+	val protected IPromise<R, ?> root
+
+	new() {
+		this.root = null
+	}
+	
+	/** Create a promise that was based on a parent value */
+	new(R parentValue) {
+		this(new Promise(parentValue))
+	}
+
+	/** Constructor for easily creating a child promise. */
+	new(IPromise<R, ?> parentPromise) {
+		this.root = parentPromise.root
+		this.root.onError [ i, it | error(i, it) ]
+	}
+
+	override getRoot() { root }
+
+	/** set the promised value */
+	override set(R value) { root?.set(value) }
+
+	/** report an error to the listener of the promise. */
+	override error(Throwable t) { root?.error(t) this }
+	
+	/** set the promised value */
+	def void set(R from, T value) { apply(new Value(from, value)) }
+
+	def void error(R from, Throwable t) { apply(new Error(from, t)) }
+
+}
+
 /**
  * A Promise is a publisher of a value. The value may arrive later.
  */
-class Promise<T> implements IPromise<T> {
+abstract class BasePromise<R, T> implements IPromise<R, T> {
 	
-	val publisher = new Publisher<Entry<T>>
+	val publisher = new Publisher<Entry<R, T>>
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
@@ -42,46 +102,18 @@ class Promise<T> implements IPromise<T> {
 	@Atomic public val boolean hasValueHandler = false
 
 	/** The result of the promise, if any, otherwise null */
-	@Atomic protected val Entry<T> entry
+	@Atomic protected val Entry<R, T> entry
 
 	/** name of the operation the listener is performing */
 	@Atomic val String _operation 
-
-	/** Create a new unfulfilled promise */
-	new() { }
-	
-	/** Create a fulfilled promise */
-	new(T value) { set(value) }
-	
-	/** Constructor for easily creating a child promise */
-	new(IPromise<?> parentPromise) {
-		parentPromise.onError [ error(it) ]
-	}
 	
 	// GETTERS AND SETTERS ////////////////////////////////////////////////////
 	
-	/** only has a value when finished, otherwise null */
-	override get() {
-		entry
-	}
-
-	/** set the promised value */
-	override set(T value) {
-		if(value == null) throw new NullPointerException('cannot promise a null value')
-		apply(new Value(value))
-	}
-
-	/** report an error to the listener of the promise. */
-	override error(Throwable t) {
-		apply(new Error<T>(t))
-		this
-	}
-	
-	override apply(Entry<T> it) {
+	override apply(Entry<R, T> it) {
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
 		val allowed = switch it { 
 			case !fulfilled: true
-			Error<T> case fulfilled: true
+			Error<?, T> case fulfilled: true
 			default: false
 		}
 		if(!allowed) return;
@@ -89,6 +121,9 @@ class Promise<T> implements IPromise<T> {
 		entry = it
 		publisher.apply(it)
 	}
+	
+	/** only has a value when finished, otherwise null */
+	override get() { entry }
 	
 	def getPublisher() {
 		publisher
@@ -103,44 +138,64 @@ class Promise<T> implements IPromise<T> {
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
-	
+
+	override onError(Procedure1<Throwable> errorFn) {
+		this.onError [ r, t | errorFn.apply(t) ]
+	}	
 	/** 
 	 * If the promise recieved or recieves an error, onError is called with the throwable.
+	 * Removes the error from the chain, so the returned promise no longer receives the error.
+	 * 
+	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
+	 * since there is a generics problem trying to assign the values.
 	 */
-	override onError(Procedure1<Throwable> errorFn) {
+	override onError(Procedure2<R, Throwable> errorFn) {
+		// FIX: this does not work
+		// val subPromise = new SubPromise<R, T>(this) as IPromise<R, T> as SubPromise<R, T>
 		// register for a new value being applied
-		val sub = new AtomicReference<Procedure0>
-		sub.set(publisher.onChange [
-			switch it { 
-				Error<T>: { 
-					sub.get.apply // unsubscribe, so this handler will not be called again
-					errorFn.apply(error)
-				} 
+		val unregisterFn = new AtomicReference<Procedure0>
+		unregisterFn.set(publisher.onChange [
+			try {
+				switch it {
+					Error<R, T>: { 
+						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
+						errorFn.apply(from, error)
+					} 
+				}
+			} catch(Exception e) {
+				println('Promise.onError: error while handling promise error for entry ' + it)
+				e.printStackTrace
 			}
 		])
 		hasErrorHandler = true
 		// if there is an entry, push it so this handler will get it
 		if(entry != null) publisher.apply(entry)
+		// subPromise
 		this
 	}
 
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
 	override then(Procedure1<T> valueFn) {
+		this.then [ r, it | valueFn.apply(it) ]
+	}
+
+	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
+	override then(Procedure2<R, T> valueFn) {
 		val newTask = new Task
 		// register for a new value being applied
-		val sub = new AtomicReference<Procedure0>
-		sub.set(publisher.onChange [
+		val unregisterFn = new AtomicReference<Procedure0>
+		unregisterFn.set(publisher.onChange [
 			try {
 				switch it { 
-					Value<T>: { 
-						sub.get.apply // unsubscribe, so this handler will not be called again
-						valueFn.apply(value)
+					Value<R, T>: { 
+						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
+						valueFn.apply(from, value)
 						newTask.complete
 					}
-					Error<T>: newTask.error(error)
+					Error<R, T>: newTask.error(error)
 				}
 			} catch(Exception e) {
-				error(new AsyncException('Promise.then gave error for', it, e))
+				error(new PromiseException('Promise.then gave error for', it, e))
 				newTask.error(e)
 			}
 		])
@@ -157,17 +212,28 @@ class Promise<T> implements IPromise<T> {
 /** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
 class Task extends Promise<Boolean> {
 	
-	new() { }
-	
-	new(IPromise<?> parentPromise) {
-		parentPromise.onError [ error(it) ]
-	}
-	
 	def complete() {
 		set(true)
 		this
 	}
+
+	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?, ?>», error: «(get as Error<?, ?>).error»«ENDIF» }'''
 	
-	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?>», error: «(get as Error<?>).error»«ENDIF» }'''
+}
+
+/** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
+class SubTask<R> extends SubPromise<R, Boolean> {
+	
+	new() { super() }
+	
+	new(IPromise<R, ?> parentPromise) {
+		super(parentPromise)
+	}
+	
+	def complete(R from) {
+		apply(new Value(from, true))
+	}
+	
+	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?, ?>», error: «(get as Error<?, ?>).error»«ENDIF» }'''
 
 }

@@ -27,7 +27,7 @@ class TestIOStreamExtensions {
 			'This is some text',
 			'Please make this into a nice file!'
 		]
-		data.stream.toBytes.writeTo(new File('test.txt'))
+		stream(data).toBytes.writeTo(new File('test.txt'))
 
 		val source = new File('test.txt')
 		val destination = new File('text2.txt')

@@ -116,6 +116,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   /**
    * Give the actor something to process
    */
+  @Override
   public void apply(final T message) {
     this.inbox.add(message);
     this.process();
@@ -166,6 +167,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
           return false;
         }
         final Procedure0 _function = new Procedure0() {
+          @Override
           public void apply() {
             Actor.this.setProcessing(Boolean.valueOf(false));
             boolean _isEmpty = Actor.this.inbox.isEmpty();
@@ -193,6 +195,7 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
   
   private final static int MAX_INBOX_TO_PRINT = 10;
   
+  @Override
   public String toString() {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("Actor {");
@@ -246,11 +249,15 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
     return _builder.toString();
   }
   
-  private Boolean setProcessing(final Boolean value) {
-    return this._processing.getAndSet(value);
+  private void setProcessing(final Boolean value) {
+    this._processing.set(value);
   }
   
   private Boolean getProcessing() {
     return this._processing.get();
+  }
+  
+  private Boolean getAndSetProcessing(final Boolean value) {
+    return this._processing.getAndSet(value);
   }
 }

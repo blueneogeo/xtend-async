@@ -4,21 +4,22 @@ import java.util.List
 import java.util.concurrent.CopyOnWriteArrayList
 import nl.kii.act.Actor
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Entry
-import nl.kii.stream.Stream
-import nl.kii.stream.StreamMessage
-import nl.kii.stream.StreamNotification
+import nl.kii.stream.IStream
+import nl.kii.stream.SubStream
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.StreamEvent
+import nl.kii.stream.message.StreamMessage
 
 /**
  * A source is a streamable source of information.
  */
-interface StreamSource<T> {
+interface StreamSource<I, O> {
 
 	/** Create a new stream and pipe source stream to this stream */	
-	def Stream<T> stream()
+	def IStream<I, O> stream()
 	
 	/** Connect an existing stream as a listener to the source stream */
-	def StreamSource<T> pipe(Stream<T> stream)
+	def StreamSource<I, O> pipe(IStream<I, ?> stream)
 
 }
 
@@ -27,21 +28,21 @@ interface StreamSource<T> {
  * for other streams. It usually implements a specific value
  * distribution system.
  */
-abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamSource<T> {
+abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements StreamSource<I, O> {
 	
 	/** the source stream that gets distributed */
-	protected val Stream<T> source
+	protected val IStream<I, O> source
 	
 	/** the connected listening streams */
-	@Atomic protected val List<Stream<T>> streams
+	@Atomic protected val List<IStream<I, ?>> streams
 	
-	new(Stream<T> source) {
+	new(IStream<I, O> source) {
 		this.source = source
 		this.streams = new CopyOnWriteArrayList
 		source.onChange [ apply ]
 	}
 	
-	override StreamSource<T> pipe(Stream<T> stream) {
+	override StreamSource<I, O> pipe(IStream<I, ?> stream) {
 		streams += stream
 		stream.onNotify [ apply ]
 		// if the stream already asked for a next value, 
@@ -50,24 +51,24 @@ abstract class StreamSplitter<T> extends Actor<StreamMessage> implements StreamS
 		this
 	}
 	
-	override Stream<T> stream() {
-		new Stream<T> => [ pipe ]
+	override IStream<I, O> stream() {
+		new SubStream<I, O>(source) => [ pipe ]
 	}
 	
 	/** we are wrapping in an actor to make things threadsafe */
 	override protected act(StreamMessage message, =>void done) {
 		switch message {
-			Entry<T>: onEntry(message)
-			StreamNotification: onCommand(message)
+			Entry<I, O>: onEntry(message)
+			StreamEvent: onCommand(message)
 		}
 		done.apply
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	abstract protected def void onEntry(Entry<T> entry)
+	abstract protected def void onEntry(Entry<I, O> entry)
 
 	/** Handle a message coming from a piped stream */
-	abstract protected def void onCommand(StreamNotification msg)
+	abstract protected def void onCommand(StreamEvent msg)
 
 	/** Utility method that only returns true if all members match the condition */	
 	protected static def <T> boolean all(Iterable<T> list, (T)=>boolean conditionFn) {

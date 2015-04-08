@@ -5,12 +5,16 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.promise.PromiseFuture
 import nl.kii.promise.Task
+import nl.kii.stream.IStream
 import nl.kii.stream.Stream
+import nl.kii.stream.SubStream
+
 import static java.util.concurrent.TimeUnit.*
 
 import static extension nl.kii.stream.StreamExtensions.*
@@ -24,7 +28,7 @@ class ExecutorExtensions {
 	 * <pre>
 	 * val result = promise.future.get // blocks code until the promise is fulfilled
 	 */
-	def static <T> Future<T> future(IPromise<T> promise) {
+	def static <R, T> Future<T> future(IPromise<R, T> promise) {
 		new PromiseFuture(promise)
 	}
 
@@ -35,7 +39,7 @@ class ExecutorExtensions {
 	 * val service = Executors.newSingleThreadExecutor
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
-	def static <T> IPromise<T> promise(ExecutorService service, Callable<T> callable) {
+	def static <T> Promise<T> promise(ExecutorService service, Callable<T> callable) {
 		val promise = new Promise<T>
 		val Runnable processor = [|
 			try {
@@ -70,6 +74,12 @@ class ExecutorExtensions {
 		task
 	}
 	
+	def static (long, =>void)=>void scheduler(ScheduledExecutorService executor) {
+		[ long period, =>void doneFn |
+			executor.schedule(doneFn, period, TimeUnit.MILLISECONDS)
+		]
+	}
+	
 	/** 
 	 * Create a timer stream, that pushes out the time in ms since starting, every periodMs ms.
 	 * Note: this breaks the single threaded model!
@@ -102,7 +112,7 @@ class ExecutorExtensions {
 	 * Push a value onto the stream from the parent stream every periodMs milliseconds.
 	 * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
 	 */
-	def static <T> Stream<T> every(Stream<T> stream, int periodMs, ScheduledExecutorService executor) {
+	def static <R, T> SubStream<R, T> every(IStream<R, T> stream, int periodMs, ScheduledExecutorService executor) {
 		stream.synchronizeWith(executor.streamEvery(periodMs))
 	}
 	

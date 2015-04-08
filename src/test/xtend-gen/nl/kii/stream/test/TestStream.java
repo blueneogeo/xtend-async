@@ -6,20 +6,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.Task;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
+import nl.kii.promise.SubTask;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
-import nl.kii.stream.StreamMonitor;
-import nl.kii.stream.StreamObserver;
-import nl.kii.stream.StreamResponder;
+import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.StreamEventHandler;
+import nl.kii.stream.internal.StreamEventResponder;
+import nl.kii.stream.internal.StreamObserver;
+import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
+import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,27 +33,31 @@ public class TestStream {
   
   @Test
   public void testObservingAStream() {
-    IntegerRange _upTo = new IntegerRange(1, 3);
-    final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
-    s.monitor(new StreamMonitor() {
+    final Stream<Integer> s = new Stream<Integer>();
+    StreamExtensions.<Integer, Integer>handle(s, new StreamEventHandler() {
+      @Override
       public void onNext() {
         InputOutput.<String>println("next!");
       }
       
+      @Override
       public void onSkip() {
         InputOutput.<String>println("skip!");
       }
       
+      @Override
       public void onClose() {
         InputOutput.<String>println("close!");
       }
       
-      public void onOverflow(final Entry<?> entry) {
+      @Override
+      public void onOverflow(final Entry<?, ?> entry) {
         InputOutput.<String>println(("overflow! of " + entry));
       }
     });
-    s.observe(new StreamObserver<Integer>() {
-      public void onValue(final Integer value) {
+    StreamExtensions.<Integer, Integer>observe(s, new StreamObserver<Integer, Integer>() {
+      @Override
+      public void onValue(final Integer from, final Integer value) {
         try {
           InputOutput.<String>println(("value: " + value));
           if (((value).intValue() == 2)) {
@@ -61,25 +69,28 @@ public class TestStream {
         }
       }
       
-      public boolean onError(final Throwable t) {
-        boolean _xblockexpression = false;
-        {
-          InputOutput.<String>println(("error:" + t));
-          s.next();
-          _xblockexpression = true;
-        }
-        return _xblockexpression;
+      @Override
+      public void onError(final Integer from, final Throwable t) {
+        InputOutput.<String>println(("error:" + t));
+        s.next();
       }
       
-      public void onFinish(final int level) {
+      @Override
+      public void onFinish(final Integer from, final int level) {
         InputOutput.<String>println("finished");
         s.next();
       }
       
+      @Override
       public void onClosed() {
         InputOutput.<String>println("closed");
       }
     });
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     s.next();
   }
   
@@ -88,29 +99,32 @@ public class TestStream {
     final AtomicInteger counter = new AtomicInteger(0);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
     final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
+      @Override
       public Boolean apply(final Integer it) {
         return Boolean.valueOf(((it).intValue() != 2));
       }
     };
-    Stream<Integer> _filter = StreamExtensions.<Integer>filter(s, _function);
+    SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(s, _function);
     final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 1));
       }
     };
-    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_filter, _function_1);
+    SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
     };
-    StreamExtensions.<Integer>onEach(_map, _function_2);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    StreamExtensions.<Integer, Integer>onEach(_map, _function_2);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     int _get = counter.get();
     Assert.assertEquals(6, _get);
-    StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     int _get_1 = counter.get();
     Assert.assertEquals(8, _get_1);
   }
@@ -119,15 +133,16 @@ public class TestStream {
   public void testBufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
     Stream<Integer> _stream = new Stream<Integer>();
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         counter.addAndGet((it).intValue());
       }
     };
-    StreamExtensions.<Integer>onEach(s, _function);
+    StreamExtensions.<Integer, Integer>onEach(s, _function);
     int _get = counter.get();
     Assert.assertEquals(6, _get);
   }
@@ -138,29 +153,32 @@ public class TestStream {
   @Test
   public void testControlledStream() {
     Stream<Integer> _stream = new Stream<Integer>();
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
-    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
-    Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
-    final Stream<Integer> s = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<StreamHandlerBuilder<Integer>> _function = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            TestStream.this.incCounter(it);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();
+    IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
+    IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
+    final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
+    final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
+            TestStream.this.incCounter($1);
           }
         };
         it.each(_function);
-        final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
           }
         };
         it.finish(_function_1);
       }
     };
-    StreamExtensions.<Integer>on(s, _function);
+    StreamExtensions.<Integer, Integer>on(s, _function);
     s.next();
     Integer _counter = this.getCounter();
     Assert.assertEquals(1, (_counter).intValue());
@@ -179,8 +197,8 @@ public class TestStream {
     s.next();
     Integer _counter_5 = this.getCounter();
     Assert.assertEquals(10, (_counter_5).intValue());
-    Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
-    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(4));
+    IStream<Integer, Integer> _doubleLessThan_5 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(4));
     Integer _counter_6 = this.getCounter();
     Assert.assertEquals(11, (_counter_6).intValue());
     s.next();
@@ -194,47 +212,41 @@ public class TestStream {
   @Test
   public void testControlledChainedBufferedStream() {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    final Stream<Integer> s1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return it;
       }
     };
-    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(s1, _function);
-    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_map, Integer.valueOf(4));
-    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(5));
-    final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(6));
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            TestStream.this.setResult(it);
+    final SubStream<Integer, Integer> s = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
+      @Override
+      public void apply(final StreamResponder<Integer, Integer> it) {
+        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
+          @Override
+          public void apply(final Integer $0, final Integer $1) {
+            TestStream.this.setResult($1);
           }
         };
         it.each(_function);
       }
     };
-    StreamExtensions.<Integer>on(s2, _function_1);
-    s2.next();
+    StreamExtensions.<Integer, Integer>on(s, _function_1);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    s.next();
     Integer _result = this.getResult();
-    Assert.assertEquals(4, (_result).intValue());
-    s2.next();
+    Assert.assertEquals(1, (_result).intValue());
+    s.next();
     Integer _result_1 = this.getResult();
-    Assert.assertEquals(5, (_result_1).intValue());
-    s2.next();
+    Assert.assertEquals(2, (_result_1).intValue());
+    s.next();
     Integer _result_2 = this.getResult();
-    Assert.assertEquals(6, (_result_2).intValue());
-    s2.next();
+    Assert.assertEquals(3, (_result_2).intValue());
+    s.next();
     Integer _result_3 = this.getResult();
-    Assert.assertEquals(1, (_result_3).intValue());
-    s2.next();
-    Integer _result_4 = this.getResult();
-    Assert.assertEquals(2, (_result_4).intValue());
-    s2.next();
-    Integer _result_5 = this.getResult();
-    Assert.assertEquals(3, (_result_5).intValue());
+    Assert.assertEquals(3, (_result_3).intValue());
   }
   
   @Atomic
@@ -244,72 +256,24 @@ public class TestStream {
   public void testStreamErrors() {
     final Stream<Integer> s = new Stream<Integer>();
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
       }
     };
-    Task _onEach = StreamExtensions.<Integer>onEach(s, _function);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
     final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
       public void apply(final Throwable it) {
+        InputOutput.<String>println("!!");
         TestStream.this.setError(it);
       }
     };
     _onEach.onError(_function_1);
-    StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(0));
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(0));
     Throwable _error = this.getError();
     Assert.assertNotNull(_error);
-  }
-  
-  @Test
-  public void testChainedBufferedSkippingStream() {
-    final AtomicInteger result = new AtomicInteger(0);
-    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    Finish<Integer> _finish = StreamExtensions.<Integer>finish();
-    Stream<Integer> _doubleLessThan_2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, _finish);
-    final Stream<Integer> s1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_2, Integer.valueOf(3));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      public Integer apply(final Integer it) {
-        return it;
-      }
-    };
-    Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(s1, _function);
-    Stream<Integer> _doubleLessThan_3 = StreamExtensions.<Integer>operator_doubleLessThan(_map, Integer.valueOf(4));
-    Stream<Integer> _doubleLessThan_4 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(5));
-    Finish<Integer> _finish_1 = StreamExtensions.<Integer>finish();
-    Stream<Integer> _doubleLessThan_5 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_4, _finish_1);
-    Stream<Integer> _doubleLessThan_6 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_5, Integer.valueOf(6));
-    final Stream<Integer> s2 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_6, Integer.valueOf(7));
-    final Procedure1<StreamHandlerBuilder<Integer>> _function_1 = new Procedure1<StreamHandlerBuilder<Integer>>() {
-      public void apply(final StreamHandlerBuilder<Integer> it) {
-        final Procedure1<Integer> _function = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            result.set((it).intValue());
-          }
-        };
-        it.each(_function);
-        final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-          }
-        };
-        it.finish(_function_1);
-      }
-    };
-    StreamExtensions.<Integer>on(s2, _function_1);
-    s2.next();
-    int _get = result.get();
-    Assert.assertEquals(4, _get);
-    s2.skip();
-    s2.next();
-    s2.next();
-    int _get_1 = result.get();
-    Assert.assertEquals(6, _get_1);
-    s2.skip();
-    s2.next();
-    s2.next();
-    int _get_2 = result.get();
-    Assert.assertEquals(3, _get_2);
   }
   
   @Atomic
@@ -322,45 +286,50 @@ public class TestStream {
   public void testParallelHighThroughputStreaming() {
     try {
       final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-      final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
-        public void apply(final Entry<?> it) {
+      final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+        @Override
+        public void apply(final Entry<?, ?> it) {
           TestStream.this.incOverflow();
         }
       };
-      final Stream<Integer> s2 = StreamExtensions.<Integer>buffer(s, 3000, _function);
+      final SubStream<Integer, Integer> s2 = StreamExtensions.<Integer, Integer>buffer(s, 3000, _function);
       final Runnable _function_1 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(0, 999);
           for (final Integer i : _upTo) {
-            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(1));
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
           }
         }
       };
       ExecutorExtensions.task(this.threads, _function_1);
       final Runnable _function_2 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1000, 1999);
           for (final Integer i : _upTo) {
-            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(2));
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(2));
           }
         }
       };
       ExecutorExtensions.task(this.threads, _function_2);
       final Runnable _function_3 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(2000, 2999);
           for (final Integer i : _upTo) {
-            StreamExtensions.<Integer>operator_doubleLessThan(s, Integer.valueOf(3));
+            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(3));
           }
         }
       };
       ExecutorExtensions.task(this.threads, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer it) {
           TestStream.this.incSum();
         }
       };
-      StreamExtensions.<Integer>onEach(s2, _function_4);
+      StreamExtensions.<Integer, Integer>onEach(s2, _function_4);
       Thread.sleep(1000);
       Integer _overflow = this.getOverflow();
       Assert.assertEquals(0, (_overflow).intValue());
@@ -376,33 +345,46 @@ public class TestStream {
   
   @Test
   public void testStreamBufferOverflow() {
-    final Stream<Integer> stream = new Stream<Integer>(3);
-    final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
-      public void apply(final StreamResponder it) {
-        final Procedure1<Entry<?>> _function = new Procedure1<Entry<?>>() {
-          public void apply(final Entry<?> it) {
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
+    final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
+      @Override
+      public void apply(final Stream<Integer> it) {
+        it.setMaxBufferSize(Integer.valueOf(3));
+      }
+    };
+    final Stream<Integer> stream = ObjectExtensions.<Stream<Integer>>operator_doubleArrow(_stream, _function);
+    final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
+      @Override
+      public void apply(final StreamEventResponder it) {
+        final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
+          @Override
+          public void apply(final Entry<?, ?> it) {
             TestStream.this.incOverflowCount();
           }
         };
         it.overflow(_function);
       }
     };
-    StreamExtensions.<Integer>monitor(stream, _function);
-    Stream<Integer> _doubleLessThan = StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
-    Stream<Integer> _doubleLessThan_1 = StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
-    StreamExtensions.<Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(4));
-    StreamExtensions.<Integer>operator_doubleLessThan(stream, Integer.valueOf(5));
+    StreamExtensions.<Integer, Integer>when(stream, _function_1);
+    IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(1));
+    IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(4));
+    StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(5));
     Integer _overflowCount = this.getOverflowCount();
     Assert.assertEquals(2, (_overflowCount).intValue());
   }
   
-  private Integer setCounter(final Integer value) {
-    return this._counter.getAndSet(value);
+  private void setCounter(final Integer value) {
+    this._counter.set(value);
   }
   
   private Integer getCounter() {
     return this._counter.get();
+  }
+  
+  private Integer getAndSetCounter(final Integer value) {
+    return this._counter.getAndSet(value);
   }
   
   private Integer incCounter() {
@@ -417,12 +399,16 @@ public class TestStream {
     return this._counter.addAndGet(value);
   }
   
-  private Integer setResult(final Integer value) {
-    return this._result.getAndSet(value);
+  private void setResult(final Integer value) {
+    this._result.set(value);
   }
   
   private Integer getResult() {
     return this._result.get();
+  }
+  
+  private Integer getAndSetResult(final Integer value) {
+    return this._result.getAndSet(value);
   }
   
   private Integer incResult() {
@@ -437,20 +423,28 @@ public class TestStream {
     return this._result.addAndGet(value);
   }
   
-  private Throwable setError(final Throwable value) {
-    return this._error.getAndSet(value);
+  private void setError(final Throwable value) {
+    this._error.set(value);
   }
   
   private Throwable getError() {
     return this._error.get();
   }
   
-  private Integer setSum(final Integer value) {
-    return this._sum.getAndSet(value);
+  private Throwable getAndSetError(final Throwable value) {
+    return this._error.getAndSet(value);
+  }
+  
+  private void setSum(final Integer value) {
+    this._sum.set(value);
   }
   
   private Integer getSum() {
     return this._sum.get();
+  }
+  
+  private Integer getAndSetSum(final Integer value) {
+    return this._sum.getAndSet(value);
   }
   
   private Integer incSum() {
@@ -465,12 +459,16 @@ public class TestStream {
     return this._sum.addAndGet(value);
   }
   
-  private Integer setOverflow(final Integer value) {
-    return this._overflow.getAndSet(value);
+  private void setOverflow(final Integer value) {
+    this._overflow.set(value);
   }
   
   private Integer getOverflow() {
     return this._overflow.get();
+  }
+  
+  private Integer getAndSetOverflow(final Integer value) {
+    return this._overflow.getAndSet(value);
   }
   
   private Integer incOverflow() {
@@ -485,12 +483,16 @@ public class TestStream {
     return this._overflow.addAndGet(value);
   }
   
-  private Integer setOverflowCount(final Integer value) {
-    return this._overflowCount.getAndSet(value);
+  private void setOverflowCount(final Integer value) {
+    this._overflowCount.set(value);
   }
   
   private Integer getOverflowCount() {
     return this._overflowCount.get();
+  }
+  
+  private Integer getAndSetOverflowCount(final Integer value) {
+    return this._overflowCount.getAndSet(value);
   }
   
   private Integer incOverflowCount() {

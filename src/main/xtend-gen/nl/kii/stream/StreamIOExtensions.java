@@ -1,5 +1,6 @@
 package nl.kii.stream;
 
+import com.google.common.base.Objects;
 import com.google.common.io.ByteProcessor;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
@@ -12,18 +13,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
-import nl.kii.async.annotation.Async;
+import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.StreamHandlerBuilder;
-import nl.kii.stream.StreamResponder;
+import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.StreamEventResponder;
+import nl.kii.stream.internal.StreamResponder;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class StreamIOExtensions {
@@ -36,6 +40,7 @@ public class StreamIOExtensions {
       {
         final Stream<List<Byte>> newStream = new Stream<List<Byte>>();
         ByteStreams.<Object>readBytes(stream, new ByteProcessor() {
+          @Override
           public Object getResult() {
             Object _xblockexpression = null;
             {
@@ -45,11 +50,12 @@ public class StreamIOExtensions {
             return _xblockexpression;
           }
           
+          @Override
           public boolean processBytes(final byte[] buf, final int off, final int len) throws IOException {
             boolean _xblockexpression = false;
             {
-              Boolean _isOpen = newStream.isOpen();
-              boolean _not = (!(_isOpen).booleanValue());
+              boolean _isOpen = newStream.isOpen();
+              boolean _not = (!_isOpen);
               if (_not) {
                 return false;
               }
@@ -59,9 +65,11 @@ public class StreamIOExtensions {
             return _xblockexpression;
           }
         });
-        final Procedure1<StreamResponder> _function = new Procedure1<StreamResponder>() {
-          public void apply(final StreamResponder it) {
+        final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
+          @Override
+          public void apply(final StreamEventResponder it) {
             final Procedure1<Void> _function = new Procedure1<Void>() {
+              @Override
               public void apply(final Void it) {
                 try {
                   stream.close();
@@ -72,6 +80,7 @@ public class StreamIOExtensions {
             };
             it.skip(_function);
             final Procedure1<Void> _function_1 = new Procedure1<Void>() {
+              @Override
               public void apply(final Void it) {
                 try {
                   stream.close();
@@ -83,7 +92,7 @@ public class StreamIOExtensions {
             it.close(_function_1);
           }
         };
-        StreamExtensions.<List<Byte>>monitor(newStream, _function);
+        StreamExtensions.<List<Byte>, List<Byte>>when(newStream, _function);
         _xblockexpression = newStream;
       }
       return _xblockexpression;
@@ -109,12 +118,13 @@ public class StreamIOExtensions {
     }
   }
   
-  public static Stream<String> toText(final Stream<List<Byte>> stream) {
-    return StreamIOExtensions.toText(stream, "UTF-8");
+  public static <I extends Object> SubStream<I, String> toText(final IStream<I, List<Byte>> stream) {
+    return StreamIOExtensions.<I>toText(stream, "UTF-8");
   }
   
-  public static Stream<String> toText(final Stream<List<Byte>> stream, final String encoding) {
+  public static <I extends Object> SubStream<I, String> toText(final IStream<I, List<Byte>> stream, final String encoding) {
     final Function1<List<Byte>, List<String>> _function = new Function1<List<Byte>, List<String>>() {
+      @Override
       public List<String> apply(final List<Byte> it) {
         try {
           String _string = new String(((byte[])Conversions.unwrapArray(it, byte.class)), encoding);
@@ -125,22 +135,24 @@ public class StreamIOExtensions {
         }
       }
     };
-    Stream<List<String>> _map = StreamExtensions.<List<Byte>, List<String>>map(stream, _function);
-    Stream<String> _separate = StreamExtensions.<String>separate(_map);
-    final Procedure1<Stream<String>> _function_1 = new Procedure1<Stream<String>>() {
-      public void apply(final Stream<String> it) {
+    SubStream<I, List<String>> _map = StreamExtensions.<I, List<Byte>, List<String>>map(stream, _function);
+    SubStream<I, String> _separate = StreamExtensions.<I, String>separate(_map);
+    final Procedure1<SubStream<I, String>> _function_1 = new Procedure1<SubStream<I, String>>() {
+      @Override
+      public void apply(final SubStream<I, String> it) {
         stream.setOperation((("toText(encoding=" + encoding) + ")"));
       }
     };
-    return ObjectExtensions.<Stream<String>>operator_doubleArrow(_separate, _function_1);
+    return ObjectExtensions.<SubStream<I, String>>operator_doubleArrow(_separate, _function_1);
   }
   
-  public static Stream<List<Byte>> toBytes(final Stream<String> stream) {
-    return StreamIOExtensions.toBytes(stream, "UTF-8");
+  public static <I extends Object> SubStream<I, List<Byte>> toBytes(final IStream<I, String> stream) {
+    return StreamIOExtensions.<I>toBytes(stream, "UTF-8");
   }
   
-  public static Stream<List<Byte>> toBytes(final Stream<String> stream, final String encoding) {
+  public static <I extends Object> SubStream<I, List<Byte>> toBytes(final IStream<I, String> stream, final String encoding) {
     final Function1<String, List<Byte>> _function = new Function1<String, List<Byte>>() {
+      @Override
       public List<Byte> apply(final String it) {
         try {
           byte[] _bytes = (it + "\n").getBytes(encoding);
@@ -150,120 +162,105 @@ public class StreamIOExtensions {
         }
       }
     };
-    Stream<List<Byte>> _map = StreamExtensions.<String, List<Byte>>map(stream, _function);
-    final Procedure1<Stream<List<Byte>>> _function_1 = new Procedure1<Stream<List<Byte>>>() {
-      public void apply(final Stream<List<Byte>> it) {
+    SubStream<I, List<Byte>> _map = StreamExtensions.<I, String, List<Byte>>map(stream, _function);
+    final Procedure1<SubStream<I, List<Byte>>> _function_1 = new Procedure1<SubStream<I, List<Byte>>>() {
+      @Override
+      public void apply(final SubStream<I, List<Byte>> it) {
         stream.setOperation((("toBytes(encoding=" + encoding) + ")"));
       }
     };
-    return ObjectExtensions.<Stream<List<Byte>>>operator_doubleArrow(_map, _function_1);
+    return ObjectExtensions.<SubStream<I, List<Byte>>>operator_doubleArrow(_map, _function_1);
   }
   
   /**
    * write a buffered bytestream to an standard java outputstream
    */
-  @Async
-  public static void writeTo(final Stream<List<Byte>> stream, final OutputStream out, final Task task) {
-    final Procedure1<StreamHandlerBuilder<List<Byte>>> _function = new Procedure1<StreamHandlerBuilder<List<Byte>>>() {
-      public void apply(final StreamHandlerBuilder<List<Byte>> it) {
-        final Procedure1<Void> _function = new Procedure1<Void>() {
-          public void apply(final Void it) {
-            try {
-              out.close();
-              task.complete();
-            } catch (Throwable _e) {
-              throw Exceptions.sneakyThrow(_e);
-            }
-          }
-        };
-        it.closed(_function);
-        final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
-            try {
-              if (((it).intValue() == 0)) {
+  public static <I extends Object> Task writeTo(final IStream<I, List<Byte>> stream, final OutputStream out) {
+    Task _xblockexpression = null;
+    {
+      final Task task = new Task();
+      final Procedure1<StreamResponder<I, List<Byte>>> _function = new Procedure1<StreamResponder<I, List<Byte>>>() {
+        @Override
+        public void apply(final StreamResponder<I, List<Byte>> it) {
+          final Procedure1<Void> _function = new Procedure1<Void>() {
+            @Override
+            public void apply(final Void it) {
+              try {
                 out.close();
+                task.complete();
+              } catch (Throwable _e) {
+                throw Exceptions.sneakyThrow(_e);
               }
-              task.complete();
-              stream.next();
-            } catch (Throwable _e) {
-              throw Exceptions.sneakyThrow(_e);
             }
-          }
-        };
-        it.finish(_function_1);
-        final Function1<Throwable, Boolean> _function_2 = new Function1<Throwable, Boolean>() {
-          public Boolean apply(final Throwable it) {
-            boolean _xblockexpression = false;
-            {
-              task.error(it);
+          };
+          it.closed(_function);
+          final Procedure2<I, Integer> _function_1 = new Procedure2<I, Integer>() {
+            @Override
+            public void apply(final I $0, final Integer $1) {
+              try {
+                boolean _equals = Objects.equal(it, Integer.valueOf(0));
+                if (_equals) {
+                  out.close();
+                }
+                task.complete();
+                stream.next();
+              } catch (Throwable _e) {
+                throw Exceptions.sneakyThrow(_e);
+              }
+            }
+          };
+          it.finish(_function_1);
+          final Procedure2<I, Throwable> _function_2 = new Procedure2<I, Throwable>() {
+            @Override
+            public void apply(final I $0, final Throwable $1) {
+              task.error($1);
               stream.close();
-              _xblockexpression = true;
             }
-            return Boolean.valueOf(_xblockexpression);
-          }
-        };
-        it.error(_function_2);
-        final Procedure1<List<Byte>> _function_3 = new Procedure1<List<Byte>>() {
-          public void apply(final List<Byte> it) {
-            try {
-              out.write(((byte[])Conversions.unwrapArray(it, byte.class)));
-              stream.next();
-            } catch (Throwable _e) {
-              throw Exceptions.sneakyThrow(_e);
+          };
+          it.error(_function_2);
+          final Procedure2<I, List<Byte>> _function_3 = new Procedure2<I, List<Byte>>() {
+            @Override
+            public void apply(final I $0, final List<Byte> $1) {
+              try {
+                out.write(((byte[])Conversions.unwrapArray($1, byte.class)));
+                stream.next();
+              } catch (Throwable _e) {
+                throw Exceptions.sneakyThrow(_e);
+              }
             }
-          }
-        };
-        it.each(_function_3);
-      }
-    };
-    StreamExtensions.<List<Byte>>on(stream, _function);
-    stream.setOperation("writeTo");
-    stream.next();
+          };
+          it.each(_function_3);
+        }
+      };
+      StreamExtensions.<I, List<Byte>>on(stream, _function);
+      stream.setOperation("writeTo");
+      stream.next();
+      _xblockexpression = task;
+    }
+    return _xblockexpression;
   }
   
   /**
    * write a buffered bytestream to a file
    */
-  @Async
-  public static void writeTo(final Stream<List<Byte>> stream, final File file, final Task task) {
+  public static <I extends Object> Task writeTo(final IStream<I, List<Byte>> stream, final File file) {
     try {
-      final ByteSink sink = Files.asByteSink(file);
-      final BufferedOutputStream out = sink.openBufferedStream();
-      StreamIOExtensions.writeTo(stream, out, task);
-      String _absolutePath = file.getAbsolutePath();
-      String _plus = ("writeTo(file=" + _absolutePath);
-      String _plus_1 = (_plus + ")");
-      stream.setOperation(_plus_1);
+      Task _xblockexpression = null;
+      {
+        final Task task = new Task();
+        final ByteSink sink = Files.asByteSink(file);
+        final BufferedOutputStream out = sink.openBufferedStream();
+        Task _writeTo = StreamIOExtensions.<I>writeTo(stream, out);
+        PromiseExtensions.<Boolean, Boolean, Boolean>pipe(_writeTo, task);
+        String _absolutePath = file.getAbsolutePath();
+        String _plus = ("writeTo(file=" + _absolutePath);
+        String _plus_1 = (_plus + ")");
+        stream.setOperation(_plus_1);
+        _xblockexpression = task;
+      }
+      return _xblockexpression;
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
-    }
-  }
-  
-  /**
-   * write a buffered bytestream to an standard java outputstream
-   */
-  public static Task writeTo(final Stream<List<Byte>> stream, final OutputStream out) {
-    final Task task = new Task();
-    try {
-    	writeTo(stream,out,task);
-    } catch(Throwable t) {
-    	task.error(t);
-    } finally {
-    	return task;
-    }
-  }
-  
-  /**
-   * write a buffered bytestream to a file
-   */
-  public static Task writeTo(final Stream<List<Byte>> stream, final File file) {
-    final Task task = new Task();
-    try {
-    	writeTo(stream,file,task);
-    } catch(Throwable t) {
-    	task.error(t);
-    } finally {
-    	return task;
     }
   }
 }

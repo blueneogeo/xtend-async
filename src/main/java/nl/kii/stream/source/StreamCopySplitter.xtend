@@ -1,12 +1,12 @@
 package nl.kii.stream.source
 
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Close
-import nl.kii.stream.Entry
-import nl.kii.stream.Next
-import nl.kii.stream.Skip
-import nl.kii.stream.Stream
-import nl.kii.stream.StreamNotification
+import nl.kii.stream.IStream
+import nl.kii.stream.message.Close
+import nl.kii.stream.message.Entry
+import nl.kii.stream.message.Next
+import nl.kii.stream.message.Skip
+import nl.kii.stream.message.StreamEvent
 
 /**
  * This splitter simply tries to pass all incoming values
@@ -14,26 +14,27 @@ import nl.kii.stream.StreamNotification
  * <p>
  * Flow control is maintained by only allowing the next
  * entry from the source stream if all piped streams are ready.
- * This means that you need to make sure that all connected
+ * <p>
+ * Note: This means that you need to make sure that all connected
  * streams do not block their flow, since one blocking stream
  * will block all streams from flowing.
  */
-class StreamCopySplitter<T> extends StreamSplitter<T> {
+class StreamCopySplitter<I, O> extends StreamSplitter<I, O> {
 	
-	@Atomic Entry<T> buffer
+	@Atomic Entry<I, O> buffer
 	
-	new(Stream<T> source) {
+	new(IStream<I, O> source) {
 		super(source)
 	}
 	
 	/** Handle an entry coming in from the source stream */
-	protected override onEntry(Entry<T> entry) {
+	protected override onEntry(Entry<I, O> entry) {
 		buffer = entry
 		// only proceed if all streams are ready
 		if(streams.all[ready]) publish
 	}
 	
-	protected override onCommand(extension StreamNotification msg) {
+	protected override onCommand(extension StreamEvent msg) {
 		switch msg {
 			Next: next
 			Skip: skip
@@ -43,7 +44,7 @@ class StreamCopySplitter<T> extends StreamSplitter<T> {
 	
 	protected def publish() {
 		if(buffer != null) {
-			for(it : streams) apply(buffer)
+			for(s : streams) s.apply(buffer)
 			buffer = null
 		}
 	}

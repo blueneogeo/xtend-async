@@ -11,9 +11,13 @@ import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseFuture;
 import nl.kii.promise.Task;
+import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class ExecutorExtensions {
@@ -24,7 +28,7 @@ public class ExecutorExtensions {
    * <pre>
    * val result = promise.future.get // blocks code until the promise is fulfilled
    */
-  public static <T extends Object> Future<T> future(final IPromise<T> promise) {
+  public static <R extends Object, T extends Object> Future<T> future(final IPromise<R, T> promise) {
     return new PromiseFuture<T>(promise);
   }
   
@@ -35,11 +39,12 @@ public class ExecutorExtensions {
    * val service = Executors.newSingleThreadExecutor
    * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
    */
-  public static <T extends Object> IPromise<T> promise(final ExecutorService service, final Callable<T> callable) {
+  public static <T extends Object> Promise<T> promise(final ExecutorService service, final Callable<T> callable) {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
       final Runnable _function = new Runnable() {
+        @Override
         public void run() {
           try {
             final T result = callable.call();
@@ -73,6 +78,7 @@ public class ExecutorExtensions {
     {
       final Task task = new Task();
       final Runnable _function = new Runnable() {
+        @Override
         public void run() {
           try {
             runnable.run();
@@ -92,6 +98,20 @@ public class ExecutorExtensions {
       _xblockexpression = task;
     }
     return _xblockexpression;
+  }
+  
+  public static Procedure2<? super Long, ? super Procedure0> scheduler(final ScheduledExecutorService executor) {
+    final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+      @Override
+      public void apply(final Long period, final Procedure0 doneFn) {
+        executor.schedule(new Runnable() {
+            public void run() {
+              doneFn.apply();
+            }
+        }, period, TimeUnit.MILLISECONDS);
+      }
+    };
+    return _function;
   }
   
   /**
@@ -114,12 +134,13 @@ public class ExecutorExtensions {
       final Stream<Long> newStream = StreamExtensions.<Long>stream(long.class);
       final long start = System.currentTimeMillis();
       final Runnable _function = new Runnable() {
+        @Override
         public void run() {
           final long now = System.currentTimeMillis();
           final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
           boolean _and = false;
-          Boolean _isOpen = newStream.isOpen();
-          if (!(_isOpen).booleanValue()) {
+          boolean _isOpen = newStream.isOpen();
+          if (!_isOpen) {
             _and = false;
           } else {
             _and = (!expired);
@@ -144,8 +165,8 @@ public class ExecutorExtensions {
    * Push a value onto the stream from the parent stream every periodMs milliseconds.
    * Note: It requires a scheduled executor for the scheduling. This breaks the singlethreaded model.
    */
-  public static <T extends Object> Stream<T> every(final Stream<T> stream, final int periodMs, final ScheduledExecutorService executor) {
+  public static <R extends Object, T extends Object> SubStream<R, T> every(final IStream<R, T> stream, final int periodMs, final ScheduledExecutorService executor) {
     Stream<Long> _streamEvery = ExecutorExtensions.streamEvery(executor, periodMs);
-    return StreamExtensions.<T>synchronizeWith(stream, _streamEvery);
+    return StreamExtensions.<R, T>synchronizeWith(stream, _streamEvery);
   }
 }

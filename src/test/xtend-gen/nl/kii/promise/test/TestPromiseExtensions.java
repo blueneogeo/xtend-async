@@ -10,10 +10,12 @@ import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -27,8 +29,8 @@ public class TestPromiseExtensions {
   public void testFuture() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
-      PromiseExtensions.<Integer>operator_doubleLessThan(promise, Integer.valueOf(2));
+      final Future<Integer> future = ExecutorExtensions.<Integer, Integer>future(promise);
+      PromiseExtensions.<Integer, Integer>operator_doubleLessThan(promise, Integer.valueOf(2));
       boolean _isDone = future.isDone();
       Assert.assertTrue(_isDone);
       Integer _get = future.get();
@@ -42,7 +44,7 @@ public class TestPromiseExtensions {
   public void testFutureError() {
     try {
       final Promise<Integer> promise = PromiseExtensions.<Integer>promise(Integer.class);
-      final Future<Integer> future = ExecutorExtensions.<Integer>future(promise);
+      final Future<Integer> future = ExecutorExtensions.<Integer, Integer>future(promise);
       Exception _exception = new Exception();
       promise.error(_exception);
       try {
@@ -64,11 +66,12 @@ public class TestPromiseExtensions {
   public void testMap() {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(4));
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return Integer.valueOf(((it).intValue() + 10));
       }
     };
-    final Promise<Integer> mapped = PromiseExtensions.<Integer, Integer>map(p, _function);
+    final SubPromise<Integer, Integer> mapped = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     StreamAssert.<Integer>assertPromiseEquals(mapped, Integer.valueOf(14));
   }
   
@@ -76,8 +79,8 @@ public class TestPromiseExtensions {
   public void testFlatten() {
     final Promise<Integer> p1 = new Promise<Integer>(Integer.valueOf(3));
     Promise<Promise<Integer>> _promise = new Promise<Promise<Integer>>();
-    final IPromise<Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>>operator_doubleLessThan(_promise, p1);
-    final Promise<Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>>flatten(p2);
+    final IPromise<Promise<Integer>, Promise<Integer>> p2 = PromiseExtensions.<Promise<Integer>, Promise<Integer>>operator_doubleLessThan(_promise, p1);
+    final SubPromise<Promise<Integer>, Integer> flattened = PromiseExtensions.<Integer, Promise<Integer>, Integer, Promise<Integer>>flatten(p2);
     StreamAssert.<Integer>assertPromiseEquals(flattened, Integer.valueOf(3));
   }
   
@@ -85,26 +88,28 @@ public class TestPromiseExtensions {
   public void testAsync() {
     final Promise<Integer> s = new Promise<Integer>(Integer.valueOf(2));
     final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
+      @Override
       public Promise<Integer> apply(final Integer it) {
         return TestPromiseExtensions.this.power2((it).intValue());
       }
     };
-    Promise<Promise<Integer>> _map = PromiseExtensions.<Integer, Promise<Integer>>map(s, _function);
-    final Promise<Integer> asynced = PromiseExtensions.<Integer, Promise<Integer>>flatten(_map);
+    SubPromise<Integer, Promise<Integer>> _map = PromiseExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
+    final SubPromise<Integer, Integer> asynced = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>flatten(_map);
     StreamAssert.<Integer>assertPromiseEquals(asynced, Integer.valueOf(4));
   }
   
   @Test
   public void testListPromiseToStream() {
     final Promise<List<Integer>> p = new Promise<List<Integer>>(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
-    Stream<Integer> _stream = StreamExtensions.<Integer, List<Integer>>stream(p);
-    Stream<Double> _sum = StreamExtensions.<Integer>sum(_stream);
+    Stream<Integer> _stream = StreamExtensions.<List<Integer>, Integer, List<Integer>>stream(p);
+    SubStream<Integer, Double> _sum = StreamExtensions.<Integer, Integer>sum(_stream);
     final Procedure1<Double> _function = new Procedure1<Double>() {
+      @Override
       public void apply(final Double it) {
         Assert.assertEquals(6, (it).doubleValue(), 0);
       }
     };
-    StreamExtensions.<Double>then(_sum, _function);
+    StreamExtensions.<Integer, Double>then(_sum, _function);
   }
   
   @Atomic
@@ -122,12 +127,14 @@ public class TestPromiseExtensions {
     final Task t3 = new Task();
     final Task a = PromiseExtensions.all(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
       }
     };
     t2.then(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
       }
@@ -162,12 +169,14 @@ public class TestPromiseExtensions {
     Task _and = PromiseExtensions.operator_and(t1, t2);
     final Task a = PromiseExtensions.operator_and(_and, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
       }
     };
     t2.then(_function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
       }
@@ -200,8 +209,9 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    final Task a = PromiseExtensions.<Boolean, Task>any(t1, t2, t3);
+    final Task a = PromiseExtensions.<Boolean, Boolean, Task>any(t1, t2, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
       }
@@ -225,9 +235,10 @@ public class TestPromiseExtensions {
     final Task t1 = new Task();
     final Task t2 = new Task();
     final Task t3 = new Task();
-    Task _or = PromiseExtensions.<Boolean>operator_or(t1, t2);
-    final Task a = PromiseExtensions.<Boolean>operator_or(_or, t3);
+    Task _or = PromiseExtensions.<Boolean, Boolean>operator_or(t1, t2);
+    final Task a = PromiseExtensions.<Boolean, Boolean>operator_or(_or, t3);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
       }
@@ -250,27 +261,39 @@ public class TestPromiseExtensions {
     return new Promise<Integer>(Integer.valueOf((i * i)));
   }
   
-  private Boolean setAllDone(final Boolean value) {
-    return this._allDone.getAndSet(value);
+  private void setAllDone(final Boolean value) {
+    this._allDone.set(value);
   }
   
   private Boolean getAllDone() {
     return this._allDone.get();
   }
   
-  private Boolean setT2Done(final Boolean value) {
-    return this._t2Done.getAndSet(value);
+  private Boolean getAndSetAllDone(final Boolean value) {
+    return this._allDone.getAndSet(value);
+  }
+  
+  private void setT2Done(final Boolean value) {
+    this._t2Done.set(value);
   }
   
   private Boolean getT2Done() {
     return this._t2Done.get();
   }
   
-  private Boolean setAnyDone(final Boolean value) {
-    return this._anyDone.getAndSet(value);
+  private Boolean getAndSetT2Done(final Boolean value) {
+    return this._t2Done.getAndSet(value);
+  }
+  
+  private void setAnyDone(final Boolean value) {
+    this._anyDone.set(value);
   }
   
   private Boolean getAnyDone() {
     return this._anyDone.get();
+  }
+  
+  private Boolean getAndSetAnyDone(final Boolean value) {
+    return this._anyDone.getAndSet(value);
   }
 }

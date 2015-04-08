@@ -3,10 +3,12 @@ package nl.kii.stream.test;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamIOExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -19,20 +21,23 @@ public class TestIOStreamExtensions {
   public void testFileStreaming() {
     final File file = new File("gradle.properties");
     Stream<List<Byte>> _stream = StreamIOExtensions.stream(file);
-    Stream<String> _text = StreamIOExtensions.toText(_stream);
+    SubStream<List<Byte>, String> _text = StreamIOExtensions.<List<Byte>>toText(_stream);
     final Function1<String, String> _function = new Function1<String, String>() {
+      @Override
       public String apply(final String it) {
         return ("- " + it);
       }
     };
-    Stream<String> _map = StreamExtensions.<String, String>map(_text, _function);
+    SubStream<List<Byte>, String> _map = StreamExtensions.<List<Byte>, String, String>map(_text, _function);
     final Procedure1<String> _function_1 = new Procedure1<String>() {
+      @Override
       public void apply(final String it) {
         InputOutput.<String>println(it);
       }
     };
-    Task _onEach = StreamExtensions.<String>onEach(_map, _function_1);
+    SubTask<List<Byte>> _onEach = StreamExtensions.<List<Byte>, String>onEach(_map, _function_1);
     final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         InputOutput.<String>println("finish");
       }
@@ -44,14 +49,15 @@ public class TestIOStreamExtensions {
   public void testStreamToFileAndFileCopy() {
     final List<String> data = Collections.<String>unmodifiableList(CollectionLiterals.<String>newArrayList("Hello,", "This is some text", "Please make this into a nice file!"));
     Stream<String> _stream = StreamExtensions.<String>stream(data);
-    Stream<List<Byte>> _bytes = StreamIOExtensions.toBytes(_stream);
+    SubStream<String, List<Byte>> _bytes = StreamIOExtensions.<String>toBytes(_stream);
     File _file = new File("test.txt");
-    StreamIOExtensions.writeTo(_bytes, _file);
+    StreamIOExtensions.<String>writeTo(_bytes, _file);
     final File source = new File("test.txt");
     final File destination = new File("text2.txt");
     Stream<List<Byte>> _stream_1 = StreamIOExtensions.stream(source);
-    Task _writeTo = StreamIOExtensions.writeTo(_stream_1, destination);
+    Task _writeTo = StreamIOExtensions.<List<Byte>>writeTo(_stream_1, destination);
     final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+      @Override
       public void apply(final Boolean it) {
         source.delete();
         destination.delete();

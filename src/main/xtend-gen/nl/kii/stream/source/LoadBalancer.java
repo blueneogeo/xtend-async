@@ -1,14 +1,14 @@
 package nl.kii.stream.source;
 
 import java.util.List;
-import nl.kii.stream.Close;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Finish;
-import nl.kii.stream.Next;
-import nl.kii.stream.Skip;
-import nl.kii.stream.Stream;
-import nl.kii.stream.StreamNotification;
-import nl.kii.stream.Value;
+import nl.kii.stream.IStream;
+import nl.kii.stream.message.Close;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Finish;
+import nl.kii.stream.message.Next;
+import nl.kii.stream.message.Skip;
+import nl.kii.stream.message.StreamEvent;
+import nl.kii.stream.message.Value;
 import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -18,23 +18,24 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
  * This means that each attached stream receives different messages.
  */
 @SuppressWarnings("all")
-public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
-  public LoadBalancer(final Stream<T> source) {
+public class LoadBalancer<I extends Object, O extends Object> extends StreamSplitter<I, O> {
+  public LoadBalancer(final IStream<I, O> source) {
     super(source);
   }
   
   /**
    * Handle an entry coming in from the source stream
    */
-  protected void onEntry(final Entry<T> entry) {
+  @Override
+  protected void onEntry(final Entry<I, O> entry) {
     boolean _matched = false;
     if (!_matched) {
       if (entry instanceof Value) {
         _matched=true;
-        List<Stream<T>> _streams = this.getStreams();
-        for (final Stream<T> stream : _streams) {
-          Boolean _isReady = stream.isReady();
-          if ((_isReady).booleanValue()) {
+        List<IStream<I, ?>> _streams = this.getStreams();
+        for (final IStream<I, ?> stream : _streams) {
+          boolean _isReady = stream.isReady();
+          if (_isReady) {
             stream.apply(entry);
             return;
           }
@@ -44,24 +45,25 @@ public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
     if (!_matched) {
       if (entry instanceof Finish) {
         _matched=true;
-        List<Stream<T>> _streams = this.getStreams();
-        for (final Stream<T> stream : _streams) {
+        List<IStream<I, ?>> _streams = this.getStreams();
+        for (final IStream<I, ?> stream : _streams) {
           stream.finish();
         }
       }
     }
     if (!_matched) {
-      if (entry instanceof nl.kii.stream.Error) {
+      if (entry instanceof nl.kii.stream.message.Error) {
         _matched=true;
-        List<Stream<T>> _streams = this.getStreams();
-        for (final Stream<T> stream : _streams) {
-          stream.error(((nl.kii.stream.Error<T>)entry).error);
+        List<IStream<I, ?>> _streams = this.getStreams();
+        for (final IStream<I, ?> stream : _streams) {
+          stream.error(((nl.kii.stream.message.Error<I, O>)entry).error);
         }
       }
     }
   }
   
-  protected void onCommand(@Extension final StreamNotification msg) {
+  @Override
+  protected void onCommand(@Extension final StreamEvent msg) {
     boolean _matched = false;
     if (!_matched) {
       if (msg instanceof Next) {
@@ -88,13 +90,14 @@ public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
   }
   
   protected void skip() {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isSkipping();
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        return Boolean.valueOf(it.isSkipping());
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -103,14 +106,15 @@ public class LoadBalancer<T extends Object> extends StreamSplitter<T> {
   }
   
   protected void close() {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        Boolean _isOpen = it.isOpen();
-        return Boolean.valueOf((!(_isOpen).booleanValue()));
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        boolean _isOpen = it.isOpen();
+        return Boolean.valueOf((!_isOpen));
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;

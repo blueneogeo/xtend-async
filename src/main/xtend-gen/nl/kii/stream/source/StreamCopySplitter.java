@@ -4,12 +4,12 @@ import com.google.common.base.Objects;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.stream.Close;
-import nl.kii.stream.Entry;
-import nl.kii.stream.Next;
-import nl.kii.stream.Skip;
-import nl.kii.stream.Stream;
-import nl.kii.stream.StreamNotification;
+import nl.kii.stream.IStream;
+import nl.kii.stream.message.Close;
+import nl.kii.stream.message.Entry;
+import nl.kii.stream.message.Next;
+import nl.kii.stream.message.Skip;
+import nl.kii.stream.message.StreamEvent;
 import nl.kii.stream.source.StreamSplitter;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -20,37 +20,41 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
  * <p>
  * Flow control is maintained by only allowing the next
  * entry from the source stream if all piped streams are ready.
- * This means that you need to make sure that all connected
+ * <p>
+ * Note: This means that you need to make sure that all connected
  * streams do not block their flow, since one blocking stream
  * will block all streams from flowing.
  */
 @SuppressWarnings("all")
-public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
+public class StreamCopySplitter<I extends Object, O extends Object> extends StreamSplitter<I, O> {
   @Atomic
-  private final AtomicReference<Entry<T>> _buffer = new AtomicReference<Entry<T>>();
+  private final AtomicReference<Entry<I, O>> _buffer = new AtomicReference<Entry<I, O>>();
   
-  public StreamCopySplitter(final Stream<T> source) {
+  public StreamCopySplitter(final IStream<I, O> source) {
     super(source);
   }
   
   /**
    * Handle an entry coming in from the source stream
    */
-  protected void onEntry(final Entry<T> entry) {
+  @Override
+  protected void onEntry(final Entry<I, O> entry) {
     this.setBuffer(entry);
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isReady();
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        return Boolean.valueOf(it.isReady());
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     if (_all) {
       this.publish();
     }
   }
   
-  protected void onCommand(@Extension final StreamNotification msg) {
+  @Override
+  protected void onCommand(@Extension final StreamEvent msg) {
     boolean _matched = false;
     if (!_matched) {
       if (msg instanceof Next) {
@@ -72,33 +76,28 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     }
   }
   
-  protected Entry<T> publish() {
-    Entry<T> _xifexpression = null;
-    Entry<T> _buffer = this.getBuffer();
+  protected void publish() {
+    Entry<I, O> _buffer = this.getBuffer();
     boolean _notEquals = (!Objects.equal(_buffer, null));
     if (_notEquals) {
-      Entry<T> _xblockexpression = null;
-      {
-        List<Stream<T>> _streams = this.getStreams();
-        for (final Stream<T> it : _streams) {
-          Entry<T> _buffer_1 = this.getBuffer();
-          it.apply(_buffer_1);
-        }
-        _xblockexpression = this.setBuffer(null);
+      List<IStream<I, ?>> _streams = this.getStreams();
+      for (final IStream<I, ?> s : _streams) {
+        Entry<I, O> _buffer_1 = this.getBuffer();
+        s.apply(_buffer_1);
       }
-      _xifexpression = _xblockexpression;
+      this.setBuffer(null);
     }
-    return _xifexpression;
   }
   
   protected void next() {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isReady();
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        return Boolean.valueOf(it.isReady());
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -108,13 +107,14 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
   }
   
   protected void skip() {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        return it.isSkipping();
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        return Boolean.valueOf(it.isSkipping());
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -124,14 +124,15 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
   }
   
   protected void close() {
-    List<Stream<T>> _streams = this.getStreams();
-    final Function1<Stream<T>, Boolean> _function = new Function1<Stream<T>, Boolean>() {
-      public Boolean apply(final Stream<T> it) {
-        Boolean _isOpen = it.isOpen();
-        return Boolean.valueOf((!(_isOpen).booleanValue()));
+    List<IStream<I, ?>> _streams = this.getStreams();
+    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
+      @Override
+      public Boolean apply(final IStream<I, ?> it) {
+        boolean _isOpen = it.isOpen();
+        return Boolean.valueOf((!_isOpen));
       }
     };
-    boolean _all = StreamSplitter.<Stream<T>>all(_streams, _function);
+    boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
     if (_not) {
       return;
@@ -140,11 +141,15 @@ public class StreamCopySplitter<T extends Object> extends StreamSplitter<T> {
     this.source.close();
   }
   
-  private Entry<T> setBuffer(final Entry<T> value) {
-    return this._buffer.getAndSet(value);
+  private void setBuffer(final Entry<I, O> value) {
+    this._buffer.set(value);
   }
   
-  private Entry<T> getBuffer() {
+  private Entry<I, O> getBuffer() {
     return this._buffer.get();
+  }
+  
+  private Entry<I, O> getAndSetBuffer(final Entry<I, O> value) {
+    return this._buffer.getAndSet(value);
   }
 }

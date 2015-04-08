@@ -15,7 +15,7 @@ class TestAtomicAnnotation {
 	
 	@Test
 	def void testInteger() {
-		assertEquals(2, counter = 3)
+		assertEquals(2, getAndSetCounter(3))
 		assertEquals(4, incCounter)
 		assertEquals(3, decCounter)
 		assertEquals(5, incCounter(2))
@@ -39,7 +39,7 @@ class TestAtomicAnnotation {
 	def void testReference() {
 		assertEquals('Lucien', tester.name)
 		tester = new Tester('christian')
-		val oldTester = (tester = new Tester('Floris'))
+		val oldTester = getAndSetTester(new Tester('Floris'))
 		assertEquals('christian', oldTester.name)
 		assertEquals('Floris', tester.name)
 		

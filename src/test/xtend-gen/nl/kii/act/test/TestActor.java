@@ -6,17 +6,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import nl.kii.act.Actor;
 import nl.kii.act.ActorExtensions;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Async;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
-import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
+import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
+import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -33,6 +35,7 @@ public class TestActor {
   @Test
   public void testHelloWorld() {
     final Procedure2<String, Procedure0> _function = new Procedure2<String, Procedure0>() {
+      @Override
       public void apply(final String it, final Procedure0 done) {
         InputOutput.<String>println(("hello " + it));
         done.apply();
@@ -60,6 +63,7 @@ public class TestActor {
   public void testActorsAreSingleThreaded() {
     try {
       final Actor<Integer> actor = new Actor<Integer>() {
+        @Override
         protected void act(final Integer message, final Procedure0 done) {
           final Integer a = TestActor.this.incAccess();
           if (((a).intValue() > 1)) {
@@ -74,6 +78,7 @@ public class TestActor {
       };
       final ExecutorService threads = Executors.newCachedThreadPool();
       final Runnable _function = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1, 1000);
           for (final Integer i : _upTo) {
@@ -83,6 +88,7 @@ public class TestActor {
       };
       ExecutorExtensions.task(threads, _function);
       final Runnable _function_1 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1, 1000);
           for (final Integer i : _upTo) {
@@ -92,6 +98,7 @@ public class TestActor {
       };
       ExecutorExtensions.task(threads, _function_1);
       final Runnable _function_2 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1, 1000);
           for (final Integer i : _upTo) {
@@ -101,6 +108,7 @@ public class TestActor {
       };
       ExecutorExtensions.task(threads, _function_2);
       final Runnable _function_3 = new Runnable() {
+        @Override
         public void run() {
           IntegerRange _upTo = new IntegerRange(1, 1000);
           for (final Integer i : _upTo) {
@@ -128,8 +136,10 @@ public class TestActor {
       final AtomicInteger doneCounter = new AtomicInteger(0);
       final ExecutorService threads = Executors.newCachedThreadPool();
       final Procedure1<Integer> _function = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer y) {
           final Runnable _function = new Runnable() {
+            @Override
             public void run() {
               try {
                 Thread.sleep(5);
@@ -149,8 +159,10 @@ public class TestActor {
       };
       final Actor<Integer> checkDone = ActorExtensions.<Integer>actor(_function);
       final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer value) {
           final Runnable _function = new Runnable() {
+            @Override
             public void run() {
               ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf((value - 1)), checkDone);
             }
@@ -200,24 +212,27 @@ public class TestActor {
    */
   @Test
   public void testActorRelativeSingleThreadedPerformance() {
-    final IntegerRange iterations = new IntegerRange(1, 10000000);
+    final IntegerRange iterations = new IntegerRange(1, 10_000_000);
     final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
       public Integer apply(final Integer it) {
         return TestActor.this.incFunctCounter();
       }
     };
     final Function1<Integer, Integer> funct = _function;
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         TestActor.this.incActorCounter();
       }
     };
     final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
-    IntegerRange _upTo = new IntegerRange(1, 20000000);
+    IntegerRange _upTo = new IntegerRange(1, 20_000_000);
     for (final Integer i : _upTo) {
       actor.apply(i);
     }
     final Procedure0 _function_2 = new Procedure0() {
+      @Override
       public void apply() {
         for (final Integer i : iterations) {
           funct.apply(i);
@@ -227,6 +242,7 @@ public class TestActor {
     final long functTimeMs = this.measure(_function_2);
     InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
     final Procedure0 _function_3 = new Procedure0() {
+      @Override
       public void apply() {
         for (final Integer i : iterations) {
           TestActor.this.unsynced();
@@ -236,6 +252,7 @@ public class TestActor {
     final long unsyncedTimeMs = this.measure(_function_3);
     InputOutput.<String>println(("unsynced method took: " + Long.valueOf(unsyncedTimeMs)));
     final Procedure0 _function_4 = new Procedure0() {
+      @Override
       public void apply() {
         for (final Integer i : iterations) {
           TestActor.this.synced();
@@ -245,6 +262,7 @@ public class TestActor {
     final long syncedTimeMs = this.measure(_function_4);
     InputOutput.<String>println(("synced method took: " + Long.valueOf(syncedTimeMs)));
     final Procedure0 _function_5 = new Procedure0() {
+      @Override
       public void apply() {
         for (final Integer i : iterations) {
           actor.apply(i);
@@ -268,27 +286,31 @@ public class TestActor {
   public void testActorRelativeMultiThreadedPerformance() {
     try {
       final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+        @Override
         public Integer apply(final Integer it) {
           return TestActor.this.incFunctCounter();
         }
       };
       final Function1<Integer, Integer> funct = _function;
       final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+        @Override
         public void apply(final Integer it) {
           TestActor.this.incActorCounter();
         }
       };
       final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
-      IntegerRange _upTo = new IntegerRange(1, 20000000);
+      IntegerRange _upTo = new IntegerRange(1, 20_000_000);
       for (final Integer i : _upTo) {
         actor.apply(i);
       }
-      final IntegerRange iterations = new IntegerRange(1, 1000000);
+      final IntegerRange iterations = new IntegerRange(1, 1_000_000);
       final int threads = 10;
       Task _complete = PromiseExtensions.complete();
-      final Function1<Boolean, Promise<Long>> _function_2 = new Function1<Boolean, Promise<Long>>() {
-        public Promise<Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_2 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        @Override
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
+            @Override
             public void apply() {
               for (final Integer i : iterations) {
                 funct.apply(i);
@@ -298,16 +320,19 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_complete, _function_2);
+      SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_complete, _function_2);
       final Procedure1<Long> _function_3 = new Procedure1<Long>() {
+        @Override
         public void apply(final Long it) {
           InputOutput.<String>println(("function took: " + it));
         }
       };
       Task _then = _call.then(_function_3);
-      final Function1<Boolean, Promise<Long>> _function_4 = new Function1<Boolean, Promise<Long>>() {
-        public Promise<Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_4 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        @Override
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
+            @Override
             public void apply() {
               for (final Integer i : iterations) {
                 TestActor.this.unsynced();
@@ -317,16 +342,19 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_1 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then, _function_4);
+      SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then, _function_4);
       final Procedure1<Long> _function_5 = new Procedure1<Long>() {
+        @Override
         public void apply(final Long it) {
           InputOutput.<String>println(("unsynced method took: " + it));
         }
       };
       Task _then_1 = _call_1.then(_function_5);
-      final Function1<Boolean, Promise<Long>> _function_6 = new Function1<Boolean, Promise<Long>>() {
-        public Promise<Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_6 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        @Override
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
+            @Override
             public void apply() {
               for (final Integer i : iterations) {
                 TestActor.this.synced();
@@ -336,16 +364,19 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_2 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then_1, _function_6);
+      SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_1, _function_6);
       final Procedure1<Long> _function_7 = new Procedure1<Long>() {
+        @Override
         public void apply(final Long it) {
           InputOutput.<String>println(("synced method took: " + it));
         }
       };
       Task _then_2 = _call_2.then(_function_7);
-      final Function1<Boolean, Promise<Long>> _function_8 = new Function1<Boolean, Promise<Long>>() {
-        public Promise<Long> apply(final Boolean it) {
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_8 = new Function1<Boolean, SubPromise<Integer, Long>>() {
+        @Override
+        public SubPromise<Integer, Long> apply(final Boolean it) {
           final Procedure0 _function = new Procedure0() {
+            @Override
             public void apply() {
               for (final Integer i : iterations) {
                 actor.apply(i);
@@ -355,14 +386,15 @@ public class TestActor {
           return TestActor.this.measure(threads, _function);
         }
       };
-      IPromise<Long> _call_3 = PromiseExtensions.<Boolean, Long, Promise<Long>>call(_then_2, _function_8);
+      SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_2, _function_8);
       final Procedure1<Long> _function_9 = new Procedure1<Long>() {
+        @Override
         public void apply(final Long it) {
           InputOutput.<String>println(("actor took: " + it));
         }
       };
       Task _then_3 = _call_3.then(_function_9);
-      Future<Boolean> _future = ExecutorExtensions.<Boolean>future(_then_3);
+      Future<Boolean> _future = ExecutorExtensions.<Boolean, Boolean>future(_then_3);
       _future.get();
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);
@@ -386,49 +418,57 @@ public class TestActor {
     final int listSize = 1000;
     final IntegerRange list = new IntegerRange(1, listSize);
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+          @Override
           public Integer apply(final Integer it) {
             return Integer.valueOf(((it).intValue() + 1000));
           }
         };
         Iterable<Integer> _map = IterableExtensions.<Integer, Integer>map(list, _function);
         final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+          @Override
           public Boolean apply(final Integer it) {
             return Boolean.valueOf((((it).intValue() % 2) == 0));
           }
         };
         Iterable<Integer> _filter = IterableExtensions.<Integer>filter(_map, _function_1);
-        final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-          public void apply(final Integer it) {
+        final Consumer<Integer> _function_2 = new Consumer<Integer>() {
+          @Override
+          public void accept(final Integer it) {
             TestActor.this.incFunctCounter();
           }
         };
-        IterableExtensions.<Integer>forEach(_filter, _function_2);
+        _filter.forEach(_function_2);
       }
     };
     final Procedure1<Integer> funct = _function;
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
+      @Override
       public void apply(final Integer it) {
         Stream<Integer> _stream = StreamExtensions.<Integer>stream(list);
         final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+          @Override
           public Integer apply(final Integer it) {
             return Integer.valueOf(((it).intValue() + 1000));
           }
         };
-        Stream<Integer> _map = StreamExtensions.<Integer, Integer>map(_stream, _function);
+        SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
         final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
+          @Override
           public Boolean apply(final Integer it) {
             return Boolean.valueOf((((it).intValue() % 2) == 0));
           }
         };
-        Stream<Integer> _filter = StreamExtensions.<Integer>filter(_map, _function_1);
+        SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_1);
         final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
+          @Override
           public void apply(final Integer it) {
             TestActor.this.incActorCounter();
           }
         };
-        StreamExtensions.<Integer>onEach(_filter, _function_2);
+        StreamExtensions.<Integer, Integer>onEach(_filter, _function_2);
       }
     };
     final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
@@ -437,6 +477,7 @@ public class TestActor {
       actor.apply(i);
     }
     final Procedure0 _function_2 = new Procedure0() {
+      @Override
       public void apply() {
         IntegerRange _upTo = new IntegerRange(1, iterations);
         for (final Integer i : _upTo) {
@@ -447,6 +488,7 @@ public class TestActor {
     final long functTimeMs = this.measure(_function_2);
     InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
     final Procedure0 _function_3 = new Procedure0() {
+      @Override
       public void apply() {
         IntegerRange _upTo = new IntegerRange(1, iterations);
         for (final Integer i : _upTo) {
@@ -476,16 +518,18 @@ public class TestActor {
    * measure the duration of an action executed on multiple threads at once
    */
   @Async
-  public Promise<Long> measure(final int threads, final Procedure0 actionFn) {
-    Promise<Long> _xblockexpression = null;
+  public SubPromise<Integer, Long> measure(final int threads, final Procedure0 actionFn) {
+    SubPromise<Integer, Long> _xblockexpression = null;
     {
       final ExecutorService pool = Executors.newFixedThreadPool(threads);
       final long start = System.currentTimeMillis();
       IntegerRange _upTo = new IntegerRange(1, threads);
       Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
       final Function1<Integer, Task> _function = new Function1<Integer, Task>() {
+        @Override
         public Task apply(final Integer it) {
           final Runnable _function = new Runnable() {
+            @Override
             public void run() {
               actionFn.apply();
             }
@@ -493,27 +537,32 @@ public class TestActor {
           return ExecutorExtensions.task(pool, _function);
         }
       };
-      Stream<Task> _map = StreamExtensions.<Integer, Task>map(_stream, _function);
-      Stream<Boolean> _resolve = StreamExtensions.<Boolean, Object>resolve(_map, threads);
-      Stream<List<Boolean>> _collect = StreamExtensions.<Boolean>collect(_resolve);
-      IPromise<List<Boolean>> _first = StreamExtensions.<List<Boolean>>first(_collect);
+      SubStream<Integer, Task> _map = StreamExtensions.<Integer, Integer, Task>map(_stream, _function);
+      SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean>resolve(_map, threads);
+      SubStream<Integer, List<Boolean>> _collect = StreamExtensions.<Integer, Boolean>collect(_resolve);
+      IPromise<Integer, List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
       final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {
+        @Override
         public Long apply(final List<Boolean> it) {
           long _currentTimeMillis = System.currentTimeMillis();
           return Long.valueOf((_currentTimeMillis - start));
         }
       };
-      _xblockexpression = PromiseExtensions.<List<Boolean>, Long>map(_first, _function_1);
+      _xblockexpression = PromiseExtensions.<Integer, List<Boolean>, Long>map(_first, _function_1);
     }
     return _xblockexpression;
   }
   
-  private Integer setAccess(final Integer value) {
-    return this._access.getAndSet(value);
+  private void setAccess(final Integer value) {
+    this._access.set(value);
   }
   
   private Integer getAccess() {
     return this._access.get();
+  }
+  
+  private Integer getAndSetAccess(final Integer value) {
+    return this._access.getAndSet(value);
   }
   
   private Integer incAccess() {
@@ -528,12 +577,16 @@ public class TestActor {
     return this._access.addAndGet(value);
   }
   
-  private Integer setValue(final Integer value) {
-    return this._value.getAndSet(value);
+  private void setValue(final Integer value) {
+    this._value.set(value);
   }
   
   private Integer getValue() {
     return this._value.get();
+  }
+  
+  private Integer getAndSetValue(final Integer value) {
+    return this._value.getAndSet(value);
   }
   
   private Integer incValue() {
@@ -548,12 +601,16 @@ public class TestActor {
     return this._value.addAndGet(value);
   }
   
-  private Integer setMultipleThreadAccessViolation(final Integer value) {
-    return this._multipleThreadAccessViolation.getAndSet(value);
+  private void setMultipleThreadAccessViolation(final Integer value) {
+    this._multipleThreadAccessViolation.set(value);
   }
   
   private Integer getMultipleThreadAccessViolation() {
     return this._multipleThreadAccessViolation.get();
+  }
+  
+  private Integer getAndSetMultipleThreadAccessViolation(final Integer value) {
+    return this._multipleThreadAccessViolation.getAndSet(value);
   }
   
   private Integer incMultipleThreadAccessViolation() {
@@ -568,20 +625,28 @@ public class TestActor {
     return this._multipleThreadAccessViolation.addAndGet(value);
   }
   
-  private Actor<Integer> setDecreaser(final Actor<Integer> value) {
-    return this._decreaser.getAndSet(value);
+  private void setDecreaser(final Actor<Integer> value) {
+    this._decreaser.set(value);
   }
   
   private Actor<Integer> getDecreaser() {
     return this._decreaser.get();
   }
   
-  private Integer setActorCounter(final Integer value) {
-    return this._actorCounter.getAndSet(value);
+  private Actor<Integer> getAndSetDecreaser(final Actor<Integer> value) {
+    return this._decreaser.getAndSet(value);
+  }
+  
+  private void setActorCounter(final Integer value) {
+    this._actorCounter.set(value);
   }
   
   private Integer getActorCounter() {
     return this._actorCounter.get();
+  }
+  
+  private Integer getAndSetActorCounter(final Integer value) {
+    return this._actorCounter.getAndSet(value);
   }
   
   private Integer incActorCounter() {
@@ -596,12 +661,16 @@ public class TestActor {
     return this._actorCounter.addAndGet(value);
   }
   
-  private Integer setFunctCounter(final Integer value) {
-    return this._functCounter.getAndSet(value);
+  private void setFunctCounter(final Integer value) {
+    this._functCounter.set(value);
   }
   
   private Integer getFunctCounter() {
     return this._functCounter.get();
+  }
+  
+  private Integer getAndSetFunctCounter(final Integer value) {
+    return this._functCounter.getAndSet(value);
   }
   
   private Integer incFunctCounter() {
@@ -616,12 +685,16 @@ public class TestActor {
     return this._functCounter.addAndGet(value);
   }
   
-  private Integer setUnsyncedCounter(final Integer value) {
-    return this._unsyncedCounter.getAndSet(value);
+  private void setUnsyncedCounter(final Integer value) {
+    this._unsyncedCounter.set(value);
   }
   
   private Integer getUnsyncedCounter() {
     return this._unsyncedCounter.get();
+  }
+  
+  private Integer getAndSetUnsyncedCounter(final Integer value) {
+    return this._unsyncedCounter.getAndSet(value);
   }
   
   private Integer incUnsyncedCounter() {
@@ -636,12 +709,16 @@ public class TestActor {
     return this._unsyncedCounter.addAndGet(value);
   }
   
-  private Integer setSyncedCounter(final Integer value) {
-    return this._syncedCounter.getAndSet(value);
+  private void setSyncedCounter(final Integer value) {
+    this._syncedCounter.set(value);
   }
   
   private Integer getSyncedCounter() {
     return this._syncedCounter.get();
+  }
+  
+  private Integer getAndSetSyncedCounter(final Integer value) {
+    return this._syncedCounter.getAndSet(value);
   }
   
   private Integer incSyncedCounter() {

@@ -2,10 +2,10 @@ package nl.kii.stream.test
 
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Entry
 import nl.kii.stream.Stream
-import nl.kii.stream.StreamMonitor
-import nl.kii.stream.StreamObserver
+import nl.kii.stream.internal.StreamEventHandler
+import nl.kii.stream.internal.StreamObserver
+import nl.kii.stream.message.Entry
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -20,35 +20,36 @@ class TestStream {
 
 	@Test
 	def void testObservingAStream() {
-		val s = (1..3).stream
-		s.monitor(new StreamMonitor {
+		//val Stream<Integer> s = (1..3).stream
+		val s = new Stream<Integer>
+		s.handle(new StreamEventHandler {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
-			override onOverflow(Entry<?> entry) { println('overflow! of ' + entry) }
+			override onOverflow(Entry<?, ?> entry) { println('overflow! of ' + entry) }
 		})
-		s.observe(new StreamObserver<Integer> {
-			override onValue(Integer value) {
+		s.observe(new StreamObserver<Integer, Integer> {
+			override onValue(Integer from, Integer value) {
 				println('value: ' + value)
 				if(value == 2) throw new Exception('boo!')
 				s.next
 			}
-			override onError(Throwable t) {
+			override onError(Integer from, Throwable t) {
 				println('error:' + t)
 				s.next
-				true
 			}
-			override onFinish(int level) {
+			override onFinish(Integer from, int level) {
 				println('finished')
 				s.next
 			}
 			override onClosed() {
 				println('closed')
 			}
+			
 		})
 			// .then [ println('done!') ]
 			// .onError [ println('caught: ' + it)]
-		// s << 1 << 2 << 3
+		 s << 1 << 2 << 3 << finish
 
 		s.next
 	}
@@ -84,7 +85,7 @@ class TestStream {
 	def void testControlledStream() {
 		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
 		s.on [
-			each [ incCounter(it) ]
+			each [ incCounter($1) ]
 			finish [ ]
 		]
 		s.next
@@ -109,22 +110,17 @@ class TestStream {
 	
 	@Test
 	def void testControlledChainedBufferedStream() {
-		val s1 = int.stream << 1 << 2 << 3
-		val s2 = s1.map[it] << 4 << 5 << 6
-		s2.on [
-			each [ result = it ]
-		]
-		s2.next
-		assertEquals(4, result)
-		s2.next
-		assertEquals(5, result)
-		s2.next
-		assertEquals(6, result)
-		s2.next
+		val s = int.stream.map[it]
+		s.on [ each [ result = $1 ] ] 
+		s << 1 << 2 << 3
+		
+		s.next
 		assertEquals(1, result)
-		s2.next
+		s.next
 		assertEquals(2, result)
-		s2.next
+		s.next
+		assertEquals(3, result)
+		s.next
 		assertEquals(3, result)
 	}
 
@@ -136,32 +132,9 @@ class TestStream {
 		// now try to catch the error
 		s
 			.onEach [ println(1/it) ]
-			.onError [ error = it ]
-		s << 0
+			.onError [ println('!!') error = it ]
+		s << 1 << 0
 		assertNotNull(error)
-	}
-
-	@Test
-	def void testChainedBufferedSkippingStream() {
-		val result = new AtomicInteger(0)
-		// parent stream, has already something buffered
-		val s1 = int.stream << 1 << 2 << finish << 3
-		// substream, also has some stuff buffered, which needs to come out first
-		val s2 = s1.map[it] << 4 << 5 << finish << 6 << 7
-		s2.on [
-			each [ result.set(it) ]
-			finish [ ]
-		]
-		s2.next // ask the next from the substream
-		assertEquals(4, result.get) // which should be the first buffered value
-		s2.skip // skip to the finish
-		s2.next // results in the finish
-		s2.next // process the value after the finish
-		assertEquals(6, result.get) // which is 6
-		s2.skip // skip, which should first discard 7, then go to the parent stream and discard 1 and 2
-		s2.next // results in the finish
-		s2.next // results in the 3 after the finish
-		assertEquals(3, result.get)
 	}
 
 	@Atomic int sum
@@ -191,10 +164,8 @@ class TestStream {
 	
 	@Test
 	def void testStreamBufferOverflow() {
-		val stream = new Stream<Integer>(3) // buffer of size 3
-		stream.monitor [
-			overflow [ incOverflowCount ]
-		]
+		val stream = int.stream => [ maxBufferSize = 3 ]
+		stream.when [ overflow [ incOverflowCount ] ]
 		stream << 1 << 2 << 3 // so far so good
 		stream << 4 // should break here
 		stream << 5 // should break here too
