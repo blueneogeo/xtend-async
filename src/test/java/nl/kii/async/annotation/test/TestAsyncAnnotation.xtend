@@ -34,7 +34,7 @@ class TestAsyncAnnotation {
 	def void testAsyncErrorHandling() {
 		val isError = new AtomicBoolean
 		printHello(null)
-			.onError [ isError.set(true) ]
+			.on(Throwable) [ isError.set(true) ]
 			.then [ isError.set(false) ]
 		assertTrue(isError.get)
 	}

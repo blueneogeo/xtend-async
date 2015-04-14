@@ -52,7 +52,7 @@ class TestActor {
 		threads.task [ for(i : 1..1000) actor.apply(i) ]
 		threads.task [ for(i : 1..1000) actor.apply(i) ]
 		// wait a bit for the work to complete
-		Thread.sleep(1000)
+		Thread.sleep(2000)
 		// test all went well
 		assertEquals(0, multipleThreadAccessViolation)
 		assertEquals(4000, value)

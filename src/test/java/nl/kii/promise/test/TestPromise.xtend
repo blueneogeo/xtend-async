@@ -14,46 +14,66 @@ import static org.junit.Assert.*
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamAssert.*
+import static extension nl.kii.util.JUnitExtensions.*
 
 class TestPromise {
 	
-	@Test
-	def void testPromisedAfter() {
-		val p = Integer.promise
-		val p2 = Integer.promise
-		p.then [ it >> p2 ]
-		p.set(10)
-		p2.assertPromiseEquals(10)
+	@Atomic int result = 0
+
+	@Test def void canBeFulfilledBeforeListening() {
+		val promise = new Promise<Integer>
+		0 <=> result
+		promise.set(1)
+		promise.then [ result = it ]
+		1 <=> result
 	}
 	
-	@Test
-	def void testPromisedBefore() {
-		val p = Integer.promise
-		val p2 = Integer.promise
-		p.set(10)
-		p.then [ it >> p2 ]
-		p2.assertPromiseEquals(10)
+	@Test def void canBeFulfilledAfterListening() {
+		val promise = new Promise<Integer>
+		promise.then [ result = it ]
+		0 <=> result
+		promise.set(1)
+		1 <=> result
 	}
 	
-	@Test
-	def void testPromiseErrorHandling() {
-		val p = new Promise(0)
-		val p2 = boolean.promise
-		p.onError [ true >> p2 ]
-		p.then [ println(1/it) ] // should create /0 exception
-		p2.assertPromiseEquals(true)
+	@Test def void silentlyFailsWithoutHandler() {
+		val promise = new Promise<Integer>
+		0 <=> result
+		promise.set(1)
+		promise.then [ result = it / 0 ] // throws exception, but is caught
+		0 <=> result
+	}
+	
+	@Test def void canCatchErrorsBeforeListening() {
+		val promise = new Promise<Integer>
+		0 <=> result
+		promise.set(1)
+		promise
+			.on(Throwable) [ result = 1 ] // error is caught and result is set
+			.then [ result = it / 0 ] // throws exception, but is caught
+		1 <=> result
 	}
 
-	@Test
-	def void testPromiseNoHandling() {
-		val p = new Promise(0)
-		try {
-			// no onError handler specified
-			p.then [ println(1/it) ] // should create /0 exception
-			fail('we should have gotten an error')
-		} catch(Throwable t) {
-			// success
-		}
+	@Test def void canCatchErrorsAfterListening() {
+		val promise = new Promise<Integer>
+		0 <=> result
+		promise.set(1)
+		promise
+			.then [ result = it / 0 ] // throws exception, but is caught
+			.on(Throwable) [ result = 1 ] // error is caught and result is set
+		1 <=> result
+	}
+	
+	@Test def void canCatchSpecificErrors() {
+		val promise = new Promise<Integer>
+		0 <=> result
+		promise.set(1)
+		promise
+			.then [ result = it / 0 ] // throws exception, but is caught
+			.on(NullPointerException) [ fail('the error is not a nullpointer exception') ]
+			.on(ArithmeticException) [ result = 1 ]
+			.on(Throwable) [ fail('this may no longer match, the error has already been caught') ]
+		1 <=> result
 	}
 	
 	@Test
@@ -86,7 +106,7 @@ class TestPromise {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.onError [ caughtError.set(it) ]
+			.on(Throwable) [ caughtError.set(it) ]
 			.always [ alwaysDone.set(true) ]
 			.assertPromiseEquals(10)
 		assertEquals(true, alwaysDone.get)
@@ -115,7 +135,7 @@ class TestPromise {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.onError [ println('xxx') caughtError = it ]
+			.on(Throwable) [ println('xxx') caughtError = it ]
 //			.always [ alwaysDone.set(true) ]
 			.then [ println('hello') fail('should not get here' + it) ]
 //		assertEquals(true, alwaysDone.get)
@@ -147,7 +167,7 @@ class TestPromise {
 			.map [it - 1]
 			.map [ 1 / it ] // creates /0 exception
 			.map [ it + 1]
-			.onError [ true >> p2 ]
+			.on(Throwable) [ true >> p2 ]
 			.then [ println(it) ]
 		p2.assertPromiseEquals(true)
 	}
@@ -172,7 +192,7 @@ class TestPromise {
 		p
 			.map [ it / 0 ]
 			.then [ fail('it/0 should not succeed') ]
-			.onError [ foundError = true  ]
+			.on(Throwable) [ foundError = true  ]
 		p.set(1)
 		assertTrue(foundError)
 	}

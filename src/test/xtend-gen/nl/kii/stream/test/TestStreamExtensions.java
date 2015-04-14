@@ -17,8 +17,8 @@ import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.promise.SubPromise;
-import nl.kii.promise.SubTask;
+import nl.kii.promise.internal.SubPromise;
+import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
@@ -912,7 +912,7 @@ public class TestStreamExtensions {
         Assert.fail(_message);
       }
     };
-    _onEach.onError(_function_1);
+    _onEach.on(Throwable.class, _function_1);
   }
   
   @Test
@@ -980,7 +980,7 @@ public class TestStreamExtensions {
         TestStreamExtensions.this.incErrorCount();
       }
     };
-    _onEach.onError(_function_1);
+    _onEach.on(Throwable.class, _function_1);
     IntegerRange _upTo = new IntegerRange(1, 10);
     for (final Integer i : _upTo) {
       StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, i);

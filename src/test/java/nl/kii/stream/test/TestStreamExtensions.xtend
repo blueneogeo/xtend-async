@@ -367,7 +367,7 @@ class TestStreamExtensions {
 			.streamList
 			.separate
 			.onEach [ println(it) ]
-			.onError [ fail(message) ]
+			.on(Throwable) [ fail(message) ]
 	}
 	
 	// ERRORS /////////////////////////////////////////////////////////////////
@@ -395,7 +395,7 @@ class TestStreamExtensions {
 				if(it == 3 || it == 5) throw new Exception('should not break the stream') 
 				else incValueCount
 			]
-			.onError [ incErrorCount ]
+			.on(Throwable) [ incErrorCount ]
 		// onError can catch the errors
 		for(i : 1..10) s << i
 		assertEquals(10 - 2, valueCount)

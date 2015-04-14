@@ -1,13 +1,13 @@
-package nl.kii.promise;
+package nl.kii.promise.internal;
 
-import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
+import nl.kii.promise.internal.FixedBasePromise;
 import nl.kii.stream.message.Value;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
-public class SubPromise<R extends Object, T extends Object> extends BasePromise<R, T> {
+public class SubPromise<R extends Object, T extends Object> extends FixedBasePromise<R, T> {
   protected final IPromise<R, ?> root;
   
   public SubPromise() {
@@ -22,18 +22,27 @@ public class SubPromise<R extends Object, T extends Object> extends BasePromise<
   }
   
   /**
-   * Constructor for easily creating a child promise.
+   * Constructor for easily creating a child promise. Listenes for errors in the parent.
    */
   public SubPromise(final IPromise<R, ?> parentPromise) {
+    this(parentPromise, true);
+  }
+  
+  /**
+   * Constructor to allow control of error listening
+   */
+  public SubPromise(final IPromise<R, ?> parentPromise, final boolean listenForErrors) {
     IPromise<R, ?> _root = parentPromise.getRoot();
     this.root = _root;
-    final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
-      @Override
-      public void apply(final R i, final Throwable it) {
-        SubPromise.this.error(i, it);
-      }
-    };
-    this.root.onError(_function);
+    if (listenForErrors) {
+      final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+        @Override
+        public void apply(final R i, final Throwable it) {
+          SubPromise.this.error(i, it);
+        }
+      };
+      this.root.on(Throwable.class, _function);
+    }
   }
   
   @Override

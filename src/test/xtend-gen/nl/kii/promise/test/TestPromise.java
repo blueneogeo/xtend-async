@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Async;
@@ -12,10 +13,11 @@ import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.message.Entry;
+import nl.kii.util.JUnitExtensions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -25,76 +27,156 @@ import org.junit.Test;
 
 @SuppressWarnings("all")
 public class TestPromise {
+  @Atomic
+  private final AtomicInteger _result = new AtomicInteger(0);
+  
   @Test
-  public void testPromisedAfter() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.class);
-    final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
+  public void canBeFulfilledBeforeListening() {
+    final Promise<Integer> promise = new Promise<Integer>();
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
-        PromiseExtensions.<Integer, Integer>operator_doubleGreaterThan(it, p2);
+        TestPromise.this.setResult(it);
       }
     };
-    p.then(_function);
-    p.set(Integer.valueOf(10));
-    StreamAssert.<Integer>assertPromiseEquals(p2, Integer.valueOf(10));
+    promise.then(_function);
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(1), _result_1);
   }
   
   @Test
-  public void testPromisedBefore() {
-    final Promise<Integer> p = PromiseExtensions.<Integer>promise(Integer.class);
-    final Promise<Integer> p2 = PromiseExtensions.<Integer>promise(Integer.class);
-    p.set(Integer.valueOf(10));
+  public void canBeFulfilledAfterListening() {
+    final Promise<Integer> promise = new Promise<Integer>();
     final Procedure1<Integer> _function = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
-        PromiseExtensions.<Integer, Integer>operator_doubleGreaterThan(it, p2);
+        TestPromise.this.setResult(it);
       }
     };
-    p.then(_function);
-    StreamAssert.<Integer>assertPromiseEquals(p2, Integer.valueOf(10));
+    promise.then(_function);
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(1), _result_1);
   }
   
   @Test
-  public void testPromiseErrorHandling() {
-    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(0));
-    final Promise<Boolean> p2 = PromiseExtensions.<Boolean>promise(boolean.class);
+  public void silentlyFailsWithoutHandler() {
+    final Promise<Integer> promise = new Promise<Integer>();
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
+      public void apply(final Integer it) {
+        TestPromise.this.setResult(Integer.valueOf(((it).intValue() / 0)));
+      }
+    };
+    promise.then(_function);
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result_1);
+  }
+  
+  @Test
+  public void canCatchErrorsBeforeListening() {
+    final Promise<Integer> promise = new Promise<Integer>();
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
     final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       @Override
       public void apply(final Throwable it) {
-        PromiseExtensions.<Boolean, Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
+        TestPromise.this.setResult(Integer.valueOf(1));
       }
     };
-    p.onError(_function);
+    IPromise<Integer, Integer> _on = promise.on(Throwable.class, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
-        InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
+        TestPromise.this.setResult(Integer.valueOf(((it).intValue() / 0)));
       }
     };
-    p.then(_function_1);
-    StreamAssert.<Boolean>assertPromiseEquals(p2, Boolean.valueOf(true));
+    _on.then(_function_1);
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(1), _result_1);
   }
   
   @Test
-  public void testPromiseNoHandling() {
-    final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(0));
-    try {
-      final Procedure1<Integer> _function = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer it) {
-          InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
-        }
-      };
-      p.then(_function);
-      Assert.fail("we should have gotten an error");
-    } catch (final Throwable _t) {
-      if (_t instanceof Throwable) {
-        final Throwable t = (Throwable)_t;
-      } else {
-        throw Exceptions.sneakyThrow(_t);
+  public void canCatchErrorsAfterListening() {
+    final Promise<Integer> promise = new Promise<Integer>();
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
+      public void apply(final Integer it) {
+        TestPromise.this.setResult(Integer.valueOf(((it).intValue() / 0)));
       }
-    }
+    };
+    Task _then = promise.then(_function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
+      public void apply(final Throwable it) {
+        TestPromise.this.setResult(Integer.valueOf(1));
+      }
+    };
+    _then.on(Throwable.class, _function_1);
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(1), _result_1);
+  }
+  
+  @Test
+  public void canCatchSpecificErrors() {
+    final Promise<Integer> promise = new Promise<Integer>();
+    Integer _result = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(0), _result);
+    promise.set(Integer.valueOf(1));
+    final Procedure1<Integer> _function = new Procedure1<Integer>() {
+      @Override
+      public void apply(final Integer it) {
+        TestPromise.this.setResult(Integer.valueOf(((it).intValue() / 0)));
+      }
+    };
+    Task _then = promise.then(_function);
+    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+      @Override
+      public void apply(final Throwable it) {
+        Assert.fail("the error is not a nullpointer exception");
+      }
+    };
+    IPromise<Boolean, Boolean> _on = _then.on(NullPointerException.class, _function_1);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      @Override
+      public void apply(final Throwable it) {
+        TestPromise.this.setResult(Integer.valueOf(1));
+      }
+    };
+    IPromise<Boolean, Boolean> _on_1 = _on.on(ArithmeticException.class, _function_2);
+    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
+      @Override
+      public void apply(final Throwable it) {
+        Assert.fail("this may no longer match, the error has already been caught");
+      }
+    };
+    _on_1.on(Throwable.class, _function_3);
+    Integer _result_1 = this.getResult();
+    JUnitExtensions.<Integer>operator_spaceship(
+      Integer.valueOf(1), _result_1);
   }
   
   @Test
@@ -206,14 +288,14 @@ public class TestPromise {
         caughtError.set(it);
       }
     };
-    IPromise<Integer, Integer> _onError = _call_7.onError(_function_8);
+    IPromise<Integer, Integer> _on = _call_7.on(Throwable.class, _function_8);
     final Procedure1<Entry<?, Integer>> _function_9 = new Procedure1<Entry<?, Integer>>() {
       @Override
       public void apply(final Entry<?, Integer> it) {
         alwaysDone.set(true);
       }
     };
-    IPromise<Integer, Integer> _always = PromiseExtensions.<Integer, Integer>always(_onError, _function_9);
+    IPromise<Integer, Integer> _always = PromiseExtensions.<Integer, Integer>always(_on, _function_9);
     StreamAssert.<Integer>assertPromiseEquals(_always, Integer.valueOf(10));
     boolean _get = alwaysDone.get();
     Assert.assertEquals(Boolean.valueOf(true), Boolean.valueOf(_get));
@@ -327,7 +409,7 @@ public class TestPromise {
         TestPromise.this.setCaughtError(it);
       }
     };
-    IPromise<Integer, Integer> _onError = _call_10.onError(_function_11);
+    IPromise<Integer, Integer> _on = _call_10.on(Throwable.class, _function_11);
     final Procedure1<Integer> _function_12 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
@@ -335,7 +417,7 @@ public class TestPromise {
         Assert.fail(("should not get here" + it));
       }
     };
-    _onError.then(_function_12);
+    _on.then(_function_12);
     Throwable _caughtError = this.getCaughtError();
     Assert.assertNotNull(_caughtError);
   }
@@ -400,14 +482,14 @@ public class TestPromise {
         PromiseExtensions.<Boolean, Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
-    IPromise<Integer, Integer> _onError = _map_2.onError(_function_3);
+    IPromise<Integer, Integer> _on = _map_2.on(Throwable.class, _function_3);
     final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
-    _onError.then(_function_4);
+    _on.then(_function_4);
     StreamAssert.<Boolean>assertPromiseEquals(p2, Boolean.valueOf(true));
   }
   
@@ -472,10 +554,34 @@ public class TestPromise {
         TestPromise.this.setFoundError(Boolean.valueOf(true));
       }
     };
-    _then.onError(_function_2);
+    _then.on(Throwable.class, _function_2);
     p.set(Integer.valueOf(1));
     Boolean _foundError = this.getFoundError();
     Assert.assertTrue((_foundError).booleanValue());
+  }
+  
+  private void setResult(final Integer value) {
+    this._result.set(value);
+  }
+  
+  private Integer getResult() {
+    return this._result.get();
+  }
+  
+  private Integer getAndSetResult(final Integer value) {
+    return this._result.getAndSet(value);
+  }
+  
+  private Integer incResult() {
+    return this._result.incrementAndGet();
+  }
+  
+  private Integer decResult() {
+    return this._result.decrementAndGet();
+  }
+  
+  private Integer incResult(final Integer value) {
+    return this._result.addAndGet(value);
   }
   
   private void setAlwaysDone(final Boolean value) {

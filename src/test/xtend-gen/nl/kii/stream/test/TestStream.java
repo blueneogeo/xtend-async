@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.SubTask;
+import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
@@ -269,7 +269,7 @@ public class TestStream {
         TestStream.this.setError(it);
       }
     };
-    _onEach.onError(_function_1);
+    _onEach.on(Throwable.class, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(0));
     Throwable _error = this.getError();

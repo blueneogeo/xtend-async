@@ -5,8 +5,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
-import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
@@ -159,7 +159,7 @@ public class TestStreamErrorHandling {
         TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
       }
     };
-    _then.onError(_function_6);
+    _then.on(Throwable.class, _function_6);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     IStream<Integer, Integer> _doubleLessThan_2 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
@@ -235,7 +235,7 @@ public class TestStreamErrorHandling {
         Assert.fail(_message);
       }
     };
-    _then.onError(_function_5);
+    _then.on(Throwable.class, _function_5);
   }
   
   @Test
@@ -309,7 +309,7 @@ public class TestStreamErrorHandling {
         Assert.fail(_message);
       }
     };
-    _then.onError(_function_5);
+    _then.on(Throwable.class, _function_5);
   }
   
   @Test
@@ -381,7 +381,7 @@ public class TestStreamErrorHandling {
         Assert.fail(_message);
       }
     };
-    _then.onError(_function_4);
+    _then.on(Throwable.class, _function_4);
   }
   
   @Test
@@ -517,7 +517,7 @@ public class TestStreamErrorHandling {
           TestStreamErrorHandling.this.setCaught(it);
         }
       };
-      _onEach.onError(_function_4);
+      _onEach.on(Throwable.class, _function_4);
       IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
       IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
       Finish<Integer, Integer> _finish = StreamExtensions.<Integer, Integer>finish();

@@ -1,13 +1,15 @@
-package nl.kii.promise;
+package nl.kii.promise.internal;
 
 import nl.kii.promise.IPromise;
-import nl.kii.promise.SubPromise;
+import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 
 /**
- * A Task is a promise that some task gets done. It has no result, it can just be completed or have an error.
+ * A Task is a promise that some task gets done.
+ * It has no result, it can just be completed or have an error.
+ * A SubTask is a task based on a promise/task.
  */
 @SuppressWarnings("all")
 public class SubTask<R extends Object> extends SubPromise<R, Boolean> {

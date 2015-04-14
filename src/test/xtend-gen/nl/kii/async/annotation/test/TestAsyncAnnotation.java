@@ -1,6 +1,5 @@
 package nl.kii.async.annotation.test;
 
-import com.google.common.base.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,14 +58,14 @@ public class TestAsyncAnnotation {
         isError.set(true);
       }
     };
-    IPromise<Boolean, Boolean> _onError = _printHello.onError(_function);
+    IPromise<Boolean, Boolean> _on = _printHello.on(Throwable.class, _function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       @Override
       public void apply(final Boolean it) {
         isError.set(false);
       }
     };
-    _onError.then(_function_1);
+    _on.then(_function_1);
     boolean _get = isError.get();
     Assert.assertTrue(_get);
   }
@@ -102,7 +101,7 @@ public class TestAsyncAnnotation {
     try {
       Task _xblockexpression = null;
       {
-        boolean _equals = Objects.equal(name, null);
+        boolean _equals = PromiseExtensions.<String, Object>operator_equals(name, null);
         if (_equals) {
           throw new Exception("name cannot be empty");
         }

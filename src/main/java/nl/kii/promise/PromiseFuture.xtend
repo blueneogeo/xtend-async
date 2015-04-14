@@ -9,7 +9,7 @@ class PromiseFuture<T> extends AbstractFuture<T> {
 	
 	new(IPromise<?, T> promise) {
 		promise
-			.onError [ this.setException(it) ]
+			.on(Throwable) [ this.setException(it) ]
 			.then [ this.set(it) ]
 	}
 	

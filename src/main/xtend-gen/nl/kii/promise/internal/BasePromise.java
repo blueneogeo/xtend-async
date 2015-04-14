@@ -1,4 +1,4 @@
-package nl.kii.promise;
+package nl.kii.promise.internal;
 
 import com.google.common.base.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -6,19 +6,19 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
-import nl.kii.promise.PromiseException;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.PromiseException;
+import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.Value;
 import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 /**
- * A Promise is a publisher of a value. The value may arrive later.
+ * Base implementation of IPromise.
  */
 @SuppressWarnings("all")
 public abstract class BasePromise<R extends Object, T extends Object> implements IPromise<R, T> {
@@ -114,14 +114,14 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   }
   
   @Override
-  public IPromise<R, T> onError(final Procedure1<Throwable> errorFn) {
+  public IPromise<R, T> on(final Class<? extends Throwable> errorType, final Procedure1<Throwable> errorFn) {
     final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
       @Override
       public void apply(final R r, final Throwable t) {
         errorFn.apply(t);
       }
     };
-    return this.onError(_function);
+    return this.on(errorType, _function);
   }
   
   /**
@@ -132,30 +132,34 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * since there is a generics problem trying to assign the values.
    */
   @Override
-  public IPromise<R, T> onError(final Procedure2<R, Throwable> errorFn) {
-    BasePromise<R, T> _xblockexpression = null;
+  public IPromise<R, T> on(final Class<? extends Throwable> errorType, final Procedure2<R, Throwable> errorFn) {
+    SubPromise<R, T> _xblockexpression = null;
     {
+      final SubPromise<R, T> subPromise = new SubPromise<R, T>(this, false);
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
       final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
         @Override
         public void apply(final Entry<R, T> it) {
-          try {
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof nl.kii.stream.message.Error) {
-                _matched=true;
+          boolean _matched = false;
+          if (!_matched) {
+            if (it instanceof nl.kii.stream.message.Error) {
+              _matched=true;
+              try {
                 Procedure0 _get = unregisterFn.get();
                 _get.apply();
-                errorFn.apply(((nl.kii.stream.message.Error<R, T>)it).from, ((nl.kii.stream.message.Error<R, T>)it).error);
+                Class<? extends Throwable> _class = ((nl.kii.stream.message.Error<R, T>)it).error.getClass();
+                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
+                if (_isAssignableFrom) {
+                  errorFn.apply(((nl.kii.stream.message.Error<R, T>)it).from, ((nl.kii.stream.message.Error<R, T>)it).error);
+                } else {
+                }
+              } catch (final Throwable _t) {
+                if (_t instanceof Exception) {
+                  final Exception e = (Exception)_t;
+                } else {
+                  throw Exceptions.sneakyThrow(_t);
+                }
               }
-            }
-          } catch (final Throwable _t) {
-            if (_t instanceof Exception) {
-              final Exception e = (Exception)_t;
-              InputOutput.<String>println(("Promise.onError: error while handling promise error for entry " + it));
-              e.printStackTrace();
-            } else {
-              throw Exceptions.sneakyThrow(_t);
             }
           }
         }
@@ -169,7 +173,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
         Entry<R, T> _entry_1 = this.getEntry();
         this.publisher.apply(_entry_1);
       }
-      _xblockexpression = this;
+      _xblockexpression = subPromise;
     }
     return _xblockexpression;
   }

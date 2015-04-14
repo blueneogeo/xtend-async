@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.promise.SubPromise;
+import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;

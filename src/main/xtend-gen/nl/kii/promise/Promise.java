@@ -1,12 +1,12 @@
 package nl.kii.promise;
 
 import com.google.common.base.Objects;
-import nl.kii.promise.BasePromise;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.internal.FixedBasePromise;
 import nl.kii.stream.message.Value;
 
 @SuppressWarnings("all")
-public class Promise<T extends Object> extends BasePromise<T, T> {
+public class Promise<T extends Object> extends FixedBasePromise<T, T> {
   @Override
   public IPromise<T, ?> getRoot() {
     return this;

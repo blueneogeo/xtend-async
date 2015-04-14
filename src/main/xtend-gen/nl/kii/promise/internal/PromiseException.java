@@ -1,4 +1,4 @@
-package nl.kii.promise;
+package nl.kii.promise.internal;
 
 @SuppressWarnings("all")
 public class PromiseException extends Exception {

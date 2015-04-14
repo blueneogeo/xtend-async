@@ -132,7 +132,7 @@ class TestStream {
 		// now try to catch the error
 		s
 			.onEach [ println(1/it) ]
-			.onError [ println('!!') error = it ]
+			.on(Throwable) [ println('!!') error = it ]
 		s << 1 << 0
 		assertNotNull(error)
 	}

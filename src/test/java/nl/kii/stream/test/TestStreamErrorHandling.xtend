@@ -44,7 +44,7 @@ class TestStreamErrorHandling {
 			.map [ it ]
 			.onEach [ incCounter ]
 			.then [ complete = true ]
-			.onError [ failed = true ]
+			.on(Throwable) [ failed = true ]
 		s << 1 << 2 << 3 << 4 << 5 << finish
 		// there were two errors
 		assertEquals(2, errors)
@@ -67,7 +67,7 @@ class TestStreamErrorHandling {
 			.onError [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
-			.onError [ fail(message) ]
+			.on(Throwable) [ fail(message) ]
 	}
 
 	@Test
@@ -84,7 +84,7 @@ class TestStreamErrorHandling {
 			.onError [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
-			.onError [ fail(message) ]
+			.on(Throwable) [ fail(message) ]
 	}
 
 	@Test
@@ -100,7 +100,7 @@ class TestStreamErrorHandling {
 			.onError [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
-			.onError [ 
+			.on(Throwable) [ 
 				println('error')
 				fail(message)
 			]
@@ -152,7 +152,7 @@ class TestStreamErrorHandling {
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
 				.onEach [ ]
-				.onError [ caught = it ] // below onEach, listening to the created task
+				.on(Throwable) [ caught = it ] // below onEach, listening to the created task
 			s << 1 << 2 << finish
 		} catch(Exception e) {
 			fail('error should be handled')

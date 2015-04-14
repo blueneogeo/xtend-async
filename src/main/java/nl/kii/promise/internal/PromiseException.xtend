@@ -1,4 +1,4 @@
-package nl.kii.promise
+package nl.kii.promise.internal
 
 class PromiseException extends Exception {
 	

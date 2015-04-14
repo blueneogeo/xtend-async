@@ -14,8 +14,8 @@ import nl.kii.async.annotation.Async;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.promise.SubPromise;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.SubStream;
@@ -117,7 +117,7 @@ public class TestActor {
         }
       };
       ExecutorExtensions.task(threads, _function_3);
-      Thread.sleep(1000);
+      Thread.sleep(2000);
       Integer _multipleThreadAccessViolation = this.getMultipleThreadAccessViolation();
       Assert.assertEquals(0, (_multipleThreadAccessViolation).intValue());
       Integer _value = this.getValue();

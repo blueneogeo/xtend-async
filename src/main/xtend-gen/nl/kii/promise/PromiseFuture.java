@@ -16,13 +16,13 @@ public class PromiseFuture<T extends Object> extends AbstractFuture<T> {
         PromiseFuture.this.setException(it);
       }
     };
-    IPromise<?, T> _onError = promise.onError(_function);
+    IPromise<?, T> _on = promise.on(Throwable.class, _function);
     final Procedure1<T> _function_1 = new Procedure1<T>() {
       @Override
       public void apply(final T it) {
         PromiseFuture.this.set(it);
       }
     };
-    _onError.then(_function_1);
+    _on.then(_function_1);
   }
 }

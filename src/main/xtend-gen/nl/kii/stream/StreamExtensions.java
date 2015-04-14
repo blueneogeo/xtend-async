@@ -25,9 +25,9 @@ import nl.kii.observe.Publisher;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.PromiseExtensions;
-import nl.kii.promise.SubPromise;
-import nl.kii.promise.SubTask;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.SubPromise;
+import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.BaseStream;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
@@ -121,7 +121,7 @@ public class StreamExtensions {
           newStream.error(it);
         }
       };
-      IPromise<R, T2> _onError = promise.onError(_function);
+      IPromise<R, T2> _on = promise.on(Throwable.class, _function);
       final Procedure1<T2> _function_1 = new Procedure1<T2>() {
         @Override
         public void apply(final T2 it) {
@@ -129,7 +129,7 @@ public class StreamExtensions {
           StreamExtensions.<T, T>pipe(_stream, newStream);
         }
       };
-      _onError.then(_function_1);
+      _on.then(_function_1);
       _xblockexpression = newStream;
     }
     return _xblockexpression;
@@ -1758,7 +1758,7 @@ public class StreamExtensions {
             @Override
             public void apply(final I $0, final O $1) {
               List<O> _get = list.get();
-              boolean _equals = Objects.equal(_get, null);
+              boolean _equals = PromiseExtensions.<List<O>, Object>operator_equals(_get, null);
               if (_equals) {
                 LinkedList<O> _newLinkedList = CollectionLiterals.<O>newLinkedList();
                 list.set(_newLinkedList);
@@ -1976,7 +1976,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              IPromise<?, O> _onError = promise.onError(_function);
+              IPromise<?, O> _on = promise.on(Throwable.class, _function);
               final Procedure1<O> _function_1 = new Procedure1<O>() {
                 @Override
                 public void apply(final O it) {
@@ -1995,7 +1995,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              _onError.then(_function_1);
+              _on.then(_function_1);
               boolean _or = false;
               int _incrementAndGet = processes.incrementAndGet();
               boolean _greaterThan = (concurrency > _incrementAndGet);

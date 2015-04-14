@@ -17,9 +17,9 @@ public interface IPromise<R extends Object, T extends Object> extends Procedure1
   
   public abstract IPromise<R, T> error(final Throwable t);
   
-  public abstract IPromise<R, T> onError(final Procedure1<Throwable> errorFn);
+  public abstract IPromise<R, T> on(final Class<? extends Throwable> exceptionType, final Procedure1<Throwable> errorFn);
   
-  public abstract IPromise<R, T> onError(final Procedure2<R, Throwable> errorFn);
+  public abstract IPromise<R, T> on(final Class<? extends Throwable> exceptionType, final Procedure2<R, Throwable> errorFn);
   
   public abstract Task then(final Procedure1<T> valueFn);
   

@@ -16,8 +16,8 @@ import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
-import nl.kii.promise.SubPromise
-import nl.kii.promise.SubTask
+import nl.kii.promise.internal.SubPromise
+import nl.kii.promise.internal.SubTask
 import nl.kii.promise.Task
 import nl.kii.stream.internal.StreamEventHandler
 import nl.kii.stream.internal.StreamEventResponder
@@ -72,7 +72,7 @@ class StreamExtensions {
 	def static <R, T, T2 extends Iterable<T>> stream(IPromise<R, T2> promise) {
 		val newStream = new Stream<T>
 		promise
-			.onError[ newStream.error(it) ]
+			.on(Throwable) [ newStream.error(it) ]
 			.then [	stream(it).pipe(newStream) ]
 		newStream
 	}
@@ -878,7 +878,7 @@ class StreamExtensions {
 				// listen for the process to complete
 				promise
 					// in case of a processing error, report it to the listening stream
-					.onError [ 
+					.on(Throwable) [ 
 						newStream.error(r, new StreamException('resolve', r, it))
 						// are we done processing? and did we finish? then finish now 
 						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
