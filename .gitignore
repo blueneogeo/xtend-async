@@ -6,3 +6,4 @@
 /bin
 *.xtendbin
 *._trace
+.classpath
