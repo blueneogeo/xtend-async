@@ -6,24 +6,24 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
-public interface IPromise<R extends Object, T extends Object> extends Procedure1<Entry<R, T>> {
-  public abstract IPromise<R, ?> getRoot();
+public interface IPromise<I extends Object, O extends Object> extends Procedure1<Entry<I, O>> {
+  public abstract IPromise<I, ?> getRoot();
   
   public abstract Boolean getFulfilled();
   
-  public abstract Entry<R, T> get();
+  public abstract Entry<I, O> get();
   
-  public abstract void set(final R value);
+  public abstract void set(final I value);
   
-  public abstract IPromise<R, T> error(final Throwable t);
+  public abstract IPromise<I, O> error(final Throwable t);
   
-  public abstract IPromise<R, T> on(final Class<? extends Throwable> exceptionType, final Procedure1<Throwable> errorFn);
+  public abstract IPromise<I, O> on(final Class<? extends Throwable> exceptionType, final Procedure1<Throwable> errorFn);
   
-  public abstract IPromise<R, T> on(final Class<? extends Throwable> exceptionType, final Procedure2<R, Throwable> errorFn);
+  public abstract IPromise<I, O> on(final Class<? extends Throwable> exceptionType, final Procedure2<I, Throwable> errorFn);
   
-  public abstract Task then(final Procedure1<T> valueFn);
+  public abstract Task then(final Procedure1<O> valueFn);
   
-  public abstract Task then(final Procedure2<R, T> valueFn);
+  public abstract Task then(final Procedure2<I, O> valueFn);
   
   public abstract void setOperation(final String operation);
   

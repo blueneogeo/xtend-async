@@ -192,49 +192,31 @@ class PromiseExtensions {
 	 * Create a new promise with a new input, defined by the inputFn
 	 */
 	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
-		val subPromise = new SubPromise<I2, O>(new Promise<I2>)
+		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
 		promise
-			.on(Throwable) [ r, it | subPromise.error(inputFn.apply(r, null), it) ]
-			.then [ r, it | subPromise.set(inputFn.apply(r, it), it) ]
-		subPromise => [ operation = 'root' ]
+			.on(Throwable) [ r, it | newPromise.error(inputFn.apply(r, null), it) ]
+			.then [ r, it | newPromise.set(inputFn.apply(r, it), it) ]
+		newPromise => [ operation = 'root' ]
 	}
 	
 	/**
 	 * Maps errors back into values. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
-	def static <I, O> onErrorMap(IPromise<I, O> promise, (Throwable)=>O mappingFn) {
+	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
-			.on(Throwable) [ i, it |
+			.on(errorType) [ i, it |
 				try {
-					newPromise.set(i, mappingFn.apply(it))
+					if(!newPromise.fulfilled) {
+						newPromise.set(i, mappingFn.apply(it))
+					}
 				} catch(Exception e) {
 					newPromise.error(e)
 				}
 			]
 			.then [ i, it | newPromise.set(i, it) ]
 		newPromise => [ operation = 'onErrorMap' ]
-	}
-
-	/**
-	 * Maps errors back into values, using an async call. 
-	 * Good for alternative path resolving and providing defaults.
-	 */
-	def static <I, I2, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I2, O> mappingFn) {
-		val newPromise = new SubPromise<I, O>(new Promise<I>)
-		promise
-			.on(Throwable) [ i, it |
-				try {
-					mappingFn.apply(it)
-						.on(Throwable) [ newPromise.error(i, it) ]
-						.then [ newPromise.set(i, it) ]
-				} catch(Exception e) {
-					newPromise.error(e)
-				}
-			]
-			.then [ i, it | newPromise.set(i, it) ]
-		newPromise => [ operation = 'onErrorCall' ]
 	}
 
 	/** Flattens a promise of a promise to directly a promise. */
@@ -294,6 +276,9 @@ class PromiseExtensions {
 			=> [ operation = 'effect' ]
 	}
 	
+	
+	// ASYNC SIDEEFFECTS //////////////////////////////////////////////////////
+	
 	/**
 	 * Asynchronously perform some side-effect action based on the promise. It should not affect
 	 * the promise itself however if an error is thrown, this is propagated to
@@ -336,7 +321,32 @@ class PromiseExtensions {
 		promise.map(promiseFn).resolve
 			=> [ operation = 'call' ]
 	}
+
+	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (I, O)=>P promiseFn) {
+		promise.map(promiseFn).resolve
+			=> [ operation = 'call' ]
+	}
 	
+	/**
+	 * Maps errors back into values, using an async call. 
+	 * Good for alternative path resolving and providing defaults.
+	 */
+	def static <I, I2, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<I2, O> mappingFn) {
+		val newPromise = new SubPromise<I, O>(new Promise<I>)
+		promise
+			.on(errorType) [ i, it |
+				try {
+					mappingFn.apply(it)
+						.on(Throwable) [ newPromise.error(i, it) ]
+						.then [ newPromise.set(i, it) ]
+				} catch(Exception e) {
+					newPromise.error(e)
+				}
+			]
+			.then [ i, it | newPromise.set(i, it) ]
+		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
+	}
+
 	// TIMING /////////////////////////////////////////////////////////////////
 
 	/** Create a new promise that delays the output (not the error) of the existing promise */	

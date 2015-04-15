@@ -19,6 +19,7 @@ import nl.kii.stream.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.junit.Assert;
 import org.junit.Test;
@@ -255,6 +256,40 @@ public class TestPromiseExtensions {
     t3.complete();
     Boolean _anyDone_3 = this.getAnyDone();
     Assert.assertTrue((_anyDone_3).booleanValue());
+  }
+  
+  @Test
+  public void testMapError() {
+    final Promise<Integer> p = new Promise<Integer>();
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() / 0));
+      }
+    };
+    SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
+    final Function1<Throwable, Integer> _function_1 = new Function1<Throwable, Integer>() {
+      @Override
+      public Integer apply(final Throwable it) {
+        return Integer.valueOf(20);
+      }
+    };
+    SubPromise<Integer, Integer> _map_1 = PromiseExtensions.<Integer, Integer>map(_map, Exception.class, _function_1);
+    final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
+      @Override
+      public Integer apply(final Integer it) {
+        return Integer.valueOf(((it).intValue() + 10));
+      }
+    };
+    SubPromise<Integer, Integer> _map_2 = PromiseExtensions.<Integer, Integer, Integer>map(_map_1, _function_2);
+    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
+      @Override
+      public void apply(final Integer it) {
+        InputOutput.<Integer>println(it);
+      }
+    };
+    _map_2.then(_function_3);
+    PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
   }
   
   private Promise<Integer> power2(final int i) {

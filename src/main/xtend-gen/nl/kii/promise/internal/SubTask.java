@@ -12,17 +12,17 @@ import org.eclipse.xtend2.lib.StringConcatenation;
  * A SubTask is a task based on a promise/task.
  */
 @SuppressWarnings("all")
-public class SubTask<R extends Object> extends SubPromise<R, Boolean> {
+public class SubTask<I extends Object> extends SubPromise<I, Boolean> {
   public SubTask() {
     super();
   }
   
-  public SubTask(final IPromise<R, ?> parentPromise) {
+  public SubTask(final IPromise<I, ?> parentPromise) {
     super(parentPromise);
   }
   
-  public void complete(final R from) {
-    Value<R, Boolean> _value = new Value<R, Boolean>(from, Boolean.valueOf(true));
+  public void complete(final I from) {
+    Value<I, Boolean> _value = new Value<I, Boolean>(from, Boolean.valueOf(true));
     this.apply(_value);
   }
   
@@ -34,10 +34,10 @@ public class SubTask<R extends Object> extends SubPromise<R, Boolean> {
     _builder.append(_fulfilled, "");
     _builder.append(" ");
     {
-      Entry<R, Boolean> _get = this.get();
+      Entry<I, Boolean> _get = this.get();
       if ((_get instanceof nl.kii.stream.message.Error<?, ?>)) {
         _builder.append(", error: ");
-        Entry<R, Boolean> _get_1 = this.get();
+        Entry<I, Boolean> _get_1 = this.get();
         _builder.append(((nl.kii.stream.message.Error<?, ?>) _get_1).error, "");
       }
     }

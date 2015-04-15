@@ -21,8 +21,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
  * Base implementation of IPromise.
  */
 @SuppressWarnings("all")
-public abstract class BasePromise<R extends Object, T extends Object> implements IPromise<R, T> {
-  private final Publisher<Entry<R, T>> publisher = new Publisher<Entry<R, T>>();
+public abstract class BasePromise<I extends Object, O extends Object> implements IPromise<I, O> {
+  private final Publisher<Entry<I, O>> publisher = new Publisher<Entry<I, O>>();
   
   /**
    * Property to see if the promise is fulfulled
@@ -46,7 +46,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * The result of the promise, if any, otherwise null
    */
   @Atomic
-  private final AtomicReference<Entry<R, T>> _entry = new AtomicReference<Entry<R, T>>();
+  private final AtomicReference<Entry<I, O>> _entry = new AtomicReference<Entry<I, O>>();
   
   /**
    * name of the operation the listener is performing
@@ -55,7 +55,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   private final AtomicReference<String> __operation = new AtomicReference<String>();
   
   @Override
-  public void apply(final Entry<R, T> it) {
+  public void apply(final Entry<I, O> it) {
     boolean _equals = Objects.equal(it, null);
     if (_equals) {
       throw new NullPointerException("cannot promise a null entry");
@@ -95,11 +95,11 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * only has a value when finished, otherwise null
    */
   @Override
-  public Entry<R, T> get() {
+  public Entry<I, O> get() {
     return this.getEntry();
   }
   
-  public Publisher<Entry<R, T>> getPublisher() {
+  public Publisher<Entry<I, O>> getPublisher() {
     return this.publisher;
   }
   
@@ -114,10 +114,10 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
   }
   
   @Override
-  public IPromise<R, T> on(final Class<? extends Throwable> errorType, final Procedure1<Throwable> errorFn) {
-    final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
+  public IPromise<I, O> on(final Class<? extends Throwable> errorType, final Procedure1<Throwable> errorFn) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
-      public void apply(final R r, final Throwable t) {
+      public void apply(final I r, final Throwable t) {
         errorFn.apply(t);
       }
     };
@@ -132,14 +132,14 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * since there is a generics problem trying to assign the values.
    */
   @Override
-  public IPromise<R, T> on(final Class<? extends Throwable> errorType, final Procedure2<R, Throwable> errorFn) {
-    SubPromise<R, T> _xblockexpression = null;
+  public IPromise<I, O> on(final Class<? extends Throwable> errorType, final Procedure2<I, Throwable> errorFn) {
+    SubPromise<I, O> _xblockexpression = null;
     {
-      final SubPromise<R, T> subPromise = new SubPromise<R, T>(this, false);
+      final SubPromise<I, O> subPromise = new SubPromise<I, O>(this, false);
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
+      final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
         @Override
-        public void apply(final Entry<R, T> it) {
+        public void apply(final Entry<I, O> it) {
           boolean _matched = false;
           if (!_matched) {
             if (it instanceof nl.kii.stream.message.Error) {
@@ -147,10 +147,10 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
               try {
                 Procedure0 _get = unregisterFn.get();
                 _get.apply();
-                Class<? extends Throwable> _class = ((nl.kii.stream.message.Error<R, T>)it).error.getClass();
+                Class<? extends Throwable> _class = ((nl.kii.stream.message.Error<I, O>)it).error.getClass();
                 boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
                 if (_isAssignableFrom) {
-                  errorFn.apply(((nl.kii.stream.message.Error<R, T>)it).from, ((nl.kii.stream.message.Error<R, T>)it).error);
+                  errorFn.apply(((nl.kii.stream.message.Error<I, O>)it).from, ((nl.kii.stream.message.Error<I, O>)it).error);
                 } else {
                 }
               } catch (final Throwable _t) {
@@ -167,10 +167,10 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
       Procedure0 _onChange = this.publisher.onChange(_function);
       unregisterFn.set(_onChange);
       this.setHasErrorHandler(Boolean.valueOf(true));
-      Entry<R, T> _entry = this.getEntry();
+      Entry<I, O> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
       if (_notEquals) {
-        Entry<R, T> _entry_1 = this.getEntry();
+        Entry<I, O> _entry_1 = this.getEntry();
         this.publisher.apply(_entry_1);
       }
       _xblockexpression = subPromise;
@@ -182,10 +182,10 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
   @Override
-  public Task then(final Procedure1<T> valueFn) {
-    final Procedure2<R, T> _function = new Procedure2<R, T>() {
+  public Task then(final Procedure1<O> valueFn) {
+    final Procedure2<I, O> _function = new Procedure2<I, O>() {
       @Override
-      public void apply(final R r, final T it) {
+      public void apply(final I r, final O it) {
         valueFn.apply(it);
       }
     };
@@ -196,14 +196,14 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
    * Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening.
    */
   @Override
-  public Task then(final Procedure2<R, T> valueFn) {
+  public Task then(final Procedure2<I, O> valueFn) {
     Task _xblockexpression = null;
     {
       final Task newTask = new Task();
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<R, T>> _function = new Procedure1<Entry<R, T>>() {
+      final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
         @Override
-        public void apply(final Entry<R, T> it) {
+        public void apply(final Entry<I, O> it) {
           try {
             boolean _matched = false;
             if (!_matched) {
@@ -211,14 +211,14 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
                 _matched=true;
                 Procedure0 _get = unregisterFn.get();
                 _get.apply();
-                valueFn.apply(((Value<R, T>)it).from, ((Value<R, T>)it).value);
+                valueFn.apply(((Value<I, O>)it).from, ((Value<I, O>)it).value);
                 newTask.complete();
               }
             }
             if (!_matched) {
               if (it instanceof nl.kii.stream.message.Error) {
                 _matched=true;
-                newTask.error(((nl.kii.stream.message.Error<R, T>)it).error);
+                newTask.error(((nl.kii.stream.message.Error<I, O>)it).error);
               }
             }
           } catch (final Throwable _t) {
@@ -236,10 +236,10 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
       Procedure0 _onChange = this.publisher.onChange(_function);
       unregisterFn.set(_onChange);
       this.setHasValueHandler(Boolean.valueOf(true));
-      Entry<R, T> _entry = this.getEntry();
+      Entry<I, O> _entry = this.getEntry();
       boolean _notEquals = (!Objects.equal(_entry, null));
       if (_notEquals) {
-        Entry<R, T> _entry_1 = this.getEntry();
+        Entry<I, O> _entry_1 = this.getEntry();
         this.publisher.apply(_entry_1);
       }
       _xblockexpression = newTask;
@@ -254,7 +254,7 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     Boolean _fulfilled = this.getFulfilled();
     _builder.append(_fulfilled, "");
     _builder.append(", entry: ");
-    Entry<R, T> _get = this.get();
+    Entry<I, O> _get = this.get();
     _builder.append(_get, "");
     _builder.append(" }");
     return _builder.toString();
@@ -296,15 +296,15 @@ public abstract class BasePromise<R extends Object, T extends Object> implements
     return this._hasValueHandler.getAndSet(value);
   }
   
-  protected void setEntry(final Entry<R, T> value) {
+  protected void setEntry(final Entry<I, O> value) {
     this._entry.set(value);
   }
   
-  protected Entry<R, T> getEntry() {
+  protected Entry<I, O> getEntry() {
     return this._entry.get();
   }
   
-  protected Entry<R, T> getAndSetEntry(final Entry<R, T> value) {
+  protected Entry<I, O> getAndSetEntry(final Entry<I, O> value) {
     return this._entry.getAndSet(value);
   }
   

@@ -150,6 +150,17 @@ class TestPromiseExtensions {
 		t3.complete 
 		assertTrue(anyDone)
 	}
+	
+	@Test
+	def void testMapError() {
+		val p = new Promise<Integer>
+		p
+			.map [ it / 0 ]
+			.map(Exception) [ 20 ]
+			.map [ it + 10 ]
+			.then [ println(it) ]
+		p << 10	
+	}
 
 	private def power2(int i) { new Promise(i*i) }
 	

@@ -15,9 +15,9 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 /**
  * Base implementation of IPromise. 
  */
-abstract class BasePromise<R, T> implements IPromise<R, T> {
+abstract class BasePromise<I, O> implements IPromise<I, O> {
 	
-	val publisher = new Publisher<Entry<R, T>>
+	val publisher = new Publisher<Entry<I, O>>
 	
 	/** Property to see if the promise is fulfulled */
 	@Atomic public val boolean fulfilled = false
@@ -29,18 +29,18 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 	@Atomic public val boolean hasValueHandler = false
 
 	/** The result of the promise, if any, otherwise null */
-	@Atomic protected val Entry<R, T> entry
+	@Atomic protected val Entry<I, O> entry
 
 	/** name of the operation the listener is performing */
 	@Atomic val String _operation 
 	
 	// GETTERS AND SETTERS ////////////////////////////////////////////////////
 	
-	override apply(Entry<R, T> it) {
+	override apply(Entry<I, O> it) {
 		if(it == null) throw new NullPointerException('cannot promise a null entry')
 		val allowed = switch it { 
 			case !fulfilled: true
-			Error<?, T> case fulfilled: true
+			Error<?, O> case fulfilled: true
 			default: false
 		}
 		if(!allowed) return;
@@ -76,7 +76,7 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
 	 * since there is a generics problem trying to assign the values.
 	 */
-	override on(Class<? extends Throwable> errorType, Procedure2<R, Throwable> errorFn) {
+	override on(Class<? extends Throwable> errorType, Procedure2<I, Throwable> errorFn) {
 		// create a subpromise to return that should pass a value but not the matching exceptions		
 		val subPromise = new SubPromise(this, false)
 		
@@ -84,7 +84,7 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 		val unregisterFn = new AtomicReference<Procedure0>
 		unregisterFn.set(publisher.onChange [
 			switch it {
-				Error<R, T>: { 
+				Error<I, O>: { 
 					try {
 						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
 						// if an incoming error matches the passed errorType
@@ -114,24 +114,24 @@ abstract class BasePromise<R, T> implements IPromise<R, T> {
 	}
 
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
-	override then(Procedure1<T> valueFn) {
+	override then(Procedure1<O> valueFn) {
 		this.then [ r, it | valueFn.apply(it) ]
 	}
 
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
-	override then(Procedure2<R, T> valueFn) {
+	override then(Procedure2<I, O> valueFn) {
 		val newTask = new Task
 		// register for a new value being applied
 		val unregisterFn = new AtomicReference<Procedure0>
 		unregisterFn.set(publisher.onChange [
 			try {
 				switch it { 
-					Value<R, T>: { 
+					Value<I, O>: { 
 						unregisterFn.get.apply // unsubscribe, so this handler will not be called again
 						valueFn.apply(from, value)
 						newTask.complete
 					}
-					Error<R, T>: newTask.error(error)
+					Error<I, O>: newTask.error(error)
 				}
 			} catch(Exception e) {
 				error(new PromiseException('Promise.then gave error for', it, e))

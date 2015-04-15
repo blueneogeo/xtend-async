@@ -10,7 +10,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
-public abstract class FixedBasePromise<R, T> extends BasePromise<R, T> {
+public abstract class FixedBasePromise<I, O> extends BasePromise<I, O> {
 
 	/**
 	 * If the promise recieved or recieves an error, onError is called with the
@@ -22,23 +22,23 @@ public abstract class FixedBasePromise<R, T> extends BasePromise<R, T> {
 	 * the values.
 	 */
 	@Override
-	public IPromise<R, T> on(final Class<? extends Throwable> errorType, final Procedure2<R, Throwable> errorFn) {
-		final SubPromise<R, T> subPromise = new SubPromise<R, T>(this, false);
+	public IPromise<I, O> on(final Class<? extends Throwable> errorType, final Procedure2<I, Throwable> errorFn) {
+		final SubPromise<I, O> subPromise = new SubPromise<I, O>(this, false);
 
-		this.then(new Procedure2<R, T>() {
+		this.then(new Procedure2<I, O>() {
 			@Override
-			public void apply(R from, T value) {
+			public void apply(I from, O value) {
 				subPromise.set(from, value);
 			}
 		});
 		
 		final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
 		
-		final Procedure1<Entry<R, T>> onChange = new Procedure1<Entry<R, T>>() {
+		final Procedure1<Entry<I, O>> onChange = new Procedure1<Entry<I, O>>() {
 			@Override
-			public void apply(final Entry<R, T> it) {
+			public void apply(final Entry<I, O> it) {
 				if (it instanceof nl.kii.stream.message.Error) {
-					Error<R, T> error = (Error<R, T>)it;
+					Error<I, O> error = (Error<I, O>)it;
 					try {
 						unregisterFn.get().apply();
 						Class<? extends Throwable> _class = error.error.getClass();

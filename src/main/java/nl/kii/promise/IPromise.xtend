@@ -4,23 +4,23 @@ import nl.kii.stream.message.Entry
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
-interface IPromise<R, T> extends Procedure1<Entry<R, T>> {
+interface IPromise<I, O> extends Procedure1<Entry<I, O>> {
 	
-	def IPromise<R, ?> getRoot()
+	def IPromise<I, ?> getRoot()
 	
 	def Boolean getFulfilled()
-	def Entry<R, T> get()
-	def void set(R value)
-	def IPromise<R, T> error(Throwable t)
+	def Entry<I, O> get()
+	def void set(I value)
+	def IPromise<I, O> error(Throwable t)
 	
 //	def IPromise<R, T> onError(Procedure1<Throwable> errorFn)
 //	def IPromise<R, T> onError(Procedure2<R, Throwable> errorFn)
 
-	def IPromise<R, T> on(Class<? extends Throwable> exceptionType, Procedure1<Throwable> errorFn)
-	def IPromise<R, T> on(Class<? extends Throwable> exceptionType, Procedure2<R, Throwable> errorFn)
+	def IPromise<I, O> on(Class<? extends Throwable> exceptionType, Procedure1<Throwable> errorFn)
+	def IPromise<I, O> on(Class<? extends Throwable> exceptionType, Procedure2<I, Throwable> errorFn)
 
-	def Task then(Procedure1<T> valueFn)
-	def Task then(Procedure2<R, T> valueFn)
+	def Task then(Procedure1<O> valueFn)
+	def Task then(Procedure2<I, O> valueFn)
 	
 	def void setOperation(String operation)
 	def String getOperation()
