@@ -13,9 +13,6 @@ interface IPromise<I, O> extends Procedure1<Entry<I, O>> {
 	def void set(I value)
 	def IPromise<I, O> error(Throwable t)
 	
-//	def IPromise<R, T> onError(Procedure1<Throwable> errorFn)
-//	def IPromise<R, T> onError(Procedure2<R, Throwable> errorFn)
-
 	def IPromise<I, O> on(Class<? extends Throwable> exceptionType, Procedure1<Throwable> errorFn)
 	def IPromise<I, O> on(Class<? extends Throwable> exceptionType, Procedure2<I, Throwable> errorFn)
 

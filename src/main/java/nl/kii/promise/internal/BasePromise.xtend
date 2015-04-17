@@ -94,11 +94,13 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 						} else {
 							// otherwise, pass the error along to the subpromise
 							// FIX: next line gives Xtend error! Language problem (does work in Java)
+							// fixed in FixedBasePromise.java
 							// subPromise.error(from, error)
 						}
 					} catch(Exception e) {
 						// if the handler has an error, pass it along to the subpromise so the user can handle it
 						// FIX: next line gives Xtend error! Language problem (does work in Java)
+						// fixed in FixedBasePromise.java
 						// subPromise.error(from, e)
 					}
 				} 
@@ -109,6 +111,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 		if(entry != null) publisher.apply(entry)
 		// listen for a value from this promise and pass it to the subpromise
 		// FIX: next line gives Xtend error! Language problem (does work in Java)
+		// fixed in FixedBasePromise.java
 		// this.then [ from, value | subPromise.apply(new Value(f, value)) ]
 		subPromise
 	}

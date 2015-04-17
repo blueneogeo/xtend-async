@@ -34,10 +34,30 @@ public abstract class FixedBasePromise<I, O> extends BasePromise<I, O> {
 		
 		final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
 		
+//		final Procedure1<Entry<I, O>> onChange = new Procedure1<Entry<I, O>>() {
+//			@Override
+//			public void apply(final Entry<I, O> it) {
+//				if (it instanceof Error) {
+//					Error<I, O> error = (Error<I, O>)it;
+//					try {
+//						unregisterFn.get().apply();
+//						Class<? extends Throwable> _class = error.error.getClass();
+//						if (errorType.isAssignableFrom(_class)) {
+//							errorFn.apply(error.from, error.error);
+//						} else {
+//							subPromise.error(error.from, error.error);
+//						}
+//					} catch(final Throwable t) {
+//						subPromise.error(error.from, t);
+//					}
+//				}
+//			}
+//		};
+
 		final Procedure1<Entry<I, O>> onChange = new Procedure1<Entry<I, O>>() {
 			@Override
 			public void apply(final Entry<I, O> it) {
-				if (it instanceof nl.kii.stream.message.Error) {
+				if (it instanceof Error) {
 					Error<I, O> error = (Error<I, O>)it;
 					try {
 						unregisterFn.get().apply();
@@ -53,6 +73,7 @@ public abstract class FixedBasePromise<I, O> extends BasePromise<I, O> {
 				}
 			}
 		};
+
 		unregisterFn.set(this.getPublisher().onChange(onChange));
 
 		this.setHasErrorHandler(true);

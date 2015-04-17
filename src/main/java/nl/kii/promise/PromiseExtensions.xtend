@@ -189,17 +189,6 @@ class PromiseExtensions {
 	}
 	
 	/**
-	 * Create a new promise with a new input, defined by the inputFn
-	 */
-	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
-		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
-		promise
-			.on(Throwable) [ r, it | newPromise.error(inputFn.apply(r, null), it) ]
-			.then [ r, it | newPromise.set(inputFn.apply(r, it), it) ]
-		newPromise => [ operation = 'root' ]
-	}
-	
-	/**
 	 * Maps errors back into values. 
 	 * Good for alternative path resolving and providing defaults.
 	 */
@@ -219,6 +208,17 @@ class PromiseExtensions {
 		newPromise => [ operation = 'onErrorMap' ]
 	}
 
+	/**
+	 * Create a new promise with a new input, defined by the inputFn
+	 */
+	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
+		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
+		promise
+			.on(Throwable) [ r, it | newPromise.error(inputFn.apply(r, null), it) ]
+			.then [ r, it | newPromise.set(inputFn.apply(r, it), it) ]
+		newPromise => [ operation = 'root' ]
+	}
+	
 	/** Flattens a promise of a promise to directly a promise. */
 	def static <I1, I2, O, P extends IPromise<I1, O>> flatten(IPromise<I2, P> promise) {
 		promise.resolve => [ operation = 'flatten' ]

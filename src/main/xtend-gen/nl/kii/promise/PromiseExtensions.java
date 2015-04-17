@@ -368,41 +368,6 @@ public class PromiseExtensions {
   }
   
   /**
-   * Create a new promise with a new input, defined by the inputFn
-   */
-  public static <I1 extends Object, I2 extends Object, O extends Object> SubPromise<I2, O> mapInput(final IPromise<I1, O> promise, final Function2<? super I1, ? super O, ? extends I2> inputFn) {
-    SubPromise<I2, O> _xblockexpression = null;
-    {
-      Promise<I2> _promise = new Promise<I2>();
-      final SubPromise<I2, O> newPromise = new SubPromise<I2, O>(_promise);
-      final Procedure2<I1, Throwable> _function = new Procedure2<I1, Throwable>() {
-        @Override
-        public void apply(final I1 r, final Throwable it) {
-          I2 _apply = inputFn.apply(r, null);
-          newPromise.error(_apply, it);
-        }
-      };
-      IPromise<I1, O> _on = promise.on(Throwable.class, _function);
-      final Procedure2<I1, O> _function_1 = new Procedure2<I1, O>() {
-        @Override
-        public void apply(final I1 r, final O it) {
-          I2 _apply = inputFn.apply(r, it);
-          newPromise.set(_apply, it);
-        }
-      };
-      _on.then(_function_1);
-      final Procedure1<SubPromise<I2, O>> _function_2 = new Procedure1<SubPromise<I2, O>>() {
-        @Override
-        public void apply(final SubPromise<I2, O> it) {
-          it.setOperation("root");
-        }
-      };
-      _xblockexpression = ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(newPromise, _function_2);
-    }
-    return _xblockexpression;
-  }
-  
-  /**
    * Maps errors back into values.
    * Good for alternative path resolving and providing defaults.
    */
@@ -445,6 +410,41 @@ public class PromiseExtensions {
         }
       };
       _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create a new promise with a new input, defined by the inputFn
+   */
+  public static <I1 extends Object, I2 extends Object, O extends Object> SubPromise<I2, O> mapInput(final IPromise<I1, O> promise, final Function2<? super I1, ? super O, ? extends I2> inputFn) {
+    SubPromise<I2, O> _xblockexpression = null;
+    {
+      Promise<I2> _promise = new Promise<I2>();
+      final SubPromise<I2, O> newPromise = new SubPromise<I2, O>(_promise);
+      final Procedure2<I1, Throwable> _function = new Procedure2<I1, Throwable>() {
+        @Override
+        public void apply(final I1 r, final Throwable it) {
+          I2 _apply = inputFn.apply(r, null);
+          newPromise.error(_apply, it);
+        }
+      };
+      IPromise<I1, O> _on = promise.on(Throwable.class, _function);
+      final Procedure2<I1, O> _function_1 = new Procedure2<I1, O>() {
+        @Override
+        public void apply(final I1 r, final O it) {
+          I2 _apply = inputFn.apply(r, it);
+          newPromise.set(_apply, it);
+        }
+      };
+      _on.then(_function_1);
+      final Procedure1<SubPromise<I2, O>> _function_2 = new Procedure1<SubPromise<I2, O>>() {
+        @Override
+        public void apply(final SubPromise<I2, O> it) {
+          it.setOperation("root");
+        }
+      };
+      _xblockexpression = ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(newPromise, _function_2);
     }
     return _xblockexpression;
   }
