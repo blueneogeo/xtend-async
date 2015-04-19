@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.act.Actor;
 import nl.kii.async.annotation.Atomic;
 import nl.kii.stream.IStream;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.StreamEvent;
 import nl.kii.stream.message.StreamMessage;

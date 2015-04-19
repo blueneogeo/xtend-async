@@ -8,7 +8,7 @@ import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamIOExtensions;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;

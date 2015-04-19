@@ -280,7 +280,7 @@ class TestStreamExtensions {
 	@Test
 	def void testReduce() {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		val summed = s.reduce(1) [ a, b | a + b ].onError [ println(it) ] // starting at 1!
+		val summed = s.reduce(1) [ a, b | a + b ].on(Exception) [ println(it) ] // starting at 1!
 		summed.assertStreamContains(7.value, 10.value)
 	}
 
@@ -378,7 +378,7 @@ class TestStreamExtensions {
 		(1..10).stream
 			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
-			.onError [ message >> errors ] // must listen for errors here
+			.on(Exception) [ message >> errors ] // must listen for errors here
 			.collect
 			.first
 			.assertPromiseEquals(#[1, 2, 3, 4, 6, 8, 9, 10]) // 5 and 7 are missing
@@ -409,7 +409,7 @@ class TestStreamExtensions {
 				if(it == 3 || it == 5) throw new Exception('should not break the stream')
 				it
 			]
-			.onError [ incErrorCount ]
+			.on(Exception) [ incErrorCount ]
 			.onEach [ incValueCount ]
 		assertEquals(10 - 2, valueCount)
 		assertEquals(2, errorCount)
@@ -547,14 +547,14 @@ class TestStreamExtensions {
 		//s2.count.then [ assertEquals(1_000, it, 0) ]
 	}
 	
-	// @Test FIX!
+	@Test
 	def void testStreamPromise() {
 		val s = int.stream
 		val p = s.promise
 		s << 1 << 2 << finish
 		val s2 = p.toStream
 		s2
-			.onError [ fail(message) ]
+			.on(Exception) [ fail(message) ]
 			.onEach [ println(it) ]
 			.assertPromiseEquals(true)
 	}
@@ -598,7 +598,7 @@ class TestStreamExtensions {
 			.ratelimit(1000, delayFn)
 			.map [ 1000 / (2-it) * 1000 ]
 		limited
-			.onError [ println(it) ]
+			.on(Exception) [ println(it) ]
 			.onEach [ println(it) ]
 		Thread.sleep(5000)
 	}

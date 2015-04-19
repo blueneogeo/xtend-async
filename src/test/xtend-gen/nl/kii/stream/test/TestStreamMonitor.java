@@ -4,7 +4,7 @@ import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
 import nl.kii.stream.StreamStats;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IntegerRange;
@@ -39,14 +39,14 @@ public class TestStreamMonitor {
         InputOutput.<Throwable>println(it);
       }
     };
-    SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_monitor, _function_2);
+    SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_monitor, Exception.class, _function_2);
     final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
-    StreamExtensions.<Integer, Integer>onEach(_onError, _function_3);
+    StreamExtensions.<Integer, Integer>onEach(_on, _function_3);
     InputOutput.<StreamStats>println(stats);
   }
 }

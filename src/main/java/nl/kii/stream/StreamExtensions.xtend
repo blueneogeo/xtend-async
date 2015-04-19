@@ -16,14 +16,16 @@ import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
+import nl.kii.promise.Task
 import nl.kii.promise.internal.SubPromise
 import nl.kii.promise.internal.SubTask
-import nl.kii.promise.Task
+import nl.kii.stream.internal.BaseStream
 import nl.kii.stream.internal.StreamEventHandler
 import nl.kii.stream.internal.StreamEventResponder
 import nl.kii.stream.internal.StreamException
 import nl.kii.stream.internal.StreamObserver
 import nl.kii.stream.internal.StreamResponder
+import nl.kii.stream.internal.SubStream
 import nl.kii.stream.internal.UncaughtStreamException
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
@@ -43,6 +45,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.util.Period
 
 class StreamExtensions {
 	
@@ -298,10 +301,12 @@ class StreamExtensions {
 		new Finish<I, O>(null, 0)
 	}
 
+	/** Lets you easily pass a Finish<T> entry using the << or >> operators */
 	def static <I, O> finish(int level ) {
 		new Finish<I, O>(null, level)
 	}
 
+	/** Forwards commands given to the newStream directly to the parent. */
 	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
 		newStream.when [
 			next [ parent.next ]
@@ -329,6 +334,7 @@ class StreamExtensions {
 		stream.error(new StreamException(message, value, cause))
 	}
 
+	/** Set the concurrency of the stream, letting you keep chaining by returning the stream. */
 	def static <I, O> concurrency(IStream<I, O> stream, int value) {
 		stream.concurrency = value
 		stream
@@ -675,8 +681,7 @@ class StreamExtensions {
 	}
 	
 	/**
-	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
-	 * All other values are dropped.
+	 * Only allows one value for every timeInMs milliseconds. All other values are dropped.
 	 */
 	def static <I, O> throttle(IStream<I, O> stream, long periodMs) {
 		// -1 means allow, we want to allow the first incoming value
@@ -689,6 +694,13 @@ class StreamExtensions {
 				true
 			} else false
 		] => [ stream.operation = 'throttle(periodMs=' + periodMs + ')' ]
+	}
+	
+	/**
+	 * Only allows one value per given period. Other values are dropped.
+	 */
+	def static <I, O> throttle(IStream<I, O> stream, Period period) {
+		stream.throttle(period.ms)
 	}
 
 	/** 
@@ -752,9 +764,9 @@ class StreamExtensions {
 	 * up to a maximum period of one hour per error. The moment a normal value gets processed, the period is reset 
 	 * to the initial period.
 	 */
-	def static <I, O> onErrorBackOff(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, (long, =>void)=>void timerFn) {
 		val hourMs = 60 * 60 * 1000
-		stream.onErrorBackOff(periodMs, 2, hourMs, timerFn)
+		stream.backoff(errorType, periodMs, 2, hourMs, timerFn)
 	}
 	
 	/**
@@ -764,8 +776,10 @@ class StreamExtensions {
 	 * an error, multiply the period by the given factor and wait that period. This way increasing the period
 	 * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
 	 * initial period.
+	 * 
+	 * TODO: needs testing!
 	 */
-	def static <I, O> onErrorBackOff(IStream<I, O> stream, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
+	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
 		if(periodMs <= 0 || maxPeriodMs <= 0) return stream
 		val delay = new AtomicLong(periodMs)
 		val newStream = new SubStream<I, O>(stream)
@@ -937,8 +951,8 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.call(stream.concurrency)
 	 */	
-	def static <I, O, R, P extends IPromise<?, R>> call2(IStream<I, O> stream, (I, O)=>P promiseFn) {
-		stream.call2(stream.concurrency, promiseFn) => [ stream.operation = 'call' ]
+	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (I, O)=>P promiseFn) {
+		stream.call(stream.concurrency, promiseFn) => [ stream.operation = 'call' ]
 	}
 
 	/**
@@ -946,41 +960,84 @@ class StreamExtensions {
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
-		stream.call2(concurrency) [ i, o | promiseFn.apply(o) ]
+		stream.call(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
 
 	/**
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
-	def static <I, O, R, P extends IPromise<?, R>> call2(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
+	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 
-	// ENDPOINTS //////////////////////////////////////////////////////////////
+	// MONITORING ERRORS //////////////////////////////////////////////////////
 
-	/**
-	 * If an error occurs, call the handler and swallow the error from the stream.
-	 * @param handler gets the error that was caught.
-	 * @return a new stream like the incoming stream but without the caught errors.
-	 */
-	def static <I, O> onError(IStream<I, O> stream, (Throwable)=>void handler) {
-		stream.onError [ r, err | handler.apply(err) ]
-	}
-
-	/**
-	 * If an error occurs, call the handler and swallow the error from the stream.
-	 * @param handler gets the stream input value and the error that was caught.
-	 * @return a new stream like the incoming stream but without the caught errors.
-	 */
-	def static <I, O> onError(IStream<I, O> stream, (I, Throwable)=>void handler) {
+	/** 
+	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
+	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
+	 */	
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
-			error [
-				handler.apply($0, $1)
-				stream.next 
+			error [ from, err |
+				try {
+					if(errorType.isAssignableFrom(err.class)) {
+						handler.apply(from, err)
+						if(!swallow) {
+							newStream.error(from, err)
+						}
+					} else {
+						newStream.error(from, err)
+					}
+				} catch(Throwable t) {
+					newStream.error(from, t)
+				} finally {
+					stream.next 
+				}
+			]
+			finish [ newStream.finish($0, $1) ]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}	
+
+	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		stream.on(errorType, true) [ handler.apply($0, $1) ]
+	}
+
+	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		stream.on(errorType, true) [ handler.apply($1) ]
+	}
+
+	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
+	
+	/** Map an error back to a value. Swallows the error. */
+	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
+		stream.map(errorType) [ input, err | mappingFn.apply(err) ]
+	}
+
+	/** Map an error back to a value. Swallows the error. */
+	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ newStream.push($0, $1) ]
+			error [ from, err |
+				try {
+					if(errorType.isAssignableFrom(err.class)) {
+						val value = mappingFn.apply(from, err)
+						newStream.push(from, value)
+					} else {
+						newStream.error(from, err)
+					}
+				} catch(Throwable t) {
+					newStream.error(from, t)
+				}
 			]
 			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
@@ -988,6 +1045,38 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+
+	/** Asynchronously map an error back to a value. Swallows the error. */
+	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
+		stream.call(errorType) [ input, err | mappingFn.apply(err) ]
+	}
+
+	/** Asynchronously map an error back to a value. Swallows the error. */
+	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ newStream.push($0, $1) ]
+			error [ from, err |
+				try {
+					if(errorType.isAssignableFrom(err.class)) {
+						mappingFn.apply(from, err)
+							.then [ newStream.push(from, it) ]
+							.on(Throwable) [ newStream.error(from, it) ]
+					} else {
+						newStream.error(from, err)
+					}
+				} catch(Throwable t) {
+					newStream.error(from, t)
+				}
+			]
+			finish [ newStream.finish($0, $1) ]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+		
+	// ENDPOINTS //////////////////////////////////////////////////////////////
 
 	/** If an error occurs, break the stream with an UncaughtStreamException */	
 	def static <I, O> onErrorThrow(IStream<I, O> stream) {
@@ -1283,7 +1372,7 @@ class StreamExtensions {
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
 	def static <I, O> perform2(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
-		stream.call2(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
+		stream.call(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
 			=> [ stream.operation = 'perform(concurrency=' + concurrency + ')' ]
 	}
 

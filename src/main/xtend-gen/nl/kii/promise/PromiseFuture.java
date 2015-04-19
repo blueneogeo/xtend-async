@@ -2,6 +2,7 @@ package nl.kii.promise;
 
 import com.google.common.util.concurrent.AbstractFuture;
 import nl.kii.promise.IPromise;
+import nl.kii.promise.PromiseExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /**
@@ -16,7 +17,7 @@ public class PromiseFuture<T extends Object> extends AbstractFuture<T> {
         PromiseFuture.this.setException(it);
       }
     };
-    IPromise<?, T> _on = promise.on(Throwable.class, _function);
+    IPromise<?, T> _on = PromiseExtensions.on(promise, Throwable.class, _function);
     final Procedure1<T> _function_1 = new Procedure1<T>() {
       @Override
       public void apply(final T it) {

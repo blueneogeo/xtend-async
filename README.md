@@ -10,12 +10,12 @@ Main features:
 
 Some features are:
 
-- made to be easy to use, simple syntax
 - lightweight, with no dependencies besides Xtend
+- threadsafe
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
 - support for RX-like batches, which is useful for aggregation.
 - clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
-- flow control for listeners, meaning that you can indicate when a listener is ready to process a next item from a stream
+- streams support back pressure, meaning that you can indicate when a listener is ready to process a next item from a stream
 - internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool
 - streams and promises in xtend-stream encapsulate errors thrown in your handlers and propagate them so you can listen for then. 
 - streams and promises can be hard to debug because they encapsulate errors with long stack traces. Xtend-stream tries to find the root cause and presents it to you directly.
@@ -114,7 +114,7 @@ Flow control:
 
 	def loadWebpageInBackground(URL url) {
 		val loaded = new Promise<Webpage>
-		someHttpService.loadAsync(url) [ page | loaded.apply(page) 	]
+		someHttp.loadAsync(url) [ page | loaded.apply(page) ]
 		return loaded
 	}
 
@@ -192,10 +192,10 @@ You can transform a promise into another promise using a mapping:
 
 ## Handling Errors
 
-If the handler has an error, you can catch it using .onError:
+If the handler has an error, you can catch it using .on(errorType) [ ]:
 
 	val p = 0.promise
-	p.onError [ println('got exception ' + it) ]
+	p.on(Exception) [ println('got exception ' + it) ]
 	p.then [ println(1/it) ] // throws /0 exception
   
 A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
@@ -203,7 +203,7 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 	val p = 0.promise
 	val p2 = p.map[1/it] // throws the exception
 	val p3 = p2.map[it + 1]
-	p3.onError [ println('got error: ' + message) ]
+	p3.on(Exception) [ println('got error: ' + message) ]
   p3.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
@@ -253,7 +253,7 @@ You can also create a stream from a list:
 Or from any Iterable in fact:
 
 	(1..1_000_000).stream
-		.onFinish [ println('done!') ]
+		.onFinish [ println(‘that took a while’) ]
 		.onEach [ println(it) ]
 
 Note that we are actually not dumping a million numbers into the stream and then processing it. What actually happens is that each number goes down the stream once, and then onEach asks for the next number, etc.
@@ -276,10 +276,10 @@ Sometimes you only want items to pass that match some criterium.  You can use fi
 
 ## Handling Errors
 
-If the handler has an error, you can catch it using .onError:
+If the handler has an error, you can catch it using .on(Throwable):
 
 	#[1, 0, 2].stream
-		.onError [ println('got exception ' + it) ]
+		.on(Exception) [ println('got exception ' + it) ]
 		.onEach [ println(1/it) ] // throws /0 exception
   
 A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them. This works for both streams and promises.
@@ -287,7 +287,7 @@ A nice feature of handling errors this way is that they are wrapped for you, so 
 	0.promise
 		.map[1/it] // throws the exception, 1/0
 		.map[it + 1] // some code to demonstrate the exception is propagated
-		.onError [ println('got error: ' + message) ]
+		.on(Exception) [ println('got error: ' + message) ]
 		.then [ println('this will not get printed') ]
 
 In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
@@ -296,14 +296,26 @@ In the above code, the mapping throws the error, but that error is passed down t
 
 If you end a stream chain with .onEach [ .. ], this will automatically ask the source of the stream for a new value every time the closure processed the last value.
 
-However you can also control when the next item can be streamed. This is very practical 
+However you can also control when the next item can be streamed, by using stream.on:
+
+	(1..10).stream
+		.on [
+			each [ println(it) stream.next ]
+			error [ println(‘error:’ + it) stream.next ]
+			finish [ println(‘finished!’) stream.next ]
+			closed [ println(‘stream closed’) ]
+		]
+
+As you see here we need to manually call stream.next when we get a value, otherwise the stream will simply never push the next value. This control is useful if you want to implement your own back-pressure.
+
+See the StreamExtensions source for examples of this. The stream extensions are built on this mechanism.
 
 ## Observing a stream with multiple listeners
 
 A stream can only be listened to by a single listener. This keeps flow control predictable and the streams light. However you can wrap a stream into an Observable<T> by calling stream.observe. You can then listen with multiple listeners:
 
 	val s = int.stream
-	val observable = s.observe
+	val observable = s.observe // now we can listen more often
 	observable.onChange [ println('first listener got value ' + it) ]
 	observable.onChange [ println('second listener got value ' + it) ]
 	s << 1 << 2 << 3 // will trigger both listeners above for each value

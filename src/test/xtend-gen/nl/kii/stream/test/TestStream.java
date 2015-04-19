@@ -6,15 +6,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
+import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.internal.SubTask;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SubStream;
 import nl.kii.stream.internal.StreamEventHandler;
 import nl.kii.stream.internal.StreamEventResponder;
 import nl.kii.stream.internal.StreamObserver;
 import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.internal.SubStream;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.Finish;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -269,7 +270,7 @@ public class TestStream {
         TestStream.this.setError(it);
       }
     };
-    _onEach.on(Throwable.class, _function_1);
+    PromiseExtensions.<Integer, Boolean>on(_onEach, Throwable.class, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
     StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(0));
     Throwable _error = this.getError();

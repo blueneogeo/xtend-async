@@ -16,7 +16,7 @@ class TestStreamMonitor {
 			.map [ it % 3 ]
 			.map [ 1 / it ]
 			.monitor(stats)
-			.onError [ println(it) ]
+			.on(Exception) [ println(it) ]
 			.onEach [ println(it) ]
 		
 		println(stats)

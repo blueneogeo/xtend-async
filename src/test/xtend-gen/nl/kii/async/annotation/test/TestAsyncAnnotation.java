@@ -58,7 +58,7 @@ public class TestAsyncAnnotation {
         isError.set(true);
       }
     };
-    IPromise<Boolean, Boolean> _on = _printHello.on(Throwable.class, _function);
+    IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_printHello, Throwable.class, _function);
     final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
       @Override
       public void apply(final Boolean it) {

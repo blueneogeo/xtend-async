@@ -3,7 +3,10 @@ package nl.kii.promise.test;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import nl.kii.async.ExecutorExtensions;
 import nl.kii.async.annotation.Atomic;
@@ -15,12 +18,13 @@ import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.InputOutput;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -259,37 +263,38 @@ public class TestPromiseExtensions {
   }
   
   @Test
-  public void testMapError() {
-    final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
-    };
-    SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Function1<Throwable, Integer> _function_1 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(20);
-      }
-    };
-    SubPromise<Integer, Integer> _map_1 = PromiseExtensions.<Integer, Integer>map(_map, Exception.class, _function_1);
-    final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() + 10));
-      }
-    };
-    SubPromise<Integer, Integer> _map_2 = PromiseExtensions.<Integer, Integer, Integer>map(_map_1, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        InputOutput.<Integer>println(it);
-      }
-    };
-    _map_2.then(_function_3);
-    PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
+  public void testWait() {
+    try {
+      final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+      final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
+        @Override
+        public void apply(final Long delayMs, final Procedure0 fn) {
+          exec.schedule(new Runnable() {
+              public void run() {
+                fn.apply();
+              }
+          }, delayMs, TimeUnit.MILLISECONDS);
+          return;
+        }
+      };
+      final Procedure2<Long, Procedure0> timerFn = _function;
+      Task _complete = PromiseExtensions.complete();
+      SubPromise<Boolean, Boolean> _wait = PromiseExtensions.<Boolean, Boolean>wait(_complete, 100, timerFn);
+      final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+        @Override
+        public void apply(final Boolean it) {
+          TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
+        }
+      };
+      _wait.then(_function_1);
+      Boolean _anyDone = this.getAnyDone();
+      Assert.assertFalse((_anyDone).booleanValue());
+      Thread.sleep(1000);
+      Boolean _anyDone_1 = this.getAnyDone();
+      Assert.assertTrue((_anyDone_1).booleanValue());
+    } catch (Throwable _e) {
+      throw Exceptions.sneakyThrow(_e);
+    }
   }
   
   private Promise<Integer> power2(final int i) {

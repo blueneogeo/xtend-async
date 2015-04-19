@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.internal
 
 import java.util.Queue
 import nl.kii.act.Actor
@@ -20,7 +20,7 @@ import nl.kii.stream.message.Value
 
 import static com.google.common.collect.Queues.*
 
-abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<I, O> {
+abstract class BaseStream<I, O> extends Actor<StreamMessage> implements nl.kii.stream.IStream<I, O> {
 
 	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
 
@@ -151,7 +151,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 					incBuffersize
 					publishNext
 					notify(entry)
-					setOpen = false
+					open = false
 				}
 			}
 		} else {

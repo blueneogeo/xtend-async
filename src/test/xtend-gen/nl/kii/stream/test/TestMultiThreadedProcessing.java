@@ -14,7 +14,7 @@ import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.InputOutput;
@@ -184,14 +184,14 @@ public class TestMultiThreadedProcessing {
           result.incrementAndGet();
         }
       };
-      SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_resolve_1, _function_3);
+      SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_resolve_1, Exception.class, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         @Override
         public void apply(final Integer it) {
           InputOutput.<String>println(("result " + it));
         }
       };
-      StreamExtensions.<Integer, Integer>onEach(_onError, _function_4);
+      StreamExtensions.<Integer, Integer>onEach(_on, _function_4);
       Thread.sleep(500);
       int _get = result.get();
       Assert.assertEquals(3, _get);

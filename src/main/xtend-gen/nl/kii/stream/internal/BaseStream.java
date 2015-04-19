@@ -1,4 +1,4 @@
-package nl.kii.stream;
+package nl.kii.stream.internal;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Queues;

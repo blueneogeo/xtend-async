@@ -23,8 +23,8 @@ import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamAssert;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SubStream;
 import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.internal.SubStream;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.Finish;
 import nl.kii.stream.message.Value;
@@ -659,7 +659,7 @@ public class TestStreamExtensions {
         InputOutput.<Throwable>println(it);
       }
     };
-    final SubStream<Integer, Integer> summed = StreamExtensions.<Integer, Integer>onError(_reduce, _function_1);
+    final SubStream<Integer, Integer> summed = StreamExtensions.<Integer, Integer>on(_reduce, Exception.class, _function_1);
     Value<Integer, Integer> _value = StreamAssert.<Integer, Integer>value(Integer.valueOf(7));
     Value<Integer, Integer> _value_1 = StreamAssert.<Integer, Integer>value(Integer.valueOf(10));
     StreamAssert.<Integer, Integer>assertStreamContains(summed, _value, _value_1);
@@ -912,7 +912,7 @@ public class TestStreamExtensions {
         Assert.fail(_message);
       }
     };
-    _onEach.on(Throwable.class, _function_1);
+    PromiseExtensions.<List<Integer>, Boolean>on(_onEach, Throwable.class, _function_1);
   }
   
   @Test
@@ -941,8 +941,8 @@ public class TestStreamExtensions {
         StreamExtensions.<String, String>operator_doubleGreaterThan(_message, errors);
       }
     };
-    SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_map_1, _function_2);
-    SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_onError);
+    SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map_1, Exception.class, _function_2);
+    SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_on);
     IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(6), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
     Collection<Entry<String, String>> _queue = errors.getQueue();
@@ -980,7 +980,7 @@ public class TestStreamExtensions {
         TestStreamExtensions.this.incErrorCount();
       }
     };
-    _onEach.on(Throwable.class, _function_1);
+    PromiseExtensions.<Integer, Boolean>on(_onEach, Throwable.class, _function_1);
     IntegerRange _upTo = new IntegerRange(1, 10);
     for (final Integer i : _upTo) {
       StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, i);
@@ -1019,14 +1019,14 @@ public class TestStreamExtensions {
         TestStreamExtensions.this.incErrorCount();
       }
     };
-    SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(_map, _function_1);
+    SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map, Exception.class, _function_1);
     final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
         TestStreamExtensions.this.incValueCount();
       }
     };
-    StreamExtensions.<Integer, Integer>onEach(_onError, _function_2);
+    StreamExtensions.<Integer, Integer>onEach(_on, _function_2);
     Integer _valueCount = this.getValueCount();
     Assert.assertEquals((10 - 2), (_valueCount).intValue());
     Integer _errorCount = this.getErrorCount();
@@ -1258,6 +1258,7 @@ public class TestStreamExtensions {
     _onEach.then(_function_1);
   }
   
+  @Test
   public void testStreamPromise() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
     final Promise<Stream<Integer>> p = PromiseExtensions.<Stream<Integer>>promise(s);
@@ -1273,14 +1274,14 @@ public class TestStreamExtensions {
         Assert.fail(_message);
       }
     };
-    SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(s2, _function);
+    SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(s2, Exception.class, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
         InputOutput.<Integer>println(it);
       }
     };
-    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_onError, _function_1);
+    SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_on, _function_1);
     StreamAssert.<Boolean>assertPromiseEquals(_onEach, Boolean.valueOf(true));
   }
   
@@ -1391,14 +1392,14 @@ public class TestStreamExtensions {
           InputOutput.<Throwable>println(it);
         }
       };
-      SubStream<Integer, Integer> _onError = StreamExtensions.<Integer, Integer>onError(limited, _function_3);
+      SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(limited, Exception.class, _function_3);
       final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
         @Override
         public void apply(final Integer it) {
           InputOutput.<Integer>println(it);
         }
       };
-      StreamExtensions.<Integer, Integer>onEach(_onError, _function_4);
+      StreamExtensions.<Integer, Integer>onEach(_on, _function_4);
       Thread.sleep(5000);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);

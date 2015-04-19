@@ -6,7 +6,7 @@ import nl.kii.stream.message.Value
 
 class Promise<T> extends FixedBasePromise<T, T> {
 	
-	override getRoot() { this }
+	override getInput() { this }
 	
 	new() { }
 	

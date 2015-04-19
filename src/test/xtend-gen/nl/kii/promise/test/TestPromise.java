@@ -100,7 +100,7 @@ public class TestPromise {
         TestPromise.this.setResult(Integer.valueOf(1));
       }
     };
-    IPromise<Integer, Integer> _on = promise.on(Throwable.class, _function);
+    IPromise<Integer, Integer> _on = PromiseExtensions.<Integer, Integer>on(promise, Throwable.class, _function);
     final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
@@ -133,7 +133,7 @@ public class TestPromise {
         TestPromise.this.setResult(Integer.valueOf(1));
       }
     };
-    _then.on(Throwable.class, _function_1);
+    PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_1);
     Integer _result_1 = this.getResult();
     JUnitExtensions.<Integer>operator_spaceship(
       Integer.valueOf(1), _result_1);
@@ -159,21 +159,21 @@ public class TestPromise {
         Assert.fail("the error is not a nullpointer exception");
       }
     };
-    IPromise<Boolean, Boolean> _on = _then.on(NullPointerException.class, _function_1);
+    IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_then, NullPointerException.class, _function_1);
     final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
       @Override
       public void apply(final Throwable it) {
         TestPromise.this.setResult(Integer.valueOf(1));
       }
     };
-    IPromise<Boolean, Boolean> _on_1 = _on.on(ArithmeticException.class, _function_2);
+    IPromise<Boolean, Boolean> _on_1 = PromiseExtensions.<Boolean, Boolean>on(_on, ArithmeticException.class, _function_2);
     final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
       @Override
       public void apply(final Throwable it) {
         Assert.fail("this may no longer match, the error has already been caught");
       }
     };
-    _on_1.on(Throwable.class, _function_3);
+    PromiseExtensions.<Boolean, Boolean>on(_on_1, Throwable.class, _function_3);
     Integer _result_1 = this.getResult();
     JUnitExtensions.<Integer>operator_spaceship(
       Integer.valueOf(1), _result_1);
@@ -288,7 +288,7 @@ public class TestPromise {
         caughtError.set(it);
       }
     };
-    IPromise<Integer, Integer> _on = _call_7.on(Throwable.class, _function_8);
+    IPromise<Integer, Integer> _on = PromiseExtensions.<Integer, Integer>on(_call_7, Throwable.class, _function_8);
     final Procedure1<Entry<?, Integer>> _function_9 = new Procedure1<Entry<?, Integer>>() {
       @Override
       public void apply(final Entry<?, Integer> it) {
@@ -409,7 +409,7 @@ public class TestPromise {
         TestPromise.this.setCaughtError(it);
       }
     };
-    IPromise<Integer, Integer> _on = _call_10.on(Throwable.class, _function_11);
+    IPromise<Integer, Integer> _on = PromiseExtensions.<Integer, Integer>on(_call_10, Throwable.class, _function_11);
     final Procedure1<Integer> _function_12 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
@@ -482,7 +482,7 @@ public class TestPromise {
         PromiseExtensions.<Boolean, Boolean>operator_doubleGreaterThan(Boolean.valueOf(true), p2);
       }
     };
-    IPromise<Integer, Integer> _on = _map_2.on(Throwable.class, _function_3);
+    IPromise<Integer, Integer> _on = PromiseExtensions.<Integer, Integer>on(_map_2, Throwable.class, _function_3);
     final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
       @Override
       public void apply(final Integer it) {
@@ -554,7 +554,7 @@ public class TestPromise {
         TestPromise.this.setFoundError(Boolean.valueOf(true));
       }
     };
-    _then.on(Throwable.class, _function_2);
+    PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_2);
     p.set(Integer.valueOf(1));
     Boolean _foundError = this.getFoundError();
     Assert.assertTrue((_foundError).booleanValue());

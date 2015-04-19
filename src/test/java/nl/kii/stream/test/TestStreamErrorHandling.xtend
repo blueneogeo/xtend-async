@@ -4,6 +4,7 @@ import nl.kii.async.annotation.Atomic
 import org.junit.Test
 
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
 
 class TestStreamErrorHandling {
 
@@ -40,7 +41,7 @@ class TestStreamErrorHandling {
 				if(it == 2 || it == 4) throw new Exception
 				it
 			]
-			.onError [ incErrors ]
+			.on(Exception) [ incErrors ]
 			.map [ it ]
 			.onEach [ incCounter ]
 			.then [ complete = true ]
@@ -64,7 +65,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.onError [ println('error ' + it) ]
+			.on(Exception) [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
 			.on(Throwable) [ fail(message) ]
@@ -81,7 +82,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.onError [ println('error ' + it) ]
+			.on(Exception) [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
 			.on(Throwable) [ fail(message) ]
@@ -97,7 +98,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.onError [ println('error ' + it) ]
+			.on(Exception) [ println('error ' + it) ]
 			.onEach [ println('result : ' + it) ]
 			.then [ println('done') ]
 			.on(Throwable) [ 
@@ -134,7 +135,7 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
-				.onError [ caught = it ] // below the filter method, above the oneach, will filter out the error
+				.on(Exception) [ caught = it ] // below the filter method, above the oneach, will filter out the error
 				.onEach [ ]
 			s << 1 << 2 << finish
 		} catch(Exception e) {
@@ -173,7 +174,7 @@ class TestStreamErrorHandling {
 		s
 			.map [ it % 3 ]
 			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
-			.onError [ incErrorCount ] 
+			.on(Exception) [ incErrorCount ] 
 			.onEach [ incCount ]
 			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
 			.then [ finished = true ]

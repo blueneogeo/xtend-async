@@ -1,5 +1,6 @@
 package nl.kii.promise
 
+import static extension nl.kii.promise.PromiseExtensions.*
 import com.google.common.util.concurrent.AbstractFuture
 
 /**

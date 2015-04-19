@@ -67,7 +67,7 @@ public class PromiseAndFuture {
           InputOutput.<Throwable>println(it);
         }
       };
-      _then.on(Throwable.class, _function_3);
+      PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_3);
       Thread.sleep(100);
     } catch (Throwable _e) {
       throw Exceptions.sneakyThrow(_e);

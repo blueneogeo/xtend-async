@@ -1,7 +1,7 @@
-package nl.kii.stream;
+package nl.kii.stream.internal;
 
-import nl.kii.stream.BaseStream;
 import nl.kii.stream.IStream;
+import nl.kii.stream.internal.BaseStream;
 import nl.kii.stream.message.Finish;
 import nl.kii.stream.message.Value;
 

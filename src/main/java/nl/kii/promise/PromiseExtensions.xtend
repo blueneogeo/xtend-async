@@ -7,6 +7,8 @@ import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.stream.StreamExtensions.*
 
@@ -82,7 +84,7 @@ class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends IPromise<?, ?>> promises) {
-		promises.map[asTask].stream.call[it].collect.first.asTask
+		promises.map[asTask].stream.call[ Task it | it ].collect.first.asTask
 	}
 	
 	/** 
@@ -162,23 +164,15 @@ class PromiseExtensions {
 	def static <I, O> Task || (IPromise<I, O> p1, IPromise<I, O> p2) {
 		any(p1, p2)
 	}
-
-	// TRANSFORMATIONS ////////////////////////////////////////////////////////
-
-	/** 
-	 * Create a new promise from an existing promise, 
-	 * that transforms the value of the promise
-	 * once the existing promise is resolved.
-	 */
+	
+	// MAPPING ////////////////////////////////////////////////////////////////
+	
+	/** Transform the value of a promise */ 
 	def static <I, O, R> map(IPromise<I, O> promise, (O)=>R mappingFn) {
 		promise.map [ r, it | mappingFn.apply(it) ]
 	}
 
-	/** 
-	 * Create a new promise from an existing promise, 
-	 * that transforms the value of the promise
-	 * once the existing promise is resolved.
-	 */
+	/** Transform the value of a promise */ 
 	def static <I, O, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
 		val newPromise = new SubPromise<I, R>(promise)
 		promise
@@ -188,29 +182,131 @@ class PromiseExtensions {
 		newPromise => [ operation = 'map' ]
 	}
 	
-	/**
-	 * Maps errors back into values. 
-	 * Good for alternative path resolving and providing defaults.
-	 */
-	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
-		val newPromise = new SubPromise<I, O>(promise)
+	// ASYNC MAPPING //////////////////////////////////////////////////////////
+	
+	/** Asynchronously transform the value of a promise */ 
+	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
+		promise.map(promiseFn).resolve
+			=> [ operation = 'call' ]
+	}
+
+	/** Asynchronously transform the value of a promise */ 
+	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (I, O)=>P promiseFn) {
+		promise.map(promiseFn).resolve
+			=> [ operation = 'call' ]
+	}
+
+	// SIDEEFFECTS ////////////////////////////////////////////////////////////
+	
+	/** Perform some side-effect action based on the promise. */
+	def static <I, O> effect(IPromise<I, O> promise, (O)=>void listener) {
+		promise.effect [ r, it | listener.apply(it) ]
+	}
+
+	/** Perform some side-effect action based on the promise. */
+	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
+		promise.map [ r, it | listener.apply(r, it) return it ]
+			=> [ operation = 'effect' ]
+	}
+	
+	// ASYNC SIDEEFFECTS //////////////////////////////////////////////////////
+	
+	/** Asynchronously perform some side effect based on the result of the promise */
+	def static <I, O> perform(IPromise<I, O> promise, (O)=>IPromise<?,?> promiseFn) {
+		promise.perform [ i, o | promiseFn.apply(o) ]
+	}
+	
+	/** Asynchronously perform some side effect based on the result of the promise */
+	def static <I, O> perform(IPromise<I, O> promise, (I, O)=>IPromise<?,?> promiseFn) {
 		promise
-			.on(errorType) [ i, it |
+			.map[ i, o | promiseFn.apply(i, o).map[o] ]
+			.resolve
+			=> [ operation = 'perform' ]
+	}
+	
+	// MONITORING ERRORS //////////////////////////////////////////////////////
+	
+	/** Listen for an error coming from the promise. Does not swallow the error. */
+	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		promise.on(errorType, false) [ from, it | handler.apply(it) ] 
+	}
+
+	/** Listen for an error coming from the promise. Does not swallow the error. */
+	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		promise.on(errorType, false, handler)
+	}
+
+	/** Listen for an error coming from the promise. Swallows the the error. */
+	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		promise.on(errorType, true) [ from, it | handler.apply(it) ] 
+	}
+
+	/** Listen for an error coming from the promise. Swallows the error. */
+	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		promise.on(errorType, true, handler)
+	}
+	
+	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
+
+	/** Map an error back to a value. Swallows the error. */
+	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
+		promise.map(errorType) [ from, it | mappingFn.apply(it) ]
+	}
+	
+	/** Map an error back to a value. Swallows the error. */
+	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
+		val newPromise = new SubPromise<I, O>(promise, false)
+		promise
+			// catch the specific error
+			.on(errorType, true) [ from, it |
+				// apply the mapping and set the result to the new promise
 				try {
 					if(!newPromise.fulfilled) {
-						newPromise.set(i, mappingFn.apply(it))
+						val value = mappingFn.apply(from, it)
+						newPromise.set(from, value)
+						println(value)
 					}
 				} catch(Exception e) {
 					newPromise.error(e)
 				}
 			]
-			.then [ i, it | newPromise.set(i, it) ]
-		newPromise => [ operation = 'onErrorMap' ]
+			// pass a normal value
+			.then [ from, it | newPromise.set(from, it) ]
+			// if a specific error was not caught, propagate the throwable
+			//.on(Throwable) [ println('b') newPromise.error(it) ]
+		newPromise => [ operation = 'map(' + errorType.simpleName + ')' ]
 	}
 
-	/**
-	 * Create a new promise with a new input, defined by the inputFn
-	 */
+	/** Asynchronously map an error back to a value. Swallows the error. */
+	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
+		promise.call(errorType) [ i, it | mappingFn.apply(it) ]
+	}
+			
+	/** Asynchronously map an error back to a value. Swallows the error. */
+	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
+		val newPromise = new SubPromise<I, O>(new Promise<I>, false)
+		promise
+			// catch the specific error
+			.on(errorType, true) [ from, it |
+				// apply the mapping and set the result to the new promise
+				try {
+					mappingFn.apply(from, it)
+						.on(Throwable) [ newPromise.error(from, it) ]
+						.then [ newPromise.set(from, it) ]
+				} catch(Exception e) {
+					newPromise.error(e)
+				}
+			]
+			// pass a normal value
+			.then [ from, it | newPromise.set(from, it) ]
+			// if a specific error was not caught, propagate the throwable
+			.on(Throwable) [ newPromise.error(it) ]
+		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
+	}
+
+	// TRANSFORMATIONS ////////////////////////////////////////////////////////
+	
+	/** Create a new promise with a new input, defined by the inputFn */
 	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
 		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
 		promise
@@ -219,11 +315,6 @@ class PromiseExtensions {
 		newPromise => [ operation = 'root' ]
 	}
 	
-	/** Flattens a promise of a promise to directly a promise. */
-	def static <I1, I2, O, P extends IPromise<I1, O>> flatten(IPromise<I2, P> promise) {
-		promise.resolve => [ operation = 'flatten' ]
-	}
-
 	/** Create a stream out of a promise of a stream. */
 	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
@@ -233,124 +324,47 @@ class PromiseExtensions {
 		newStream
 	}
 
-	/** 
-	 * Resolve a promise of a promise to directly a promise.
-	 * Alias for Promise.flatten, added for consistent syntax with streams 
-	 * */
+	/** Resolve a promise of a promise to directly a promise. */
 	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.on(Throwable) [ r, it | newPromise.error(r, it) ]
 			.then [ r, p |
 				p
-					.on(Throwable) [ newPromise.error(r, it) ] 
 					.then [ newPromise.set(r, it) ]
+					.on(Throwable) [ newPromise.error(r, it) ] 
 			]
 		newPromise => [ operation = 'resolve' ]
 	}
 
-	/** Performs a flatmap, which is a combination of map and flatten/resolve */	
+	/** Flattens a promise of a promise to directly a promise. Alias of .resolve */
+	def static <I1, I2, O, P extends IPromise<I1, O>> flatten(IPromise<I2, P> promise) {
+		promise.resolve => [ operation = 'flatten' ]
+	}
+
+	/** Performs a flatmap, which is a combination of map and flatten/resolve. Alias of .call */	
 	def static <I, O, R, P extends IPromise<I, R>> IPromise<I, R> flatMap(IPromise<I, O> promise, (O)=>P promiseFn) {
-		promise.map(promiseFn).flatten
-			=> [ operation = 'flatMap' ]
-	}
-
-	// SIDEEFFECTS ////////////////////////////////////////////////////////////
-	
-	/**
-	 * Perform some side-effect action based on the promise. It should not affect
-	 * the promise itself however if an error is thrown, this is propagated to
-	 * the new generated promise.
-	 */
-	def static <I, O> effect(IPromise<I, O> promise, (O)=>void listener) {
-		promise.effect [ r, it | listener.apply(it) ]
-	}
-
-	/**
-	 * Perform some side-effect action based on the promise. It should not affect
-	 * the promise itself however if an error is thrown, this is propagated to
-	 * the new generated promise.
-	 */
-	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
-		promise.map [ r, it | listener.apply(r, it) return it ]
-			=> [ operation = 'effect' ]
-	}
-	
-	
-	// ASYNC SIDEEFFECTS //////////////////////////////////////////////////////
-	
-	/**
-	 * Asynchronously perform some side-effect action based on the promise. It should not affect
-	 * the promise itself however if an error is thrown, this is propagated to
-	 * the new generated promise.
-	 */
-	def static <I, O> perform(IPromise<I, O> promise, (I, O)=>IPromise<?,?> promiseFn) {
-		promise.map[ i, o | promiseFn.apply(i, o).map[o] ].resolve
-			=> [ operation = 'perform' ]
-	}
-	
-	/**
-	 * Asynchronously perform some side-effect action based on the promise. It should not affect
-	 * the promise itself however if an error is thrown, this is propagated to
-	 * the new generated promise.
-	 */
-	def static <I, O> perform(IPromise<I, O> promise, (O)=>IPromise<?,?> promiseFn) {
-		promise.perform [ i, o | promiseFn.apply(o) ]
-	}
-	
-	// ASYNC MAPPING //////////////////////////////////////////////////////////
-	
-	/** 
-	 * When the promise gives a result, call the function that returns another promise and 
-	 * return that promise so you can chain and continue. Any thrown errors will be caught 
-	 * and passed down the chain so you can catch them at the bottom.
-	 * 
-	 * Internally, this method calls flatMap. However you use this method call to indicate
-	 * that the promiseFn will create sideeffects.
-	 * <p>
-	 * Example:
-	 * <pre>
-	 * loadUser
-	 *   .call [ checkCredentialsAsync ]
-	 *   .call [ signinUser ]
-	 *   .onError [ setErrorMessage('could not sign you in') ]
-	 *   .then [ println('success!') ]
-	 * </pre>
-	 */
-	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
-		promise.map(promiseFn).resolve
-			=> [ operation = 'call' ]
-	}
-
-	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (I, O)=>P promiseFn) {
-		promise.map(promiseFn).resolve
-			=> [ operation = 'call' ]
-	}
-	
-	/**
-	 * Maps errors back into values, using an async call. 
-	 * Good for alternative path resolving and providing defaults.
-	 */
-	def static <I, I2, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<I2, O> mappingFn) {
-		val newPromise = new SubPromise<I, O>(new Promise<I>)
-		promise
-			.on(errorType) [ i, it |
-				try {
-					mappingFn.apply(it)
-						.on(Throwable) [ newPromise.error(i, it) ]
-						.then [ newPromise.set(i, it) ]
-				} catch(Exception e) {
-					newPromise.error(e)
-				}
-			]
-			.then [ i, it | newPromise.set(i, it) ]
-		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
-	}
+		promise.call(promiseFn) => [ operation = 'flatMap' ]
+	}	
 
 	// TIMING /////////////////////////////////////////////////////////////////
 
-	/** Create a new promise that delays the output (not the error) of the existing promise */	
-	def static <I, O> wait(IPromise<I, O> promise, long periodMs, (long, =>void)=>void timerFn) {
+	/** 
+	 * Create a new promise that delays the output (not the error) of the existing promise.
+	 * The idea here is that since timing has to be executed on another thread, instead of 
+	 * having a threaded implementation, this method requires you to call your own implementation.
+	 * To do so, you implement the timerFn, and then pass it.
+	 * <p>
+	 * Example:
+	 * <pre>
+		val exec = Executors.newSingleThreadScheduledExecutor
+		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
+		complete.wait(100, timerFn).then [ anyDone = true ]
+	 * </pre>
+	 * @param timerFn a function with two parameters: a delay in milliseconds, and a closure
+	 * 			calling the function should execute the closure after the delay.
+	 */	
+	def static <I, O> wait(IPromise<I, O> promise, long periodMs, Procedure2<Long, Procedure0> timerFn) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.on(Throwable) [ newPromise.error(it) ]

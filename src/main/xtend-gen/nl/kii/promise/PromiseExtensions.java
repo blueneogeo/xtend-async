@@ -9,13 +9,14 @@ import nl.kii.promise.Task;
 import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.SubStream;
 import nl.kii.stream.message.Entry;
 import nl.kii.stream.message.Value;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Functions.Function2;
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -188,7 +189,7 @@ public class PromiseExtensions {
             task.error(it);
           }
         };
-        IPromise<I, O> _on = promise.on(Throwable.class, _function);
+        IPromise<I, O> _on = PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
         final Procedure1<O> _function_1 = new Procedure1<O>() {
           @Override
           public void apply(final O it) {
@@ -215,7 +216,7 @@ public class PromiseExtensions {
           resultFn.apply(_error);
         }
       };
-      promise.on(Throwable.class, _function);
+      PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
       final Procedure1<O> _function_1 = new Procedure1<O>() {
         @Override
         public void apply(final O it) {
@@ -311,9 +312,7 @@ public class PromiseExtensions {
   }
   
   /**
-   * Create a new promise from an existing promise,
-   * that transforms the value of the promise
-   * once the existing promise is resolved.
+   * Transform the value of a promise
    */
   public static <I extends Object, O extends Object, R extends Object> SubPromise<I, R> map(final IPromise<I, O> promise, final Function1<? super O, ? extends R> mappingFn) {
     final Function2<I, O, R> _function = new Function2<I, O, R>() {
@@ -326,9 +325,7 @@ public class PromiseExtensions {
   }
   
   /**
-   * Create a new promise from an existing promise,
-   * that transforms the value of the promise
-   * once the existing promise is resolved.
+   * Transform the value of a promise
    */
   public static <I extends Object, O extends Object, R extends Object> SubPromise<I, R> map(final IPromise<I, O> promise, final Function2<? super I, ? super O, ? extends R> mappingFn) {
     SubPromise<I, R> _xblockexpression = null;
@@ -340,7 +337,7 @@ public class PromiseExtensions {
           newPromise.error(r, it);
         }
       };
-      IPromise<I, O> _on = promise.on(Throwable.class, _function);
+      IPromise<I, O> _on = PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
       final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
         @Override
         public void apply(final I r, final O it) {
@@ -355,7 +352,7 @@ public class PromiseExtensions {
           newPromise.error(it);
         }
       };
-      _then.on(Throwable.class, _function_2);
+      PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_2);
       final Procedure1<SubPromise<I, R>> _function_3 = new Procedure1<SubPromise<I, R>>() {
         @Override
         public void apply(final SubPromise<I, R> it) {
@@ -368,192 +365,37 @@ public class PromiseExtensions {
   }
   
   /**
-   * Maps errors back into values.
-   * Good for alternative path resolving and providing defaults.
+   * Asynchronously transform the value of a promise
    */
-  public static <I extends Object, O extends Object> SubPromise<I, O> map(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends O> mappingFn) {
-    SubPromise<I, O> _xblockexpression = null;
-    {
-      final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise);
-      final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-        @Override
-        public void apply(final I i, final Throwable it) {
-          try {
-            Boolean _fulfilled = newPromise.getFulfilled();
-            boolean _not = (!(_fulfilled).booleanValue());
-            if (_not) {
-              O _apply = mappingFn.apply(it);
-              newPromise.set(i, _apply);
-            }
-          } catch (final Throwable _t) {
-            if (_t instanceof Exception) {
-              final Exception e = (Exception)_t;
-              newPromise.error(e);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
-          }
-        }
-      };
-      IPromise<I, O> _on = promise.on(errorType, _function);
-      final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
-        @Override
-        public void apply(final I i, final O it) {
-          newPromise.set(i, it);
-        }
-      };
-      _on.then(_function_1);
-      final Procedure1<SubPromise<I, O>> _function_2 = new Procedure1<SubPromise<I, O>>() {
-        @Override
-        public void apply(final SubPromise<I, O> it) {
-          it.setOperation("onErrorMap");
-        }
-      };
-      _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_2);
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Create a new promise with a new input, defined by the inputFn
-   */
-  public static <I1 extends Object, I2 extends Object, O extends Object> SubPromise<I2, O> mapInput(final IPromise<I1, O> promise, final Function2<? super I1, ? super O, ? extends I2> inputFn) {
-    SubPromise<I2, O> _xblockexpression = null;
-    {
-      Promise<I2> _promise = new Promise<I2>();
-      final SubPromise<I2, O> newPromise = new SubPromise<I2, O>(_promise);
-      final Procedure2<I1, Throwable> _function = new Procedure2<I1, Throwable>() {
-        @Override
-        public void apply(final I1 r, final Throwable it) {
-          I2 _apply = inputFn.apply(r, null);
-          newPromise.error(_apply, it);
-        }
-      };
-      IPromise<I1, O> _on = promise.on(Throwable.class, _function);
-      final Procedure2<I1, O> _function_1 = new Procedure2<I1, O>() {
-        @Override
-        public void apply(final I1 r, final O it) {
-          I2 _apply = inputFn.apply(r, it);
-          newPromise.set(_apply, it);
-        }
-      };
-      _on.then(_function_1);
-      final Procedure1<SubPromise<I2, O>> _function_2 = new Procedure1<SubPromise<I2, O>>() {
-        @Override
-        public void apply(final SubPromise<I2, O> it) {
-          it.setOperation("root");
-        }
-      };
-      _xblockexpression = ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(newPromise, _function_2);
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Flattens a promise of a promise to directly a promise.
-   */
-  public static <I1 extends Object, I2 extends Object, O extends Object, P extends IPromise<I1, O>> SubPromise<I2, O> flatten(final IPromise<I2, P> promise) {
-    SubPromise<I2, O> _resolve = PromiseExtensions.<I2, O, P>resolve(promise);
-    final Procedure1<SubPromise<I2, O>> _function = new Procedure1<SubPromise<I2, O>>() {
-      @Override
-      public void apply(final SubPromise<I2, O> it) {
-        it.setOperation("flatten");
-      }
-    };
-    return ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(_resolve, _function);
-  }
-  
-  /**
-   * Create a stream out of a promise of a stream.
-   */
-  public static <I extends Object, P extends IPromise<I, Stream<T>>, T extends Object> Stream<T> toStream(final P promise) {
-    Stream<T> _xblockexpression = null;
-    {
-      final Stream<T> newStream = new Stream<T>();
-      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-        @Override
-        public void apply(final Throwable it) {
-          newStream.error(it);
-        }
-      };
-      IPromise<I, Stream<T>> _on = promise.on(Throwable.class, _function);
-      final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
-        @Override
-        public void apply(final Stream<T> s) {
-          StreamExtensions.<T, T>pipe(s, newStream);
-        }
-      };
-      _on.then(_function_1);
-      _xblockexpression = newStream;
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Resolve a promise of a promise to directly a promise.
-   * Alias for Promise.flatten, added for consistent syntax with streams
-   */
-  public static <I extends Object, O extends Object, P extends IPromise<?, O>> SubPromise<I, O> resolve(final IPromise<I, P> promise) {
-    SubPromise<I, O> _xblockexpression = null;
-    {
-      final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise);
-      final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-        @Override
-        public void apply(final I r, final Throwable it) {
-          newPromise.error(r, it);
-        }
-      };
-      IPromise<I, P> _on = promise.on(Throwable.class, _function);
-      final Procedure2<I, P> _function_1 = new Procedure2<I, P>() {
-        @Override
-        public void apply(final I r, final P p) {
-          final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-            @Override
-            public void apply(final Throwable it) {
-              newPromise.error(r, it);
-            }
-          };
-          IPromise<?, O> _on = p.on(Throwable.class, _function);
-          final Procedure1<O> _function_1 = new Procedure1<O>() {
-            @Override
-            public void apply(final O it) {
-              newPromise.set(r, it);
-            }
-          };
-          _on.then(_function_1);
-        }
-      };
-      _on.then(_function_1);
-      final Procedure1<SubPromise<I, O>> _function_2 = new Procedure1<SubPromise<I, O>>() {
-        @Override
-        public void apply(final SubPromise<I, O> it) {
-          it.setOperation("resolve");
-        }
-      };
-      _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_2);
-    }
-    return _xblockexpression;
-  }
-  
-  /**
-   * Performs a flatmap, which is a combination of map and flatten/resolve
-   */
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<I, R>> IPromise<I, R> flatMap(final IPromise<I, O> promise, final Function1<? super O, ? extends P> promiseFn) {
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubPromise<I, R> call(final IPromise<I, O> promise, final Function1<? super O, ? extends P> promiseFn) {
     SubPromise<I, P> _map = PromiseExtensions.<I, O, P>map(promise, promiseFn);
-    SubPromise<I, R> _flatten = PromiseExtensions.<I, I, R, P>flatten(_map);
+    SubPromise<I, R> _resolve = PromiseExtensions.<I, R, P>resolve(_map);
     final Procedure1<SubPromise<I, R>> _function = new Procedure1<SubPromise<I, R>>() {
       @Override
       public void apply(final SubPromise<I, R> it) {
-        it.setOperation("flatMap");
+        it.setOperation("call");
       }
     };
-    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_flatten, _function);
+    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_resolve, _function);
   }
   
   /**
-   * Perform some side-effect action based on the promise. It should not affect
-   * the promise itself however if an error is thrown, this is propagated to
-   * the new generated promise.
+   * Asynchronously transform the value of a promise
+   */
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubPromise<I, R> call(final IPromise<I, O> promise, final Function2<? super I, ? super O, ? extends P> promiseFn) {
+    SubPromise<I, P> _map = PromiseExtensions.<I, O, P>map(promise, promiseFn);
+    SubPromise<I, R> _resolve = PromiseExtensions.<I, R, P>resolve(_map);
+    final Procedure1<SubPromise<I, R>> _function = new Procedure1<SubPromise<I, R>>() {
+      @Override
+      public void apply(final SubPromise<I, R> it) {
+        it.setOperation("call");
+      }
+    };
+    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_resolve, _function);
+  }
+  
+  /**
+   * Perform some side-effect action based on the promise.
    */
   public static <I extends Object, O extends Object> SubPromise<I, O> effect(final IPromise<I, O> promise, final Procedure1<? super O> listener) {
     final Procedure2<I, O> _function = new Procedure2<I, O>() {
@@ -566,9 +408,7 @@ public class PromiseExtensions {
   }
   
   /**
-   * Perform some side-effect action based on the promise. It should not affect
-   * the promise itself however if an error is thrown, this is propagated to
-   * the new generated promise.
+   * Perform some side-effect action based on the promise.
    */
   public static <I extends Object, O extends Object> SubPromise<I, O> effect(final IPromise<I, O> promise, final Procedure2<? super I, ? super O> listener) {
     final Function2<I, O, O> _function = new Function2<I, O, O>() {
@@ -589,9 +429,20 @@ public class PromiseExtensions {
   }
   
   /**
-   * Asynchronously perform some side-effect action based on the promise. It should not affect
-   * the promise itself however if an error is thrown, this is propagated to
-   * the new generated promise.
+   * Asynchronously perform some side effect based on the result of the promise
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> perform(final IPromise<I, O> promise, final Function1<? super O, ? extends IPromise<?, ?>> promiseFn) {
+    final Function2<I, O, IPromise<?, ?>> _function = new Function2<I, O, IPromise<?, ?>>() {
+      @Override
+      public IPromise<?, ?> apply(final I i, final O o) {
+        return promiseFn.apply(o);
+      }
+    };
+    return PromiseExtensions.<I, O>perform(promise, _function);
+  }
+  
+  /**
+   * Asynchronously perform some side effect based on the result of the promise
    */
   public static <I extends Object, O extends Object> SubPromise<I, O> perform(final IPromise<I, O> promise, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
     final Function2<I, O, SubPromise<?, O>> _function = new Function2<I, O, SubPromise<?, O>>() {
@@ -619,86 +470,145 @@ public class PromiseExtensions {
   }
   
   /**
-   * Asynchronously perform some side-effect action based on the promise. It should not affect
-   * the promise itself however if an error is thrown, this is propagated to
-   * the new generated promise.
+   * Listen for an error coming from the promise. Does not swallow the error.
    */
-  public static <I extends Object, O extends Object> SubPromise<I, O> perform(final IPromise<I, O> promise, final Function1<? super O, ? extends IPromise<?, ?>> promiseFn) {
-    final Function2<I, O, IPromise<?, ?>> _function = new Function2<I, O, IPromise<?, ?>>() {
+  public static <I extends Object, O extends Object> IPromise<I, O> on(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
-      public IPromise<?, ?> apply(final I i, final O o) {
-        return promiseFn.apply(o);
+      public void apply(final I from, final Throwable it) {
+        handler.apply(it);
       }
     };
-    return PromiseExtensions.<I, O>perform(promise, _function);
+    return promise.on(errorType, false, _function);
   }
   
   /**
-   * When the promise gives a result, call the function that returns another promise and
-   * return that promise so you can chain and continue. Any thrown errors will be caught
-   * and passed down the chain so you can catch them at the bottom.
-   * 
-   * Internally, this method calls flatMap. However you use this method call to indicate
-   * that the promiseFn will create sideeffects.
-   * <p>
-   * Example:
-   * <pre>
-   * loadUser
-   *   .call [ checkCredentialsAsync ]
-   *   .call [ signinUser ]
-   *   .onError [ setErrorMessage('could not sign you in') ]
-   *   .then [ println('success!') ]
-   * </pre>
+   * Listen for an error coming from the promise. Does not swallow the error.
    */
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubPromise<I, R> call(final IPromise<I, O> promise, final Function1<? super O, ? extends P> promiseFn) {
-    SubPromise<I, P> _map = PromiseExtensions.<I, O, P>map(promise, promiseFn);
-    SubPromise<I, R> _resolve = PromiseExtensions.<I, R, P>resolve(_map);
-    final Procedure1<SubPromise<I, R>> _function = new Procedure1<SubPromise<I, R>>() {
-      @Override
-      public void apply(final SubPromise<I, R> it) {
-        it.setOperation("call");
-      }
-    };
-    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_resolve, _function);
-  }
-  
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubPromise<I, R> call(final IPromise<I, O> promise, final Function2<? super I, ? super O, ? extends P> promiseFn) {
-    SubPromise<I, P> _map = PromiseExtensions.<I, O, P>map(promise, promiseFn);
-    SubPromise<I, R> _resolve = PromiseExtensions.<I, R, P>resolve(_map);
-    final Procedure1<SubPromise<I, R>> _function = new Procedure1<SubPromise<I, R>>() {
-      @Override
-      public void apply(final SubPromise<I, R> it) {
-        it.setOperation("call");
-      }
-    };
-    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_resolve, _function);
+  public static <I extends Object, O extends Object> IPromise<I, O> on(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
+    return promise.on(errorType, false, ((Procedure2<I, Throwable>)handler));
   }
   
   /**
-   * Maps errors back into values, using an async call.
-   * Good for alternative path resolving and providing defaults.
+   * Listen for an error coming from the promise. Swallows the the error.
    */
-  public static <I extends Object, I2 extends Object, O extends Object> SubPromise<I, O> call(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends IPromise<I2, O>> mappingFn) {
+  public static <I extends Object, O extends Object> IPromise<I, O> effect(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      @Override
+      public void apply(final I from, final Throwable it) {
+        handler.apply(it);
+      }
+    };
+    return promise.on(errorType, true, _function);
+  }
+  
+  /**
+   * Listen for an error coming from the promise. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> IPromise<I, O> effect(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
+    return promise.on(errorType, true, ((Procedure2<I, Throwable>)handler));
+  }
+  
+  /**
+   * Map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> map(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends O> mappingFn) {
+    final Function2<I, Throwable, O> _function = new Function2<I, Throwable, O>() {
+      @Override
+      public O apply(final I from, final Throwable it) {
+        return mappingFn.apply(it);
+      }
+    };
+    return PromiseExtensions.<I, O>map(promise, errorType, _function);
+  }
+  
+  /**
+   * Map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> map(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function2<? super I, ? super Throwable, ? extends O> mappingFn) {
+    SubPromise<I, O> _xblockexpression = null;
+    {
+      final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise, false);
+      final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+        @Override
+        public void apply(final I from, final Throwable it) {
+          try {
+            Boolean _fulfilled = newPromise.getFulfilled();
+            boolean _not = (!(_fulfilled).booleanValue());
+            if (_not) {
+              final O value = mappingFn.apply(from, it);
+              newPromise.set(from, value);
+              InputOutput.<O>println(value);
+            }
+          } catch (final Throwable _t) {
+            if (_t instanceof Exception) {
+              final Exception e = (Exception)_t;
+              newPromise.error(e);
+            } else {
+              throw Exceptions.sneakyThrow(_t);
+            }
+          }
+        }
+      };
+      IPromise<I, O> _on = promise.on(errorType, true, _function);
+      final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
+        @Override
+        public void apply(final I from, final O it) {
+          newPromise.set(from, it);
+        }
+      };
+      _on.then(_function_1);
+      final Procedure1<SubPromise<I, O>> _function_2 = new Procedure1<SubPromise<I, O>>() {
+        @Override
+        public void apply(final SubPromise<I, O> it) {
+          String _simpleName = errorType.getSimpleName();
+          String _plus = ("map(" + _simpleName);
+          String _plus_1 = (_plus + ")");
+          it.setOperation(_plus_1);
+        }
+      };
+      _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Asynchronously map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> call(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends IPromise<?, O>> mappingFn) {
+    final Function2<I, Throwable, IPromise<?, O>> _function = new Function2<I, Throwable, IPromise<?, O>>() {
+      @Override
+      public IPromise<?, O> apply(final I i, final Throwable it) {
+        return mappingFn.apply(it);
+      }
+    };
+    return PromiseExtensions.<I, O>call(promise, errorType, _function);
+  }
+  
+  /**
+   * Asynchronously map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> call(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Function2<? super I, ? super Throwable, ? extends IPromise<?, O>> mappingFn) {
     SubPromise<I, O> _xblockexpression = null;
     {
       Promise<I> _promise = new Promise<I>();
-      final SubPromise<I, O> newPromise = new SubPromise<I, O>(_promise);
+      final SubPromise<I, O> newPromise = new SubPromise<I, O>(_promise, false);
       final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
         @Override
-        public void apply(final I i, final Throwable it) {
+        public void apply(final I from, final Throwable it) {
           try {
-            IPromise<I2, O> _apply = mappingFn.apply(it);
+            IPromise<?, O> _apply = mappingFn.apply(from, it);
             final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
               @Override
               public void apply(final Throwable it) {
-                newPromise.error(i, it);
+                newPromise.error(from, it);
               }
             };
-            IPromise<I2, O> _on = _apply.on(Throwable.class, _function);
+            IPromise<?, O> _on = PromiseExtensions.on(_apply, Throwable.class, _function);
             final Procedure1<O> _function_1 = new Procedure1<O>() {
               @Override
               public void apply(final O it) {
-                newPromise.set(i, it);
+                newPromise.set(from, it);
               }
             };
             _on.then(_function_1);
@@ -712,15 +622,22 @@ public class PromiseExtensions {
           }
         }
       };
-      IPromise<I, O> _on = promise.on(errorType, _function);
+      IPromise<I, O> _on = promise.on(errorType, true, _function);
       final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
         @Override
-        public void apply(final I i, final O it) {
-          newPromise.set(i, it);
+        public void apply(final I from, final O it) {
+          newPromise.set(from, it);
         }
       };
-      _on.then(_function_1);
-      final Procedure1<SubPromise<I, O>> _function_2 = new Procedure1<SubPromise<I, O>>() {
+      Task _then = _on.then(_function_1);
+      final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+        @Override
+        public void apply(final Throwable it) {
+          newPromise.error(it);
+        }
+      };
+      PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_2);
+      final Procedure1<SubPromise<I, O>> _function_3 = new Procedure1<SubPromise<I, O>>() {
         @Override
         public void apply(final SubPromise<I, O> it) {
           String _simpleName = errorType.getSimpleName();
@@ -729,15 +646,161 @@ public class PromiseExtensions {
           it.setOperation(_plus_1);
         }
       };
+      _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_3);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create a new promise with a new input, defined by the inputFn
+   */
+  public static <I1 extends Object, I2 extends Object, O extends Object> SubPromise<I2, O> mapInput(final IPromise<I1, O> promise, final Function2<? super I1, ? super O, ? extends I2> inputFn) {
+    SubPromise<I2, O> _xblockexpression = null;
+    {
+      Promise<I2> _promise = new Promise<I2>();
+      final SubPromise<I2, O> newPromise = new SubPromise<I2, O>(_promise);
+      final Procedure2<I1, Throwable> _function = new Procedure2<I1, Throwable>() {
+        @Override
+        public void apply(final I1 r, final Throwable it) {
+          I2 _apply = inputFn.apply(r, null);
+          newPromise.error(_apply, it);
+        }
+      };
+      IPromise<I1, O> _on = PromiseExtensions.<I1, O>on(promise, Throwable.class, _function);
+      final Procedure2<I1, O> _function_1 = new Procedure2<I1, O>() {
+        @Override
+        public void apply(final I1 r, final O it) {
+          I2 _apply = inputFn.apply(r, it);
+          newPromise.set(_apply, it);
+        }
+      };
+      _on.then(_function_1);
+      final Procedure1<SubPromise<I2, O>> _function_2 = new Procedure1<SubPromise<I2, O>>() {
+        @Override
+        public void apply(final SubPromise<I2, O> it) {
+          it.setOperation("root");
+        }
+      };
+      _xblockexpression = ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(newPromise, _function_2);
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Create a stream out of a promise of a stream.
+   */
+  public static <I extends Object, P extends IPromise<I, Stream<T>>, T extends Object> Stream<T> toStream(final P promise) {
+    Stream<T> _xblockexpression = null;
+    {
+      final Stream<T> newStream = new Stream<T>();
+      final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
+        @Override
+        public void apply(final Throwable it) {
+          newStream.error(it);
+        }
+      };
+      IPromise<I, Stream<T>> _on = PromiseExtensions.<I, Stream<T>>on(promise, Throwable.class, _function);
+      final Procedure1<Stream<T>> _function_1 = new Procedure1<Stream<T>>() {
+        @Override
+        public void apply(final Stream<T> s) {
+          StreamExtensions.<T, T>pipe(s, newStream);
+        }
+      };
+      _on.then(_function_1);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Resolve a promise of a promise to directly a promise.
+   */
+  public static <I extends Object, O extends Object, P extends IPromise<?, O>> SubPromise<I, O> resolve(final IPromise<I, P> promise) {
+    SubPromise<I, O> _xblockexpression = null;
+    {
+      final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise);
+      final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+        @Override
+        public void apply(final I r, final Throwable it) {
+          newPromise.error(r, it);
+        }
+      };
+      IPromise<I, P> _on = PromiseExtensions.<I, P>on(promise, Throwable.class, _function);
+      final Procedure2<I, P> _function_1 = new Procedure2<I, P>() {
+        @Override
+        public void apply(final I r, final P p) {
+          final Procedure1<O> _function = new Procedure1<O>() {
+            @Override
+            public void apply(final O it) {
+              newPromise.set(r, it);
+            }
+          };
+          Task _then = p.then(_function);
+          final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+            @Override
+            public void apply(final Throwable it) {
+              newPromise.error(r, it);
+            }
+          };
+          PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_1);
+        }
+      };
+      _on.then(_function_1);
+      final Procedure1<SubPromise<I, O>> _function_2 = new Procedure1<SubPromise<I, O>>() {
+        @Override
+        public void apply(final SubPromise<I, O> it) {
+          it.setOperation("resolve");
+        }
+      };
       _xblockexpression = ObjectExtensions.<SubPromise<I, O>>operator_doubleArrow(newPromise, _function_2);
     }
     return _xblockexpression;
   }
   
   /**
-   * Create a new promise that delays the output (not the error) of the existing promise
+   * Flattens a promise of a promise to directly a promise. Alias of .resolve
    */
-  public static <I extends Object, O extends Object> SubPromise<I, O> wait(final IPromise<I, O> promise, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+  public static <I1 extends Object, I2 extends Object, O extends Object, P extends IPromise<I1, O>> SubPromise<I2, O> flatten(final IPromise<I2, P> promise) {
+    SubPromise<I2, O> _resolve = PromiseExtensions.<I2, O, P>resolve(promise);
+    final Procedure1<SubPromise<I2, O>> _function = new Procedure1<SubPromise<I2, O>>() {
+      @Override
+      public void apply(final SubPromise<I2, O> it) {
+        it.setOperation("flatten");
+      }
+    };
+    return ObjectExtensions.<SubPromise<I2, O>>operator_doubleArrow(_resolve, _function);
+  }
+  
+  /**
+   * Performs a flatmap, which is a combination of map and flatten/resolve. Alias of .call
+   */
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<I, R>> IPromise<I, R> flatMap(final IPromise<I, O> promise, final Function1<? super O, ? extends P> promiseFn) {
+    SubPromise<I, R> _call = PromiseExtensions.<I, O, R, P>call(promise, promiseFn);
+    final Procedure1<SubPromise<I, R>> _function = new Procedure1<SubPromise<I, R>>() {
+      @Override
+      public void apply(final SubPromise<I, R> it) {
+        it.setOperation("flatMap");
+      }
+    };
+    return ObjectExtensions.<SubPromise<I, R>>operator_doubleArrow(_call, _function);
+  }
+  
+  /**
+   * Create a new promise that delays the output (not the error) of the existing promise.
+   * The idea here is that since timing has to be executed on another thread, instead of
+   * having a threaded implementation, this method requires you to call your own implementation.
+   * To do so, you implement the timerFn, and then pass it.
+   * <p>
+   * Example:
+   * <pre>
+   * val exec = Executors.newSingleThreadScheduledExecutor
+   * val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
+   * complete.wait(100, timerFn).then [ anyDone = true ]
+   * </pre>
+   * @param timerFn a function with two parameters: a delay in milliseconds, and a closure
+   * 			calling the function should execute the closure after the delay.
+   */
+  public static <I extends Object, O extends Object> SubPromise<I, O> wait(final IPromise<I, O> promise, final long periodMs, final Procedure2<Long, Procedure0> timerFn) {
     SubPromise<I, O> _xblockexpression = null;
     {
       final SubPromise<I, O> newPromise = new SubPromise<I, O>(promise);
@@ -747,7 +810,7 @@ public class PromiseExtensions {
           newPromise.error(it);
         }
       };
-      IPromise<I, O> _on = promise.on(Throwable.class, _function);
+      IPromise<I, O> _on = PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
       final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
         @Override
         public void apply(final I input, final O value) {
@@ -777,7 +840,7 @@ public class PromiseExtensions {
         }
       }
     };
-    return promise.on(Throwable.class, _function);
+    return PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
   }
   
   public static <I extends Object, O extends Object> IPromise<I, O> onErrorThrow(final IPromise<I, O> promise, final String message) {
@@ -791,7 +854,7 @@ public class PromiseExtensions {
         }
       }
     };
-    return promise.on(Throwable.class, _function);
+    return PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
   }
   
   /**
@@ -817,7 +880,7 @@ public class PromiseExtensions {
         target.error(it);
       }
     };
-    IPromise<I, O> _on = promise.on(Throwable.class, _function);
+    IPromise<I, O> _on = PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
     final Procedure1<O> _function_1 = new Procedure1<O>() {
       @Override
       public void apply(final O it) {
@@ -837,7 +900,7 @@ public class PromiseExtensions {
         task.error(it);
       }
     };
-    IPromise<I, O> _on = promise.on(Throwable.class, _function);
+    IPromise<I, O> _on = PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
     final Procedure2<I, O> _function_1 = new Procedure2<I, O>() {
       @Override
       public void apply(final I r, final O it) {
@@ -851,6 +914,6 @@ public class PromiseExtensions {
         task.error(it);
       }
     };
-    return _then.on(Throwable.class, _function_2);
+    return PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_2);
   }
 }

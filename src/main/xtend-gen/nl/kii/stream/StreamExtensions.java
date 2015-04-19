@@ -28,17 +28,17 @@ import nl.kii.promise.PromiseExtensions;
 import nl.kii.promise.Task;
 import nl.kii.promise.internal.SubPromise;
 import nl.kii.promise.internal.SubTask;
-import nl.kii.stream.BaseStream;
 import nl.kii.stream.IStream;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamMonitor;
 import nl.kii.stream.StreamStats;
-import nl.kii.stream.SubStream;
+import nl.kii.stream.internal.BaseStream;
 import nl.kii.stream.internal.StreamEventHandler;
 import nl.kii.stream.internal.StreamEventResponder;
 import nl.kii.stream.internal.StreamException;
 import nl.kii.stream.internal.StreamObserver;
 import nl.kii.stream.internal.StreamResponder;
+import nl.kii.stream.internal.SubStream;
 import nl.kii.stream.internal.UncaughtStreamException;
 import nl.kii.stream.message.Close;
 import nl.kii.stream.message.Closed;
@@ -53,6 +53,7 @@ import nl.kii.stream.message.Value;
 import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
+import nl.kii.util.Period;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.DoubleExtensions;
@@ -121,7 +122,7 @@ public class StreamExtensions {
           newStream.error(it);
         }
       };
-      IPromise<R, T2> _on = promise.on(Throwable.class, _function);
+      IPromise<R, T2> _on = PromiseExtensions.<R, T2>on(promise, Throwable.class, _function);
       final Procedure1<T2> _function_1 = new Procedure1<T2>() {
         @Override
         public void apply(final T2 it) {
@@ -666,10 +667,16 @@ public class StreamExtensions {
     return new Finish<I, O>(null, 0);
   }
   
+  /**
+   * Lets you easily pass a Finish<T> entry using the << or >> operators
+   */
   public static <I extends Object, O extends Object> Finish<I, O> finish(final int level) {
     return new Finish<I, O>(null, level);
   }
   
+  /**
+   * Forwards commands given to the newStream directly to the parent.
+   */
   public static <I1 extends Object, I2 extends Object, O1 extends Object, O2 extends Object> IStream<I1, O2> controls(final IStream<I1, O2> newStream, final IStream<I2, O1> parent) {
     final Procedure1<StreamEventResponder> _function = new Procedure1<StreamEventResponder>() {
       @Override
@@ -732,6 +739,9 @@ public class StreamExtensions {
     stream.error(_streamException);
   }
   
+  /**
+   * Set the concurrency of the stream, letting you keep chaining by returning the stream.
+   */
   public static <I extends Object, O extends Object> IStream<I, O> concurrency(final IStream<I, O> stream, final int value) {
     IStream<I, O> _xblockexpression = null;
     {
@@ -1490,8 +1500,7 @@ public class StreamExtensions {
   }
   
   /**
-   * Only allows one value for every timeInMs milliseconds to pass through the stream.
-   * All other values are dropped.
+   * Only allows one value for every timeInMs milliseconds. All other values are dropped.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> throttle(final IStream<I, O> stream, final long periodMs) {
     SubStream<I, O> _xblockexpression = null;
@@ -1540,6 +1549,14 @@ public class StreamExtensions {
       _xblockexpression = ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_filter, _function_1);
     }
     return _xblockexpression;
+  }
+  
+  /**
+   * Only allows one value per given period. Other values are dropped.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> throttle(final IStream<I, O> stream, final Period period) {
+    long _ms = period.ms();
+    return StreamExtensions.<I, O>throttle(stream, _ms);
   }
   
   /**
@@ -1656,11 +1673,11 @@ public class StreamExtensions {
    * up to a maximum period of one hour per error. The moment a normal value gets processed, the period is reset
    * to the initial period.
    */
-  public static <I extends Object, O extends Object> IStream<I, O> onErrorBackOff(final IStream<I, O> stream, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+  public static <I extends Object, O extends Object> IStream<I, O> backoff(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final long periodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     IStream<I, O> _xblockexpression = null;
     {
       final int hourMs = ((60 * 60) * 1000);
-      _xblockexpression = StreamExtensions.<I, O>onErrorBackOff(stream, periodMs, 2, hourMs, timerFn);
+      _xblockexpression = StreamExtensions.<I, O>backoff(stream, errorType, periodMs, 2, hourMs, timerFn);
     }
     return _xblockexpression;
   }
@@ -1672,8 +1689,10 @@ public class StreamExtensions {
    * an error, multiply the period by the given factor and wait that period. This way increasing the period
    * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
    * initial period.
+   * 
+   * TODO: needs testing!
    */
-  public static <I extends Object, O extends Object> IStream<I, O> onErrorBackOff(final IStream<I, O> stream, final long periodMs, final int factor, final long maxPeriodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
+  public static <I extends Object, O extends Object> IStream<I, O> backoff(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final long periodMs, final int factor, final long maxPeriodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     SubStream<I, O> _xblockexpression = null;
     {
       if (((periodMs <= 0) || (maxPeriodMs <= 0))) {
@@ -1976,7 +1995,7 @@ public class StreamExtensions {
                   }
                 }
               };
-              IPromise<?, O> _on = promise.on(Throwable.class, _function);
+              IPromise<?, O> _on = PromiseExtensions.on(promise, Throwable.class, _function);
               final Procedure1<O> _function_1 = new Procedure1<O>() {
                 @Override
                 public void apply(final O it) {
@@ -2093,16 +2112,16 @@ public class StreamExtensions {
    * Make an asynchronous call.
    * This is an alias for stream.call(stream.concurrency)
    */
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call2(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends P> promiseFn) {
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends P> promiseFn) {
     Integer _concurrency = stream.getConcurrency();
-    SubStream<I, R> _call2 = StreamExtensions.<I, O, R, P>call2(stream, (_concurrency).intValue(), promiseFn);
+    SubStream<I, R> _call = StreamExtensions.<I, O, R, P>call(stream, (_concurrency).intValue(), promiseFn);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
       @Override
       public void apply(final SubStream<I, R> it) {
         stream.setOperation("call");
       }
     };
-    return ObjectExtensions.<SubStream<I, R>>operator_doubleArrow(_call2, _function);
+    return ObjectExtensions.<SubStream<I, R>>operator_doubleArrow(_call, _function);
   }
   
   /**
@@ -2116,14 +2135,14 @@ public class StreamExtensions {
         return promiseFn.apply(o);
       }
     };
-    return StreamExtensions.<I, O, R, P>call2(stream, concurrency, _function);
+    return StreamExtensions.<I, O, R, P>call(stream, concurrency, _function);
   }
   
   /**
    * Make an asynchronous call.
    * This is an alias for stream.map(mappingFn).resolve(concurrency)
    */
-  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call2(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends P> promiseFn) {
+  public static <I extends Object, O extends Object, R extends Object, P extends IPromise<?, R>> SubStream<I, R> call(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends P> promiseFn) {
     SubStream<I, P> _map = StreamExtensions.<I, O, P>map(stream, promiseFn);
     SubStream<I, R> _resolve = StreamExtensions.<I, R>resolve(_map, concurrency);
     final Procedure1<SubStream<I, R>> _function = new Procedure1<SubStream<I, R>>() {
@@ -2136,26 +2155,10 @@ public class StreamExtensions {
   }
   
   /**
-   * If an error occurs, call the handler and swallow the error from the stream.
-   * @param handler gets the error that was caught.
-   * @return a new stream like the incoming stream but without the caught errors.
+   * Catch errors of the specified type coming from the stream, and call the handler with the error.
+   * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
    */
-  public static <I extends Object, O extends Object> SubStream<I, O> onError(final IStream<I, O> stream, final Procedure1<? super Throwable> handler) {
-    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-      @Override
-      public void apply(final I r, final Throwable err) {
-        handler.apply(err);
-      }
-    };
-    return StreamExtensions.<I, O>onError(stream, _function);
-  }
-  
-  /**
-   * If an error occurs, call the handler and swallow the error from the stream.
-   * @param handler gets the stream input value and the error that was caught.
-   * @return a new stream like the incoming stream but without the caught errors.
-   */
-  public static <I extends Object, O extends Object> SubStream<I, O> onError(final IStream<I, O> stream, final Procedure2<? super I, ? super Throwable> handler) {
+  public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final boolean swallow, final Procedure2<? super I, ? super Throwable> handler) {
     SubStream<I, O> _xblockexpression = null;
     {
       final SubStream<I, O> newStream = new SubStream<I, O>(stream);
@@ -2171,9 +2174,219 @@ public class StreamExtensions {
           it.each(_function);
           final Procedure2<I, Throwable> _function_1 = new Procedure2<I, Throwable>() {
             @Override
-            public void apply(final I $0, final Throwable $1) {
-              handler.apply($0, $1);
-              stream.next();
+            public void apply(final I from, final Throwable err) {
+              try {
+                Class<? extends Throwable> _class = err.getClass();
+                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
+                if (_isAssignableFrom) {
+                  handler.apply(from, err);
+                  if ((!swallow)) {
+                    newStream.error(from, err);
+                  }
+                } else {
+                  newStream.error(from, err);
+                }
+              } catch (final Throwable _t) {
+                if (_t instanceof Throwable) {
+                  final Throwable t = (Throwable)_t;
+                  newStream.error(from, t);
+                } else {
+                  throw Exceptions.sneakyThrow(_t);
+                }
+              } finally {
+                stream.next();
+              }
+            }
+          };
+          it.error(_function_1);
+          final Procedure2<I, Integer> _function_2 = new Procedure2<I, Integer>() {
+            @Override
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish($0, ($1).intValue());
+            }
+          };
+          it.finish(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
+            @Override
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      StreamExtensions.<I, I, O, O>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Catch errors of the specified type, call the handler, and swallow them from the stream chain.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      @Override
+      public void apply(final I $0, final Throwable $1) {
+        handler.apply($0, $1);
+      }
+    };
+    return StreamExtensions.<I, O>on(stream, errorType, true, _function);
+  }
+  
+  /**
+   * Catch errors of the specified type, call the handler, and swallow them from the stream chain.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      @Override
+      public void apply(final I $0, final Throwable $1) {
+        handler.apply($1);
+      }
+    };
+    return StreamExtensions.<I, O>on(stream, errorType, true, _function);
+  }
+  
+  /**
+   * Map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> map(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends O> mappingFn) {
+    final Function2<I, Throwable, O> _function = new Function2<I, Throwable, O>() {
+      @Override
+      public O apply(final I input, final Throwable err) {
+        return mappingFn.apply(err);
+      }
+    };
+    return StreamExtensions.<I, O>map(stream, errorType, _function);
+  }
+  
+  /**
+   * Map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> map(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Function2<? super I, ? super Throwable, ? extends O> mappingFn) {
+    SubStream<I, O> _xblockexpression = null;
+    {
+      final SubStream<I, O> newStream = new SubStream<I, O>(stream);
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        @Override
+        public void apply(final StreamResponder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            @Override
+            public void apply(final I $0, final O $1) {
+              newStream.push($0, $1);
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Throwable> _function_1 = new Procedure2<I, Throwable>() {
+            @Override
+            public void apply(final I from, final Throwable err) {
+              try {
+                Class<? extends Throwable> _class = err.getClass();
+                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
+                if (_isAssignableFrom) {
+                  final O value = mappingFn.apply(from, err);
+                  newStream.push(from, value);
+                } else {
+                  newStream.error(from, err);
+                }
+              } catch (final Throwable _t) {
+                if (_t instanceof Throwable) {
+                  final Throwable t = (Throwable)_t;
+                  newStream.error(from, t);
+                } else {
+                  throw Exceptions.sneakyThrow(_t);
+                }
+              }
+            }
+          };
+          it.error(_function_1);
+          final Procedure2<I, Integer> _function_2 = new Procedure2<I, Integer>() {
+            @Override
+            public void apply(final I $0, final Integer $1) {
+              newStream.finish($0, ($1).intValue());
+            }
+          };
+          it.finish(_function_2);
+          final Procedure1<Void> _function_3 = new Procedure1<Void>() {
+            @Override
+            public void apply(final Void it) {
+              newStream.close();
+            }
+          };
+          it.closed(_function_3);
+        }
+      };
+      StreamExtensions.<I, O>on(stream, _function);
+      StreamExtensions.<I, I, O, O>controls(newStream, stream);
+      _xblockexpression = newStream;
+    }
+    return _xblockexpression;
+  }
+  
+  /**
+   * Asynchronously map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> call(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends IPromise<?, O>> mappingFn) {
+    final Function2<I, Throwable, IPromise<?, O>> _function = new Function2<I, Throwable, IPromise<?, O>>() {
+      @Override
+      public IPromise<?, O> apply(final I input, final Throwable err) {
+        return mappingFn.apply(err);
+      }
+    };
+    return StreamExtensions.<I, O>call(stream, errorType, _function);
+  }
+  
+  /**
+   * Asynchronously map an error back to a value. Swallows the error.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> call(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Function2<? super I, ? super Throwable, ? extends IPromise<?, O>> mappingFn) {
+    SubStream<I, O> _xblockexpression = null;
+    {
+      final SubStream<I, O> newStream = new SubStream<I, O>(stream);
+      final Procedure1<StreamResponder<I, O>> _function = new Procedure1<StreamResponder<I, O>>() {
+        @Override
+        public void apply(final StreamResponder<I, O> it) {
+          final Procedure2<I, O> _function = new Procedure2<I, O>() {
+            @Override
+            public void apply(final I $0, final O $1) {
+              newStream.push($0, $1);
+            }
+          };
+          it.each(_function);
+          final Procedure2<I, Throwable> _function_1 = new Procedure2<I, Throwable>() {
+            @Override
+            public void apply(final I from, final Throwable err) {
+              try {
+                Class<? extends Throwable> _class = err.getClass();
+                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
+                if (_isAssignableFrom) {
+                  IPromise<?, O> _apply = mappingFn.apply(from, err);
+                  final Procedure1<O> _function = new Procedure1<O>() {
+                    @Override
+                    public void apply(final O it) {
+                      newStream.push(from, it);
+                    }
+                  };
+                  Task _then = _apply.then(_function);
+                  final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
+                    @Override
+                    public void apply(final Throwable it) {
+                      newStream.error(from, it);
+                    }
+                  };
+                  PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_1);
+                } else {
+                  newStream.error(from, err);
+                }
+              } catch (final Throwable _t) {
+                if (_t instanceof Throwable) {
+                  final Throwable t = (Throwable)_t;
+                  newStream.error(from, t);
+                } else {
+                  throw Exceptions.sneakyThrow(_t);
+                }
+              }
             }
           };
           it.error(_function_1);
@@ -2850,14 +3063,14 @@ public class StreamExtensions {
         return PromiseExtensions.map(_apply, _function);
       }
     };
-    SubStream<I, O> _call2 = StreamExtensions.<I, O, O, SubPromise<?, O>>call2(stream, concurrency, _function);
+    SubStream<I, O> _call = StreamExtensions.<I, O, O, SubPromise<?, O>>call(stream, concurrency, _function);
     final Procedure1<SubStream<I, O>> _function_1 = new Procedure1<SubStream<I, O>>() {
       @Override
       public void apply(final SubStream<I, O> it) {
         stream.setOperation((("perform(concurrency=" + Integer.valueOf(concurrency)) + ")"));
       }
     };
-    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_call2, _function_1);
+    return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_call, _function_1);
   }
   
   /**

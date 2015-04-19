@@ -8,10 +8,10 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 @SuppressWarnings("all")
 public class SubPromise<I extends Object, O extends Object> extends FixedBasePromise<I, O> {
-  protected final IPromise<I, ?> root;
+  protected final IPromise<I, ?> input;
   
   public SubPromise() {
-    this.root = null;
+    this.input = null;
   }
   
   /**
@@ -32,8 +32,8 @@ public class SubPromise<I extends Object, O extends Object> extends FixedBasePro
    * Constructor to allow control of error listening
    */
   public SubPromise(final IPromise<I, ?> parentPromise, final boolean listenForErrors) {
-    IPromise<I, ?> _root = parentPromise.getRoot();
-    this.root = _root;
+    IPromise<I, ?> _input = parentPromise.getInput();
+    this.input = _input;
     if (listenForErrors) {
       final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
         @Override
@@ -41,13 +41,13 @@ public class SubPromise<I extends Object, O extends Object> extends FixedBasePro
           SubPromise.this.error(i, it);
         }
       };
-      this.root.on(Throwable.class, _function);
+      this.input.on(Throwable.class, true, _function);
     }
   }
   
   @Override
-  public IPromise<I, ?> getRoot() {
-    return this.root;
+  public IPromise<I, ?> getInput() {
+    return this.input;
   }
   
   /**
@@ -55,8 +55,8 @@ public class SubPromise<I extends Object, O extends Object> extends FixedBasePro
    */
   @Override
   public void set(final I value) {
-    if (this.root!=null) {
-      this.root.set(value);
+    if (this.input!=null) {
+      this.input.set(value);
     }
   }
   
@@ -67,8 +67,8 @@ public class SubPromise<I extends Object, O extends Object> extends FixedBasePro
   public IPromise<I, O> error(final Throwable t) {
     SubPromise<I, O> _xblockexpression = null;
     {
-      if (this.root!=null) {
-        this.root.error(t);
+      if (this.input!=null) {
+        this.input.error(t);
       }
       _xblockexpression = this;
     }

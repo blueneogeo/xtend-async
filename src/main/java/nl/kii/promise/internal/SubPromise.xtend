@@ -7,10 +7,10 @@ import nl.kii.stream.message.Value
 
 class SubPromise<I, O> extends FixedBasePromise<I, O> {
 	
-	val protected IPromise<I, ?> root
+	val protected IPromise<I, ?> input
 
 	new() {
-		this.root = null
+		this.input = null
 	}
 	
 	/** Create a promise that was based on a parent value */
@@ -26,17 +26,17 @@ class SubPromise<I, O> extends FixedBasePromise<I, O> {
 
 	/** Constructor to allow control of error listening */	
 	new(IPromise<I, ?> parentPromise, boolean listenForErrors) {
-		this.root = parentPromise.root
-		if(listenForErrors) this.root.on(Throwable) [ i, it | error(i, it) ]
+		this.input = parentPromise.input
+		if(listenForErrors) this.input.on(Throwable, true) [ i, it | error(i, it) ]
 	}
 
-	override getRoot() { root }
+	override getInput() { input }
 
 	/** set the promised value */
-	override set(I value) { root?.set(value) }
+	override set(I value) { input?.set(value) }
 
 	/** report an error to the listener of the promise. */
-	override error(Throwable t) { root?.error(t) this }
+	override error(Throwable t) { input?.error(t) this }
 	
 	/** set the promised value */
 	def void set(I from, O value) { apply(new Value(from, value)) }

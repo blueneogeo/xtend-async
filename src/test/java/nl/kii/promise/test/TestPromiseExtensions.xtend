@@ -10,6 +10,8 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
 import nl.kii.promise.Task
 import nl.kii.async.annotation.Atomic
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class TestPromiseExtensions {
 	
@@ -152,16 +154,15 @@ class TestPromiseExtensions {
 	}
 	
 	@Test
-	def void testMapError() {
-		val p = new Promise<Integer>
-		p
-			.map [ it / 0 ]
-			.map(Exception) [ 20 ]
-			.map [ it + 10 ]
-			.then [ println(it) ]
-		p << 10	
+	def void testWait() {
+		val exec = Executors.newSingleThreadScheduledExecutor
+		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
+		complete.wait(100, timerFn).then [ anyDone = true ]
+		assertFalse(anyDone) // only done after 100 ms
+		Thread.sleep(1000) // wait long enough
+		assertTrue(anyDone) // should be done now
 	}
-
+	
 	private def power2(int i) { new Promise(i*i) }
 	
 }

@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.internal
 
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
@@ -15,14 +15,14 @@ import nl.kii.stream.message.Value
  */
 class SubStream<I, O> extends BaseStream<I, O> {
 
-	val protected IStream<I, I> input
+	val protected nl.kii.stream.IStream<I, I> input
 
-	new (IStream<I, ?> parent) {
+	new (nl.kii.stream.IStream<I, ?> parent) {
 		this.input = parent.input
 		this.concurrency = parent.concurrency
 	}
 
-	new (IStream<I, ?> parent, int maxSize) {
+	new (nl.kii.stream.IStream<I, ?> parent, int maxSize) {
 		super(maxSize)
 		this.input = parent.input
 	}

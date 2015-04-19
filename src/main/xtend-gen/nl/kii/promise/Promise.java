@@ -8,7 +8,7 @@ import nl.kii.stream.message.Value;
 @SuppressWarnings("all")
 public class Promise<T extends Object> extends FixedBasePromise<T, T> {
   @Override
-  public IPromise<T, ?> getRoot() {
+  public IPromise<T, ?> getInput() {
     return this;
   }
   

@@ -10,7 +10,7 @@ import org.junit.Test
 
 import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
-
+import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 

@@ -66,9 +66,6 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
-	override on(Class<? extends Throwable> errorType, Procedure1<Throwable> errorFn) {
-		this.on(errorType) [ r, t | errorFn.apply(t) ]
-	}	
 	/** 
 	 * If the promise recieved or recieves an error, onError is called with the throwable.
 	 * Removes the error from the chain, so the returned promise no longer receives the error.
@@ -76,7 +73,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
 	 * since there is a generics problem trying to assign the values.
 	 */
-	override on(Class<? extends Throwable> errorType, Procedure2<I, Throwable> errorFn) {
+	override on(Class<? extends Throwable> errorType, boolean swallow, Procedure2<I, Throwable> errorFn) {
 		// create a subpromise to return that should pass a value but not the matching exceptions		
 		val subPromise = new SubPromise(this, false)
 		

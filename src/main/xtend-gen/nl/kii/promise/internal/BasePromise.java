@@ -113,17 +113,6 @@ public abstract class BasePromise<I extends Object, O extends Object> implements
     this.set_operation(name);
   }
   
-  @Override
-  public IPromise<I, O> on(final Class<? extends Throwable> errorType, final Procedure1<Throwable> errorFn) {
-    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-      @Override
-      public void apply(final I r, final Throwable t) {
-        errorFn.apply(t);
-      }
-    };
-    return this.on(errorType, _function);
-  }
-  
   /**
    * If the promise recieved or recieves an error, onError is called with the throwable.
    * Removes the error from the chain, so the returned promise no longer receives the error.
@@ -132,7 +121,7 @@ public abstract class BasePromise<I extends Object, O extends Object> implements
    * since there is a generics problem trying to assign the values.
    */
   @Override
-  public IPromise<I, O> on(final Class<? extends Throwable> errorType, final Procedure2<I, Throwable> errorFn) {
+  public IPromise<I, O> on(final Class<? extends Throwable> errorType, final boolean swallow, final Procedure2<I, Throwable> errorFn) {
     SubPromise<I, O> _xblockexpression = null;
     {
       final SubPromise<I, O> subPromise = new SubPromise<I, O>(this, false);
