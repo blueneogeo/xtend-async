@@ -377,8 +377,8 @@ class PromiseExtensions {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	@Deprecated
-	def static <I, O> onError(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		promise.on(errorType, handler)
+	def static <I, O> onError(IPromise<I, O> promise, (Throwable)=>void handler) {
+		promise.on(Throwable, handler)
 	}
 	
 	@Deprecated

@@ -655,8 +655,8 @@ public class PromiseExtensions {
   }
   
   @Deprecated
-  public static <I extends Object, O extends Object> IPromise<I, O> onError(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
-    return PromiseExtensions.<I, O>on(promise, errorType, handler);
+  public static <I extends Object, O extends Object> IPromise<I, O> onError(final IPromise<I, O> promise, final Procedure1<? super Throwable> handler) {
+    return PromiseExtensions.<I, O>on(promise, Throwable.class, handler);
   }
   
   @Deprecated
