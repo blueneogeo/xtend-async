@@ -377,6 +377,11 @@ class PromiseExtensions {
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	@Deprecated
+	def static <I, O> onError(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		promise.on(errorType, handler)
+	}
+	
+	@Deprecated
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
 		promise.on(Throwable) [ i, t | throw exceptionFn.apply(i, t) ]
 	}

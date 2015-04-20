@@ -1366,7 +1366,7 @@ public class StreamExtensions {
    * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
    * initial period.
    * 
-   * TODO: needs testing!
+   * FIX: not working correctly!
    */
   public static <I extends Object, O extends Object> IStream<I, O> backoff(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final long periodMs, final int factor, final long maxPeriodMs, final Procedure2<? super Long, ? super Procedure0> timerFn) {
     SubStream<I, O> _xblockexpression = null;

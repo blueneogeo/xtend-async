@@ -779,7 +779,7 @@ class StreamExtensions {
 	 * up to a maximum period that you pass. The moment a normal value gets processed, the period is reset to the
 	 * initial period.
 	 * 
-	 * TODO: needs testing!
+	 * FIX: not working correctly!
 	 */
 	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
 		if(periodMs <= 0 || maxPeriodMs <= 0) return stream
