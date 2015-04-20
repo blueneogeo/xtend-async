@@ -226,6 +226,8 @@ class PromiseExtensions {
 	
 	// MONITORING ERRORS //////////////////////////////////////////////////////
 	
+	
+	
 	/** Listen for an error coming from the promise. Does not swallow the error. */
 	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
 		promise.on(errorType, false) [ from, it | handler.apply(it) ] 
@@ -304,6 +306,16 @@ class PromiseExtensions {
 		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
 	}
 
+	@Deprecated
+	def static <I, O> onErrorMap(IPromise<I, O> promise, (Throwable)=>O mappingFn) {
+		promise.map(Throwable, mappingFn)
+	}
+
+	@Deprecated
+	def static <I, I2, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I2, O> mappingFn) {
+		promise.call(Throwable, mappingFn)
+	}
+
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	/** Create a new promise with a new input, defined by the inputFn */
@@ -378,10 +390,12 @@ class PromiseExtensions {
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
+	@Deprecated
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
 		promise.on(Throwable) [ i, t | throw exceptionFn.apply(i, t) ]
 	}
 
+	@Deprecated
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
 		promise.on(Throwable) [ i, t | throw new Exception(message + ', for input ' + i, t) ]
 	}

@@ -651,6 +651,16 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
+  @Deprecated
+  public static <I extends Object, O extends Object> SubPromise<I, O> onErrorMap(final IPromise<I, O> promise, final Function1<? super Throwable, ? extends O> mappingFn) {
+    return PromiseExtensions.<I, O>map(promise, Throwable.class, mappingFn);
+  }
+  
+  @Deprecated
+  public static <I extends Object, I2 extends Object, O extends Object> SubPromise<I, O> onErrorCall(final IPromise<I, O> promise, final Function1<? super Throwable, ? extends IPromise<I2, O>> mappingFn) {
+    return PromiseExtensions.<I, O>call(promise, Throwable.class, mappingFn);
+  }
+  
   /**
    * Create a new promise with a new input, defined by the inputFn
    */
@@ -829,6 +839,7 @@ public class PromiseExtensions {
     return _xblockexpression;
   }
   
+  @Deprecated
   public static <I extends Object, O extends Object> IPromise<I, O> onErrorThrow(final IPromise<I, O> promise, final Function2<? super I, ? super Throwable, ? extends Exception> exceptionFn) {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
@@ -843,6 +854,7 @@ public class PromiseExtensions {
     return PromiseExtensions.<I, O>on(promise, Throwable.class, _function);
   }
   
+  @Deprecated
   public static <I extends Object, O extends Object> IPromise<I, O> onErrorThrow(final IPromise<I, O> promise, final String message) {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
