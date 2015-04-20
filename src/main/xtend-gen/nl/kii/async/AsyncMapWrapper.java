@@ -66,12 +66,9 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
   
   @Override
   public Promise<Map<K, V>> get(final List<K> keys) {
-    final Function1<K, Pair<K, V>> _function = new Function1<K, Pair<K, V>>() {
-      @Override
-      public Pair<K, V> apply(final K it) {
-        V _get = AsyncMapWrapper.this.map.get(it);
-        return Pair.<K, V>of(it, _get);
-      }
+    final Function1<K, Pair<K, V>> _function = (K it) -> {
+      V _get = this.map.get(it);
+      return Pair.<K, V>of(it, _get);
     };
     List<Pair<K, V>> _map = ListExtensions.<K, Pair<K, V>>map(keys, _function);
     Map<K, V> _map_1 = AsyncMapWrapper.<K, V>toMap(_map);
@@ -84,13 +81,10 @@ public class AsyncMapWrapper<K extends Object, V extends Object> implements Asyn
       final HashMap<K, V> map = CollectionLiterals.<K, V>newHashMap();
       boolean _notEquals = (!Objects.equal(pairs, null));
       if (_notEquals) {
-        final Consumer<Pair<K, V>> _function = new Consumer<Pair<K, V>>() {
-          @Override
-          public void accept(final Pair<K, V> it) {
-            K _key = it.getKey();
-            V _value = it.getValue();
-            map.put(_key, _value);
-          }
+        final Consumer<Pair<K, V>> _function = (Pair<K, V> it) -> {
+          K _key = it.getKey();
+          V _value = it.getValue();
+          map.put(_key, _value);
         };
         pairs.forEach(_function);
       }

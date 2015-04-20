@@ -22,25 +22,16 @@ public class TestIOStreamExtensions {
     final File file = new File("gradle.properties");
     Stream<List<Byte>> _stream = StreamIOExtensions.stream(file);
     SubStream<List<Byte>, String> _text = StreamIOExtensions.<List<Byte>>toText(_stream);
-    final Function1<String, String> _function = new Function1<String, String>() {
-      @Override
-      public String apply(final String it) {
-        return ("- " + it);
-      }
+    final Function1<String, String> _function = (String it) -> {
+      return ("- " + it);
     };
     SubStream<List<Byte>, String> _map = StreamExtensions.<List<Byte>, String, String>map(_text, _function);
-    final Procedure1<String> _function_1 = new Procedure1<String>() {
-      @Override
-      public void apply(final String it) {
-        InputOutput.<String>println(it);
-      }
+    final Procedure1<String> _function_1 = (String it) -> {
+      InputOutput.<String>println(it);
     };
     SubTask<List<Byte>> _onEach = StreamExtensions.<List<Byte>, String>onEach(_map, _function_1);
-    final Procedure1<Boolean> _function_2 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("finish");
-      }
+    final Procedure1<Boolean> _function_2 = (Boolean it) -> {
+      InputOutput.<String>println("finish");
     };
     _onEach.then(_function_2);
   }
@@ -56,12 +47,9 @@ public class TestIOStreamExtensions {
     final File destination = new File("text2.txt");
     Stream<List<Byte>> _stream_1 = StreamIOExtensions.stream(source);
     Task _writeTo = StreamIOExtensions.<List<Byte>>writeTo(_stream_1, destination);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        source.delete();
-        destination.delete();
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
+      source.delete();
+      destination.delete();
     };
     _writeTo.then(_function);
   }

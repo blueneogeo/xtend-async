@@ -44,27 +44,18 @@ public class TestStreamErrorHandling {
   @Test
   public void canMonitorErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        Integer _errors = TestStreamErrorHandling.this.getErrors();
-        int _plus = ((_errors).intValue() + 1);
-        TestStreamErrorHandling.this.setErrors(Integer.valueOf(_plus));
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      Integer _errors = this.getErrors();
+      int _plus = ((_errors).intValue() + 1);
+      this.setErrors(Integer.valueOf(_plus));
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map, Throwable.class, _function_1);
-    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Assert.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_2 = (Integer it) -> {
+      Assert.fail("an error should occur");
     };
     StreamExtensions.<Integer, Integer>onEach(_on, _function_2);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -77,34 +68,22 @@ public class TestStreamErrorHandling {
   @Test
   public void canMatchErrorTypes() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map, IllegalArgumentException.class, _function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        Integer _errors = TestStreamErrorHandling.this.getErrors();
-        int _plus = ((_errors).intValue() + 1);
-        TestStreamErrorHandling.this.setErrors(Integer.valueOf(_plus));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      Integer _errors = this.getErrors();
+      int _plus = ((_errors).intValue() + 1);
+      this.setErrors(Integer.valueOf(_plus));
     };
     SubStream<Integer, Integer> _on_1 = StreamExtensions.<Integer, Integer>on(_on, ArithmeticException.class, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Assert.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_3 = (Integer it) -> {
+      Assert.fail("an error should occur");
     };
     StreamExtensions.<Integer, Integer>onEach(_on_1, _function_3);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -119,50 +98,32 @@ public class TestStreamErrorHandling {
   @Test
   public void canSwallowErrorTypes() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map, IllegalArgumentException.class, _function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        Integer _errors = TestStreamErrorHandling.this.getErrors();
-        int _plus = ((_errors).intValue() + 1);
-        TestStreamErrorHandling.this.setErrors(Integer.valueOf(_plus));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      Integer _errors = this.getErrors();
+      int _plus = ((_errors).intValue() + 1);
+      this.setErrors(Integer.valueOf(_plus));
     };
     SubStream<Integer, Integer> _on_1 = StreamExtensions.<Integer, Integer>on(_on, ArithmeticException.class, _function_2);
-    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        Integer _errors = TestStreamErrorHandling.this.getErrors();
-        int _plus = ((_errors).intValue() + 1);
-        TestStreamErrorHandling.this.setErrors(Integer.valueOf(_plus));
-      }
+    final Procedure1<Throwable> _function_3 = (Throwable it) -> {
+      Integer _errors = this.getErrors();
+      int _plus = ((_errors).intValue() + 1);
+      this.setErrors(Integer.valueOf(_plus));
     };
     SubStream<Integer, Integer> _effect = StreamExtensions.<Integer, Integer>effect(_on_1, Exception.class, _function_3);
-    final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_4 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     SubStream<Integer, Integer> _on_2 = StreamExtensions.<Integer, Integer>on(_effect, Throwable.class, _function_4);
-    final Procedure1<Integer> _function_5 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Assert.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_5 = (Integer it) -> {
+      Assert.fail("an error should occur");
     };
     StreamExtensions.<Integer, Integer>onEach(_on_2, _function_5);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -177,41 +138,26 @@ public class TestStreamErrorHandling {
   @Test
   public void canMapErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map, IllegalArgumentException.class, _function_1);
-    final Function1<Throwable, Integer> _function_2 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(10);
-      }
+    final Function1<Throwable, Integer> _function_2 = (Throwable it) -> {
+      return Integer.valueOf(10);
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_on, ArithmeticException.class, _function_2);
-    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_3 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     SubStream<Integer, Integer> _on_1 = StreamExtensions.<Integer, Integer>on(_map_1, Throwable.class, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Integer _result = TestStreamErrorHandling.this.getResult();
-        int _plus = ((_result).intValue() + (it).intValue());
-        TestStreamErrorHandling.this.setResult(Integer.valueOf(_plus));
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      Integer _result = this.getResult();
+      int _plus = ((_result).intValue() + (it).intValue());
+      this.setResult(Integer.valueOf(_plus));
     };
     StreamExtensions.<Integer, Integer>onEach(_on_1, _function_4);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -226,41 +172,26 @@ public class TestStreamErrorHandling {
   @Test
   public void canFilterMapErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Function1<Throwable, Integer> _function_1 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(10);
-      }
+    final Function1<Throwable, Integer> _function_1 = (Throwable it) -> {
+      return Integer.valueOf(10);
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer>map(_map, IllegalArgumentException.class, _function_1);
-    final Function1<Throwable, Integer> _function_2 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(20);
-      }
+    final Function1<Throwable, Integer> _function_2 = (Throwable it) -> {
+      return Integer.valueOf(20);
     };
     SubStream<Integer, Integer> _map_2 = StreamExtensions.<Integer, Integer>map(_map_1, ArithmeticException.class, _function_2);
-    final Function1<Throwable, Integer> _function_3 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(30);
-      }
+    final Function1<Throwable, Integer> _function_3 = (Throwable it) -> {
+      return Integer.valueOf(30);
     };
     SubStream<Integer, Integer> _map_3 = StreamExtensions.<Integer, Integer>map(_map_2, Throwable.class, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Integer _result = TestStreamErrorHandling.this.getResult();
-        int _plus = ((_result).intValue() + (it).intValue());
-        TestStreamErrorHandling.this.setResult(Integer.valueOf(_plus));
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      Integer _result = this.getResult();
+      int _plus = ((_result).intValue() + (it).intValue());
+      this.setResult(Integer.valueOf(_plus));
     };
     StreamExtensions.<Integer, Integer>onEach(_map_3, _function_4);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -275,41 +206,26 @@ public class TestStreamErrorHandling {
   @Test
   public void canFilterAsyncMapErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Function1<Throwable, IPromise<?, Integer>> _function_1 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(10));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_1 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(10));
     };
     SubStream<Integer, Integer> _call = StreamExtensions.<Integer, Integer>call(_map, IllegalArgumentException.class, _function_1);
-    final Function1<Throwable, IPromise<?, Integer>> _function_2 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(20));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_2 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(20));
     };
     SubStream<Integer, Integer> _call_1 = StreamExtensions.<Integer, Integer>call(_call, ArithmeticException.class, _function_2);
-    final Function1<Throwable, IPromise<?, Integer>> _function_3 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(30));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_3 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(30));
     };
     SubStream<Integer, Integer> _call_2 = StreamExtensions.<Integer, Integer>call(_call_1, Throwable.class, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Integer _result = TestStreamErrorHandling.this.getResult();
-        int _plus = ((_result).intValue() + (it).intValue());
-        TestStreamErrorHandling.this.setResult(Integer.valueOf(_plus));
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      Integer _result = this.getResult();
+      int _plus = ((_result).intValue() + (it).intValue());
+      this.setResult(Integer.valueOf(_plus));
     };
     StreamExtensions.<Integer, Integer>onEach(_call_2, _function_4);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -324,50 +240,35 @@ public class TestStreamErrorHandling {
   @Test
   public void testStreamsSwallowExceptions() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return it;
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return it;
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        try {
-          Integer _xblockexpression = null;
-          {
-            if ((((it).intValue() == 2) || ((it).intValue() == 4))) {
-              throw new Exception();
-            }
-            _xblockexpression = it;
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      try {
+        Integer _xblockexpression = null;
+        {
+          if ((((it).intValue() == 2) || ((it).intValue() == 4))) {
+            throw new Exception();
           }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+          _xblockexpression = it;
         }
+        return _xblockexpression;
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
       }
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
-    final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return it;
-      }
+    final Function1<Integer, Integer> _function_2 = (Integer it) -> {
+      return it;
     };
     SubStream<Integer, Integer> _map_2 = StreamExtensions.<Integer, Integer, Integer>map(_map_1, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestStreamErrorHandling.this.incCounter();
-      }
+    final Procedure1<Integer> _function_3 = (Integer it) -> {
+      this.incCounter();
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_3);
-    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestStreamErrorHandling.this.setComplete(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function_4 = (Boolean it) -> {
+      this.setComplete(Boolean.valueOf(true));
     };
     _onEach.then(_function_4);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -385,64 +286,43 @@ public class TestStreamErrorHandling {
   @Test
   public void testStreamsErrorHandlersSwallowExceptions() {
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return it;
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return it;
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        try {
-          Integer _xblockexpression = null;
-          {
-            if ((((it).intValue() == 2) || ((it).intValue() == 4))) {
-              throw new Exception();
-            }
-            _xblockexpression = it;
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      try {
+        Integer _xblockexpression = null;
+        {
+          if ((((it).intValue() == 2) || ((it).intValue() == 4))) {
+            throw new Exception();
           }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+          _xblockexpression = it;
         }
+        return _xblockexpression;
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
       }
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.incErrors();
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      this.incErrors();
     };
     SubStream<Integer, Integer> _effect = StreamExtensions.<Integer, Integer>effect(_map_1, Exception.class, _function_2);
-    final Function1<Integer, Integer> _function_3 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return it;
-      }
+    final Function1<Integer, Integer> _function_3 = (Integer it) -> {
+      return it;
     };
     SubStream<Integer, Integer> _map_2 = StreamExtensions.<Integer, Integer, Integer>map(_effect, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestStreamErrorHandling.this.incCounter();
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      this.incCounter();
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_2, _function_4);
-    final Procedure1<Boolean> _function_5 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestStreamErrorHandling.this.setComplete(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function_5 = (Boolean it) -> {
+      this.setComplete(Boolean.valueOf(true));
     };
     Task _then = _onEach.then(_function_5);
-    final Procedure1<Throwable> _function_6 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.setFailed(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_6 = (Throwable it) -> {
+      this.setFailed(Boolean.valueOf(true));
     };
     PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_6);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -466,59 +346,41 @@ public class TestStreamErrorHandling {
   public void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream() {
     IntegerRange _upTo = new IntegerRange(1, 20);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      @Override
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 4) == 0));
-      }
+    final Function1<Integer, Boolean> _function = (Integer it) -> {
+      return Boolean.valueOf((((it).intValue() % 4) == 0));
     };
     SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(_stream, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        try {
-          Integer _xblockexpression = null;
-          {
-            if ((((it).intValue() % 6) == 0)) {
-              throw new Exception();
-            }
-            _xblockexpression = it;
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      try {
+        Integer _xblockexpression = null;
+        {
+          if ((((it).intValue() % 6) == 0)) {
+            throw new Exception();
           }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+          _xblockexpression = it;
         }
+        return _xblockexpression;
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
       }
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_split, _function_1);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_map);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<String>println(("error " + it));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      InputOutput.<String>println(("error " + it));
     };
     SubStream<Integer, List<Integer>> _on = StreamExtensions.<Integer, List<Integer>>on(_collect, Exception.class, _function_2);
-    final Procedure1<List<Integer>> _function_3 = new Procedure1<List<Integer>>() {
-      @Override
-      public void apply(final List<Integer> it) {
-        InputOutput.<String>println(("result : " + it));
-      }
+    final Procedure1<List<Integer>> _function_3 = (List<Integer> it) -> {
+      InputOutput.<String>println(("result : " + it));
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_on, _function_3);
-    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("done");
-      }
+    final Procedure1<Boolean> _function_4 = (Boolean it) -> {
+      InputOutput.<String>println("done");
     };
     Task _then = _onEach.then(_function_4);
-    final Procedure1<Throwable> _function_5 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        String _message = it.getMessage();
-        Assert.fail(_message);
-      }
+    final Procedure1<Throwable> _function_5 = (Throwable it) -> {
+      String _message = it.getMessage();
+      Assert.fail(_message);
     };
     PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_5);
   }
@@ -540,59 +402,41 @@ public class TestStreamErrorHandling {
     IStream<Integer, Integer> _doubleLessThan_10 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_9, _finish);
     Finish<Integer, Integer> _finish_1 = StreamExtensions.<Integer, Integer>finish(1);
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_10, _finish_1);
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      @Override
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 4) == 0));
-      }
+    final Function1<Integer, Boolean> _function = (Integer it) -> {
+      return Boolean.valueOf((((it).intValue() % 4) == 0));
     };
     SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        try {
-          Integer _xblockexpression = null;
-          {
-            if ((((it).intValue() % 6) == 0)) {
-              throw new Exception();
-            }
-            _xblockexpression = it;
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      try {
+        Integer _xblockexpression = null;
+        {
+          if ((((it).intValue() % 6) == 0)) {
+            throw new Exception();
           }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+          _xblockexpression = it;
         }
+        return _xblockexpression;
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
       }
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_split, _function_1);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_map);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<String>println(("error " + it));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      InputOutput.<String>println(("error " + it));
     };
     SubStream<Integer, List<Integer>> _on = StreamExtensions.<Integer, List<Integer>>on(_collect, Exception.class, _function_2);
-    final Procedure1<List<Integer>> _function_3 = new Procedure1<List<Integer>>() {
-      @Override
-      public void apply(final List<Integer> it) {
-        InputOutput.<String>println(("result : " + it));
-      }
+    final Procedure1<List<Integer>> _function_3 = (List<Integer> it) -> {
+      InputOutput.<String>println(("result : " + it));
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_on, _function_3);
-    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("done");
-      }
+    final Procedure1<Boolean> _function_4 = (Boolean it) -> {
+      InputOutput.<String>println("done");
     };
     Task _then = _onEach.then(_function_4);
-    final Procedure1<Throwable> _function_5 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        String _message = it.getMessage();
-        Assert.fail(_message);
-      }
+    final Procedure1<Throwable> _function_5 = (Throwable it) -> {
+      String _message = it.getMessage();
+      Assert.fail(_message);
     };
     PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_5);
   }
@@ -618,53 +462,38 @@ public class TestStreamErrorHandling {
     IStream<Integer, Integer> _doubleLessThan_12 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_11, _finish_2);
     Finish<Integer, Integer> _finish_3 = StreamExtensions.<Integer, Integer>finish(1);
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_12, _finish_3);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        try {
-          Integer _xblockexpression = null;
-          {
-            if ((((it).intValue() % 6) == 0)) {
-              throw new Exception();
-            }
-            _xblockexpression = it;
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      try {
+        Integer _xblockexpression = null;
+        {
+          if ((((it).intValue() % 6) == 0)) {
+            throw new Exception();
           }
-          return _xblockexpression;
-        } catch (Throwable _e) {
-          throw Exceptions.sneakyThrow(_e);
+          _xblockexpression = it;
         }
+        return _xblockexpression;
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
       }
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_map);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<String>println(("error " + it));
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      InputOutput.<String>println(("error " + it));
     };
     SubStream<Integer, List<Integer>> _on = StreamExtensions.<Integer, List<Integer>>on(_collect, Exception.class, _function_1);
-    final Procedure1<List<Integer>> _function_2 = new Procedure1<List<Integer>>() {
-      @Override
-      public void apply(final List<Integer> it) {
-        InputOutput.<String>println(("result : " + it));
-      }
+    final Procedure1<List<Integer>> _function_2 = (List<Integer> it) -> {
+      InputOutput.<String>println(("result : " + it));
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, List<Integer>>onEach(_on, _function_2);
-    final Procedure1<Boolean> _function_3 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        InputOutput.<String>println("done");
-      }
+    final Procedure1<Boolean> _function_3 = (Boolean it) -> {
+      InputOutput.<String>println("done");
     };
     Task _then = _onEach.then(_function_3);
-    final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<String>println("error");
-        String _message = it.getMessage();
-        Assert.fail(_message);
-      }
+    final Procedure1<Throwable> _function_4 = (Throwable it) -> {
+      InputOutput.<String>println("error");
+      String _message = it.getMessage();
+      Assert.fail(_message);
     };
     PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_4);
   }
@@ -673,37 +502,25 @@ public class TestStreamErrorHandling {
   public void testSplit() {
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      @Override
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf((((it).intValue() % 4) == 0));
-      }
+    final Function1<Integer, Boolean> _function = (Integer it) -> {
+      return Boolean.valueOf((((it).intValue() % 4) == 0));
     };
     SubStream<Integer, Integer> _split = StreamExtensions.<Integer, Integer>split(_stream, _function);
-    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
-      @Override
-      public void apply(final StreamResponder<Integer, Integer> it) {
-        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
-          @Override
-          public void apply(final Integer $0, final Integer $1) {
-            InputOutput.<Integer>println($1);
-            IStream<Integer, Integer> _stream = it.getStream();
-            _stream.next();
-          }
-        };
-        it.each(_function);
-        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
-          @Override
-          public void apply(final Integer $0, final Integer $1) {
-            InputOutput.<String>println(("finish " + $1));
-            IStream<Integer, Integer> _stream = it.getStream();
-            _stream.next();
-          }
-        };
-        it.finish(_function_1);
-        IStream<Integer, Integer> _stream = it.getStream();
-        _stream.next();
-      }
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = (StreamResponder<Integer, Integer> it) -> {
+      final Procedure2<Integer, Integer> _function_2 = (Integer $0, Integer $1) -> {
+        InputOutput.<Integer>println($1);
+        IStream<Integer, Integer> _stream_1 = it.getStream();
+        _stream_1.next();
+      };
+      it.each(_function_2);
+      final Procedure2<Integer, Integer> _function_3 = (Integer $0, Integer $1) -> {
+        InputOutput.<String>println(("finish " + $1));
+        IStream<Integer, Integer> _stream_1 = it.getStream();
+        _stream_1.next();
+      };
+      it.finish(_function_3);
+      IStream<Integer, Integer> _stream_1 = it.getStream();
+      _stream_1.next();
     };
     StreamExtensions.<Integer, Integer>on(_split, _function_1);
   }
@@ -715,38 +532,23 @@ public class TestStreamErrorHandling {
   public void testHandlingBelowErrorShouldFilterTheException() {
     try {
       final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-        @Override
-        public Integer apply(final Integer it) {
-          return it;
-        }
+      final Function1<Integer, Integer> _function = (Integer it) -> {
+        return it;
       };
       SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-      final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
-        @Override
-        public Boolean apply(final Integer it) {
-          return Boolean.valueOf(((1 / ((it).intValue() % 2)) == 0));
-        }
+      final Function1<Integer, Boolean> _function_1 = (Integer it) -> {
+        return Boolean.valueOf(((1 / ((it).intValue() % 2)) == 0));
       };
       SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_1);
-      final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
-        @Override
-        public Integer apply(final Integer it) {
-          return it;
-        }
+      final Function1<Integer, Integer> _function_2 = (Integer it) -> {
+        return it;
       };
       SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_2);
-      final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-        @Override
-        public void apply(final Throwable it) {
-          TestStreamErrorHandling.this.setCaught(it);
-        }
+      final Procedure1<Throwable> _function_3 = (Throwable it) -> {
+        this.setCaught(it);
       };
       SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map_1, Exception.class, _function_3);
-      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer it) {
-        }
+      final Procedure1<Integer> _function_4 = (Integer it) -> {
       };
       StreamExtensions.<Integer, Integer>onEach(_on, _function_4);
       IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -769,38 +571,23 @@ public class TestStreamErrorHandling {
   public void testHandlingAtTaskShouldFilterTheException() {
     try {
       final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-        @Override
-        public Integer apply(final Integer it) {
-          return it;
-        }
+      final Function1<Integer, Integer> _function = (Integer it) -> {
+        return it;
       };
       SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-      final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
-        @Override
-        public Boolean apply(final Integer it) {
-          return Boolean.valueOf(((1 / ((it).intValue() % 2)) == 0));
-        }
+      final Function1<Integer, Boolean> _function_1 = (Integer it) -> {
+        return Boolean.valueOf(((1 / ((it).intValue() % 2)) == 0));
       };
       SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_1);
-      final Function1<Integer, Integer> _function_2 = new Function1<Integer, Integer>() {
-        @Override
-        public Integer apply(final Integer it) {
-          return it;
-        }
+      final Function1<Integer, Integer> _function_2 = (Integer it) -> {
+        return it;
       };
       SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_2);
-      final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer it) {
-        }
+      final Procedure1<Integer> _function_3 = (Integer it) -> {
       };
       SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_map_1, _function_3);
-      final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
-        @Override
-        public void apply(final Throwable it) {
-          TestStreamErrorHandling.this.setCaught(it);
-        }
+      final Procedure1<Throwable> _function_4 = (Throwable it) -> {
+        this.setCaught(it);
       };
       PromiseExtensions.<Integer, Boolean>on(_onEach, Throwable.class, _function_4);
       IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -835,39 +622,24 @@ public class TestStreamErrorHandling {
     this.setCount(Integer.valueOf(0));
     IntegerRange _upTo = new IntegerRange(1, 10);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(_upTo);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() % 3));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() % 3));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf((100 / (it).intValue()));
-      }
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      return Integer.valueOf((100 / (it).intValue()));
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestStreamErrorHandling.this.incErrorCount();
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      this.incErrorCount();
     };
     SubStream<Integer, Integer> _effect = StreamExtensions.<Integer, Integer>effect(_map_1, Exception.class, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestStreamErrorHandling.this.incCount();
-      }
+    final Procedure1<Integer> _function_3 = (Integer it) -> {
+      this.incCount();
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(_effect, _function_3);
-    final Procedure1<Boolean> _function_4 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestStreamErrorHandling.this.setFinished(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function_4 = (Boolean it) -> {
+      this.setFinished(Boolean.valueOf(true));
     };
     _onEach.then(_function_4);
     Integer _count = this.getCount();

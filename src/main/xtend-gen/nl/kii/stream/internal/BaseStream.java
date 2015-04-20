@@ -148,11 +148,8 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   @Override
   public Procedure0 onChange(final Procedure1<? super Entry<I, O>> entryListener) {
     this.setEntryListener(entryListener);
-    final Procedure0 _function = new Procedure0() {
-      @Override
-      public void apply() {
-        BaseStream.this.setEntryListener(null);
-      }
+    final Procedure0 _function = () -> {
+      this.setEntryListener(null);
     };
     return _function;
   }
@@ -167,11 +164,8 @@ public abstract class BaseStream<I extends Object, O extends Object> extends Act
   @Override
   public Procedure0 onNotify(final Procedure1<? super StreamEvent> notificationListener) {
     this.setNotificationListener(notificationListener);
-    final Procedure0 _function = new Procedure0() {
-      @Override
-      public void apply() {
-        BaseStream.this.setNotificationListener(null);
-      }
+    final Procedure0 _function = () -> {
+      this.setNotificationListener(null);
     };
     return _function;
   }

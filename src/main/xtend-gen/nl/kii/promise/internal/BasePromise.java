@@ -126,28 +126,25 @@ public abstract class BasePromise<I extends Object, O extends Object> implements
     {
       final SubPromise<I, O> subPromise = new SubPromise<I, O>(this, false);
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
-        @Override
-        public void apply(final Entry<I, O> it) {
-          boolean _matched = false;
-          if (!_matched) {
-            if (it instanceof nl.kii.stream.message.Error) {
-              _matched=true;
-              try {
-                Procedure0 _get = unregisterFn.get();
-                _get.apply();
-                Class<? extends Throwable> _class = ((nl.kii.stream.message.Error<I, O>)it).error.getClass();
-                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
-                if (_isAssignableFrom) {
-                  errorFn.apply(((nl.kii.stream.message.Error<I, O>)it).from, ((nl.kii.stream.message.Error<I, O>)it).error);
-                } else {
-                }
-              } catch (final Throwable _t) {
-                if (_t instanceof Exception) {
-                  final Exception e = (Exception)_t;
-                } else {
-                  throw Exceptions.sneakyThrow(_t);
-                }
+      final Procedure1<Entry<I, O>> _function = (Entry<I, O> it) -> {
+        boolean _matched = false;
+        if (!_matched) {
+          if (it instanceof nl.kii.stream.message.Error) {
+            _matched=true;
+            try {
+              Procedure0 _get = unregisterFn.get();
+              _get.apply();
+              Class<? extends Throwable> _class = ((nl.kii.stream.message.Error<I, O>)it).error.getClass();
+              boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
+              if (_isAssignableFrom) {
+                errorFn.apply(((nl.kii.stream.message.Error<I, O>)it).from, ((nl.kii.stream.message.Error<I, O>)it).error);
+              } else {
+              }
+            } catch (final Throwable _t) {
+              if (_t instanceof Exception) {
+                final Exception e = (Exception)_t;
+              } else {
+                throw Exceptions.sneakyThrow(_t);
               }
             }
           }
@@ -172,11 +169,8 @@ public abstract class BasePromise<I extends Object, O extends Object> implements
    */
   @Override
   public Task then(final Procedure1<O> valueFn) {
-    final Procedure2<I, O> _function = new Procedure2<I, O>() {
-      @Override
-      public void apply(final I r, final O it) {
-        valueFn.apply(it);
-      }
+    final Procedure2<I, O> _function = (I r, O it) -> {
+      valueFn.apply(it);
     };
     return this.then(_function);
   }
@@ -190,35 +184,32 @@ public abstract class BasePromise<I extends Object, O extends Object> implements
     {
       final Task newTask = new Task();
       final AtomicReference<Procedure0> unregisterFn = new AtomicReference<Procedure0>();
-      final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
-        @Override
-        public void apply(final Entry<I, O> it) {
-          try {
-            boolean _matched = false;
-            if (!_matched) {
-              if (it instanceof Value) {
-                _matched=true;
-                Procedure0 _get = unregisterFn.get();
-                _get.apply();
-                valueFn.apply(((Value<I, O>)it).from, ((Value<I, O>)it).value);
-                newTask.complete();
-              }
+      final Procedure1<Entry<I, O>> _function = (Entry<I, O> it) -> {
+        try {
+          boolean _matched = false;
+          if (!_matched) {
+            if (it instanceof Value) {
+              _matched=true;
+              Procedure0 _get = unregisterFn.get();
+              _get.apply();
+              valueFn.apply(((Value<I, O>)it).from, ((Value<I, O>)it).value);
+              newTask.complete();
             }
-            if (!_matched) {
-              if (it instanceof nl.kii.stream.message.Error) {
-                _matched=true;
-                newTask.error(((nl.kii.stream.message.Error<I, O>)it).error);
-              }
+          }
+          if (!_matched) {
+            if (it instanceof nl.kii.stream.message.Error) {
+              _matched=true;
+              newTask.error(((nl.kii.stream.message.Error<I, O>)it).error);
             }
-          } catch (final Throwable _t) {
-            if (_t instanceof Exception) {
-              final Exception e = (Exception)_t;
-              PromiseException _promiseException = new PromiseException("Promise.then gave error for", it, e);
-              BasePromise.this.error(_promiseException);
-              newTask.error(e);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
+          }
+        } catch (final Throwable _t) {
+          if (_t instanceof Exception) {
+            final Exception e = (Exception)_t;
+            PromiseException _promiseException = new PromiseException("Promise.then gave error for", it, e);
+            this.error(_promiseException);
+            newTask.error(e);
+          } else {
+            throw Exceptions.sneakyThrow(_t);
           }
         }
       };

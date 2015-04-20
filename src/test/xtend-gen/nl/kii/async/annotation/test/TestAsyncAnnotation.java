@@ -23,11 +23,8 @@ public class TestAsyncAnnotation {
   public void testAsyncPromise() {
     final AtomicInteger result = new AtomicInteger();
     Promise<Integer> _increment = this.increment(5);
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        result.set((it).intValue());
-      }
+    final Procedure1<Integer> _function = (Integer it) -> {
+      result.set((it).intValue());
     };
     _increment.then(_function);
     int _get = result.get();
@@ -38,18 +35,12 @@ public class TestAsyncAnnotation {
   public void testAsyncTask() {
     final AtomicBoolean result = new AtomicBoolean();
     Task _printHello = this.printHello("world");
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<Throwable>println(it);
-      }
+    final Procedure1<Throwable> _function = (Throwable it) -> {
+      InputOutput.<Throwable>println(it);
     };
     IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_printHello, Throwable.class, _function);
-    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        result.set(true);
-      }
+    final Procedure1<Boolean> _function_1 = (Boolean it) -> {
+      result.set(true);
     };
     _on.then(_function_1);
     boolean _get = result.get();
@@ -60,18 +51,12 @@ public class TestAsyncAnnotation {
   public void testAsyncErrorHandling() {
     final AtomicBoolean isError = new AtomicBoolean();
     Task _printHello = this.printHello(null);
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        isError.set(true);
-      }
+    final Procedure1<Throwable> _function = (Throwable it) -> {
+      isError.set(true);
     };
     IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_printHello, Throwable.class, _function);
-    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        isError.set(false);
-      }
+    final Procedure1<Boolean> _function_1 = (Boolean it) -> {
+      isError.set(false);
     };
     _on.then(_function_1);
     boolean _get = isError.get();
@@ -84,11 +69,8 @@ public class TestAsyncAnnotation {
       final AtomicBoolean success = new AtomicBoolean();
       final ExecutorService exec = Executors.newCachedThreadPool();
       Task _printHello = this.printHello(exec, "world");
-      final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-        @Override
-        public void apply(final Boolean it) {
-          success.set(true);
-        }
+      final Procedure1<Boolean> _function = (Boolean it) -> {
+        success.set(true);
       };
       _printHello.then(_function);
       Thread.sleep(10);

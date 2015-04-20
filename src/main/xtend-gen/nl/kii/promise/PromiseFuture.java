@@ -11,18 +11,12 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 @SuppressWarnings("all")
 public class PromiseFuture<T extends Object> extends AbstractFuture<T> {
   public PromiseFuture(final IPromise<?, T> promise) {
-    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        PromiseFuture.this.setException(it);
-      }
+    final Procedure1<Throwable> _function = (Throwable it) -> {
+      this.setException(it);
     };
     IPromise<?, T> _on = PromiseExtensions.on(promise, Throwable.class, _function);
-    final Procedure1<T> _function_1 = new Procedure1<T>() {
-      @Override
-      public void apply(final T it) {
-        PromiseFuture.this.set(it);
-      }
+    final Procedure1<T> _function_1 = (T it) -> {
+      this.set(it);
     };
     _on.then(_function_1);
   }

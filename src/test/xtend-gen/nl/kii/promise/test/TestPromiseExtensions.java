@@ -70,11 +70,8 @@ public class TestPromiseExtensions {
   @Test
   public void testMap() {
     final Promise<Integer> p = new Promise<Integer>(Integer.valueOf(4));
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() + 10));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() + 10));
     };
     final SubPromise<Integer, Integer> mapped = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
     StreamAssert.<Integer>assertPromiseEquals(mapped, Integer.valueOf(14));
@@ -92,11 +89,8 @@ public class TestPromiseExtensions {
   @Test
   public void testAsync() {
     final Promise<Integer> s = new Promise<Integer>(Integer.valueOf(2));
-    final Function1<Integer, Promise<Integer>> _function = new Function1<Integer, Promise<Integer>>() {
-      @Override
-      public Promise<Integer> apply(final Integer it) {
-        return TestPromiseExtensions.this.power2((it).intValue());
-      }
+    final Function1<Integer, Promise<Integer>> _function = (Integer it) -> {
+      return this.power2((it).intValue());
     };
     SubPromise<Integer, Promise<Integer>> _map = PromiseExtensions.<Integer, Integer, Promise<Integer>>map(s, _function);
     final SubPromise<Integer, Integer> asynced = PromiseExtensions.<Integer, Integer, Integer, Promise<Integer>>flatten(_map);
@@ -108,11 +102,8 @@ public class TestPromiseExtensions {
     final Promise<List<Integer>> p = new Promise<List<Integer>>(Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3))));
     Stream<Integer> _stream = StreamExtensions.<List<Integer>, Integer, List<Integer>>stream(p);
     SubStream<Integer, Double> _sum = StreamExtensions.<Integer, Integer>sum(_stream);
-    final Procedure1<Double> _function = new Procedure1<Double>() {
-      @Override
-      public void apply(final Double it) {
-        Assert.assertEquals(6, (it).doubleValue(), 0);
-      }
+    final Procedure1<Double> _function = (Double it) -> {
+      Assert.assertEquals(6, (it).doubleValue(), 0);
     };
     StreamExtensions.<Integer, Double>then(_sum, _function);
   }
@@ -131,18 +122,12 @@ public class TestPromiseExtensions {
     final Task t2 = new Task();
     final Task t3 = new Task();
     final Task a = PromiseExtensions.all(t1, t2, t3);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
+      this.setT2Done(Boolean.valueOf(true));
     };
     t2.then(_function);
-    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function_1 = (Boolean it) -> {
+      this.setAllDone(Boolean.valueOf(true));
     };
     a.then(_function_1);
     Boolean _allDone = this.getAllDone();
@@ -173,18 +158,12 @@ public class TestPromiseExtensions {
     final Task t3 = new Task();
     Task _and = PromiseExtensions.operator_and(t1, t2);
     final Task a = PromiseExtensions.operator_and(_and, t3);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setT2Done(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
+      this.setT2Done(Boolean.valueOf(true));
     };
     t2.then(_function);
-    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setAllDone(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function_1 = (Boolean it) -> {
+      this.setAllDone(Boolean.valueOf(true));
     };
     a.then(_function_1);
     Boolean _allDone = this.getAllDone();
@@ -215,11 +194,8 @@ public class TestPromiseExtensions {
     final Task t2 = new Task();
     final Task t3 = new Task();
     final Task a = PromiseExtensions.<Boolean, Boolean, Task>any(t1, t2, t3);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
+      this.setAnyDone(Boolean.valueOf(true));
     };
     a.then(_function);
     Boolean _anyDone = this.getAnyDone();
@@ -242,11 +218,8 @@ public class TestPromiseExtensions {
     final Task t3 = new Task();
     Task _or = PromiseExtensions.<Boolean, Boolean>operator_or(t1, t2);
     final Task a = PromiseExtensions.<Boolean, Boolean>operator_or(_or, t3);
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-        TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
+      this.setAnyDone(Boolean.valueOf(true));
     };
     a.then(_function);
     Boolean _anyDone = this.getAnyDone();
@@ -266,25 +239,19 @@ public class TestPromiseExtensions {
   public void testWait() {
     try {
       final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-      final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
-        @Override
-        public void apply(final Long delayMs, final Procedure0 fn) {
-          exec.schedule(new Runnable() {
-              public void run() {
-                fn.apply();
-              }
-          }, delayMs, TimeUnit.MILLISECONDS);
-          return;
-        }
+      final Procedure2<Long, Procedure0> _function = (Long delayMs, Procedure0 fn) -> {
+        exec.schedule(new Runnable() {
+            public void run() {
+              fn.apply();
+            }
+        }, delayMs, TimeUnit.MILLISECONDS);
+        return;
       };
       final Procedure2<Long, Procedure0> timerFn = _function;
       Task _complete = PromiseExtensions.complete();
       SubPromise<Boolean, Boolean> _wait = PromiseExtensions.<Boolean, Boolean>wait(_complete, 100, timerFn);
-      final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
-        @Override
-        public void apply(final Boolean it) {
-          TestPromiseExtensions.this.setAnyDone(Boolean.valueOf(true));
-        }
+      final Procedure1<Boolean> _function_1 = (Boolean it) -> {
+        this.setAnyDone(Boolean.valueOf(true));
       };
       _wait.then(_function_1);
       Boolean _anyDone = this.getAnyDone();

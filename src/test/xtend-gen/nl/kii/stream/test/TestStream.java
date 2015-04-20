@@ -99,25 +99,16 @@ public class TestStream {
   public void testUnbufferedStream() {
     final AtomicInteger counter = new AtomicInteger(0);
     final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-    final Function1<Integer, Boolean> _function = new Function1<Integer, Boolean>() {
-      @Override
-      public Boolean apply(final Integer it) {
-        return Boolean.valueOf(((it).intValue() != 2));
-      }
+    final Function1<Integer, Boolean> _function = (Integer it) -> {
+      return Boolean.valueOf(((it).intValue() != 2));
     };
     SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(s, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() + 1));
-      }
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() + 1));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_filter, _function_1);
-    final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        counter.addAndGet((it).intValue());
-      }
+    final Procedure1<Integer> _function_2 = (Integer it) -> {
+      counter.addAndGet((it).intValue());
     };
     StreamExtensions.<Integer, Integer>onEach(_map, _function_2);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -137,11 +128,8 @@ public class TestStream {
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_stream, Integer.valueOf(1));
     IStream<Integer, Integer> _doubleLessThan_1 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan, Integer.valueOf(2));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_1, Integer.valueOf(3));
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        counter.addAndGet((it).intValue());
-      }
+    final Procedure1<Integer> _function = (Integer it) -> {
+      counter.addAndGet((it).intValue());
     };
     StreamExtensions.<Integer, Integer>onEach(s, _function);
     int _get = counter.get();
@@ -161,23 +149,14 @@ public class TestStream {
     IStream<Integer, Integer> _doubleLessThan_3 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_2, _finish);
     IStream<Integer, Integer> _doubleLessThan_4 = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_3, Integer.valueOf(4));
     final IStream<Integer, Integer> s = StreamExtensions.<Integer, Integer>operator_doubleLessThan(_doubleLessThan_4, Integer.valueOf(5));
-    final Procedure1<StreamResponder<Integer, Integer>> _function = new Procedure1<StreamResponder<Integer, Integer>>() {
-      @Override
-      public void apply(final StreamResponder<Integer, Integer> it) {
-        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
-          @Override
-          public void apply(final Integer $0, final Integer $1) {
-            TestStream.this.incCounter($1);
-          }
-        };
-        it.each(_function);
-        final Procedure2<Integer, Integer> _function_1 = new Procedure2<Integer, Integer>() {
-          @Override
-          public void apply(final Integer $0, final Integer $1) {
-          }
-        };
-        it.finish(_function_1);
-      }
+    final Procedure1<StreamResponder<Integer, Integer>> _function = (StreamResponder<Integer, Integer> it) -> {
+      final Procedure2<Integer, Integer> _function_1 = (Integer $0, Integer $1) -> {
+        this.incCounter($1);
+      };
+      it.each(_function_1);
+      final Procedure2<Integer, Integer> _function_2 = (Integer $0, Integer $1) -> {
+      };
+      it.finish(_function_2);
     };
     StreamExtensions.<Integer, Integer>on(s, _function);
     s.next();
@@ -213,24 +192,15 @@ public class TestStream {
   @Test
   public void testControlledChainedBufferedStream() {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return it;
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return it;
     };
     final SubStream<Integer, Integer> s = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
-    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = new Procedure1<StreamResponder<Integer, Integer>>() {
-      @Override
-      public void apply(final StreamResponder<Integer, Integer> it) {
-        final Procedure2<Integer, Integer> _function = new Procedure2<Integer, Integer>() {
-          @Override
-          public void apply(final Integer $0, final Integer $1) {
-            TestStream.this.setResult($1);
-          }
-        };
-        it.each(_function);
-      }
+    final Procedure1<StreamResponder<Integer, Integer>> _function_1 = (StreamResponder<Integer, Integer> it) -> {
+      final Procedure2<Integer, Integer> _function_2 = (Integer $0, Integer $1) -> {
+        this.setResult($1);
+      };
+      it.each(_function_2);
     };
     StreamExtensions.<Integer, Integer>on(s, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -256,19 +226,13 @@ public class TestStream {
   @Test
   public void testStreamErrors() {
     final Stream<Integer> s = new Stream<Integer>();
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
-      }
+    final Procedure1<Integer> _function = (Integer it) -> {
+      InputOutput.<Integer>println(Integer.valueOf((1 / (it).intValue())));
     };
     SubTask<Integer> _onEach = StreamExtensions.<Integer, Integer>onEach(s, _function);
-    final Procedure1<Throwable> _function_1 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<String>println("!!");
-        TestStream.this.setError(it);
-      }
+    final Procedure1<Throwable> _function_1 = (Throwable it) -> {
+      InputOutput.<String>println("!!");
+      this.setError(it);
     };
     PromiseExtensions.<Integer, Boolean>on(_onEach, Throwable.class, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
@@ -287,48 +251,33 @@ public class TestStream {
   public void testParallelHighThroughputStreaming() {
     try {
       final Stream<Integer> s = StreamExtensions.<Integer>stream(int.class);
-      final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
-        @Override
-        public void apply(final Entry<?, ?> it) {
-          TestStream.this.incOverflow();
-        }
+      final Procedure1<Entry<?, ?>> _function = (Entry<?, ?> it) -> {
+        this.incOverflow();
       };
       final SubStream<Integer, Integer> s2 = StreamExtensions.<Integer, Integer>buffer(s, 3000, _function);
-      final Runnable _function_1 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(0, 999);
-          for (final Integer i : _upTo) {
-            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
-          }
+      final Runnable _function_1 = () -> {
+        IntegerRange _upTo = new IntegerRange(0, 999);
+        for (final Integer i : _upTo) {
+          StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(1));
         }
       };
       ExecutorExtensions.task(this.threads, _function_1);
-      final Runnable _function_2 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(1000, 1999);
-          for (final Integer i : _upTo) {
-            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(2));
-          }
+      final Runnable _function_2 = () -> {
+        IntegerRange _upTo = new IntegerRange(1000, 1999);
+        for (final Integer i : _upTo) {
+          StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(2));
         }
       };
       ExecutorExtensions.task(this.threads, _function_2);
-      final Runnable _function_3 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(2000, 2999);
-          for (final Integer i : _upTo) {
-            StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(3));
-          }
+      final Runnable _function_3 = () -> {
+        IntegerRange _upTo = new IntegerRange(2000, 2999);
+        for (final Integer i : _upTo) {
+          StreamExtensions.<Integer, Integer>operator_doubleLessThan(s, Integer.valueOf(3));
         }
       };
       ExecutorExtensions.task(this.threads, _function_3);
-      final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer it) {
-          TestStream.this.incSum();
-        }
+      final Procedure1<Integer> _function_4 = (Integer it) -> {
+        this.incSum();
       };
       StreamExtensions.<Integer, Integer>onEach(s2, _function_4);
       Thread.sleep(1000);
@@ -347,24 +296,15 @@ public class TestStream {
   @Test
   public void testStreamBufferOverflow() {
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(int.class);
-    final Procedure1<Stream<Integer>> _function = new Procedure1<Stream<Integer>>() {
-      @Override
-      public void apply(final Stream<Integer> it) {
-        it.setMaxBufferSize(Integer.valueOf(3));
-      }
+    final Procedure1<Stream<Integer>> _function = (Stream<Integer> it) -> {
+      it.setMaxBufferSize(Integer.valueOf(3));
     };
     final Stream<Integer> stream = ObjectExtensions.<Stream<Integer>>operator_doubleArrow(_stream, _function);
-    final Procedure1<StreamEventResponder> _function_1 = new Procedure1<StreamEventResponder>() {
-      @Override
-      public void apply(final StreamEventResponder it) {
-        final Procedure1<Entry<?, ?>> _function = new Procedure1<Entry<?, ?>>() {
-          @Override
-          public void apply(final Entry<?, ?> it) {
-            TestStream.this.incOverflowCount();
-          }
-        };
-        it.overflow(_function);
-      }
+    final Procedure1<StreamEventResponder> _function_1 = (StreamEventResponder it) -> {
+      final Procedure1<Entry<?, ?>> _function_2 = (Entry<?, ?> it_1) -> {
+        this.incOverflowCount();
+      };
+      it.overflow(_function_2);
     };
     StreamExtensions.<Integer, Integer>when(stream, _function_1);
     IStream<Integer, Integer> _doubleLessThan = StreamExtensions.<Integer, Integer>operator_doubleLessThan(stream, Integer.valueOf(1));

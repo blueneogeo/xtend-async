@@ -25,37 +25,25 @@ public class StreamAssert {
     LinkedList<Entry<R, T>> _xblockexpression = null;
     {
       final LinkedList<Entry<R, T>> data = new LinkedList<Entry<R, T>>();
-      final Procedure1<StreamResponder<R, T>> _function = new Procedure1<StreamResponder<R, T>>() {
-        @Override
-        public void apply(final StreamResponder<R, T> it) {
-          final Procedure2<R, Throwable> _function = new Procedure2<R, Throwable>() {
-            @Override
-            public void apply(final R $0, final Throwable $1) {
-              nl.kii.stream.message.Error<R, T> _error = new nl.kii.stream.message.Error<R, T>($0, $1);
-              data.add(_error);
-              stream.next();
-            }
-          };
-          it.error(_function);
-          final Procedure2<R, Integer> _function_1 = new Procedure2<R, Integer>() {
-            @Override
-            public void apply(final R $0, final Integer $1) {
-              Finish<R, T> _finish = new Finish<R, T>($0, ($1).intValue());
-              data.add(_finish);
-              stream.next();
-            }
-          };
-          it.finish(_function_1);
-          final Procedure2<R, T> _function_2 = new Procedure2<R, T>() {
-            @Override
-            public void apply(final R $0, final T $1) {
-              Value<R, T> _value = new Value<R, T>($0, $1);
-              data.add(_value);
-              stream.next();
-            }
-          };
-          it.each(_function_2);
-        }
+      final Procedure1<StreamResponder<R, T>> _function = (StreamResponder<R, T> it) -> {
+        final Procedure2<R, Throwable> _function_1 = (R $0, Throwable $1) -> {
+          nl.kii.stream.message.Error<R, T> _error = new nl.kii.stream.message.Error<R, T>($0, $1);
+          data.add(_error);
+          stream.next();
+        };
+        it.error(_function_1);
+        final Procedure2<R, Integer> _function_2 = (R $0, Integer $1) -> {
+          Finish<R, T> _finish = new Finish<R, T>($0, ($1).intValue());
+          data.add(_finish);
+          stream.next();
+        };
+        it.finish(_function_2);
+        final Procedure2<R, T> _function_3 = (R $0, T $1) -> {
+          Value<R, T> _value = new Value<R, T>($0, $1);
+          data.add(_value);
+          stream.next();
+        };
+        it.each(_function_3);
       };
       StreamExtensions.<R, T>on(stream, _function);
       stream.next();
@@ -71,10 +59,7 @@ public class StreamAssert {
   }
   
   public static void assertFulfilled(final IPromise<?, Boolean> promise) {
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
-      @Override
-      public void apply(final Boolean it) {
-      }
+    final Procedure1<Boolean> _function = (Boolean it) -> {
     };
     promise.then(_function);
     Boolean _fulfilled = promise.getFulfilled();
@@ -83,11 +68,8 @@ public class StreamAssert {
   
   public static <T extends Object> void assertPromiseEquals(final IPromise<?, T> promise, final T value) {
     final AtomicReference<T> ref = new AtomicReference<T>();
-    final Procedure1<T> _function = new Procedure1<T>() {
-      @Override
-      public void apply(final T it) {
-        ref.set(it);
-      }
+    final Procedure1<T> _function = (T it) -> {
+      ref.set(it);
     };
     promise.then(_function);
     Boolean _fulfilled = promise.getFulfilled();
@@ -98,11 +80,8 @@ public class StreamAssert {
   
   public static <T extends Object> void assertPromiseEquals(final IPromise<?, List<T>> promise, final List<T> value) {
     final AtomicReference<List<T>> ref = new AtomicReference<List<T>>();
-    final Procedure1<List<T>> _function = new Procedure1<List<T>>() {
-      @Override
-      public void apply(final List<T> it) {
-        ref.set(it);
-      }
+    final Procedure1<List<T>> _function = (List<T> it) -> {
+      ref.set(it);
     };
     promise.then(_function);
     Boolean _fulfilled = promise.getFulfilled();

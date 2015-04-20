@@ -43,19 +43,16 @@ public class ExecutorExtensions {
     Promise<T> _xblockexpression = null;
     {
       final Promise<T> promise = new Promise<T>();
-      final Runnable _function = new Runnable() {
-        @Override
-        public void run() {
-          try {
-            final T result = callable.call();
-            promise.set(result);
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              promise.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
+      final Runnable _function = () -> {
+        try {
+          final T result = callable.call();
+          promise.set(result);
+        } catch (final Throwable _t) {
+          if (_t instanceof Throwable) {
+            final Throwable t = (Throwable)_t;
+            promise.error(t);
+          } else {
+            throw Exceptions.sneakyThrow(_t);
           }
         }
       };
@@ -77,19 +74,16 @@ public class ExecutorExtensions {
     Task _xblockexpression = null;
     {
       final Task task = new Task();
-      final Runnable _function = new Runnable() {
-        @Override
-        public void run() {
-          try {
-            runnable.run();
-            task.complete();
-          } catch (final Throwable _t) {
-            if (_t instanceof Throwable) {
-              final Throwable t = (Throwable)_t;
-              task.error(t);
-            } else {
-              throw Exceptions.sneakyThrow(_t);
-            }
+      final Runnable _function = () -> {
+        try {
+          runnable.run();
+          task.complete();
+        } catch (final Throwable _t) {
+          if (_t instanceof Throwable) {
+            final Throwable t = (Throwable)_t;
+            task.error(t);
+          } else {
+            throw Exceptions.sneakyThrow(_t);
           }
         }
       };
@@ -101,15 +95,12 @@ public class ExecutorExtensions {
   }
   
   public static Procedure2<? super Long, ? super Procedure0> scheduler(final ScheduledExecutorService executor) {
-    final Procedure2<Long, Procedure0> _function = new Procedure2<Long, Procedure0>() {
-      @Override
-      public void apply(final Long period, final Procedure0 doneFn) {
-        executor.schedule(new Runnable() {
-            public void run() {
-              doneFn.apply();
-            }
-        }, period, TimeUnit.MILLISECONDS);
-      }
+    final Procedure2<Long, Procedure0> _function = (Long period, Procedure0 doneFn) -> {
+      executor.schedule(new Runnable() {
+          public void run() {
+            doneFn.apply();
+          }
+      }, period, TimeUnit.MILLISECONDS);
     };
     return _function;
   }
@@ -133,24 +124,21 @@ public class ExecutorExtensions {
       final AtomicReference<ScheduledFuture<?>> task = new AtomicReference<ScheduledFuture<?>>();
       final Stream<Long> newStream = StreamExtensions.<Long>stream(long.class);
       final long start = System.currentTimeMillis();
-      final Runnable _function = new Runnable() {
-        @Override
-        public void run() {
-          final long now = System.currentTimeMillis();
-          final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
-          boolean _and = false;
-          boolean _isOpen = newStream.isOpen();
-          if (!_isOpen) {
-            _and = false;
-          } else {
-            _and = (!expired);
-          }
-          if (_and) {
-            newStream.push(Long.valueOf((now - start)));
-          } else {
-            ScheduledFuture<?> _get = task.get();
-            _get.cancel(false);
-          }
+      final Runnable _function = () -> {
+        final long now = System.currentTimeMillis();
+        final boolean expired = ((forPeriodMs > 0) && ((now - start) > forPeriodMs));
+        boolean _and = false;
+        boolean _isOpen = newStream.isOpen();
+        if (!_isOpen) {
+          _and = false;
+        } else {
+          _and = (!expired);
+        }
+        if (_and) {
+          newStream.push(Long.valueOf((now - start)));
+        } else {
+          ScheduledFuture<?> _get = task.get();
+          _get.cancel(false);
         }
       };
       final Runnable pusher = _function;

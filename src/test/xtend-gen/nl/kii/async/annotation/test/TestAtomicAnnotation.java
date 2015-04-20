@@ -68,13 +68,10 @@ public class TestAtomicAnnotation {
     Tester _tester_3 = this.getTester();
     String _name_2 = _tester_3.getName();
     Assert.assertEquals("Floris", _name_2);
-    final Procedure0 _function = new Procedure0() {
-      @Override
-      public void apply() {
-        Integer _i = TestAtomicAnnotation.this.getI();
-        int _plus = ((_i).intValue() + 1);
-        TestAtomicAnnotation.this.setI(Integer.valueOf(_plus));
-      }
+    final Procedure0 _function = () -> {
+      Integer _i = this.getI();
+      int _plus = ((_i).intValue() + 1);
+      this.setI(Integer.valueOf(_plus));
     };
     this.doSomething(_function);
     Integer _i = this.getI();

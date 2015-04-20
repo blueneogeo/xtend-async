@@ -34,25 +34,16 @@ public class TestPromiseErrorHandling {
   @Test
   public void canMonitorErrors() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        JUnitExtensions.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_1 = (Integer it) -> {
+      JUnitExtensions.fail("an error should occur");
     };
     Task _then = _map.then(_function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch1(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      this.setMatch1(Boolean.valueOf(true));
     };
     PromiseExtensions.<Boolean, Boolean>on(_then, Throwable.class, _function_2);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
@@ -64,46 +55,28 @@ public class TestPromiseErrorHandling {
   @Test
   public void canMatchErrorTypes() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        JUnitExtensions.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_1 = (Integer it) -> {
+      JUnitExtensions.fail("an error should occur");
     };
     Task _then = _map.then(_function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch1(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      this.setMatch1(Boolean.valueOf(true));
     };
     IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_then, ArithmeticException.class, _function_2);
-    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch2(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_3 = (Throwable it) -> {
+      this.setMatch2(Boolean.valueOf(true));
     };
     IPromise<Boolean, Boolean> _on_1 = PromiseExtensions.<Boolean, Boolean>on(_on, IllegalArgumentException.class, _function_3);
-    final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch3(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_4 = (Throwable it) -> {
+      this.setMatch3(Boolean.valueOf(true));
     };
     IPromise<Boolean, Boolean> _on_2 = PromiseExtensions.<Boolean, Boolean>on(_on_1, Exception.class, _function_4);
-    final Procedure1<Throwable> _function_5 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch4(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_5 = (Throwable it) -> {
+      this.setMatch4(Boolean.valueOf(true));
     };
     PromiseExtensions.<Boolean, Boolean>on(_on_2, Throwable.class, _function_5);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
@@ -124,39 +97,24 @@ public class TestPromiseErrorHandling {
   @Test
   public void canSwallowErrorTypes() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        JUnitExtensions.fail("an error should occur");
-      }
+    final Procedure1<Integer> _function_1 = (Integer it) -> {
+      JUnitExtensions.fail("an error should occur");
     };
     Task _then = _map.then(_function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch1(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      this.setMatch1(Boolean.valueOf(true));
     };
     IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_then, ArithmeticException.class, _function_2);
-    final Procedure1<Throwable> _function_3 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch2(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_3 = (Throwable it) -> {
+      this.setMatch2(Boolean.valueOf(true));
     };
     IPromise<Boolean, Boolean> _effect = PromiseExtensions.<Boolean, Boolean>effect(_on, Exception.class, _function_3);
-    final Procedure1<Throwable> _function_4 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        TestPromiseErrorHandling.this.setMatch3(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_4 = (Throwable it) -> {
+      this.setMatch3(Boolean.valueOf(true));
     };
     PromiseExtensions.<Boolean, Boolean>on(_effect, Throwable.class, _function_4);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
@@ -174,34 +132,22 @@ public class TestPromiseErrorHandling {
   @Test
   public void canMapErrors() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Function1<Throwable, Integer> _function_1 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(10);
-      }
+    final Function1<Throwable, Integer> _function_1 = (Throwable it) -> {
+      return Integer.valueOf(10);
     };
     SubPromise<Integer, Integer> _map_1 = PromiseExtensions.<Integer, Integer>map(_map, ArithmeticException.class, _function_1);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        Throwable _cause = it.getCause();
-        InputOutput.<Throwable>println(_cause);
-        TestPromiseErrorHandling.this.setMatch1(Boolean.valueOf(true));
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      Throwable _cause = it.getCause();
+      InputOutput.<Throwable>println(_cause);
+      this.setMatch1(Boolean.valueOf(true));
     };
     IPromise<Integer, Integer> _on = PromiseExtensions.<Integer, Integer>on(_map_1, Exception.class, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestPromiseErrorHandling.this.setMatch2(Boolean.valueOf(true));
-      }
+    final Procedure1<Integer> _function_3 = (Integer it) -> {
+      this.setMatch2(Boolean.valueOf(true));
     };
     _on.then(_function_3);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
@@ -216,39 +162,24 @@ public class TestPromiseErrorHandling {
   @Test
   public void canFilterMapErrors() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Function1<Throwable, Integer> _function_1 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(10);
-      }
+    final Function1<Throwable, Integer> _function_1 = (Throwable it) -> {
+      return Integer.valueOf(10);
     };
     SubPromise<Integer, Integer> _map_1 = PromiseExtensions.<Integer, Integer>map(_map, IllegalArgumentException.class, _function_1);
-    final Function1<Throwable, Integer> _function_2 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(20);
-      }
+    final Function1<Throwable, Integer> _function_2 = (Throwable it) -> {
+      return Integer.valueOf(20);
     };
     SubPromise<Integer, Integer> _map_2 = PromiseExtensions.<Integer, Integer>map(_map_1, ArithmeticException.class, _function_2);
-    final Function1<Throwable, Integer> _function_3 = new Function1<Throwable, Integer>() {
-      @Override
-      public Integer apply(final Throwable it) {
-        return Integer.valueOf(30);
-      }
+    final Function1<Throwable, Integer> _function_3 = (Throwable it) -> {
+      return Integer.valueOf(30);
     };
     SubPromise<Integer, Integer> _map_3 = PromiseExtensions.<Integer, Integer>map(_map_2, Throwable.class, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestPromiseErrorHandling.this.setValue(it);
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      this.setValue(it);
     };
     _map_3.then(_function_4);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));
@@ -260,39 +191,24 @@ public class TestPromiseErrorHandling {
   @Test
   public void canFilterAsyncMapErrors() {
     final Promise<Integer> p = new Promise<Integer>();
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() / 0));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() / 0));
     };
     SubPromise<Integer, Integer> _map = PromiseExtensions.<Integer, Integer, Integer>map(p, _function);
-    final Function1<Throwable, IPromise<?, Integer>> _function_1 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(20));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_1 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(20));
     };
     SubPromise<Integer, Integer> _call = PromiseExtensions.<Integer, Integer>call(_map, IllegalArgumentException.class, _function_1);
-    final Function1<Throwable, IPromise<?, Integer>> _function_2 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(30));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_2 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(30));
     };
     SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer>call(_call, ArithmeticException.class, _function_2);
-    final Function1<Throwable, IPromise<?, Integer>> _function_3 = new Function1<Throwable, IPromise<?, Integer>>() {
-      @Override
-      public IPromise<?, Integer> apply(final Throwable it) {
-        return PromiseExtensions.<Integer>promise(Integer.valueOf(40));
-      }
+    final Function1<Throwable, IPromise<?, Integer>> _function_3 = (Throwable it) -> {
+      return PromiseExtensions.<Integer>promise(Integer.valueOf(40));
     };
     SubPromise<Integer, Integer> _call_2 = PromiseExtensions.<Integer, Integer>call(_call_1, Throwable.class, _function_3);
-    final Procedure1<Integer> _function_4 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestPromiseErrorHandling.this.setValue(it);
-      }
+    final Procedure1<Integer> _function_4 = (Integer it) -> {
+      this.setValue(it);
     };
     _call_2.then(_function_4);
     PromiseExtensions.<Integer, Integer>operator_doubleLessThan(p, Integer.valueOf(10));

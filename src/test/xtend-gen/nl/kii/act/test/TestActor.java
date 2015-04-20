@@ -34,12 +34,9 @@ import org.junit.Test;
 public class TestActor {
   @Test
   public void testHelloWorld() {
-    final Procedure2<String, Procedure0> _function = new Procedure2<String, Procedure0>() {
-      @Override
-      public void apply(final String it, final Procedure0 done) {
-        InputOutput.<String>println(("hello " + it));
-        done.apply();
-      }
+    final Procedure2<String, Procedure0> _function = (String it, Procedure0 done) -> {
+      InputOutput.<String>println(("hello " + it));
+      done.apply();
     };
     final Actor<String> greeter = ActorExtensions.<String>actor(_function);
     ActorExtensions.<String>operator_doubleGreaterThan(
@@ -77,43 +74,31 @@ public class TestActor {
         }
       };
       final ExecutorService threads = Executors.newCachedThreadPool();
-      final Runnable _function = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(1, 1000);
-          for (final Integer i : _upTo) {
-            actor.apply(i);
-          }
+      final Runnable _function = () -> {
+        IntegerRange _upTo = new IntegerRange(1, 1000);
+        for (final Integer i : _upTo) {
+          actor.apply(i);
         }
       };
       ExecutorExtensions.task(threads, _function);
-      final Runnable _function_1 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(1, 1000);
-          for (final Integer i : _upTo) {
-            actor.apply(i);
-          }
+      final Runnable _function_1 = () -> {
+        IntegerRange _upTo = new IntegerRange(1, 1000);
+        for (final Integer i : _upTo) {
+          actor.apply(i);
         }
       };
       ExecutorExtensions.task(threads, _function_1);
-      final Runnable _function_2 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(1, 1000);
-          for (final Integer i : _upTo) {
-            actor.apply(i);
-          }
+      final Runnable _function_2 = () -> {
+        IntegerRange _upTo = new IntegerRange(1, 1000);
+        for (final Integer i : _upTo) {
+          actor.apply(i);
         }
       };
       ExecutorExtensions.task(threads, _function_2);
-      final Runnable _function_3 = new Runnable() {
-        @Override
-        public void run() {
-          IntegerRange _upTo = new IntegerRange(1, 1000);
-          for (final Integer i : _upTo) {
-            actor.apply(i);
-          }
+      final Runnable _function_3 = () -> {
+        IntegerRange _upTo = new IntegerRange(1, 1000);
+        for (final Integer i : _upTo) {
+          actor.apply(i);
         }
       };
       ExecutorExtensions.task(threads, _function_3);
@@ -135,40 +120,28 @@ public class TestActor {
     try {
       final AtomicInteger doneCounter = new AtomicInteger(0);
       final ExecutorService threads = Executors.newCachedThreadPool();
-      final Procedure1<Integer> _function = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer y) {
-          final Runnable _function = new Runnable() {
-            @Override
-            public void run() {
-              try {
-                Thread.sleep(5);
-                if ((y <= 0)) {
-                  doneCounter.incrementAndGet();
-                } else {
-                  Actor<Integer> _decreaser = TestActor.this.getDecreaser();
-                  ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf(y), _decreaser);
-                }
-              } catch (Throwable _e) {
-                throw Exceptions.sneakyThrow(_e);
-              }
+      final Procedure1<Integer> _function = (Integer y) -> {
+        final Runnable _function_1 = () -> {
+          try {
+            Thread.sleep(5);
+            if ((y <= 0)) {
+              doneCounter.incrementAndGet();
+            } else {
+              Actor<Integer> _decreaser = this.getDecreaser();
+              ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf(y), _decreaser);
             }
-          };
-          ExecutorExtensions.task(threads, _function);
-        }
+          } catch (Throwable _e) {
+            throw Exceptions.sneakyThrow(_e);
+          }
+        };
+        ExecutorExtensions.task(threads, _function_1);
       };
       final Actor<Integer> checkDone = ActorExtensions.<Integer>actor(_function);
-      final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer value) {
-          final Runnable _function = new Runnable() {
-            @Override
-            public void run() {
-              ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf((value - 1)), checkDone);
-            }
-          };
-          ExecutorExtensions.task(threads, _function);
-        }
+      final Procedure1<Integer> _function_1 = (Integer value) -> {
+        final Runnable _function_2 = () -> {
+          ActorExtensions.<Integer>operator_doubleGreaterThan(Integer.valueOf((value - 1)), checkDone);
+        };
+        ExecutorExtensions.task(threads, _function_2);
       };
       Actor<Integer> _actor = ActorExtensions.<Integer>actor(_function_1);
       this.setDecreaser(_actor);
@@ -213,60 +186,42 @@ public class TestActor {
   @Test
   public void testActorRelativeSingleThreadedPerformance() {
     final IntegerRange iterations = new IntegerRange(1, 10_000_000);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return TestActor.this.incFunctCounter();
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return this.incFunctCounter();
     };
     final Function1<Integer, Integer> funct = _function;
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        TestActor.this.incActorCounter();
-      }
+    final Procedure1<Integer> _function_1 = (Integer it) -> {
+      this.incActorCounter();
     };
     final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
     IntegerRange _upTo = new IntegerRange(1, 20_000_000);
     for (final Integer i : _upTo) {
       actor.apply(i);
     }
-    final Procedure0 _function_2 = new Procedure0() {
-      @Override
-      public void apply() {
-        for (final Integer i : iterations) {
-          funct.apply(i);
-        }
+    final Procedure0 _function_2 = () -> {
+      for (final Integer i_1 : iterations) {
+        funct.apply(i_1);
       }
     };
     final long functTimeMs = this.measure(_function_2);
     InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
-    final Procedure0 _function_3 = new Procedure0() {
-      @Override
-      public void apply() {
-        for (final Integer i : iterations) {
-          TestActor.this.unsynced();
-        }
+    final Procedure0 _function_3 = () -> {
+      for (final Integer i_1 : iterations) {
+        this.unsynced();
       }
     };
     final long unsyncedTimeMs = this.measure(_function_3);
     InputOutput.<String>println(("unsynced method took: " + Long.valueOf(unsyncedTimeMs)));
-    final Procedure0 _function_4 = new Procedure0() {
-      @Override
-      public void apply() {
-        for (final Integer i : iterations) {
-          TestActor.this.synced();
-        }
+    final Procedure0 _function_4 = () -> {
+      for (final Integer i_1 : iterations) {
+        this.synced();
       }
     };
     final long syncedTimeMs = this.measure(_function_4);
     InputOutput.<String>println(("synced method took: " + Long.valueOf(syncedTimeMs)));
-    final Procedure0 _function_5 = new Procedure0() {
-      @Override
-      public void apply() {
-        for (final Integer i : iterations) {
-          actor.apply(i);
-        }
+    final Procedure0 _function_5 = () -> {
+      for (final Integer i_1 : iterations) {
+        actor.apply(i_1);
       }
     };
     final long actorTimeMs = this.measure(_function_5);
@@ -285,18 +240,12 @@ public class TestActor {
   @Test
   public void testActorRelativeMultiThreadedPerformance() {
     try {
-      final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-        @Override
-        public Integer apply(final Integer it) {
-          return TestActor.this.incFunctCounter();
-        }
+      final Function1<Integer, Integer> _function = (Integer it) -> {
+        return this.incFunctCounter();
       };
       final Function1<Integer, Integer> funct = _function;
-      final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-        @Override
-        public void apply(final Integer it) {
-          TestActor.this.incActorCounter();
-        }
+      final Procedure1<Integer> _function_1 = (Integer it) -> {
+        this.incActorCounter();
       };
       final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
       IntegerRange _upTo = new IntegerRange(1, 20_000_000);
@@ -306,92 +255,56 @@ public class TestActor {
       final IntegerRange iterations = new IntegerRange(1, 1_000_000);
       final int threads = 10;
       Task _complete = PromiseExtensions.complete();
-      final Function1<Boolean, SubPromise<Integer, Long>> _function_2 = new Function1<Boolean, SubPromise<Integer, Long>>() {
-        @Override
-        public SubPromise<Integer, Long> apply(final Boolean it) {
-          final Procedure0 _function = new Procedure0() {
-            @Override
-            public void apply() {
-              for (final Integer i : iterations) {
-                funct.apply(i);
-              }
-            }
-          };
-          return TestActor.this.measure(threads, _function);
-        }
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_2 = (Boolean it) -> {
+        final Procedure0 _function_3 = () -> {
+          for (final Integer i_1 : iterations) {
+            funct.apply(i_1);
+          }
+        };
+        return this.measure(threads, _function_3);
       };
       SubPromise<Boolean, Long> _call = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_complete, _function_2);
-      final Procedure1<Long> _function_3 = new Procedure1<Long>() {
-        @Override
-        public void apply(final Long it) {
-          InputOutput.<String>println(("function took: " + it));
-        }
+      final Procedure1<Long> _function_3 = (Long it) -> {
+        InputOutput.<String>println(("function took: " + it));
       };
       Task _then = _call.then(_function_3);
-      final Function1<Boolean, SubPromise<Integer, Long>> _function_4 = new Function1<Boolean, SubPromise<Integer, Long>>() {
-        @Override
-        public SubPromise<Integer, Long> apply(final Boolean it) {
-          final Procedure0 _function = new Procedure0() {
-            @Override
-            public void apply() {
-              for (final Integer i : iterations) {
-                TestActor.this.unsynced();
-              }
-            }
-          };
-          return TestActor.this.measure(threads, _function);
-        }
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_4 = (Boolean it) -> {
+        final Procedure0 _function_5 = () -> {
+          for (final Integer i_1 : iterations) {
+            this.unsynced();
+          }
+        };
+        return this.measure(threads, _function_5);
       };
       SubPromise<Boolean, Long> _call_1 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then, _function_4);
-      final Procedure1<Long> _function_5 = new Procedure1<Long>() {
-        @Override
-        public void apply(final Long it) {
-          InputOutput.<String>println(("unsynced method took: " + it));
-        }
+      final Procedure1<Long> _function_5 = (Long it) -> {
+        InputOutput.<String>println(("unsynced method took: " + it));
       };
       Task _then_1 = _call_1.then(_function_5);
-      final Function1<Boolean, SubPromise<Integer, Long>> _function_6 = new Function1<Boolean, SubPromise<Integer, Long>>() {
-        @Override
-        public SubPromise<Integer, Long> apply(final Boolean it) {
-          final Procedure0 _function = new Procedure0() {
-            @Override
-            public void apply() {
-              for (final Integer i : iterations) {
-                TestActor.this.synced();
-              }
-            }
-          };
-          return TestActor.this.measure(threads, _function);
-        }
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_6 = (Boolean it) -> {
+        final Procedure0 _function_7 = () -> {
+          for (final Integer i_1 : iterations) {
+            this.synced();
+          }
+        };
+        return this.measure(threads, _function_7);
       };
       SubPromise<Boolean, Long> _call_2 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_1, _function_6);
-      final Procedure1<Long> _function_7 = new Procedure1<Long>() {
-        @Override
-        public void apply(final Long it) {
-          InputOutput.<String>println(("synced method took: " + it));
-        }
+      final Procedure1<Long> _function_7 = (Long it) -> {
+        InputOutput.<String>println(("synced method took: " + it));
       };
       Task _then_2 = _call_2.then(_function_7);
-      final Function1<Boolean, SubPromise<Integer, Long>> _function_8 = new Function1<Boolean, SubPromise<Integer, Long>>() {
-        @Override
-        public SubPromise<Integer, Long> apply(final Boolean it) {
-          final Procedure0 _function = new Procedure0() {
-            @Override
-            public void apply() {
-              for (final Integer i : iterations) {
-                actor.apply(i);
-              }
-            }
-          };
-          return TestActor.this.measure(threads, _function);
-        }
+      final Function1<Boolean, SubPromise<Integer, Long>> _function_8 = (Boolean it) -> {
+        final Procedure0 _function_9 = () -> {
+          for (final Integer i_1 : iterations) {
+            actor.apply(i_1);
+          }
+        };
+        return this.measure(threads, _function_9);
       };
       SubPromise<Boolean, Long> _call_3 = PromiseExtensions.<Boolean, Boolean, Long, SubPromise<Integer, Long>>call(_then_2, _function_8);
-      final Procedure1<Long> _function_9 = new Procedure1<Long>() {
-        @Override
-        public void apply(final Long it) {
-          InputOutput.<String>println(("actor took: " + it));
-        }
+      final Procedure1<Long> _function_9 = (Long it) -> {
+        InputOutput.<String>println(("actor took: " + it));
       };
       Task _then_3 = _call_3.then(_function_9);
       Future<Boolean> _future = ExecutorExtensions.<Boolean, Boolean>future(_then_3);
@@ -417,83 +330,53 @@ public class TestActor {
     final int iterations = 1000;
     final int listSize = 1000;
     final IntegerRange list = new IntegerRange(1, listSize);
-    final Procedure1<Integer> _function = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-          @Override
-          public Integer apply(final Integer it) {
-            return Integer.valueOf(((it).intValue() + 1000));
-          }
-        };
-        Iterable<Integer> _map = IterableExtensions.<Integer, Integer>map(list, _function);
-        final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
-          @Override
-          public Boolean apply(final Integer it) {
-            return Boolean.valueOf((((it).intValue() % 2) == 0));
-          }
-        };
-        Iterable<Integer> _filter = IterableExtensions.<Integer>filter(_map, _function_1);
-        final Consumer<Integer> _function_2 = new Consumer<Integer>() {
-          @Override
-          public void accept(final Integer it) {
-            TestActor.this.incFunctCounter();
-          }
-        };
-        _filter.forEach(_function_2);
-      }
+    final Procedure1<Integer> _function = (Integer it) -> {
+      final Function1<Integer, Integer> _function_1 = (Integer it_1) -> {
+        return Integer.valueOf(((it_1).intValue() + 1000));
+      };
+      Iterable<Integer> _map = IterableExtensions.<Integer, Integer>map(list, _function_1);
+      final Function1<Integer, Boolean> _function_2 = (Integer it_1) -> {
+        return Boolean.valueOf((((it_1).intValue() % 2) == 0));
+      };
+      Iterable<Integer> _filter = IterableExtensions.<Integer>filter(_map, _function_2);
+      final Consumer<Integer> _function_3 = (Integer it_1) -> {
+        this.incFunctCounter();
+      };
+      _filter.forEach(_function_3);
     };
     final Procedure1<Integer> funct = _function;
-    final Procedure1<Integer> _function_1 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        Stream<Integer> _stream = StreamExtensions.<Integer>stream(list);
-        final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-          @Override
-          public Integer apply(final Integer it) {
-            return Integer.valueOf(((it).intValue() + 1000));
-          }
-        };
-        SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
-        final Function1<Integer, Boolean> _function_1 = new Function1<Integer, Boolean>() {
-          @Override
-          public Boolean apply(final Integer it) {
-            return Boolean.valueOf((((it).intValue() % 2) == 0));
-          }
-        };
-        SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_1);
-        final Procedure1<Integer> _function_2 = new Procedure1<Integer>() {
-          @Override
-          public void apply(final Integer it) {
-            TestActor.this.incActorCounter();
-          }
-        };
-        StreamExtensions.<Integer, Integer>onEach(_filter, _function_2);
-      }
+    final Procedure1<Integer> _function_1 = (Integer it) -> {
+      Stream<Integer> _stream = StreamExtensions.<Integer>stream(list);
+      final Function1<Integer, Integer> _function_2 = (Integer it_1) -> {
+        return Integer.valueOf(((it_1).intValue() + 1000));
+      };
+      SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function_2);
+      final Function1<Integer, Boolean> _function_3 = (Integer it_1) -> {
+        return Boolean.valueOf((((it_1).intValue() % 2) == 0));
+      };
+      SubStream<Integer, Integer> _filter = StreamExtensions.<Integer, Integer>filter(_map, _function_3);
+      final Procedure1<Integer> _function_4 = (Integer it_1) -> {
+        this.incActorCounter();
+      };
+      StreamExtensions.<Integer, Integer>onEach(_filter, _function_4);
     };
     final Actor<Integer> actor = ActorExtensions.<Integer>actor(_function_1);
     IntegerRange _upTo = new IntegerRange(1, 100);
     for (final Integer i : _upTo) {
       actor.apply(i);
     }
-    final Procedure0 _function_2 = new Procedure0() {
-      @Override
-      public void apply() {
-        IntegerRange _upTo = new IntegerRange(1, iterations);
-        for (final Integer i : _upTo) {
-          funct.apply(i);
-        }
+    final Procedure0 _function_2 = () -> {
+      IntegerRange _upTo_1 = new IntegerRange(1, iterations);
+      for (final Integer i_1 : _upTo_1) {
+        funct.apply(i_1);
       }
     };
     final long functTimeMs = this.measure(_function_2);
     InputOutput.<String>println(("function took: " + Long.valueOf(functTimeMs)));
-    final Procedure0 _function_3 = new Procedure0() {
-      @Override
-      public void apply() {
-        IntegerRange _upTo = new IntegerRange(1, iterations);
-        for (final Integer i : _upTo) {
-          actor.apply(i);
-        }
+    final Procedure0 _function_3 = () -> {
+      IntegerRange _upTo_1 = new IntegerRange(1, iterations);
+      for (final Integer i_1 : _upTo_1) {
+        actor.apply(i_1);
       }
     };
     final long streamTimeMs = this.measure(_function_3);
@@ -525,28 +408,19 @@ public class TestActor {
       final long start = System.currentTimeMillis();
       IntegerRange _upTo = new IntegerRange(1, threads);
       Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-      final Function1<Integer, Task> _function = new Function1<Integer, Task>() {
-        @Override
-        public Task apply(final Integer it) {
-          final Runnable _function = new Runnable() {
-            @Override
-            public void run() {
-              actionFn.apply();
-            }
-          };
-          return ExecutorExtensions.task(pool, _function);
-        }
+      final Function1<Integer, Task> _function = (Integer it) -> {
+        final Runnable _function_1 = () -> {
+          actionFn.apply();
+        };
+        return ExecutorExtensions.task(pool, _function_1);
       };
       SubStream<Integer, Task> _map = StreamExtensions.<Integer, Integer, Task>map(_stream, _function);
       SubStream<Integer, Boolean> _resolve = StreamExtensions.<Integer, Boolean>resolve(_map, threads);
       SubStream<Integer, List<Boolean>> _collect = StreamExtensions.<Integer, Boolean>collect(_resolve);
       IPromise<Integer, List<Boolean>> _first = StreamExtensions.<Integer, List<Boolean>>first(_collect);
-      final Function1<List<Boolean>, Long> _function_1 = new Function1<List<Boolean>, Long>() {
-        @Override
-        public Long apply(final List<Boolean> it) {
-          long _currentTimeMillis = System.currentTimeMillis();
-          return Long.valueOf((_currentTimeMillis - start));
-        }
+      final Function1<List<Boolean>, Long> _function_1 = (List<Boolean> it) -> {
+        long _currentTimeMillis = System.currentTimeMillis();
+        return Long.valueOf((_currentTimeMillis - start));
       };
       _xblockexpression = PromiseExtensions.<Integer, List<Boolean>, Long>map(_first, _function_1);
     }

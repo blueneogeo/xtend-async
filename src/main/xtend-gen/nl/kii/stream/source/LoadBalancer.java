@@ -91,11 +91,8 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
   
   protected void skip() {
     List<IStream<I, ?>> _streams = this.getStreams();
-    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
-      @Override
-      public Boolean apply(final IStream<I, ?> it) {
-        return Boolean.valueOf(it.isSkipping());
-      }
+    final Function1<IStream<I, ?>, Boolean> _function = (IStream<I, ?> it) -> {
+      return Boolean.valueOf(it.isSkipping());
     };
     boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);
@@ -107,12 +104,9 @@ public class LoadBalancer<I extends Object, O extends Object> extends StreamSpli
   
   protected void close() {
     List<IStream<I, ?>> _streams = this.getStreams();
-    final Function1<IStream<I, ?>, Boolean> _function = new Function1<IStream<I, ?>, Boolean>() {
-      @Override
-      public Boolean apply(final IStream<I, ?> it) {
-        boolean _isOpen = it.isOpen();
-        return Boolean.valueOf((!_isOpen));
-      }
+    final Function1<IStream<I, ?>, Boolean> _function = (IStream<I, ?> it) -> {
+      boolean _isOpen = it.isOpen();
+      return Boolean.valueOf((!_isOpen));
     };
     boolean _all = StreamSplitter.<IStream<I, ?>>all(_streams, _function);
     boolean _not = (!_all);

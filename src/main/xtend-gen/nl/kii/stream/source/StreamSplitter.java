@@ -40,11 +40,8 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     this.source = source;
     CopyOnWriteArrayList<IStream<I, ?>> _copyOnWriteArrayList = new CopyOnWriteArrayList<IStream<I, ?>>();
     this.setStreams(_copyOnWriteArrayList);
-    final Procedure1<Entry<I, O>> _function = new Procedure1<Entry<I, O>>() {
-      @Override
-      public void apply(final Entry<I, O> it) {
-        StreamSplitter.this.apply(it);
-      }
+    final Procedure1<Entry<I, O>> _function = (Entry<I, O> it) -> {
+      this.apply(it);
     };
     source.onChange(_function);
   }
@@ -55,11 +52,8 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
     {
       List<IStream<I, ?>> _streams = this.getStreams();
       _streams.add(stream);
-      final Procedure1<StreamEvent> _function = new Procedure1<StreamEvent>() {
-        @Override
-        public void apply(final StreamEvent it) {
-          StreamSplitter.this.apply(it);
-        }
+      final Procedure1<StreamEvent> _function = (StreamEvent it) -> {
+        this.apply(it);
       };
       stream.onNotify(_function);
       boolean _isReady = stream.isReady();
@@ -74,11 +68,8 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
   @Override
   public IStream<I, O> stream() {
     SubStream<I, O> _subStream = new SubStream<I, O>(this.source);
-    final Procedure1<SubStream<I, O>> _function = new Procedure1<SubStream<I, O>>() {
-      @Override
-      public void apply(final SubStream<I, O> it) {
-        StreamSplitter.this.pipe(it);
-      }
+    final Procedure1<SubStream<I, O>> _function = (SubStream<I, O> it) -> {
+      this.pipe(it);
     };
     return ObjectExtensions.<SubStream<I, O>>operator_doubleArrow(_subStream, _function);
   }
@@ -118,12 +109,9 @@ public abstract class StreamSplitter<I extends Object, O extends Object> extends
    * Utility method that only returns true if all members match the condition
    */
   protected static <T extends Object> boolean all(final Iterable<T> list, final Function1<? super T, ? extends Boolean> conditionFn) {
-    final Function1<T, Boolean> _function = new Function1<T, Boolean>() {
-      @Override
-      public Boolean apply(final T it) {
-        Boolean _apply = conditionFn.apply(it);
-        return Boolean.valueOf((!(_apply).booleanValue()));
-      }
+    final Function1<T, Boolean> _function = (T it) -> {
+      Boolean _apply = conditionFn.apply(it);
+      return Boolean.valueOf((!(_apply).booleanValue()));
     };
     T _findFirst = IterableExtensions.<T>findFirst(list, _function);
     return Objects.equal(_findFirst, null);

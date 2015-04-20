@@ -18,11 +18,8 @@ public class TestPromiseAndFuture {
   @Test
   public void testFuture() {
     try {
-      final Callable<String> _function = new Callable<String>() {
-        @Override
-        public String call() throws Exception {
-          return "hi";
-        }
+      final Callable<String> _function = () -> {
+        return "hi";
       };
       final FutureTask<String> task = new FutureTask<String>(_function);
       this.exec.submit(task);
@@ -36,11 +33,8 @@ public class TestPromiseAndFuture {
   @Test
   public void testPromise() {
     try {
-      final Callable<String> _function = new Callable<String>() {
-        @Override
-        public String call() throws Exception {
-          return "hi";
-        }
+      final Callable<String> _function = () -> {
+        return "hi";
       };
       final Promise<String> promise = ExecutorExtensions.<String>promise(this.exec, _function);
       Future<String> _future = ExecutorExtensions.<String, String>future(promise);

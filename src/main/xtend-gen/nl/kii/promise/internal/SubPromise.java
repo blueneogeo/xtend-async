@@ -35,11 +35,8 @@ public class SubPromise<I extends Object, O extends Object> extends FixedBasePro
     IPromise<I, ?> _input = parentPromise.getInput();
     this.input = _input;
     if (listenForErrors) {
-      final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
-        @Override
-        public void apply(final I i, final Throwable it) {
-          SubPromise.this.error(i, it);
-        }
+      final Procedure2<I, Throwable> _function = (I i, Throwable it) -> {
+        this.error(i, it);
       };
       this.input.on(Throwable.class, true, _function);
     }

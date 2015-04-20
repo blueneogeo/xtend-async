@@ -19,12 +19,9 @@ public class StreamMonitor {
   }
   
   public StreamStats stats(final String name) {
-    final Function1<Pair<String, StreamStats>, Boolean> _function = new Function1<Pair<String, StreamStats>, Boolean>() {
-      @Override
-      public Boolean apply(final Pair<String, StreamStats> it) {
-        String _key = it.getKey();
-        return Boolean.valueOf(Objects.equal(_key, name));
-      }
+    final Function1<Pair<String, StreamStats>, Boolean> _function = (Pair<String, StreamStats> it) -> {
+      String _key = it.getKey();
+      return Boolean.valueOf(Objects.equal(_key, name));
     };
     Pair<String, StreamStats> _findFirst = IterableExtensions.<Pair<String, StreamStats>>findFirst(this.chain, _function);
     StreamStats _value = null;

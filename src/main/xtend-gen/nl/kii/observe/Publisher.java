@@ -52,12 +52,9 @@ public class Publisher<T extends Object> extends Actor<T> implements Procedure1<
     }
     List<Procedure1<T>> _observers_1 = this.getObservers();
     _observers_1.add(((Procedure1<T>)observeFn));
-    final Procedure0 _function = new Procedure0() {
-      @Override
-      public void apply() {
-        List<Procedure1<T>> _observers = Publisher.this.getObservers();
-        _observers.remove(observeFn);
-      }
+    final Procedure0 _function = () -> {
+      List<Procedure1<T>> _observers_2 = this.getObservers();
+      _observers_2.remove(observeFn);
     };
     return _function;
   }

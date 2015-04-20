@@ -166,15 +166,12 @@ public abstract class Actor<T extends Object> implements Procedure1<T> {
         if (_equals) {
           return false;
         }
-        final Procedure0 _function = new Procedure0() {
-          @Override
-          public void apply() {
-            Actor.this.setProcessing(Boolean.valueOf(false));
-            boolean _isEmpty = Actor.this.inbox.isEmpty();
-            boolean _not = (!_isEmpty);
-            if (_not) {
-              Actor.this.processNextAsync((depth - 1));
-            }
+        final Procedure0 _function = () -> {
+          this.setProcessing(Boolean.valueOf(false));
+          boolean _isEmpty = this.inbox.isEmpty();
+          boolean _not = (!_isEmpty);
+          if (_not) {
+            this.processNextAsync((depth - 1));
           }
         };
         this.act(message, _function);

@@ -18,33 +18,21 @@ public class TestStreamMonitor {
     final StreamStats stats = new StreamStats();
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
-    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf(((it).intValue() % 3));
-      }
+    final Function1<Integer, Integer> _function = (Integer it) -> {
+      return Integer.valueOf(((it).intValue() % 3));
     };
     SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
-    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
-      @Override
-      public Integer apply(final Integer it) {
-        return Integer.valueOf((1 / (it).intValue()));
-      }
+    final Function1<Integer, Integer> _function_1 = (Integer it) -> {
+      return Integer.valueOf((1 / (it).intValue()));
     };
     SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
     IStream<Integer, Integer> _monitor = StreamExtensions.<Integer, Integer>monitor(_map_1, stats);
-    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
-      @Override
-      public void apply(final Throwable it) {
-        InputOutput.<Throwable>println(it);
-      }
+    final Procedure1<Throwable> _function_2 = (Throwable it) -> {
+      InputOutput.<Throwable>println(it);
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_monitor, Exception.class, _function_2);
-    final Procedure1<Integer> _function_3 = new Procedure1<Integer>() {
-      @Override
-      public void apply(final Integer it) {
-        InputOutput.<Integer>println(it);
-      }
+    final Procedure1<Integer> _function_3 = (Integer it) -> {
+      InputOutput.<Integer>println(it);
     };
     StreamExtensions.<Integer, Integer>onEach(_on, _function_3);
     InputOutput.<StreamStats>println(stats);
