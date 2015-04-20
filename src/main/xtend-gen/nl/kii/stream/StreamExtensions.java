@@ -2154,6 +2154,16 @@ public class StreamExtensions {
     return ObjectExtensions.<SubStream<I, R>>operator_doubleArrow(_resolve, _function);
   }
   
+  @Deprecated
+  public static <I extends Object, O extends Object> SubStream<I, O> onError(final IStream<I, O> stream, final Procedure1<? super Throwable> handler) {
+    return StreamExtensions.<I, O>on(stream, Throwable.class, handler);
+  }
+  
+  @Deprecated
+  public static <I extends Object, O extends Object> SubStream<I, O> onError(final IStream<I, O> stream, final Procedure2<? super I, ? super Throwable> handler) {
+    return StreamExtensions.<I, O>on(stream, Throwable.class, handler);
+  }
+  
   /**
    * Catch errors of the specified type coming from the stream, and call the handler with the error.
    * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
@@ -2413,16 +2423,12 @@ public class StreamExtensions {
     return _xblockexpression;
   }
   
-  /**
-   * If an error occurs, break the stream with an UncaughtStreamException
-   */
+  @Deprecated
   public static <I extends Object, O extends Object> SubStream<I, O> onErrorThrow(final IStream<I, O> stream) {
     return StreamExtensions.<I, O>onErrorThrow(stream, "onErrorThrow");
   }
   
-  /**
-   * If an error occurs, break the stream with an UncaughtStreamException
-   */
+  @Deprecated
   public static <I extends Object, O extends Object> SubStream<I, O> onErrorThrow(final IStream<I, O> stream, final String message) {
     SubStream<I, O> _xblockexpression = null;
     {

@@ -974,6 +974,16 @@ class StreamExtensions {
 
 	// MONITORING ERRORS //////////////////////////////////////////////////////
 
+	@Deprecated
+	def static <I, O> onError(IStream<I, O> stream, (Throwable)=>void handler) {
+		stream.on(Throwable, handler)
+	}
+
+	@Deprecated
+	def static <I, O> onError(IStream<I, O> stream, (I, Throwable)=>void handler) {
+		stream.on(Throwable, handler)
+	}
+	
 	/** 
 	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
 	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
@@ -1078,12 +1088,12 @@ class StreamExtensions {
 		
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
-	/** If an error occurs, break the stream with an UncaughtStreamException */	
+	@Deprecated	
 	def static <I, O> onErrorThrow(IStream<I, O> stream) {
 		stream.onErrorThrow('onErrorThrow')
 	}
 
-	/** If an error occurs, break the stream with an UncaughtStreamException */	
+	@Deprecated	
 	def static <I, O> onErrorThrow(IStream<I, O> stream, String message) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
