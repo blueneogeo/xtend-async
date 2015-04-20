@@ -373,13 +373,26 @@ class TestStreamExtensions {
 	// ERRORS /////////////////////////////////////////////////////////////////
 	
 	@Test
+	def void testErrorsCanStopStream() {
+		val errors = String.stream;
+		(1..10).stream
+			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
+			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
+			.on(Exception) [ message >> errors ] // not filtering errors here
+			.collect // so this collect fails
+			.first // convert it to a promise
+			.assertPromiseEquals(null) // promise was empty
+		assertEquals(1, errors.queue.size) // failed at first error, so only one error returned
+	}
+
+	@Test
 	def void testErrorsDontStopStream() {
 		val errors = String.stream;
 		(1..10).stream
 			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
-			.on(Exception) [ message >> errors ] // must listen for errors here
-			.collect
+			.effect(Exception) [ message >> errors ] // filter errors here
+			.collect // so this collect succeeds
 			.first
 			.assertPromiseEquals(#[1, 2, 3, 4, 6, 8, 9, 10]) // 5 and 7 are missing
 		assertEquals(2, errors.queue.size)

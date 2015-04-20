@@ -54,6 +54,7 @@ import nl.kii.stream.source.LoadBalancer;
 import nl.kii.stream.source.StreamCopySplitter;
 import nl.kii.stream.source.StreamSource;
 import nl.kii.util.Period;
+import nl.kii.util.ThrowableExtensions;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.DoubleExtensions;
@@ -2186,9 +2187,8 @@ public class StreamExtensions {
             @Override
             public void apply(final I from, final Throwable err) {
               try {
-                Class<? extends Throwable> _class = err.getClass();
-                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
-                if (_isAssignableFrom) {
+                boolean _matches = ThrowableExtensions.matches(err, errorType);
+                if (_matches) {
                   handler.apply(from, err);
                   if ((!swallow)) {
                     newStream.error(from, err);
@@ -2233,9 +2233,35 @@ public class StreamExtensions {
   }
   
   /**
-   * Catch errors of the specified type, call the handler, and swallow them from the stream chain.
+   * Catch errors of the specified type, call the handler, and pass on the error.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      @Override
+      public void apply(final I $0, final Throwable $1) {
+        handler.apply($0, $1);
+      }
+    };
+    return StreamExtensions.<I, O>on(stream, errorType, false, _function);
+  }
+  
+  /**
+   * Catch errors of the specified type, call the handler, and pass on the error.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
+    final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
+      @Override
+      public void apply(final I $0, final Throwable $1) {
+        handler.apply($1);
+      }
+    };
+    return StreamExtensions.<I, O>on(stream, errorType, false, _function);
+  }
+  
+  /**
+   * Catch errors of the specified type, call the handler, and swallow them from the stream chain.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> effect(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
       public void apply(final I $0, final Throwable $1) {
@@ -2248,7 +2274,7 @@ public class StreamExtensions {
   /**
    * Catch errors of the specified type, call the handler, and swallow them from the stream chain.
    */
-  public static <I extends Object, O extends Object> SubStream<I, O> on(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
+  public static <I extends Object, O extends Object> SubStream<I, O> effect(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Procedure1<? super Throwable> handler) {
     final Procedure2<I, Throwable> _function = new Procedure2<I, Throwable>() {
       @Override
       public void apply(final I $0, final Throwable $1) {
@@ -2292,9 +2318,8 @@ public class StreamExtensions {
             @Override
             public void apply(final I from, final Throwable err) {
               try {
-                Class<? extends Throwable> _class = err.getClass();
-                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
-                if (_isAssignableFrom) {
+                boolean _matches = ThrowableExtensions.matches(err, errorType);
+                if (_matches) {
                   final O value = mappingFn.apply(from, err);
                   newStream.push(from, value);
                 } else {
@@ -2368,9 +2393,8 @@ public class StreamExtensions {
             @Override
             public void apply(final I from, final Throwable err) {
               try {
-                Class<? extends Throwable> _class = err.getClass();
-                boolean _isAssignableFrom = errorType.isAssignableFrom(_class);
-                if (_isAssignableFrom) {
+                boolean _matches = ThrowableExtensions.matches(err, errorType);
+                if (_matches) {
                   IPromise<?, O> _apply = mappingFn.apply(from, err);
                   final Procedure1<O> _function = new Procedure1<O>() {
                     @Override
@@ -2856,7 +2880,6 @@ public class StreamExtensions {
   
   /**
    * Start the stream and and promise the first value from it.
-   * TODO: Task<R>
    */
   public static <I extends Object, O extends Object> Task then(final IStream<I, O> stream, final Procedure1<O> listener) {
     IPromise<I, O> _first = StreamExtensions.<I, O>first(stream);

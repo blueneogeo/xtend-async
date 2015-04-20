@@ -916,7 +916,7 @@ public class TestStreamExtensions {
   }
   
   @Test
-  public void testErrorsDontStopStream() {
+  public void testErrorsCanStopStream() {
     final Stream<String> errors = StreamExtensions.<String>stream(String.class);
     IntegerRange _upTo = new IntegerRange(1, 10);
     Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
@@ -943,6 +943,41 @@ public class TestStreamExtensions {
     };
     SubStream<Integer, Integer> _on = StreamExtensions.<Integer, Integer>on(_map_1, Exception.class, _function_2);
     SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_on);
+    IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
+    StreamAssert.<Integer>assertPromiseEquals(_first, null);
+    Collection<Entry<String, String>> _queue = errors.getQueue();
+    int _size = _queue.size();
+    Assert.assertEquals(1, _size);
+  }
+  
+  @Test
+  public void testErrorsDontStopStream() {
+    final Stream<String> errors = StreamExtensions.<String>stream(String.class);
+    IntegerRange _upTo = new IntegerRange(1, 10);
+    Stream<Integer> _stream = StreamExtensions.<Integer>stream(_upTo);
+    final Function1<Integer, Integer> _function = new Function1<Integer, Integer>() {
+      @Override
+      public Integer apply(final Integer it) {
+        return Integer.valueOf((((1 / ((it).intValue() - 5)) * 0) + (it).intValue()));
+      }
+    };
+    SubStream<Integer, Integer> _map = StreamExtensions.<Integer, Integer, Integer>map(_stream, _function);
+    final Function1<Integer, Integer> _function_1 = new Function1<Integer, Integer>() {
+      @Override
+      public Integer apply(final Integer it) {
+        return Integer.valueOf((((1 / ((it).intValue() - 7)) * 0) + (it).intValue()));
+      }
+    };
+    SubStream<Integer, Integer> _map_1 = StreamExtensions.<Integer, Integer, Integer>map(_map, _function_1);
+    final Procedure1<Throwable> _function_2 = new Procedure1<Throwable>() {
+      @Override
+      public void apply(final Throwable it) {
+        String _message = it.getMessage();
+        StreamExtensions.<String, String>operator_doubleGreaterThan(_message, errors);
+      }
+    };
+    SubStream<Integer, Integer> _effect = StreamExtensions.<Integer, Integer>effect(_map_1, Exception.class, _function_2);
+    SubStream<Integer, List<Integer>> _collect = StreamExtensions.<Integer, Integer>collect(_effect);
     IPromise<Integer, List<Integer>> _first = StreamExtensions.<Integer, List<Integer>>first(_collect);
     StreamAssert.<Integer>assertPromiseEquals(_first, Collections.<Integer>unmodifiableList(CollectionLiterals.<Integer>newArrayList(Integer.valueOf(1), Integer.valueOf(2), Integer.valueOf(3), Integer.valueOf(4), Integer.valueOf(6), Integer.valueOf(8), Integer.valueOf(9), Integer.valueOf(10))));
     Collection<Entry<String, String>> _queue = errors.getQueue();

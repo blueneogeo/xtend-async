@@ -45,6 +45,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.util.ThrowableExtensions.*
+
 import nl.kii.util.Period
 
 class StreamExtensions {
@@ -994,7 +996,7 @@ class StreamExtensions {
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
-					if(errorType.isAssignableFrom(err.class)) {
+					if(err.matches(errorType)) {
 						handler.apply(from, err)
 						if(!swallow) {
 							newStream.error(from, err)
@@ -1015,13 +1017,23 @@ class StreamExtensions {
 		newStream
 	}	
 
-	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
 	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		stream.on(errorType, false) [ handler.apply($0, $1) ]
+	}
+
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		stream.on(errorType, false) [ handler.apply($1) ]
+	}
+
+	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
+	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
 		stream.on(errorType, true) [ handler.apply($0, $1) ]
 	}
 
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
 		stream.on(errorType, true) [ handler.apply($1) ]
 	}
 
@@ -1039,7 +1051,7 @@ class StreamExtensions {
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
-					if(errorType.isAssignableFrom(err.class)) {
+					if(err.matches(errorType)) {
 						val value = mappingFn.apply(from, err)
 						newStream.push(from, value)
 					} else {
@@ -1068,7 +1080,7 @@ class StreamExtensions {
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
-					if(errorType.isAssignableFrom(err.class)) {
+					if(err.matches(errorType)) {
 						mappingFn.apply(from, err)
 							.then [ newStream.push(from, it) ]
 							.on(Throwable) [ newStream.error(from, it) ]
@@ -1268,7 +1280,6 @@ class StreamExtensions {
 	
 	/**
 	 * Start the stream and and promise the first value from it.
-	 * TODO: Task<R>
 	 */
 	def static <I, O> then(IStream<I, O> stream, Procedure1<O> listener) {
 		stream.first.then(listener)

@@ -5,13 +5,97 @@ import org.junit.Test
 
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
+import nl.kii.stream.Stream
 
 class TestStreamErrorHandling {
 
+	@Atomic int result
 	@Atomic int counter
 	@Atomic int errors
 	@Atomic boolean complete
 	@Atomic boolean failed
+
+
+	@Test
+	def void canMonitorErrors() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.on(Throwable) [ errors = errors + 1 ]
+			.onEach [ fail('an error should occur') ]
+		s << 1 << 2 << 3
+		assertEquals(3, errors)
+	}
+
+	@Test
+	def void canMatchErrorTypes() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.on(IllegalArgumentException) [ failed = true ]
+			.on(ArithmeticException) [ errors = errors + 1 ]
+			.onEach [ fail('an error should occur') ]
+		s << 1 << 2 << 3
+		assertEquals(false, failed)
+		assertEquals(3, errors)
+	}
+	
+	@Test
+	def void canSwallowErrorTypes() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.on(IllegalArgumentException) [ failed = true ]
+			.on(ArithmeticException) [ errors = errors + 1 ]
+			.effect(Exception) [ errors = errors + 1 ]
+			.on(Throwable) [ failed = true ]
+			.onEach [ fail('an error should occur') ]
+		s << 1 << 2 << 3
+		assertEquals(false, failed)
+		assertEquals(6, errors)
+	}
+
+	@Test
+	def void canMapErrors() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.on(IllegalArgumentException) [ failed = true ]
+			.map(ArithmeticException) [ 10 ]
+			.on(Throwable) [ failed = true ]
+			.onEach [ result = result + it ]
+		s << 1 << 2 << 3
+		assertEquals(false, failed)
+		assertEquals(30, result) // 3 results, each coverted to 10, added together
+	}
+
+	@Test
+	def void canFilterMapErrors() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.map(IllegalArgumentException) [ 10 ] // should not match, not the correct error type
+			.map(ArithmeticException) [ 20 ] // should match, convert error to 20
+			.map(Throwable) [ 30 ] // never gets triggered, map above filtered it out
+			.onEach [ result = result + it ]
+		s << 1 << 2 << 3
+		assertEquals(false, failed)
+		assertEquals(60, result) // 3 results, each coverted to 20, added together
+	}
+
+	@Test
+	def void canFilterAsyncMapErrors() {
+		val s = new Stream<Integer>
+		s
+			.map [ it / 0 ]
+			.call(IllegalArgumentException) [ 10.promise ] // should not match, not the correct error type
+			.call(ArithmeticException) [ 20.promise ] // should match, convert error to 20
+			.call(Throwable) [ 30.promise ] // never gets triggered, map above filtered it out
+			.onEach [ result = result + it ]
+		s << 1 << 2 << 3
+		assertEquals(false, failed)
+		assertEquals(60, result) // 3 results, each coverted to 20, added together
+	}
 
 	@Test
 	def void testStreamsSwallowExceptions() {
@@ -41,7 +125,7 @@ class TestStreamErrorHandling {
 				if(it == 2 || it == 4) throw new Exception
 				it
 			]
-			.on(Exception) [ incErrors ]
+			.effect(Exception) [ incErrors ]
 			.map [ it ]
 			.onEach [ incCounter ]
 			.then [ complete = true ]
@@ -174,7 +258,7 @@ class TestStreamErrorHandling {
 		s
 			.map [ it % 3 ]
 			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
-			.on(Exception) [ incErrorCount ] 
+			.effect(Exception) [ incErrorCount ] 
 			.onEach [ incCount ]
 			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
 			.then [ finished = true ]
