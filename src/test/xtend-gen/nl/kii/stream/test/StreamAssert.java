@@ -1,4 +1,4 @@
-package nl.kii.stream;
+package nl.kii.stream.test;
 
 import java.util.LinkedList;
 import java.util.List;

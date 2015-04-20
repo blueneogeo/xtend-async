@@ -1,4 +1,4 @@
-package nl.kii.stream
+package nl.kii.stream.test
 
 import java.util.LinkedList
 import java.util.List
@@ -15,7 +15,7 @@ import static extension org.junit.Assert.*
 class StreamAssert {
 	
 	/** pull all queued data from a stream put it in a list, and print any error */
-	def static <R, T> List<Entry<R, T>> gather(IStream<R, T> stream) {
+	def static <R, T> List<Entry<R, T>> gather(nl.kii.stream.IStream<R, T> stream) {
 		val data = new LinkedList<Entry<R, T>>
 		stream.on [
 			error [ data.add(new Error($0, $1)) stream.next ]
@@ -26,7 +26,7 @@ class StreamAssert {
 		data
 	}
 
-	def static <R, T> assertStreamContains(IStream<R, T> stream, Entry<R, T>... entries) {
+	def static <R, T> assertStreamContains(nl.kii.stream.IStream<R, T> stream, Entry<R, T>... entries) {
 		val data = stream.gather
 		println(data)
 		assertArrayEquals(entries, data)

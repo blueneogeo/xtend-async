@@ -5,7 +5,7 @@ import nl.kii.promise.Promise
 import org.junit.Test
 
 import static extension nl.kii.promise.PromiseExtensions.*
-import static extension nl.kii.stream.StreamAssert.*
+import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension org.junit.Assert.*
 import nl.kii.promise.Task

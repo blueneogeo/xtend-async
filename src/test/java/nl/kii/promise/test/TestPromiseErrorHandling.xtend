@@ -88,7 +88,7 @@ class TestPromiseErrorHandling {
 		p
 			.map [ it / 0 ]
 			.call(IllegalArgumentException) [ 20.promise ]
-			.call(ArithmeticException) [ println('x2') 30.promise ]
+			.call(ArithmeticException) [ 30.promise ]
 			.call(Throwable) [ 40.promise ]
 			.then [ value = it ]
 		p << 10

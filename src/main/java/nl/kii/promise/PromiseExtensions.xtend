@@ -129,19 +129,6 @@ class PromiseExtensions {
 	}
 
 	// OPERATORS //////////////////////////////////////////////////////////////
-
-	/** Check if the value of a promise equals a value */
-	def static <I, O> == (IPromise<I, O> promise, I value) {
-		switch entry : promise.get {
-			Value<I, O>: entry.value == value
-			default: false
-		}
-	}
-
-	/** Check if the value of a promise equals a value */
-	def static <I, O> == (I value, IPromise<I, O> promise) {
-		promise == value
-	}
 	
 	/** Fulfill a promise */
 	def static <I, O> >> (I value, IPromise<I, O> promise) {
@@ -260,28 +247,27 @@ class PromiseExtensions {
 		val newPromise = new SubPromise<I, O>(promise, false)
 		promise
 			// catch the specific error
-			.on(errorType, true) [ from, it |
+			.on(errorType, true) [ from, e |
 				// apply the mapping and set the result to the new promise
 				try {
 					if(!newPromise.fulfilled) {
-						val value = mappingFn.apply(from, it)
+						val value = mappingFn.apply(from, e)
 						newPromise.set(from, value)
-						println(value)
 					}
-				} catch(Exception e) {
-					newPromise.error(e)
+				} catch(Exception e2) {
+					newPromise.error(from, e2)
 				}
 			]
-			// pass a normal value
-			.then [ from, it | newPromise.set(from, it) ]
 			// if a specific error was not caught, propagate the throwable
-			//.on(Throwable) [ println('b') newPromise.error(it) ]
+			.on(Throwable) [ from, e | newPromise.error(from, e) ]
+			// pass a normal value
+			.then [ from, e | newPromise.set(from, e) ]
 		newPromise => [ operation = 'map(' + errorType.simpleName + ')' ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
-		promise.call(errorType) [ i, it | mappingFn.apply(it) ]
+		promise.call(errorType) [ i, e | mappingFn.apply(e) ]
 	}
 			
 	/** Asynchronously map an error back to a value. Swallows the error. */
@@ -289,20 +275,20 @@ class PromiseExtensions {
 		val newPromise = new SubPromise<I, O>(new Promise<I>, false)
 		promise
 			// catch the specific error
-			.on(errorType, true) [ from, it |
+			.on(errorType, true) [ from, e |
 				// apply the mapping and set the result to the new promise
 				try {
-					mappingFn.apply(from, it)
+					mappingFn.apply(from, e)
 						.on(Throwable) [ newPromise.error(from, it) ]
 						.then [ newPromise.set(from, it) ]
-				} catch(Exception e) {
-					newPromise.error(e)
+				} catch(Exception e2) {
+					newPromise.error(from, e2)
 				}
 			]
-			// pass a normal value
-			.then [ from, it | newPromise.set(from, it) ]
 			// if a specific error was not caught, propagate the throwable
-			.on(Throwable) [ newPromise.error(it) ]
+			.on(Throwable) [ from, e | newPromise.error(from, e) ]
+			// pass a normal value
+			.then [ from, e | newPromise.set(from, e) ]
 		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
 	}
 
@@ -322,9 +308,9 @@ class PromiseExtensions {
 	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
 		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
 		promise
-			.on(Throwable) [ r, it | newPromise.error(inputFn.apply(r, null), it) ]
+			.on(Throwable) [ r, e | newPromise.error(inputFn.apply(r, null), e) ]
 			.then [ r, it | newPromise.set(inputFn.apply(r, it), it) ]
-		newPromise => [ operation = 'root' ]
+		newPromise => [ operation = 'input' ]
 	}
 	
 	/** Create a stream out of a promise of a stream. */
@@ -340,7 +326,7 @@ class PromiseExtensions {
 	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
-			.on(Throwable) [ r, it | newPromise.error(r, it) ]
+			.on(Throwable) [ r, e | newPromise.error(r, e) ]
 			.then [ r, p |
 				p
 					.then [ newPromise.set(r, it) ]

@@ -1,5 +1,6 @@
 package nl.kii.async.annotation.test;
 
+import com.google.common.base.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,13 +38,20 @@ public class TestAsyncAnnotation {
   public void testAsyncTask() {
     final AtomicBoolean result = new AtomicBoolean();
     Task _printHello = this.printHello("world");
-    final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
+    final Procedure1<Throwable> _function = new Procedure1<Throwable>() {
       @Override
-      public void apply(final Boolean it) {
-        result.set((it).booleanValue());
+      public void apply(final Throwable it) {
+        InputOutput.<Throwable>println(it);
       }
     };
-    _printHello.then(_function);
+    IPromise<Boolean, Boolean> _on = PromiseExtensions.<Boolean, Boolean>on(_printHello, Throwable.class, _function);
+    final Procedure1<Boolean> _function_1 = new Procedure1<Boolean>() {
+      @Override
+      public void apply(final Boolean it) {
+        result.set(true);
+      }
+    };
+    _on.then(_function_1);
     boolean _get = result.get();
     Assert.assertTrue(_get);
   }
@@ -75,7 +83,7 @@ public class TestAsyncAnnotation {
     try {
       final AtomicBoolean success = new AtomicBoolean();
       final ExecutorService exec = Executors.newCachedThreadPool();
-      Task _printHello = this.printHello(exec, "christian");
+      Task _printHello = this.printHello(exec, "world");
       final Procedure1<Boolean> _function = new Procedure1<Boolean>() {
         @Override
         public void apply(final Boolean it) {
@@ -101,7 +109,7 @@ public class TestAsyncAnnotation {
     try {
       Task _xblockexpression = null;
       {
-        boolean _equals = PromiseExtensions.<String, Object>operator_equals(name, null);
+        boolean _equals = Objects.equal(name, null);
         if (_equals) {
           throw new Exception("name cannot be empty");
         }

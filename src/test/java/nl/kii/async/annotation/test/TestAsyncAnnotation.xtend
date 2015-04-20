@@ -26,7 +26,8 @@ class TestAsyncAnnotation {
 	def void testAsyncTask() {
 		val result = new AtomicBoolean
 		printHello('world')
-			.then [ result.set(it) ]
+			.on(Throwable) [ println(it) ]
+			.then [ result.set(true) ]
 		assertTrue(result.get)
 	}
 
@@ -43,7 +44,7 @@ class TestAsyncAnnotation {
 	def void testAsyncTaskOnExecutor() {
 		val success = new AtomicBoolean
 		val exec = newCachedThreadPool
-		exec.printHello('christian').then [ success.set(true) ]
+		exec.printHello('world').then [ success.set(true) ]
 		Thread.sleep(10)
 		assertTrue(success.get)
 	}

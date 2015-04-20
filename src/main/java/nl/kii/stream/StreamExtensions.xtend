@@ -1321,7 +1321,7 @@ class StreamExtensions {
 	 * <p>
 	 * Example: 
 	 * <pre>
-	 * stream.monitor [
+	 * stream.when [
 	 *     next [ println('next was called on the stream') ]
 	 *     close [ println('the stream was closed') ]
 	 * ]
@@ -1366,7 +1366,7 @@ class StreamExtensions {
 
 	/** Perform some side-effect action based on the stream. */
 	def static <I, O> perform(IStream<I, O> stream, (I, O)=>IPromise<?,?> promiseFn) {
-		stream.perform2(stream.concurrency, promiseFn)
+		stream.perform(stream.concurrency, promiseFn)
 	}
 
 	/** 
@@ -1374,14 +1374,14 @@ class StreamExtensions {
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
 	def static <I, O> perform(IStream<I, O> stream, int concurrency, (O)=>IPromise<?, ?> promiseFn) {
-		stream.perform2(concurrency) [ i, o | promiseFn.apply(o) ]
+		stream.perform(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
 
 	/** 
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
-	def static <I, O> perform2(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
+	def static <I, O> perform(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
 		stream.call(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
 			=> [ stream.operation = 'perform(concurrency=' + concurrency + ')' ]
 	}

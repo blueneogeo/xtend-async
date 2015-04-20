@@ -1777,7 +1777,7 @@ public class StreamExtensions {
             @Override
             public void apply(final I $0, final O $1) {
               List<O> _get = list.get();
-              boolean _equals = PromiseExtensions.<List<O>, Object>operator_equals(_get, null);
+              boolean _equals = Objects.equal(_get, null);
               if (_equals) {
                 LinkedList<O> _newLinkedList = CollectionLiterals.<O>newLinkedList();
                 list.set(_newLinkedList);
@@ -2944,7 +2944,7 @@ public class StreamExtensions {
    * <p>
    * Example:
    * <pre>
-   * stream.monitor [
+   * stream.when [
    *     next [ println('next was called on the stream') ]
    *     close [ println('the stream was closed') ]
    * ]
@@ -3034,7 +3034,7 @@ public class StreamExtensions {
    */
   public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
     Integer _concurrency = stream.getConcurrency();
-    return StreamExtensions.<I, O>perform2(stream, (_concurrency).intValue(), promiseFn);
+    return StreamExtensions.<I, O>perform(stream, (_concurrency).intValue(), promiseFn);
   }
   
   /**
@@ -3048,14 +3048,14 @@ public class StreamExtensions {
         return promiseFn.apply(o);
       }
     };
-    return StreamExtensions.<I, O>perform2(stream, concurrency, _function);
+    return StreamExtensions.<I, O>perform(stream, concurrency, _function);
   }
   
   /**
    * Perform some asynchronous side-effect action based on the stream.
    * Perform at most 'concurrency' calls in parallel.
    */
-  public static <I extends Object, O extends Object> SubStream<I, O> perform2(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
+  public static <I extends Object, O extends Object> SubStream<I, O> perform(final IStream<I, O> stream, final int concurrency, final Function2<? super I, ? super O, ? extends IPromise<?, ?>> promiseFn) {
     final Function2<I, O, SubPromise<?, O>> _function = new Function2<I, O, SubPromise<?, O>>() {
       @Override
       public SubPromise<?, O> apply(final I i, final O o) {

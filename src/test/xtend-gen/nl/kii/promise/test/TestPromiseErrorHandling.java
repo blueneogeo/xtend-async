@@ -277,12 +277,7 @@ public class TestPromiseErrorHandling {
     final Function1<Throwable, IPromise<?, Integer>> _function_2 = new Function1<Throwable, IPromise<?, Integer>>() {
       @Override
       public IPromise<?, Integer> apply(final Throwable it) {
-        Promise<Integer> _xblockexpression = null;
-        {
-          InputOutput.<String>println("x2");
-          _xblockexpression = PromiseExtensions.<Integer>promise(Integer.valueOf(30));
-        }
-        return _xblockexpression;
+        return PromiseExtensions.<Integer>promise(Integer.valueOf(30));
       }
     };
     SubPromise<Integer, Integer> _call_1 = PromiseExtensions.<Integer, Integer>call(_call, ArithmeticException.class, _function_2);

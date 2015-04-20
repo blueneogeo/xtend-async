@@ -5,37 +5,30 @@ import java.util.concurrent.FutureTask
 import org.junit.Test
 
 import static extension nl.kii.async.ExecutorExtensions.*
-import static extension nl.kii.promise.PromiseExtensions.*
+import static extension org.junit.Assert.*
 
-class PromiseAndFuture {
+class TestPromiseAndFuture {
 	
 	val exec = Executors.newCachedThreadPool
 	
 	@Test
 	def void testFuture() {
 		
-		val task = new FutureTask [
-			'hi'
-		]
+		val task = new FutureTask ['hi']
 		exec.submit(task)
-		
 		val result = task.get
 		
-		println(result)
+		assertEquals('hi', result)
 		
 	}
 	
 	@Test
 	def void testPromise() {
 		
-		val promise = exec.promise [10]
+		val promise = exec.promise ['hi']
+		val result = promise.future.get
 		
-		promise
-			.map [ it + 10 ]
-			.then [ println(it) ]
-			.on(Throwable) [ println(it) ]
-		
-		Thread.sleep(100)
+		assertEquals('hi', result)
 		
 	}
 	
