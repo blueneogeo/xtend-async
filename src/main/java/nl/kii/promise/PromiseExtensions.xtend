@@ -2,6 +2,7 @@ package nl.kii.promise
 
 import java.util.List
 import java.util.Map
+import nl.kii.promise.internal.PromiseException
 import nl.kii.promise.internal.SubPromise
 import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
@@ -237,6 +238,14 @@ class PromiseExtensions {
 	
 	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
 
+	/** 
+	 * Map an error to a new PromiseException with a message, 
+	 * passing the value, and with the original error as the cause.
+	 */
+	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, String message) {
+		promise.effect(errorType) [ from, e | throw new PromiseException(message, from, e) ]
+	}
+
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
 		promise.map(errorType) [ from, it | mappingFn.apply(it) ]
@@ -390,7 +399,7 @@ class PromiseExtensions {
 	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
 		promise.on(Throwable) [ i, t | throw new Exception(message + ', for input ' + i, t) ]
 	}
-	
+
 	/** Convert or forward a promise to a task */	
 	def static <I, O> asTask(IPromise<I, O> promise) {
 		val task = new Task

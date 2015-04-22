@@ -5,6 +5,7 @@ import java.util.Map;
 import nl.kii.promise.IPromise;
 import nl.kii.promise.Promise;
 import nl.kii.promise.Task;
+import nl.kii.promise.internal.PromiseException;
 import nl.kii.promise.internal.SubPromise;
 import nl.kii.stream.Stream;
 import nl.kii.stream.StreamExtensions;
@@ -397,6 +398,21 @@ public class PromiseExtensions {
    */
   public static <I extends Object, O extends Object> IPromise<I, O> effect(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final Procedure2<? super I, ? super Throwable> handler) {
     return promise.on(errorType, true, ((Procedure2<I, Throwable>)handler));
+  }
+  
+  /**
+   * Map an error to a new PromiseException with a message,
+   * passing the value, and with the original error as the cause.
+   */
+  public static <I extends Object, O extends Object> IPromise<I, O> map(final IPromise<I, O> promise, final Class<? extends Throwable> errorType, final String message) {
+    final Procedure2<I, Throwable> _function = (I from, Throwable e) -> {
+      try {
+        throw new PromiseException(message, from, e);
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
+      }
+    };
+    return PromiseExtensions.<I, O>effect(promise, errorType, _function);
   }
   
   /**
