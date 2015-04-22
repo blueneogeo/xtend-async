@@ -1039,6 +1039,14 @@ class StreamExtensions {
 
 	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
 	
+	/** 
+	 * Map an error to a new StreamException with a message, 
+	 * passing the value, and with the original error as the cause.
+	 */
+	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
+		stream.effect(errorType) [ from, e | throw new StreamException(message, from, e) ]
+	}
+	
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
 		stream.map(errorType) [ input, err | mappingFn.apply(err) ]

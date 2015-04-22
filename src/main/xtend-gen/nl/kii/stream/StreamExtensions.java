@@ -1807,6 +1807,21 @@ public class StreamExtensions {
   }
   
   /**
+   * Map an error to a new StreamException with a message,
+   * passing the value, and with the original error as the cause.
+   */
+  public static <I extends Object, O extends Object> SubStream<I, O> map(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final String message) {
+    final Procedure2<I, Throwable> _function = (I from, Throwable e) -> {
+      try {
+        throw new StreamException(message, from, e);
+      } catch (Throwable _e) {
+        throw Exceptions.sneakyThrow(_e);
+      }
+    };
+    return StreamExtensions.<I, O>effect(stream, errorType, _function);
+  }
+  
+  /**
    * Map an error back to a value. Swallows the error.
    */
   public static <I extends Object, O extends Object> SubStream<I, O> map(final IStream<I, O> stream, final Class<? extends Throwable> errorType, final Function1<? super Throwable, ? extends O> mappingFn) {
