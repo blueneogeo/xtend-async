@@ -1,19 +1,29 @@
-apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply from: 'gradle/xtend.gradle'
- 
-repositories {
-	mavenLocal()
-	mavenCentral()
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "org.xtend:xtend-gradle-plugin:0.4.+"
+    }
 }
 
-dependencies {
-	compile 'com.kimengi.util:xtend-tools:7.0-SNAPSHOT'
-	compile 'com.kimengi.util:xtend-async-annotations:3.1'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.xtend.xtend'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
-	testCompile 'junit:junit:4.+'
+repositories {
+    mavenLocal()
+    mavenCentral()
+} 
+ 
+dependencies {
+    compile project(':xtend-tools')
+	compile project(':xtend-async-annotations')
+    testCompile 'junit:junit:4.+'  	
 }
 
 tasks.jar.dependsOn javadoc
@@ -24,13 +34,4 @@ publishing {
 			from components.java
 		}
 	}
-	/*
-	repositories {
-		url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-		credentials {
-			username = sona_username
-			password = sona_password
-		}
-	}
-	*/
 }
