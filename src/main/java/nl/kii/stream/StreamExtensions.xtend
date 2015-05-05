@@ -990,7 +990,7 @@ class StreamExtensions {
 	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
 	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
 	 */	
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
+	package def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
@@ -1000,14 +1000,14 @@ class StreamExtensions {
 						handler.apply(from, err)
 						if(!swallow) {
 							newStream.error(from, err)
-						}
+						} else {
+							stream.next
+						} 
 					} else {
 						newStream.error(from, err)
 					}
 				} catch(Throwable t) {
 					newStream.error(from, t)
-				} finally {
-					stream.next 
 				}
 			]
 			finish [ newStream.finish($0, $1) ]
@@ -1015,38 +1015,74 @@ class StreamExtensions {
 		]
 		newStream.controls(stream)
 		newStream
-	}	
-
-	/** Catch errors of the specified type, call the handler, and pass on the error. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		stream.on(errorType, false) [ handler.apply($0, $1) ]
 	}
+	
+	// RESPOND TO ERRORS, BUT DO NOT SWALLOW THE ERROR ////////////////////////
 
 	/** Catch errors of the specified type, call the handler, and pass on the error. */
 	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
 		stream.on(errorType, false) [ handler.apply($1) ]
 	}
 
-	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
-	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		stream.on(errorType, true) [ handler.apply($0, $1) ]
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		stream.on(errorType, false) [ handler.apply($0, $1) ]
 	}
+
+	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
+
+	/** 
+	 * Map an error to a new StreamException with a message. 
+	 * passing the value, and with the original error as the cause.
+	 */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
+		stream.effect(errorType) [ from, e | throw new StreamException(message, from, e) ]
+	}
+
+	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
 
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
 	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
 		stream.on(errorType, true) [ handler.apply($1) ]
 	}
-
-	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
 	
-	/** 
-	 * Map an error to a new StreamException with a message, 
-	 * passing the value, and with the original error as the cause.
-	 */
-	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
-		stream.effect(errorType) [ from, e | throw new StreamException(message, from, e) ]
+	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
+	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		stream.on(errorType, true) [ handler.apply($0, $1) ]
+	}
+
+	// TRANSFORM ERRORS INTO AN ASYNCHRONOUS SIDEEFFECT ////////////////////////
+
+	def static <I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>P handler) {
+		stream.perform(errorType) [ i, e | handler.apply(e) ]
 	}
 	
+	def static <I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>P handler) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ newStream.push($0, $1) ]
+			error [ from, err |
+				try {
+					if(err.matches(errorType)) {
+						handler.apply(from, err)
+							.then [ stream.next ]
+							.on(Throwable) [ newStream.error(from, it) ]
+					} else {
+						newStream.error(from, err)
+					}
+				} catch(Throwable t) {
+					newStream.error(from, t)
+				}
+			]
+			finish [ newStream.finish($0, $1) ]
+			closed [ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream
+	}
+
+	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
+
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
 		stream.map(errorType) [ input, err | mappingFn.apply(err) ]
@@ -1075,6 +1111,8 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+
+	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
