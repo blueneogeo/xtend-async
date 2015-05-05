@@ -44,7 +44,8 @@ class TestMultiThreadedProcessing {
 			.map [ power2 ].resolve(1)
 			.map [ it + 1 ]
 			.map[ power2 ].resolve(1)
-			.onEach [ result.get.add(it) ]
+			.effect [ result.get.add(it) ]
+			.start
 		0.assertEquals(result.get.size)
 		Thread.sleep(700) 
 		3.assertEquals(result.get.size)
@@ -65,7 +66,8 @@ class TestMultiThreadedProcessing {
 			.map [ power2 ]
 			.resolve
 			.on(Exception) [ result.incrementAndGet ]
-			.onEach [ println('result ' + it) ]
+			.effect [ println('result ' + it) ]
+			.start
 		Thread.sleep(500)
 		3.assertEquals(result.get)
 	}

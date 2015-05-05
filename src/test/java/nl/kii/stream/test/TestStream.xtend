@@ -10,7 +10,7 @@ import org.junit.Test
 
 import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
-import static extension nl.kii.promise.PromiseExtensions.*
+
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 
@@ -62,7 +62,8 @@ class TestStream {
 		s
 			.filter [ it != 2 ]
 			.map [ it + 1 ]
-			.onEach [ counter.addAndGet(it) ]
+			.effect [ counter.addAndGet(it) ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(6, counter.get)
 		s << 1
@@ -73,9 +74,7 @@ class TestStream {
 	def void testBufferedStream() {
 		val counter = new AtomicInteger(0)
 		val s = new Stream<Integer> << 1 << 2 << 3
-		s.onEach [ 
-			counter.addAndGet(it)
-		]
+		s.effect [ counter.addAndGet(it) ].start
 		assertEquals(6, counter.get)
 	}
 	
@@ -131,8 +130,9 @@ class TestStream {
 		val s = new Stream<Integer>
 		// now try to catch the error
 		s
-			.onEach [ println(1/it) ]
+			.effect [ println(1/it) ]
 			.on(Throwable) [ println('!!') error = it ]
+			.start
 		s << 1 << 0
 		assertNotNull(error)
 	}
@@ -154,7 +154,7 @@ class TestStream {
 		threads.task [ for(i : 0..999) s << 1 ]
 		threads.task [ for(i : 1000..1999) s << 2 ]
 		threads.task [ for(i : 2000..2999)	s << 3 ]
-		s2.onEach [ incSum ]
+		s2.effect[ incSum ].start
 		Thread.sleep(1000)
 		assertEquals(0, overflow)
 		assertEquals(3000, sum)

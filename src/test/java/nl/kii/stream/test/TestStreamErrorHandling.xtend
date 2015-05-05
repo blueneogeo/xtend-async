@@ -22,7 +22,8 @@ class TestStreamErrorHandling {
 		s
 			.map [ it / 0 ]
 			.on(Throwable) [ errors = errors + 1 ]
-			.onEach [ fail('an error should occur') ]
+			.effect [ fail('an error should occur') ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(3, errors)
 	}
@@ -34,7 +35,8 @@ class TestStreamErrorHandling {
 			.map [ it / 0 ]
 			.on(IllegalArgumentException) [ failed = true ]
 			.on(ArithmeticException) [ errors = errors + 1 ]
-			.onEach [ fail('an error should occur') ]
+			.effect [ fail('an error should occur') ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
 		assertEquals(3, errors)
@@ -49,7 +51,8 @@ class TestStreamErrorHandling {
 			.on(ArithmeticException) [ errors = errors + 1 ]
 			.effect(Exception) [ errors = errors + 1 ]
 			.on(Throwable) [ failed = true ]
-			.onEach [ fail('an error should occur') ]
+			.effect [ fail('an error should occur') ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
 		assertEquals(6, errors)
@@ -63,7 +66,8 @@ class TestStreamErrorHandling {
 			.on(IllegalArgumentException) [ failed = true ]
 			.map(ArithmeticException) [ 10 ]
 			.on(Throwable) [ failed = true ]
-			.onEach [ result = result + it ]
+			.effect [ result = result + it ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
 		assertEquals(30, result) // 3 results, each coverted to 10, added together
@@ -77,7 +81,8 @@ class TestStreamErrorHandling {
 			.map(IllegalArgumentException) [ 10 ] // should not match, not the correct error type
 			.map(ArithmeticException) [ 20 ] // should match, convert error to 20
 			.map(Throwable) [ 30 ] // never gets triggered, map above filtered it out
-			.onEach [ result = result + it ]
+			.effect [ result = result + it ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
 		assertEquals(60, result) // 3 results, each coverted to 20, added together
@@ -91,7 +96,8 @@ class TestStreamErrorHandling {
 			.call(IllegalArgumentException) [ 10.promise ] // should not match, not the correct error type
 			.call(ArithmeticException) [ 20.promise ] // should match, convert error to 20
 			.call(Throwable) [ 30.promise ] // never gets triggered, map above filtered it out
-			.onEach [ result = result + it ]
+			.effect [ result = result + it ]
+			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
 		assertEquals(60, result) // 3 results, each coverted to 20, added together
@@ -107,7 +113,8 @@ class TestStreamErrorHandling {
 				it
 			]
 			.map [ it ]
-			.onEach [ incCounter ]
+			.effect [ incCounter ]
+			.start
 			.then [ complete = true ]
 		s << 1 << 2 << 3 << 4 << 5 finish
 		// gets here without an error, and there were two errors, for 2 and 4
@@ -127,7 +134,8 @@ class TestStreamErrorHandling {
 			]
 			.effect(Exception) [ incErrors ]
 			.map [ it ]
-			.onEach [ incCounter ]
+			.effect [ incCounter ]
+			.start
 			.then [ complete = true ]
 			.on(Throwable) [ failed = true ]
 		s << 1 << 2 << 3 << 4 << 5 << finish
@@ -150,7 +158,8 @@ class TestStreamErrorHandling {
 			]
 			.collect
 			.on(Exception) [ println('error ' + it) ]
-			.onEach [ println('result : ' + it) ]
+			.effect [ println('result : ' + it) ]
+			.start
 			.then [ println('done') ]
 			.on(Throwable) [ fail(message) ]
 	}
@@ -167,7 +176,8 @@ class TestStreamErrorHandling {
 			]
 			.collect
 			.on(Exception) [ println('error ' + it) ]
-			.onEach [ println('result : ' + it) ]
+			.effect [ println('result : ' + it) ]
+			.start
 			.then [ println('done') ]
 			.on(Throwable) [ fail(message) ]
 	}
@@ -183,7 +193,8 @@ class TestStreamErrorHandling {
 			]
 			.collect
 			.on(Exception) [ println('error ' + it) ]
-			.onEach [ println('result : ' + it) ]
+			.effect [ println('result : ' + it) ]
+			.start
 			.then [ println('done') ]
 			.on(Throwable) [ 
 				println('error')
@@ -202,13 +213,6 @@ class TestStreamErrorHandling {
 			
 	}
 
-
-
-
-
-
-
-
 	@Atomic Throwable caught
 
 	@Test
@@ -220,7 +224,7 @@ class TestStreamErrorHandling {
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
 				.on(Exception) [ caught = it ] // below the filter method, above the oneach, will filter out the error
-				.onEach [ ]
+				.start
 			s << 1 << 2 << finish
 		} catch(Exception e) {
 			fail('error should be handled')
@@ -236,7 +240,7 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.filter [ 1 / (it % 2) == 0 ] // division by 0 for 2
 				.map [ it ]
-				.onEach [ ]
+				.start
 				.on(Throwable) [ caught = it ] // below onEach, listening to the created task
 			s << 1 << 2 << finish
 		} catch(Exception e) {
@@ -259,7 +263,8 @@ class TestStreamErrorHandling {
 			.map [ it % 3 ]
 			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
 			.effect(Exception) [ incErrorCount ] 
-			.onEach [ incCount ]
+			.effect [ incCount ]
+			.start
 			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
 			.then [ finished = true ]
 			

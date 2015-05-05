@@ -15,7 +15,8 @@ class TestStreaming {
 		s
 			.map [ 'http://' + it ]
 			.call [ loadPage ]
-			.onEach [ println('got ' + it) ]
+			.effect [ println('got ' + it) ]
+			.start
 
 		s << 'cnn.com' << 'cnn.com' << 'cnn.com' << 'cnn.com' << 'cnn.com' << 'cnn.com' << 'cnn.com'
 	}

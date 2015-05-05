@@ -61,7 +61,8 @@ class TestStreamExtensions {
 	@Test
 	def void testTaskReturning() {
 		(1..3).stream
-			.onEach [ println('x') incCounter ]
+			.effect [ println('x') incCounter ]
+			.start
 			//.then [ calledThen = true ]
 //		assertTrue(calledThen)
 		assertEquals(3, counter)
@@ -80,8 +81,8 @@ class TestStreamExtensions {
 		val s1 = publisher.stream
 		val s2 = publisher.stream
 		
-		s1.onEach [ count1.addAndGet(it) ]
-		s2.onEach [ count2.addAndGet(it) ]
+		s1.effect [ count1.addAndGet(it) ].start
+		s2.effect [ count2.addAndGet(it) ].start
 		
 		s << 1 << 2 << 3
 		// both counts are listening, both should increase
@@ -304,7 +305,8 @@ class TestStreamExtensions {
 	def void testFlatMap() {
 		#[1..10, 11..20, 21..30].streamList
 			.flatMap [ datastream(it) ]
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
+			.start
 			// .assertStreamContains((1..30).map[value(null)])
 	}
 
@@ -366,8 +368,9 @@ class TestStreamExtensions {
 		#[ #[1, 2, 3], #[4, 5] ]
 			.streamList
 			.separate
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
 			.on(Throwable) [ fail(message) ]
+			.start
 	}
 	
 	// ERRORS /////////////////////////////////////////////////////////////////
@@ -404,15 +407,16 @@ class TestStreamExtensions {
 	@Test
 	def void testErrorsDontStopStream2() {
 		val s = int.stream
-			s.onEach [
+			s.effect [
 				if(it == 3 || it == 5) throw new Exception('should not break the stream') 
 				else incValueCount
 			]
 			.on(Throwable) [ incErrorCount ]
+			.start
 		// onError can catch the errors
 		for(i : 1..10) s << i
 		assertEquals(10 - 2, valueCount)
-		assertEquals(1, errorCount)
+		assertEquals(2, errorCount)
 	}
 	
 	@Test
@@ -422,8 +426,9 @@ class TestStreamExtensions {
 				if(it == 3 || it == 5) throw new Exception('should not break the stream')
 				it
 			]
+			.effect [ incValueCount ]
 			.on(Exception) [ incErrorCount ]
-			.onEach [ incValueCount ]
+			.start
 		assertEquals(10 - 2, valueCount)
 		assertEquals(2, errorCount)
 	}
@@ -491,10 +496,8 @@ class TestStreamExtensions {
 			.map(doSomethingAsync)
 			.resolve(3)
 			.collect
-			.onEach [
-				println('got: ' + it)
-			]
-			//.onEach [ println('got: ' + it)	]
+			.effect [ println('got: ' + it) ]
+			.start
 		s << 'f' << 'g' << finish << 'h' << finish
 		s << 'd' << 'e' << finish
 		s << 'a' << 'b' << 'c' << finish
@@ -556,7 +559,7 @@ class TestStreamExtensions {
 		// val s2 = int.stream
 		// s1.pipe(s2)
 		val s2 = s1.split.stream
-		s2.onEach [ println(it) ].then [ println('done') ]
+		s2.effect [ println(it) ].then [ println('done') ]
 		//s2.count.then [ assertEquals(1_000, it, 0) ]
 	}
 	
@@ -568,7 +571,8 @@ class TestStreamExtensions {
 		val s2 = p.toStream
 		s2
 			.on(Exception) [ fail(message) ]
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
+			.start
 			.assertPromiseEquals(true)
 	}
 
@@ -580,13 +584,14 @@ class TestStreamExtensions {
 		s << 1 << 2 << finish
 		val s2 = p.toStream
 		s2
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
+			.start
 			.assertPromiseEquals(true)
 	}
 	
 	@Test
 	def void testThrottle() {
-		(1..1000).stream.throttle(10).onEach [ println(it) ]
+		(1..1000).stream.throttle(10).effect [ println(it) ].start
 	}
 	
 	@Test
@@ -596,7 +601,7 @@ class TestStreamExtensions {
 			new Timer().schedule([ doneFn.apply ], period)
 		]
 		val limited = stream.ratelimit(100, delayFn).ratelimit(500, delayFn)
-		limited.onEach [ println(it) ]
+		limited.effect [ println(it) ].start
 		Thread.sleep(5000)
 	}
 
@@ -612,7 +617,8 @@ class TestStreamExtensions {
 			.map [ 1000 / (2-it) * 1000 ]
 		limited
 			.on(Exception) [ println(it) ]
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
+			.start
 		Thread.sleep(5000)
 	}
 	
@@ -625,7 +631,8 @@ class TestStreamExtensions {
 		val newStream = int.stream			
 		newStream
 			.window(500, delayFn)
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
+			.start;
 
 		(1..1000).stream
 			.ratelimit(100, delayFn)

@@ -174,7 +174,7 @@ class TestActor {
 		val listSize = 1000
 		val list = (1..listSize)
 		val funct = [ list.map [ it + 1000].filter [ it % 2 == 0 ].forEach [ incFunctCounter ] ]
-		val actor = actor [ list.stream.map [ it + 1000].filter [ it % 2 == 0 ].onEach [ incActorCounter ] ]
+		val actor = actor [ list.stream.map [ it + 1000].filter [ it % 2 == 0 ].effect [ incActorCounter ].start ]
 
 		// warm up
 		for(i : 1..100) actor.apply(i)

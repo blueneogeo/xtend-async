@@ -59,18 +59,4 @@ class TestAsyncAnnotation {
 		task.complete
 	}
 
-	/* 
-	 * Currently not supported because Xtend AA's do not fully support typeparameters
-	 * 	
-	@Test
-	def void testStaticGenerticPromise() {
-		val p = justPromise('test')
-		assertEquals('test', p.get)
-	}
-	
-	@Async static def <T> justPromise(T value, Promise<T> promise) {
-		promise.set(value)
-	}
-	*/
-	
 }

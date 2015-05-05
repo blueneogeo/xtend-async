@@ -27,7 +27,7 @@ class SubPromise<I, O> extends FixedBasePromise<I, O> {
 	/** Constructor to allow control of error listening */	
 	new(IPromise<I, ?> parentPromise, boolean listenForErrors) {
 		this.input = parentPromise.input
-		if(listenForErrors) this.input.on(Throwable, true) [ i, it | error(i, it) ]
+		if(listenForErrors) this.input?.on(Throwable, true) [ i, it | error(i, it) ]
 	}
 
 	override getInput() { input }

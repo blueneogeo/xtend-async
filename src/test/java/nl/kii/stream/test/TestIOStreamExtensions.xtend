@@ -16,7 +16,7 @@ class TestIOStreamExtensions {
 		file.stream
 			.toText
 			.map [ '- ' + it ]
-			.onEach [ println(it) ]
+			.effect [ println(it) ]
 			.then [ println('finish') ]
 	}
 	

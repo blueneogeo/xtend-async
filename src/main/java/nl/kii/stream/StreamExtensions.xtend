@@ -1108,6 +1108,31 @@ class StreamExtensions {
 		
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 
+	/** 
+	 * Start the stream by asking for the next value, and keep asking for the next value
+	 * until the stream ends.
+	 * @return a task that either contains an error if the stream had errors, or completes if the stream completes 
+	 */
+	def static <I, O> SubTask<I> start(IStream<I, O> stream) {
+		val task = new SubTask<I>
+		stream.on [
+			each [ stream.next ]
+			error [ task.error($0, $1) stream.next ]
+			finish [
+				if($1 == 0) task.complete($0)
+				stream.next
+			]
+			closed [
+				task.complete(null)
+				stream.close
+			]
+		] 
+		stream.operation = 'start'
+		stream.next // this kicks off the stream
+		task
+	}
+	
+
 	@Deprecated	
 	def static <I, O> onErrorThrow(IStream<I, O> stream) {
 		stream.onErrorThrow('onErrorThrow')
@@ -1149,14 +1174,17 @@ class StreamExtensions {
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
+	@Deprecated
 	def static <I, O> SubTask<I> onEach(IStream<I, O> stream, (O)=>void handler) {
 		stream.onEach [ r, it | handler.apply(it) ]
 	}
 
 	/** 
+	 * Deprecated, instead use stream.effect[].start
 	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
+	@Deprecated
 	def static <I, O> SubTask<I> onEach(IStream<I, O> stream, (I, O)=>void handler) {
 		val task = new SubTask<I>
 		stream.on [
@@ -1174,10 +1202,12 @@ class StreamExtensions {
 	}
 
 	/**
+	 * Deprecated, instead use stream.call[].start
 	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
+	@Deprecated
 	def static <I, I2, O, R, P extends IPromise<I2, R>> onEachCall(IStream<I, O> stream, (I, O)=>P taskFn) {
 		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
@@ -1185,10 +1215,12 @@ class StreamExtensions {
 	}
 
 	/**
+	 * Deprecated, instead use stream.call[].start
 	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
 	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
 	 * Returns a task that completes once the stream finishes or closes.
 	 */
+	@Deprecated
 	def static <I, I2, O, R, P extends IPromise<I2, R>> onEachCall(IStream<I, O> stream, (O)=>P taskFn) {
 		stream.map(taskFn).resolve.onEach [
 			// just ask for the next 
