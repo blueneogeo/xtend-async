@@ -33,10 +33,17 @@ class SubPromise<I, O> extends FixedBasePromise<I, O> {
 	override getInput() { input }
 
 	/** set the promised value */
-	override set(I value) { input?.set(value) }
+	override set(I value) {
+		if(input == null) throw new PromiseException('SubPromise has no input, use error(from, t) instead.', null) 
+		input.set(value)
+	}
 
 	/** report an error to the listener of the promise. */
-	override error(Throwable t) { input?.error(t) this }
+	override error(Throwable t) { 
+		if(input == null) throw new PromiseException('SubPromise has no input, use error(from, t) instead.', t)
+		input.error(t) 
+		this
+	}
 	
 	/** set the promised value */
 	def void set(I from, O value) { apply(new Value(from, value)) }

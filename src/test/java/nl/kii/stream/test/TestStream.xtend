@@ -13,13 +13,33 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
+
+import nl.kii.async.annotation.Async
+import nl.kii.promise.Promise
+import java.util.List
 
 class TestStream {
 
 	val threads = newCachedThreadPool
 
 	@Test
+	def void test() {
+		(1..100_000).stream
+			.map [ it + 10 ]
+			.effect [ println(it) ]
+			.call(3) [ doSomethingHeavy ]
+			.on(Throwable) [ println(it) ]
+			.start
+	}
+	
+	@Async def doSomethingHeavy(int i, Promise<List<Integer>> promise) {
+		promise << #[i, i+1, i+2]
+	}
+
+	@Test
 	def void testObservingAStream() {
+		
 		//val Stream<Integer> s = (1..3).stream
 		val s = new Stream<Integer>
 		s.handle(new StreamEventHandler {

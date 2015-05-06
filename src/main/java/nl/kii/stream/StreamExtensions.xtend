@@ -1035,7 +1035,7 @@ class StreamExtensions {
 	 * Map an error to a new StreamException with a message. 
 	 * passing the value, and with the original error as the cause.
 	 */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
+	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
 		stream.effect(errorType) [ from, e | throw new StreamException(message, from, e) ]
 	}
 
@@ -1292,11 +1292,11 @@ class StreamExtensions {
 				 stream.close
 			]
 			finish [
-				promise.error('Stream.first: stream finished without returning a value')
+				promise.error(new Exception('Stream.first: stream finished without returning a value'))
 				stream.close
 			]
 			closed [
-				promise.error('Stream.first: stream closed without returning a value')
+				promise.error(new Exception('Stream.first: stream closed without returning a value'))
 			]
 		]
 		stream.operation = 'first'
@@ -1322,14 +1322,14 @@ class StreamExtensions {
 					if(!promise.fulfilled && last.get != null) {
 						promise.set($0, last.get)
 						stream.close
-					} else promise.error('stream finished without passing a value, no last entry found.')
+					} else promise.error(new Exception('stream finished without passing a value, no last entry found.'))
 				} else stream.next 
 			]
 			closed [ 
 				if(!promise.fulfilled && last.get != null) {
 					promise.set(null, last.get)
 					stream.close
-				} else promise.error('stream closed without passing a value, no last entry found.')
+				} else promise.error(new Exception('stream closed without passing a value, no last entry found.'))
 			]
 			error [	stream.next ]
 		]

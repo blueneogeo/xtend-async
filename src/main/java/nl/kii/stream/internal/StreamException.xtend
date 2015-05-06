@@ -1,5 +1,7 @@
 package nl.kii.stream.internal
 
+
+import static extension nl.kii.util.ThrowableExtensions.*
 import static extension com.google.common.base.Throwables.*
 
 /**
@@ -20,6 +22,11 @@ import static extension com.google.common.base.Throwables.*
  */
 class StreamException extends Exception {
 	
+	val static unwantedStacktraces = #[
+		'nl.kii.stream.+',
+		'nl.kii.act.+'
+	]
+	
 	val static int valueWrapSize = 10
 	val static int traceSize = 1
 	val static int maxValueStringLength = 500
@@ -31,6 +38,7 @@ class StreamException extends Exception {
 		super(cause)
 		this.operation = operation
 		this.value = value
+		this.clean(unwantedStacktraces)
 	}
 	
 	def static getMessage(StreamException e) {

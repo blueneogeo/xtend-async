@@ -64,12 +64,12 @@ class PromiseExtensions {
 
 	/** Shortcut for quickly creating a promise with an error */	
 	def static Task error(String message) {
-		new Task => [ it.error(message) ]
+		new Task => [ it.error(new Exception(message)) ]
 	}
 
 	/** Shortcut for quickly creating a promise with an error */	
 	def static <T> Promise<T> error(Class<T> cls, String message) {
-		new Promise<T> => [ it.error(message) ]
+		new Promise<T> => [ it.error(new Exception(message)) ]
 	}
 	
 	/** 
@@ -119,16 +119,6 @@ class PromiseExtensions {
 		promise
 	}
 	
-	/** Tell the promise it went wrong */
-	def static <I, O> error(IPromise<I, O> promise, String message) {
-		promise.error(new Exception(message))
-	}
-
-	/** Tell the promise it went wrong, with the cause throwable */
-	def static <I, O> error(IPromise<I, O> promise, String message, Throwable cause) {
-		promise.error(new Exception(message, cause))
-	}
-
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
@@ -212,9 +202,7 @@ class PromiseExtensions {
 			=> [ operation = 'perform' ]
 	}
 	
-	// MONITORING ERRORS //////////////////////////////////////////////////////
-	
-	
+	// RESPOND TO ERRORS, BUT DO NOT SWALLOW THE ERROR ////////////////////////
 	
 	/** Listen for an error coming from the promise. Does not swallow the error. */
 	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
@@ -226,17 +214,7 @@ class PromiseExtensions {
 		promise.on(errorType, false, handler)
 	}
 
-	/** Listen for an error coming from the promise. Swallows the the error. */
-	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		promise.on(errorType, true) [ from, it | handler.apply(it) ] 
-	}
-
-	/** Listen for an error coming from the promise. Swallows the error. */
-	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		promise.on(errorType, true, handler)
-	}
-	
-	// TRANSFORMING ERRORS /////////////////////////////////////////////////////
+	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
 
 	/** 
 	 * Map an error to a new PromiseException with a message, 
@@ -245,6 +223,35 @@ class PromiseExtensions {
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, String message) {
 		promise.effect(errorType) [ from, e | throw new PromiseException(message, from, e) ]
 	}
+
+	@Deprecated
+	def static <I, O> onError(IPromise<I, O> promise, (Throwable)=>void handler) {
+		promise.on(Throwable, handler)
+	}
+	
+	@Deprecated
+	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
+		promise.on(Throwable) [ i, t | throw exceptionFn.apply(i, t) ]
+	}
+
+	@Deprecated
+	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
+		promise.on(Throwable) [ i, t | throw new Exception(message + ', for input ' + i, t) ]
+	}
+
+	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
+
+	/** Transform an error into a sideeffect */
+	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		promise.on(errorType, true) [ from, it | handler.apply(it) ] 
+	}
+
+	/** Transform an error into a sideeffect */
+	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		promise.on(errorType, true, handler)
+	}
+	
+	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
 
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
@@ -273,6 +280,8 @@ class PromiseExtensions {
 			.then [ from, e | newPromise.set(from, e) ]
 		newPromise => [ operation = 'map(' + errorType.simpleName + ')' ]
 	}
+
+	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
@@ -385,21 +394,6 @@ class PromiseExtensions {
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
-	@Deprecated
-	def static <I, O> onError(IPromise<I, O> promise, (Throwable)=>void handler) {
-		promise.on(Throwable, handler)
-	}
-	
-	@Deprecated
-	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
-		promise.on(Throwable) [ i, t | throw exceptionFn.apply(i, t) ]
-	}
-
-	@Deprecated
-	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
-		promise.on(Throwable) [ i, t | throw new Exception(message + ', for input ' + i, t) ]
-	}
-
 	/** Convert or forward a promise to a task */	
 	def static <I, O> asTask(IPromise<I, O> promise) {
 		val task = new Task
