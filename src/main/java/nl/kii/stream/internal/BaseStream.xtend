@@ -2,9 +2,10 @@ package nl.kii.stream.internal
 
 import java.util.Queue
 import nl.kii.act.Actor
+import nl.kii.async.AsyncException
+import nl.kii.async.UncaughtAsyncException
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.internal.StreamException
-import nl.kii.stream.internal.UncaughtStreamException
+import nl.kii.stream.IStream
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
@@ -20,7 +21,7 @@ import nl.kii.stream.message.Value
 
 import static com.google.common.collect.Queues.*
 
-abstract class BaseStream<I, O> extends Actor<StreamMessage> implements nl.kii.stream.IStream<I, O> {
+abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<I, O> {
 
 	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
 
@@ -182,15 +183,15 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements nl.kii.s
 			entryListener.apply(entry)
 			// something was published
 			true
-		} catch (UncaughtStreamException e) {
+		} catch (UncaughtAsyncException e) {
 			// this error is meant to break the publishing loop
 			throw e
 		} catch (Throwable t) {
 			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
 			if(entry instanceof Error<?, ?>) {
 				switch t {
-					StreamException: throw t
-					default: throw new StreamException(operation, entry, t)
+					AsyncException: throw t
+					default: throw new AsyncException(operation, entry, t)
 				}
 			}
 			// check if next was called by the handler
@@ -199,8 +200,8 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements nl.kii.s
 			ready = true
 			// otherwise push the error on the stream
 			switch entry {
-				Value<I, O>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
-				Error<I, O>: apply(new Error(entry.from, new StreamException(operation, entry, t)))
+				Value<I, O>: apply(new Error(entry.from, new AsyncException(operation, entry, t)))
+				Error<I, O>: apply(new Error(entry.from, new AsyncException(operation, entry, t)))
 			}
 			// if next was not called, it would halt the stream, so call it now
 			if(!nextCalled) this.next

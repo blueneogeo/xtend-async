@@ -4,6 +4,7 @@ import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
 import nl.kii.stream.IStream
+import nl.kii.async.AsyncException
 
 /**
  * Streams can be chained with operations, such as map, effect, and onEach.
@@ -39,7 +40,7 @@ class SubStream<I, O> extends BaseStream<I, O> {
 	/** Queue a value on the stream for pushing to the listener */
 	override push(I value) { 
 		if(input != null) input.push(value) 
-		else throw new StreamException('This substream cannot push(value), since it has no input stream. Either construct with an input stream, or use substream.push(from, value) instead.', value, null)
+		else throw new AsyncException('This substream cannot push(value), since it has no input stream. Either construct with an input stream, or use substream.push(from, value) instead.', value, null)
 	}
 	
 	/** 

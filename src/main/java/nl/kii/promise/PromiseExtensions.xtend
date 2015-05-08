@@ -2,17 +2,17 @@ package nl.kii.promise
 
 import java.util.List
 import java.util.Map
-import nl.kii.promise.internal.PromiseException
+import nl.kii.async.AsyncException
 import nl.kii.promise.internal.SubPromise
 import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
+import nl.kii.util.AssertionException
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.util.AssertionException
 
 class PromiseExtensions {
 	
@@ -242,7 +242,7 @@ class PromiseExtensions {
 	 * passing the value, and with the original error as the cause.
 	 */
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, String message) {
-		promise.effect(errorType) [ from, e | throw new PromiseException(message, from, e) ]
+		promise.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
 	}
 
 	@Deprecated

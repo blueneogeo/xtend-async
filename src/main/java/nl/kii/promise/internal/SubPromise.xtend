@@ -1,5 +1,6 @@
 package nl.kii.promise.internal
 
+import nl.kii.async.AsyncException
 import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
 import nl.kii.stream.message.Error
@@ -34,13 +35,13 @@ class SubPromise<I, O> extends FixedBasePromise<I, O> {
 
 	/** set the promised value */
 	override set(I value) {
-		if(input == null) throw new PromiseException('SubPromise has no input, use error(from, t) instead.', null) 
+		if(input == null) throw new AsyncException('SubPromise has no input, use error(from, t) instead.', null, null) 
 		input.set(value)
 	}
 
 	/** report an error to the listener of the promise. */
 	override error(Throwable t) { 
-		if(input == null) throw new PromiseException('SubPromise has no input, use error(from, t) instead.', t)
+		if(input == null) throw new AsyncException('SubPromise has no input, use error(from, t) instead.', null, t)
 		input.error(t) 
 		this
 	}

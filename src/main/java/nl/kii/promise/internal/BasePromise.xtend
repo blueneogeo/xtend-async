@@ -1,6 +1,7 @@
 package nl.kii.promise.internal
 
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.AsyncException
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
@@ -134,7 +135,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 					Error<I, O>: newTask.error(error)
 				}
 			} catch(Exception e) {
-				error(new PromiseException('Promise.then gave error for', it, e))
+				error(new AsyncException('Promise.then gave error for', it, e))
 				newTask.error(e)
 			}
 		])

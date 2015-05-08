@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.AsyncException
+import nl.kii.async.UncaughtAsyncException
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
@@ -22,11 +24,9 @@ import nl.kii.promise.internal.SubTask
 import nl.kii.stream.internal.BaseStream
 import nl.kii.stream.internal.StreamEventHandler
 import nl.kii.stream.internal.StreamEventResponder
-import nl.kii.stream.internal.StreamException
 import nl.kii.stream.internal.StreamObserver
 import nl.kii.stream.internal.StreamResponder
 import nl.kii.stream.internal.SubStream
-import nl.kii.stream.internal.UncaughtStreamException
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
@@ -40,15 +40,14 @@ import nl.kii.stream.message.Value
 import nl.kii.stream.source.LoadBalancer
 import nl.kii.stream.source.StreamCopySplitter
 import nl.kii.stream.source.StreamSource
+import nl.kii.util.AssertionException
+import nl.kii.util.Period
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-
-import nl.kii.util.Period
-import nl.kii.util.AssertionException
 
 class StreamExtensions {
 	
@@ -307,7 +306,7 @@ class StreamExtensions {
 	}
 	/** Tell the stream something went wrong, with the cause throwable */
 	def static <I, O> error(IStream<I, O> stream, String message, Object value) {
-		stream.error(new StreamException(message, value, null))
+		stream.error(new AsyncException(message, value, null))
 	}
 
 	/** Tell the stream something went wrong, with the cause throwable */
@@ -317,7 +316,7 @@ class StreamExtensions {
 	
 	/** Tell the stream something went wrong, with the cause throwable */
 	def static <I, O> error(IStream<I, O> stream, String message, Object value, Throwable cause) {
-		stream.error(new StreamException(message, value, cause))
+		stream.error(new AsyncException(message, value, cause))
 	}
 
 	/** Set the concurrency of the stream, letting you keep chaining by returning the stream. */
@@ -914,7 +913,7 @@ class StreamExtensions {
 				promise
 					// in case of a processing error, report it to the listening stream
 					.on(Throwable) [ 
-						newStream.error(r, new StreamException('resolve', r, it))
+						newStream.error(r, new AsyncException('resolve', r, it))
 						// are we done processing? and did we finish? then finish now 
 						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
 							newStream.finish(r)
@@ -1051,11 +1050,11 @@ class StreamExtensions {
 	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
 
 	/** 
-	 * Map an error to a new StreamException with a message. 
+	 * Map an error to a new AsyncException with a message. 
 	 * passing the value, and with the original error as the cause.
 	 */
 	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
-		stream.effect(errorType) [ from, e | throw new StreamException(message, from, e) ]
+		stream.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
 	}
 
 	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
@@ -1200,7 +1199,7 @@ class StreamExtensions {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
-			error [	throw new UncaughtStreamException(message, $0, $1) ]
+			error [	throw new UncaughtAsyncException(message, $0, $1) ]
 			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 		]
