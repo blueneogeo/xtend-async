@@ -48,6 +48,7 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 
 import nl.kii.util.Period
+import nl.kii.util.AssertionException
 
 class StreamExtensions {
 	
@@ -149,23 +150,6 @@ class StreamExtensions {
 			skip [ newStream.close ]
 			close [ newStream.close ]
 		]
-		newStream
-	}
-
-	/** Create from the stream a new stream of just the output type */
-	def static <I, O> IStream<O, O> newStream(IStream<I, O> stream) {
-		stream.newStreamOf [ in, out | out ]
-	}
-	
-	/** Transform the stream input based on the existing input and output type. */
-	def static <I, O, T> Stream<T> newStreamOf(IStream<I, O> stream, (I, O)=>T mapFn) {
-		val newStream = new Stream<T>
-		stream.on [
-			each [ newStream.push(mapFn.apply($0, $1)) stream.next ]
-			finish [ newStream.finish($1) stream.next ]
-			error [ newStream.error($1) stream.next ]
-		]
-		newStream.controls(stream)
 		newStream
 	}
 
@@ -343,6 +327,41 @@ class StreamExtensions {
 	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
+	
+	/**
+	 * Creates a new stream from an existing stream, modifying both the input and output type of the resulting stream.
+	 * Only use this method if you need to modify the input type, otherwise use a normal map or call.
+	 * <p>
+	 * Usage example:
+	 * <pre>
+	 * val IStream<Integer, String> stream1 = int.stream
+	 * 	.map [ toString ]
+	 * 	
+	 * // now lets say we want to make this a Stream<String, Long>, where the
+	 * // string is the output string of stream1, and the long is the length of the string.
+	 * val IStream<String, Long> stream2 = stream1.map(String, Long) [ Integer input, String output, resultFn |
+	 * 	// resultFn takes the output types you specified as parameters (String, Long)
+	 * 	resultFn.apply(output, output.length) 
+	 * ]
+	 * </pre>
+	 */
+	def static <I, O, I2, O2, S extends IStream<I2, O2>> S map(IStream<I, O> stream, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
+		val newStream = new SubStream<I2, O2>
+		stream.on [
+			each [ i, o |
+				try {
+					val applyFn = [ I2 i2, O2 o2 | newStream.push(i2, o2) ]
+					mapFn.apply(i, o, applyFn)
+				} catch(Throwable t) {
+					newStream.error(null, t)
+				}
+			]
+			finish [ newStream.finish(null) ]
+			closed[ newStream.close ]
+		]
+		newStream.controls(stream)
+		newStream as S => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
+	}
 	
 	/**
 	 * Transform each item in the stream using the passed mappingFn
@@ -1425,13 +1444,21 @@ class StreamExtensions {
 
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 
-	/** 
+	/**
 	 * Check on each value if the assert/check description is valid.
 	 * Throws an Exception with the check description if not.
 	 */
 	def static <I, O> check(IStream<I, O> stream, String checkDescription, (O)=>boolean checkFn) {
-		stream.effect [
-			if(!checkFn.apply(it)) throw new Exception(checkDescription + '- for value ' + it)
+		stream.check(checkDescription) [ from, it | checkFn.apply(it) ]
+	}
+
+	/** 
+	 * Check on each value if the assert/check description is valid.
+	 * Throws an Exception with the check description if not.
+	 */
+	def static <I, O> check(IStream<I, O> stream, String checkDescription, (I, O)=>boolean checkFn) {
+		stream.effect [ from, it |
+			if(!checkFn.apply(from, it)) throw new AssertionException(checkDescription + '- for value: ' + it + ' \nand stream input: ' + from)
 		]
 	}
 

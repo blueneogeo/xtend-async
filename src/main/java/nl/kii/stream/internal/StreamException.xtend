@@ -41,12 +41,6 @@ class StreamException extends Exception {
 		this.clean(unwantedStacktraces)
 	}
 	
-	def static getMessage(StreamException e) {
-		if(e.cause != null && e.cause instanceof StreamException) {
-			
-		}
-	}
-	
 	override getMessage() {
 		val root = cause.rootCause
 		'''

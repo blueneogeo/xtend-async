@@ -12,6 +12,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.util.AssertionException
 
 class PromiseExtensions {
 	
@@ -174,6 +175,26 @@ class PromiseExtensions {
 			=> [ operation = 'call' ]
 	}
 
+	// CHECKS /////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Check on each value if the assert/check description is valid.
+	 * Throws an Exception with the check description if not.
+	 */
+	def static <I, O> check(IPromise<I, O> promise, String checkDescription, (O)=>boolean checkFn) {
+		promise.check(checkDescription) [ from, it | checkFn.apply(it) ]
+	}
+
+	/** 
+	 * Check on each value if the assert/check description is valid.
+	 * Throws an Exception with the check description if not.
+	 */
+	def static <I, O> check(IPromise<I, O> promise, String checkDescription, (I, O)=>boolean checkFn) {
+		promise.effect [ from, it |
+			if(!checkFn.apply(from, it)) throw new AssertionException(checkDescription + '- for value: ' + it + ' \nand promise input: ' + from)
+		]
+	}
+
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 	
 	/** Perform some side-effect action based on the promise. */
@@ -322,14 +343,38 @@ class PromiseExtensions {
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
-	/** Create a new promise with a new input, defined by the inputFn */
-	def static <I1, I2, O> mapInput(IPromise<I1, O> promise, (I1, O)=>I2 inputFn) {
-		val newPromise = new SubPromise<I2, O>(new Promise<I2>)
+	/**
+	 * Creates a new promise from an existing promise, modifying both the input and output type of the resulting promise.
+	 * Only use this method if you need to modify the input type, otherwise use a normal map or call.
+	 * <p>
+	 * Usage example:
+	 * <pre>
+	 * val IPromise<Integer, String> promise1 = int.promise
+	 * 	.map [ toString ]
+	 * 	
+	 * // now lets say we want to make this a Promise<String, Long>, where the
+	 * // string is the output string of promise1, and the long is the length of the string.
+	 * val IPromise<String, Long> promise2 = promise1.map(String, Long) [ Integer input, String output, resultFn |
+	 * 	// resultFn takes the output types you specified as parameters (String, Long)
+	 * 	resultFn.apply(output, output.length) 
+	 * ]
+	 * </pre>
+	 */
+	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P map(IPromise<I, O> promise, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
+		val newPromise = new SubPromise<I2, O2>
 		promise
-			.on(Throwable) [ r, e | newPromise.error(inputFn.apply(r, null), e) ]
-			.then [ r, it | newPromise.set(inputFn.apply(r, it), it) ]
-		newPromise => [ operation = 'input' ]
+			.on(Throwable) [ newPromise.error(null, it) ]
+			.then [ i, o |
+				try {
+					val applyFn = [ I2 i2, O2 o2 | newPromise.set(i2, o2) ]
+					mapFn.apply(i, o, applyFn)
+				} catch(Throwable t) {
+					newPromise.error(null, t)
+				}
+			]
+		newPromise as P => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
 	}
+	
 	
 	/** Create a stream out of a promise of a stream. */
 	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {

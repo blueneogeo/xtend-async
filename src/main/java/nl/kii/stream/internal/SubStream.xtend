@@ -3,6 +3,7 @@ package nl.kii.stream.internal
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
+import nl.kii.stream.IStream
 
 /**
  * Streams can be chained with operations, such as map, effect, and onEach.
@@ -15,14 +16,18 @@ import nl.kii.stream.message.Value
  */
 class SubStream<I, O> extends BaseStream<I, O> {
 
-	val protected nl.kii.stream.IStream<I, I> input
+	val protected IStream<I, I> input
 
-	new (nl.kii.stream.IStream<I, ?> parent) {
+	new() {
+		input = null
+	}
+
+	new (IStream<I, ?> parent) {
 		this.input = parent.input
 		this.concurrency = parent.concurrency
 	}
 
-	new (nl.kii.stream.IStream<I, ?> parent, int maxSize) {
+	new (IStream<I, ?> parent, int maxSize) {
 		super(maxSize)
 		this.input = parent.input
 	}
@@ -32,7 +37,10 @@ class SubStream<I, O> extends BaseStream<I, O> {
 	// APPLYING VALUES TO THE ROOT STREAM
 
 	/** Queue a value on the stream for pushing to the listener */
-	override push(I value) { input.push(value) }
+	override push(I value) { 
+		if(input != null) input.push(value) 
+		else throw new StreamException('This substream cannot push(value), since it has no input stream. Either construct with an input stream, or use substream.push(from, value) instead.', value, null)
+	}
 	
 	/** 
 	 * Tell the stream an error occurred. the error will not be thrown directly,
