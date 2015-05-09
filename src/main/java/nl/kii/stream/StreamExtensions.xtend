@@ -1457,7 +1457,8 @@ class StreamExtensions {
 	 */
 	def static <I, O> check(IStream<I, O> stream, String checkDescription, (I, O)=>boolean checkFn) {
 		stream.effect [ from, it |
-			if(!checkFn.apply(from, it)) throw new AssertionException(checkDescription + '- for value: ' + it + ' \nand stream input: ' + from)
+			if(!checkFn.apply(from, it)) throw new AssertionException(
+			'stream.check ("' + checkDescription + '") failed for checked value: ' + it + ' and stream input: ' + from)
 		]
 	}
 

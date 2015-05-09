@@ -1,6 +1,5 @@
 package nl.kii.async
 
-import static extension com.google.common.base.Throwables.*
 import static extension nl.kii.util.ThrowableExtensions.*
 
 /**
@@ -24,7 +23,8 @@ class AsyncException extends Exception {
 	val static unwantedStacktraces = #[
 		'nl.kii.stream.+',
 		'nl.kii.promise.+',
-		'nl.kii.act.+'
+		'nl.kii.act.+',
+		'nl.kii.observe.+'
 	]
 	
 	val static int valueWrapSize = 10
