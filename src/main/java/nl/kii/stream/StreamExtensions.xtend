@@ -17,16 +17,9 @@ import nl.kii.async.UncaughtAsyncException
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
-import nl.kii.promise.Promise
+import nl.kii.promise.SubPromise
+import nl.kii.promise.SubTask
 import nl.kii.promise.Task
-import nl.kii.promise.internal.SubPromise
-import nl.kii.promise.internal.SubTask
-import nl.kii.stream.internal.BaseStream
-import nl.kii.stream.internal.StreamEventHandler
-import nl.kii.stream.internal.StreamEventResponder
-import nl.kii.stream.internal.StreamObserver
-import nl.kii.stream.internal.StreamResponder
-import nl.kii.stream.internal.SubStream
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
@@ -1297,7 +1290,7 @@ class StreamExtensions {
 	  * Closes the stream once it has the value or an error.
 	  */
 	def static <I, O> IPromise<I, O> first(IStream<I, O> stream) {
-		val promise = new SubPromise<I, O>(new Promise<I>)
+		val promise = new SubPromise<I, O>
 		stream.on [
 			each [ 
 				if(!promise.fulfilled)
@@ -1309,12 +1302,9 @@ class StreamExtensions {
 					promise.error($0, $1) 
 				 stream.close
 			]
-			finish [
-				promise.error(new Exception('Stream.first: stream finished without returning a value'))
+			finish [ from, e |
+				promise.error(from, new Exception('Stream.first: stream finished without returning a value'))
 				stream.close
-			]
-			closed [
-				promise.error(new Exception('Stream.first: stream closed without returning a value'))
 			]
 		]
 		stream.operation = 'first'
@@ -1328,7 +1318,7 @@ class StreamExtensions {
 	  * Skips any stream errors, and closes the stream when it is done.
 	  */
 	def static <I, O> last(IStream<I, O> stream) {
-		val promise = new SubPromise<I, O>(new Promise<I>)
+		val promise = new SubPromise<I, O>
 		val last = new AtomicReference<O>
 		stream.on [
 			each [ 
@@ -1340,14 +1330,14 @@ class StreamExtensions {
 					if(!promise.fulfilled && last.get != null) {
 						promise.set($0, last.get)
 						stream.close
-					} else promise.error(new Exception('stream finished without passing a value, no last entry found.'))
+					} else promise.error($0, new Exception('stream finished without passing a value, no last entry found.'))
 				} else stream.next 
 			]
 			closed [ 
 				if(!promise.fulfilled && last.get != null) {
 					promise.set(null, last.get)
 					stream.close
-				} else promise.error(new Exception('stream closed without passing a value, no last entry found.'))
+				}
 			]
 			error [	stream.next ]
 		]

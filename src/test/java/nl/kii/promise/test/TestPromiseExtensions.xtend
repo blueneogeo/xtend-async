@@ -1,17 +1,18 @@
 package nl.kii.promise.test
-import static extension nl.kii.async.ExecutorExtensions.*
-import java.util.concurrent.ExecutionException
-import nl.kii.promise.Promise
-import org.junit.Test
 
-import static extension nl.kii.promise.PromiseExtensions.*
-import static extension nl.kii.stream.test.StreamAssert.*
-import static extension nl.kii.stream.StreamExtensions.*
-import static extension org.junit.Assert.*
-import nl.kii.promise.Task
-import nl.kii.async.annotation.Atomic
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import nl.kii.async.annotation.Atomic
+import nl.kii.promise.Promise
+import nl.kii.promise.Task
+import org.junit.Test
+
+import static extension nl.kii.async.ExecutorExtensions.*
+import static extension nl.kii.promise.PromiseExtensions.*
+import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.test.StreamAssert.*
+import static extension org.junit.Assert.*
 
 class TestPromiseExtensions {
 	

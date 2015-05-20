@@ -1,4 +1,4 @@
-package nl.kii.stream.internal
+package nl.kii.stream
 
 interface StreamObserver<I, O> {
 	

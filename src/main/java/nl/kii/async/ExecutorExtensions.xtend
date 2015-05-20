@@ -13,7 +13,7 @@ import nl.kii.promise.PromiseFuture
 import nl.kii.promise.Task
 import nl.kii.stream.IStream
 import nl.kii.stream.Stream
-import nl.kii.stream.internal.SubStream
+import nl.kii.stream.SubStream
 
 import static java.util.concurrent.TimeUnit.*
 

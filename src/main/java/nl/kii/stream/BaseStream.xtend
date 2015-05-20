@@ -1,4 +1,4 @@
-package nl.kii.stream.internal
+package nl.kii.stream
 
 import java.util.Queue
 import nl.kii.act.Actor

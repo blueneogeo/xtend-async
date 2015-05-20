@@ -1,10 +1,13 @@
 package nl.kii.stream.test
 
+import java.util.List
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.async.annotation.Async
 import nl.kii.async.annotation.Atomic
+import nl.kii.promise.Promise
 import nl.kii.stream.Stream
-import nl.kii.stream.internal.StreamEventHandler
-import nl.kii.stream.internal.StreamObserver
+import nl.kii.stream.StreamEventHandler
+import nl.kii.stream.StreamObserver
 import nl.kii.stream.message.Entry
 import org.junit.Test
 
@@ -12,12 +15,8 @@ import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
-
-import nl.kii.async.annotation.Async
-import nl.kii.promise.Promise
-import java.util.List
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStream {
 

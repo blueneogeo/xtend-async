@@ -5,11 +5,17 @@ import nl.kii.stream.message.Error
 /** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
 class Task extends Promise<Boolean> {
 	
-	def Task complete() {
+	def complete() {
 		set(true)
 		this
 	}
 
-	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?, ?>», error: «(get as Error<?, ?>).error»«ENDIF» }'''
+	override toString() {
+		val error = switch it : get.head {
+			Error<?, ?>: it
+			default: null
+		}
+		'''Task { fulfilled: «fulfilled» «IF error != null», error: «error»«ENDIF» }'''
+	}
 	
 }

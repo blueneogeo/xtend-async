@@ -49,8 +49,8 @@ class TestPromise {
 		0 <=> result
 		promise.set(1)
 		promise
-			.on(Throwable) [ result = 1 ] // error is caught and result is set
 			.then [ result = it / 0 ] // throws exception, but is caught
+			.on(Throwable) [ result = 1 ] // error is caught and result is set
 		1 <=> result
 	}
 
@@ -70,8 +70,8 @@ class TestPromise {
 		promise.set(1)
 		promise
 			.then [ result = it / 0 ] // throws exception, but is caught
-			.on(NullPointerException) [ fail('the error is not a nullpointer exception') ]
-			.on(ArithmeticException) [ result = 1 ]
+			.on(NullPointerException, true) [ fail('the error is not a nullpointer exception') ]
+			.on(ArithmeticException, true) [ result = 1 ]
 			.on(Throwable) [ fail('this may no longer match, the error has already been caught') ]
 		1 <=> result
 	}

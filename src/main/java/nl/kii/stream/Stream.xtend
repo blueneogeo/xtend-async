@@ -1,6 +1,5 @@
 package nl.kii.stream
 
-import nl.kii.stream.internal.BaseStream
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value

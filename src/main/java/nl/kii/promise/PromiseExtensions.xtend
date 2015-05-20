@@ -3,7 +3,6 @@ package nl.kii.promise
 import java.util.List
 import java.util.Map
 import nl.kii.async.AsyncException
-import nl.kii.promise.internal.SubPromise
 import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
@@ -123,13 +122,13 @@ class PromiseExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
-	def static <I, O> >> (I value, IPromise<I, O> promise) {
+	def static <T> >> (T value, Promise<T> promise) {
 		promise.set(value)
 		promise
 	}
 	
 	/** Fulfill a promise */
-	def static <I, O> << (IPromise<I, O> promise, I value) {
+	def static <T> << (Promise<T> promise, T value) {
 		promise.set(value)
 		promise
 	}
@@ -152,12 +151,12 @@ class PromiseExtensions {
 	}
 
 	/** Transform the value of a promise */ 
-	def static <I, O, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
-		val newPromise = new SubPromise<I, R>(promise)
+	def static <I, O, R> SubPromise<I, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
+		val newPromise = new SubPromise<I, R>
 		promise
 			.on(Throwable) [ r, it | newPromise.error(r, it) ]
-			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
-			.on(Throwable) [ newPromise.error(it) ]
+			.effect [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
+			.on(Throwable) [ r, it | newPromise.error(r, it) ]
 		newPromise => [ operation = 'map' ]
 	}
 	
@@ -204,8 +203,16 @@ class PromiseExtensions {
 
 	/** Perform some side-effect action based on the promise. */
 	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
-		promise.map [ r, it | listener.apply(r, it) return it ]
-			=> [ operation = 'effect' ]
+		val newPromise = new SubPromise<I, O>
+		promise.then [ in, out |
+			try {
+				listener.apply(in, out)
+				newPromise.set(in, out)
+			} catch(Throwable t) {
+				newPromise.error(in, t)
+			} 
+		]
+		newPromise => [ operation = 'effect' ]
 	}
 	
 	// ASYNC SIDEEFFECTS //////////////////////////////////////////////////////
@@ -281,7 +288,7 @@ class PromiseExtensions {
 	
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
-		val newPromise = new SubPromise<I, O>(promise, false)
+		val newPromise = new SubPromise<I, O>
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
@@ -291,7 +298,7 @@ class PromiseExtensions {
 						val value = mappingFn.apply(from, e)
 						newPromise.set(from, value)
 					}
-				} catch(Exception e2) {
+				} catch(Throwable e2) {
 					newPromise.error(from, e2)
 				}
 			]
@@ -311,7 +318,7 @@ class PromiseExtensions {
 			
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
-		val newPromise = new SubPromise<I, O>(new Promise<I>, false)
+		val newPromise = new SubPromise<I, O>
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
@@ -387,7 +394,7 @@ class PromiseExtensions {
 
 	/** Resolve a promise of a promise to directly a promise. */
 	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
-		val newPromise = new SubPromise<I, O>(promise)
+		val newPromise = new SubPromise<I, O>
 		promise
 			.on(Throwable) [ r, e | newPromise.error(r, e) ]
 			.then [ r, p |
@@ -426,14 +433,14 @@ class PromiseExtensions {
 	 * 			calling the function should execute the closure after the delay.
 	 */	
 	def static <I, O> wait(IPromise<I, O> promise, long periodMs, Procedure2<Long, Procedure0> timerFn) {
-		val newPromise = new SubPromise<I, O>(promise)
+		val newPromise = new SubPromise<I, O>
 		promise
-			.on(Throwable) [ newPromise.error(it) ]
-			.then [ input, value |
+			.effect [ input, value |
 				timerFn.apply(periodMs) [
 					newPromise.set(input, value)
 				]
 			]
+			.on(Throwable) [ in, it | newPromise.error(in, it) ]
 		newPromise
 	}
 
@@ -441,23 +448,27 @@ class PromiseExtensions {
 	
 	/** Convert or forward a promise to a task */	
 	def static <I, O> asTask(IPromise<I, O> promise) {
-		val task = new Task
-		promise.completes(task)
-		task
+		new Task => [ promise.completes(it) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
-	def static <I, O, O2> pipe(IPromise<I, O> promise, IPromise<O, O2> target) {
+	def static <I, O, O2> pipe(IPromise<I, O> promise, SubPromise<I, O> target) {
 		promise
-			.on(Throwable) [ target.error(it) ]
-			.then [ target.set(it) ]
+			.effect [ in, it | target.set(in, it) ]
+			.on(Throwable) [ in, e | target.error(in, e) ]
+	}
+
+	/** Forward the events from this promise to another promise of the same type */
+	def static <I, O, O2> pipe(IPromise<I, O> promise, Promise<O> target) {
+		promise
+			.effect [ in, it | target.set(it) ]
+			.on(Throwable) [ in, e | target.error(e) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
 	def static <I, I2, O> completes(IPromise<I, O> promise, Task task) {
 		promise
-			.on(Throwable) [ r, it | task.error(it) ]
-			.then [ r, it | task.set(true) ]
+			.effect [ r, it | task.set(true) ]
 			.on(Throwable) [ r, it | task.error(it) ]
 	}
 

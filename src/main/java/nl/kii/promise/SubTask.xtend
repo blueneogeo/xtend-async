@@ -1,6 +1,5 @@
-package nl.kii.promise.internal
+package nl.kii.promise
 
-import nl.kii.promise.IPromise
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
 
@@ -11,16 +10,16 @@ import nl.kii.stream.message.Value
  */
 class SubTask<I> extends SubPromise<I, Boolean> {
 	
-	new() { super() }
-	
-	new(IPromise<I, ?> parentPromise) {
-		super(parentPromise)
-	}
-	
 	def complete(I from) {
 		apply(new Value(from, true))
 	}
 	
-	override toString() '''Task { fulfilled: «fulfilled» «IF get instanceof Error<?, ?>», error: «(get as Error<?, ?>).error»«ENDIF» }'''
+	override toString() {
+		val error = switch it : get.head {
+			Error<?, ?>: it
+			default: null
+		}
+		'''Task { fulfilled: «fulfilled» «IF error != null», error: «error»«ENDIF» }'''
+	}
 
 }

@@ -8,7 +8,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.List
 import nl.kii.promise.Task
-import nl.kii.stream.internal.SubStream
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*

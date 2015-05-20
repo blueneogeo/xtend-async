@@ -1,4 +1,4 @@
-package nl.kii.stream.internal
+package nl.kii.stream
 
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish

@@ -1,4 +1,4 @@
-package nl.kii.stream.internal
+package nl.kii.stream
 
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.IStream
