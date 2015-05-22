@@ -157,7 +157,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.on(Exception) [ println('error ' + it) ]
+			.on(Exception, true) [ println('error ' + it) ]
 			.effect [ println('result : ' + it) ]
 			.start
 			.then [ println('done') ]
@@ -175,7 +175,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.on(Exception) [ println('error ' + it) ]
+			.on(Exception, true) [ println('error ' + it) ]
 			.effect [ println('result : ' + it) ]
 			.start
 			.then [ println('done') ]
@@ -192,7 +192,7 @@ class TestStreamErrorHandling {
 				it
 			]
 			.collect
-			.on(Exception) [ println('error ' + it) ]
+			.on(Exception, true) [ println('error ' + it) ]
 			.effect [ println('result : ' + it) ]
 			.start
 			.then [ println('done') ]

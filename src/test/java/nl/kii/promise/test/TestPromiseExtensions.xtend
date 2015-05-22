@@ -70,7 +70,8 @@ class TestPromiseExtensions {
 	@Test
 	def void testListPromiseToStream() {
 		val p = new Promise(#[1, 2, 3])
-		p.stream.sum.then [ assertEquals(6, it, 0) ]
+		val s = p.stream
+		s.sum.then [ assertEquals(6, it, 0) ]
 	}
 	
 	@Atomic boolean allDone = false

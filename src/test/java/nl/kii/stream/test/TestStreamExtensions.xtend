@@ -76,10 +76,10 @@ class TestStreamExtensions {
 		val count2 = new AtomicInteger(0)
 		
 		val s = int.stream
-		val publisher = s.publish
+		val publisher = s.publisher
 		
-		val s1 = publisher.stream
-		val s2 = publisher.stream
+		val s1 = publisher.observe
+		val s2 = publisher.observe
 		
 		s1.effect [ count1.addAndGet(it) ].start
 		s2.effect [ count2.addAndGet(it) ].start

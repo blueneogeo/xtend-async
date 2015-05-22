@@ -101,7 +101,7 @@ class TestStream {
 	
 	@Test
 	def void testControlledStream() {
-		val s = new Stream<Integer> << 1 << 2 << 3 << finish << 4 << 5
+		val s = new Stream<Integer> << 1 << 2 << 3 << finish(0) << 4 << 5
 		s.on [
 			each [ incCounter($1) ]
 			finish [ ]
@@ -128,17 +128,17 @@ class TestStream {
 	
 	@Test
 	def void testControlledChainedBufferedStream() {
-		val s = int.stream.map[it]
-		s.on [ each [ result = $1 ] ] 
+		val s = int.stream
+		val s2 = s.map[it]
+		s2.on [ each [ result = $1 ] ] 
 		s << 1 << 2 << 3
-		
-		s.next
+		s2.next
 		assertEquals(1, result)
-		s.next
+		s2.next
 		assertEquals(2, result)
-		s.next
+		s2.next
 		assertEquals(3, result)
-		s.next
+		s2.next
 		assertEquals(3, result)
 	}
 

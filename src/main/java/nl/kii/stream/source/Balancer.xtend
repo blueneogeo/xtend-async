@@ -33,12 +33,12 @@ class LoadBalancer<I, O> extends StreamSplitter<I, O> {
 			}
 			Finish<I, O>: {
 				for(stream : streams) {
-					stream.finish
+					stream.apply(new Finish(entry.from, entry.level))
 				}
 			}
 			Error<I, O>: {
 				for(stream : streams) {
-					stream.error(entry.error)
+					stream.apply(new Error(entry.from, entry.error))
 				}
 			}
 		}

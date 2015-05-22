@@ -185,7 +185,7 @@ class StreamExtensions {
 	 * with multiple listeners. Publishers do not support flow control, and the
 	 * created Publisher will eagerly pull all data from the stream for publishing.
 	 */
-	def static <I, O> publish(IStream<I, O> stream) {
+	def static <I, O> publisher(IStream<I, O> stream) {
 		val publisher = new Publisher<O>
 		stream.on [
 			each [
@@ -204,7 +204,7 @@ class StreamExtensions {
 	 * being pushed only, you lose flow control. Closing the stream will also
 	 * unsubscribe from the observable.
 	 */
-	def static <T> stream(Observable<T> observable) {
+	def static <T> observe(Observable<T> observable) {
 		val newStream = new Stream<T>
 		val stopObserving = observable.onChange [
 			newStream.push(it)
@@ -218,50 +218,47 @@ class StreamExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Add a value to a stream */
-	def static <I, O> >> (I input, IStream<I, O> stream) {
-		stream.push(input)
-		stream
+	def static <T> >> (T input, Stream<T> stream) {
+		stream << input
 	}
 	
 	/** Add a value to a stream */
-	def static <I, O> << (IStream<I, O> stream, I input) {
+	def static <T> << (Stream<T> stream, T input) {
 		stream.push(input)
 		stream
 	}
 
 	/** Add a list of values to a stream */
-	def static <I, O> >> (List<I> input, IStream<I, O> stream) {
-		input.forEach [ stream.push(it) ]
-		stream
+	def static <T> >> (List<T> values, Stream<T> stream) {
+		stream << values
 	}
 	
 	/** Add a list of values to a stream */
-	def static <I, O> << (IStream<I, O> stream, List<I> value) {
-		value.forEach [ stream.push(it) ]
+	def static <T> << (Stream<T> stream, List<T> values) {
+		for(value : values) stream.push(value)
 		stream
 	}
 
 	/** Add an entry to a stream (such as error or finish) */
-	def static <I, O> << (IStream<I, O> stream, Entry<I, O> entry) {
-		stream.input.apply(entry)
-		stream
-	}
-
-	/** Lets you easily pass an Error<T> to the stream using the << operator */
-	def static <I, O> << (IStream<I, O> stream, Throwable t) {
-		stream.input.apply(new Error<I, O>(null, t))
+	def static <I, O> << (Stream<O> stream, Entry<I, O> entry) {
+		stream.apply(entry)
 		stream
 	}
 
 	/** Lets you easily pass an Error<T> to the stream using the >> operator */
-	def static <I, O> >> (Throwable t, IStream<I, O> stream) {
-		stream.input.apply(new Error<I, O>(null, t))
+	def static <T> >> (Throwable t, Stream<T> stream) {
+		stream << t
+	}
+
+	/** Lets you easily pass an Error<T> to the stream using the << operator */
+	def static <I, O> << (Stream<O> stream, Throwable t) {
+		stream.apply(new Error<I, O>(null, t))
 		stream
 	}
 
 	/** pipe a stream into another stream */
 	def static <I, O> >> (IStream<I, O> source, IStream<I, O> dest) {
-		source.pipe(dest)
+		dest << source
 	}
 
 	/** pipe a stream into another stream */
@@ -293,25 +290,6 @@ class StreamExtensions {
 		]		
 	}
 	
-	/** Tell the stream something went wrong */
-	def static <I, O> error(IStream<I, O> stream, String message) {
-		stream.error(new Exception(message))
-	}
-	/** Tell the stream something went wrong, with the cause throwable */
-	def static <I, O> error(IStream<I, O> stream, String message, Object value) {
-		stream.error(new AsyncException(message, value, null))
-	}
-
-	/** Tell the stream something went wrong, with the cause throwable */
-	def static <I, O> error(IStream<I, O> stream, String message, Throwable cause) {
-		stream.error(new Exception(message, cause))
-	}
-	
-	/** Tell the stream something went wrong, with the cause throwable */
-	def static <I, O> error(IStream<I, O> stream, String message, Object value, Throwable cause) {
-		stream.error(new AsyncException(message, value, cause))
-	}
-
 	/** Set the concurrency of the stream, letting you keep chaining by returning the stream. */
 	def static <I, O> concurrency(IStream<I, O> stream, int value) {
 		stream.concurrency = value
@@ -366,7 +344,7 @@ class StreamExtensions {
 	 * Transform each item in the stream using the passed mappingFn.
 	 */
 	def static <I, O, R> map(IStream<I, O> stream, (I, O)=>R mappingFn) {
-		val newStream = new SubStream<I, R>(stream)
+		val newStream = new SubStream<I, R>
 		stream.on [
 			each [
 				val mapped = mappingFn.apply($0, $1)
@@ -377,8 +355,7 @@ class StreamExtensions {
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
-		stream.operation = 'map'
-		newStream
+		newStream => [ operation = 'map' ]
 	}
 	
 	/**
@@ -408,7 +385,7 @@ class StreamExtensions {
 	 * are reset by a finish.
 	 */
 	def static <I, O> filter(IStream<I, O> stream, (I, O, Long, Long)=>boolean filterFn) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)
 		stream.on [
@@ -448,7 +425,7 @@ class StreamExtensions {
 	 * </ul> 
 	 */
 	def static <I, O> split(IStream<I, O> stream, (O)=>boolean splitConditionFn) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		val skipping = new AtomicBoolean(false)
 		val justPostedFinish0 = new AtomicBoolean(false)
 		stream.on [
@@ -497,7 +474,7 @@ class StreamExtensions {
 	 * @see StreamExtensions.split
 	 */
 	def static <I, O> merge(IStream<I, O> stream) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.apply(new Value($0, $1)) ]
 			error [ newStream.error($0, $1) ]
@@ -535,7 +512,7 @@ class StreamExtensions {
 	 * stream matches the untilFn, that value will not be passed.
 	 */
 	def static <I, O> until(IStream<I, O> stream, (O, Long, Long)=>boolean untilFn) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)	
 		stream.on [
@@ -568,7 +545,7 @@ class StreamExtensions {
 	 */
 	def static <I, O> until(IStream<I, O> stream, (O, Long)=>boolean untilFn) {
 		val count = new AtomicLong(0)
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [
 				if(untilFn.apply($1, count.incrementAndGet)) {
@@ -596,7 +573,7 @@ class StreamExtensions {
 	 * Note: breaks finishes and flow control!
 	 */
 	def static <I, I2, O, S extends IStream<I2, O>> flatten(IStream<I, S> stream) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [ 
 			each [ r, s |
 				s.on [
@@ -631,7 +608,7 @@ class StreamExtensions {
 	 * Finish(0) resets the count.
 	 */
 	def static <I, O> index(IStream<I, O> stream) {
-		val newStream = new SubStream<I, Pair<Integer, O>>(stream)
+		val newStream = new SubStream<I, Pair<Integer, O>>
 		val counter = new AtomicInteger(0)
 		stream.on [
 			each [ newStream.push($0, counter.incrementAndGet -> $1) ]
@@ -674,7 +651,7 @@ class StreamExtensions {
 		switch stream {
 			BaseStream<I, O>: stream.maxBufferSize = maxSize
 		}
-		val newStream = new SubStream<I, O>(stream, maxSize)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ newStream.error($0, $1) ]
@@ -742,7 +719,7 @@ class StreamExtensions {
 		// -1 means allow, we want to allow the first incoming value
 		val lastNextMs = new AtomicLong(-1)
 		val isTiming = new AtomicBoolean
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.onChange [ newStream.apply(it) ]
 		newStream.when [
 			next [
@@ -795,7 +772,7 @@ class StreamExtensions {
 	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
 		if(periodMs <= 0 || maxPeriodMs <= 0) return stream
 		val delay = new AtomicLong(periodMs)
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [
 				newStream.push($0, $1)
@@ -823,7 +800,7 @@ class StreamExtensions {
 	 * FIX: somehow ratelimit and window in a single stream do not time well together
 	 */
 	def static <I, O> window(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
-		val newStream = new SubStream<I, List<O>>(stream)
+		val newStream = new SubStream<I, List<O>>
 		val list = new AtomicReference<List<O>>
 		stream.on [
 			each [
@@ -850,13 +827,11 @@ class StreamExtensions {
 	 * Errors on the timerstream are put onto the stream. Closing the timerstream also closes the stream.
 	 */
 	def static <I, O> synchronizeWith(IStream<I, O> stream, IStream<?, ?> timerStream) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		timerStream.on [
 			error [ newStream.error(null, $1) timerStream.next ]
-			finish [ newStream.finish timerStream.next ]
 			each [ 
-				if(stream.open) stream.next
-				else timerStream.close
+				if(stream.open) stream.next else timerStream.close
 				timerStream.next
 			]
 			closed [ stream.close ]
@@ -895,7 +870,7 @@ class StreamExtensions {
 	 * Passing a concurrency of 0 means all incoming promises will be called concurrently.
 	 */
 	def static <I, O> SubStream<I, O> resolve(IStream<I, ? extends IPromise<?, O>> stream, int concurrency) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
 		stream.on [
@@ -996,13 +971,31 @@ class StreamExtensions {
 	def static <I, O> onError(IStream<I, O> stream, (I, Throwable)=>void handler) {
 		stream.on(Throwable, handler)
 	}
+
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+		stream.on(errorType, false) [ in, it | handler.apply(it) ]
+	}
+
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+		stream.on(errorType, false) [ in, it | handler.apply(in, it) ]
+	}
+
+	/** 
+	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
+	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
+	 */	
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (Throwable)=>void handler) {
+		stream.on(errorType, swallow) [ in, it | handler.apply(it) ]
+	}
 	
 	/** 
 	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
 	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
 	 */	
-	package def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
-		val newStream = new SubStream<I, O>(stream)
+	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
@@ -1028,18 +1021,6 @@ class StreamExtensions {
 		newStream
 	}
 	
-	// RESPOND TO ERRORS, BUT DO NOT SWALLOW THE ERROR ////////////////////////
-
-	/** Catch errors of the specified type, call the handler, and pass on the error. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		stream.on(errorType, false) [ handler.apply($1) ]
-	}
-
-	/** Catch errors of the specified type, call the handler, and pass on the error. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		stream.on(errorType, false) [ handler.apply($0, $1) ]
-	}
-
 	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
 
 	/** 
@@ -1054,12 +1035,12 @@ class StreamExtensions {
 
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
 	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		stream.on(errorType, true) [ handler.apply($1) ]
+		stream.on(errorType, true) [ in, it | handler.apply(it) ]
 	}
 	
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
 	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		stream.on(errorType, true) [ handler.apply($0, $1) ]
+		stream.on(errorType, true) [ in, it | handler.apply(in, it) ]
 	}
 
 	// TRANSFORM ERRORS INTO AN ASYNCHRONOUS SIDEEFFECT ////////////////////////
@@ -1069,7 +1050,7 @@ class StreamExtensions {
 	}
 	
 	def static <I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>P handler) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
@@ -1101,7 +1082,7 @@ class StreamExtensions {
 
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
@@ -1132,7 +1113,7 @@ class StreamExtensions {
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
@@ -1189,7 +1170,7 @@ class StreamExtensions {
 
 	@Deprecated	
 	def static <I, O> onErrorThrow(IStream<I, O> stream, String message) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [	throw new UncaughtAsyncException(message, $0, $1) ]
@@ -1202,7 +1183,7 @@ class StreamExtensions {
 
 	/** Lets you respond to the closing of the stream */
 	def static <I, O> onClosed(IStream<I, O> stream, (Void)=>void handler) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ newStream.error($0, $1) ]
@@ -1499,7 +1480,7 @@ class StreamExtensions {
 	 * stream entries and streams those separately.
 	 */
 	def static <I, O> SubStream<I, O> separate(IStream<I, List<O>> stream) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ r, list |
 				// apply multiple entries at once for a single next
@@ -1589,7 +1570,7 @@ class StreamExtensions {
 	 */
 	def static <I, O, R> reduce(IStream<I, O> stream, R initial, (R, O)=>R reducerFn) {
 		val reduced = new AtomicReference<R>(initial)
-		val newStream = new SubStream<I, R>(stream)
+		val newStream = new SubStream<I, R>
 		stream.on [
 			each [
 				try {
@@ -1630,7 +1611,7 @@ class StreamExtensions {
 	
 	def static <I, O, R> scan(IStream<I, O> stream, R initial, (R, I, O)=>R reducerFn) {
 		val reduced = new AtomicReference<R>(initial)
-		val newStream = new SubStream<I, R>(stream)
+		val newStream = new SubStream<I, R>
 		stream.on [
 			each [
 				val result = reducerFn.apply(reduced.get, $0, $1)
@@ -1677,7 +1658,7 @@ class StreamExtensions {
 	 */
 	def static <I, O> any(IStream<I, O> stream, (O)=>boolean testFn) {
 		val anyMatch = new AtomicBoolean(false)
-		val newStream = new SubStream<I, Boolean>(stream)
+		val newStream = new SubStream<I, Boolean>
 		stream.on [
 			each [
 				// if we get a match, we communicate directly and tell the stream we are done
@@ -1725,7 +1706,7 @@ class StreamExtensions {
 	 */
 	def static <I, O> first(IStream<I, O> stream, (I, O)=>boolean testFn) {
 		val match = new AtomicReference<O>
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [
 				// if we get a match, we communicate directly and tell the stream we are done
@@ -1769,7 +1750,7 @@ class StreamExtensions {
 	 * that comes from the stream.
 	 */
 	def static <I, O> latest(IStream<I, O> stream, AtomicReference<O> latestValue) {
-		val newStream = new SubStream<I, O>(stream)
+		val newStream = new SubStream<I, O>
 		stream.on [
 			each [ latestValue.set($1) newStream.push($0, $1) ]
 			error [ newStream.error($0, $1) ]

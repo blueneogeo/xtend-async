@@ -38,8 +38,8 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 		this
 	}
 	
-	override IStream<I, O> stream() {
-		new SubStream<I, O>(source) => [ pipe ]
+	override stream() {
+		new SubStream<I, O> => [ pipe ]
 	}
 	
 	/** we are wrapping in an actor to make things threadsafe */

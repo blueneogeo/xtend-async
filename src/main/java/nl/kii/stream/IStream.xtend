@@ -28,11 +28,6 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 
 	override apply(StreamMessage message)
 
-	def void push(I value) 
-	def void error(Throwable error)
-	def void finish()
-	def void finish(int level)
-
 	// CONTROL ////////////////////////////////////////////////////////////////
 
 	def void next()
@@ -45,8 +40,6 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	def =>void onNotify((StreamEvent)=>void notificationListener)
 
 	// STATUS /////////////////////////////////////////////////////////////////
-	
-	def IStream<I, I> getInput()
 	
 	def boolean isOpen()
 	def boolean isReady()
