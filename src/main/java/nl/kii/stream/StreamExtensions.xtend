@@ -298,12 +298,18 @@ class StreamExtensions {
 	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
-	
+
+	/**
+	 * Lets you take a stream and fully transform it into another stream (including input type).
+	 * You need to provide a closure that takes an entry from the stream and gives you the result
+	 * stream to modify with that entry.
+	 * <p>
+	 * You normally use a switch to decide how to act on each kind on entry, and then apply an operation
+	 * on the passed stream based on that behavior.
+	 */	
 	def static <I, O, I2, O2, S extends IStream<I2, O2>> S transform(IStream<I, O> stream, (Entry<I, O>, SubStream<I2, O2>)=>void mapFn) {
 		val newStream = new SubStream<I2, O2>
-		stream.onChange [ entry |
-			mapFn.apply(entry, newStream)
-		]
+		stream.onChange [ entry | mapFn.apply(entry, newStream) ]
 		newStream.controls(stream)
 		newStream as S => [ operation = 'transform' ]
 	}
@@ -906,7 +912,7 @@ class StreamExtensions {
 	 * This is an alias for stream.call(stream.concurrency)
 	 */	
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (I, O)=>P promiseFn) {
-		stream.call(stream.concurrency, promiseFn) => [ stream.operation = 'call' ]
+		stream.call(stream.concurrency, promiseFn)
 	}
 
 	/**
