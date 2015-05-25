@@ -14,7 +14,10 @@ import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.util.DateExtensions.*
 import static extension org.junit.Assert.*
+import nl.kii.promise.Task
+import nl.kii.util.Period
 
 class TestStreamExtensions {
 
@@ -591,16 +594,21 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testThrottle() {
-		(1..1000).stream.throttle(10).effect [ println(it) ].start
+		(1..1000).stream.throttle(10.ms).effect [ println(it) ].start
+	}
+	
+	def (Period)=>Task newTimerFn() {
+		[ period |
+			val task = new Task
+			new Timer().schedule([ task.complete ], period.ms)
+			task
+		]
 	}
 	
 	@Test
 	def void testRateLimit() {
 		val stream = (1..1000).stream
-		val delayFn = [ long period, =>void doneFn | 
-			new Timer().schedule([ doneFn.apply ], period)
-		]
-		val limited = stream.ratelimit(100, delayFn).ratelimit(500, delayFn)
+		val limited = stream.ratelimit(100.ms, newTimerFn).ratelimit(500.ms, newTimerFn)
 		limited.effect [ println(it) ].start
 		Thread.sleep(5000)
 	}
@@ -608,12 +616,9 @@ class TestStreamExtensions {
 	@Test
 	def void testRateLimitWithErrors() {
 		val stream = (1..4).stream
-		val delayFn = [ long period, =>void doneFn | 
-			new Timer().schedule([ doneFn.apply ], period)
-		]
 		val limited = stream
 			.map [ 1000 / (2-it) * 1000 ]
-			.ratelimit(1000, delayFn)
+			.ratelimit(1.secs, newTimerFn)
 			.map [ 1000 / (2-it) * 1000 ]
 		limited
 			.on(Exception) [ println(it) ]
@@ -624,18 +629,14 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testWindow() {
-		val delayFn = [ long period, =>void doneFn | 
-			new Timer().schedule([ doneFn.apply ], period)
-		]
-
 		val newStream = int.stream			
 		newStream
-			.window(500, delayFn)
+			.window(500.ms, newTimerFn)
 			.effect [ println(it) ]
 			.start;
 
 		(1..1000).stream
-			.ratelimit(100, delayFn)
+			.ratelimit(100.ms, newTimerFn)
 			.pipe(newStream)
 			
 		Thread.sleep(5000)
