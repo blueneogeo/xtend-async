@@ -7,7 +7,6 @@ class Task extends Promise<Boolean> {
 	
 	def complete() {
 		set(true)
-		this
 	}
 
 	override toString() {

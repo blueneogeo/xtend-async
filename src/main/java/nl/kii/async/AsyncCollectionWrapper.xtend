@@ -18,17 +18,17 @@ class AsyncCollectionWrapper<T> implements AsyncCollection<T> {
 	
 	override add(T value) {
 		collection.add(value)
-		new Task().complete
+		new Task => [ complete ]
 	}
 	
 	override remove(T value) {
 		collection.remove(value)
-		new Task().complete
+		new Task => [ complete ]
 	}
 	
 	override clear() {
 		collection.clear
-		new Task().complete
+		new Task => [ complete ]
 	}
 	
 	override isEmpty() {

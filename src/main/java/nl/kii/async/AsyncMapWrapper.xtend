@@ -22,7 +22,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	
 	override put(K key, V value) {
 		map.put(key, value)
-		new Task().complete
+		new Task => [ complete ]
 	}
 	
 	override get(K key) {
@@ -31,7 +31,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	
 	override remove(K key) {
 		map.remove(key)
-		new Task().complete
+		new Task => [ complete ]
 	}
 	
 	override get(List<K> keys) {
