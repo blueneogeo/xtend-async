@@ -40,4 +40,3 @@ class SubStream<I, O> extends BaseStream<I, O> {
 	def finish(I from, int level) { apply(new Finish(from, level)) }	
 	
 }
-
