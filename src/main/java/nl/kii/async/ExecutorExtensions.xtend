@@ -18,6 +18,7 @@ import nl.kii.stream.SubStream
 import static java.util.concurrent.TimeUnit.*
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.util.Period
 
 class ExecutorExtensions {
 	
@@ -74,9 +75,11 @@ class ExecutorExtensions {
 		task
 	}
 	
-	def static (long, =>void)=>void scheduler(ScheduledExecutorService executor) {
-		[ long period, =>void doneFn |
-			executor.schedule(doneFn, period, TimeUnit.MILLISECONDS)
+	def static (Period)=>Task timer(ScheduledExecutorService executor) {
+		[ period |
+			val task = new Task
+			executor.schedule([ task.complete ], period.ms, TimeUnit.MILLISECONDS)
+			task
 		]
 	}
 	

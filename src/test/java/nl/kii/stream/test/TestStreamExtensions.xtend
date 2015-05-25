@@ -1,6 +1,5 @@
 package nl.kii.stream.test
 
-import java.util.Timer
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
@@ -12,16 +11,15 @@ import static java.util.concurrent.Executors.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
-import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension org.junit.Assert.*
-import nl.kii.promise.Task
-import nl.kii.util.Period
 
 class TestStreamExtensions {
 
 	val threads = newCachedThreadPool
+	val schedulers = newScheduledThreadPool(1)
 
 	@Test
 	def void testRangeStream() {
@@ -597,18 +595,10 @@ class TestStreamExtensions {
 		(1..1000).stream.throttle(10.ms).effect [ println(it) ].start
 	}
 	
-	def (Period)=>Task newTimerFn() {
-		[ period |
-			val task = new Task
-			new Timer().schedule([ task.complete ], period.ms)
-			task
-		]
-	}
-	
 	@Test
 	def void testRateLimit() {
 		val stream = (1..1000).stream
-		val limited = stream.ratelimit(100.ms, newTimerFn).ratelimit(500.ms, newTimerFn)
+		val limited = stream.ratelimit(100.ms, schedulers.timer).ratelimit(500.ms, schedulers.timer)
 		limited.effect [ println(it) ].start
 		Thread.sleep(5000)
 	}
@@ -618,7 +608,7 @@ class TestStreamExtensions {
 		val stream = (1..4).stream
 		val limited = stream
 			.map [ 1000 / (2-it) * 1000 ]
-			.ratelimit(1.secs, newTimerFn)
+			.ratelimit(1.secs, schedulers.timer)
 			.map [ 1000 / (2-it) * 1000 ]
 		limited
 			.on(Exception) [ println(it) ]
@@ -631,12 +621,12 @@ class TestStreamExtensions {
 	def void testWindow() {
 		val newStream = int.stream			
 		newStream
-			.window(500.ms, newTimerFn)
+			.window(500.ms, schedulers.timer)
 			.effect [ println(it) ]
 			.start;
 
 		(1..1000).stream
-			.ratelimit(100.ms, newTimerFn)
+			.ratelimit(100.ms, schedulers.timer)
 			.pipe(newStream)
 			
 		Thread.sleep(5000)
