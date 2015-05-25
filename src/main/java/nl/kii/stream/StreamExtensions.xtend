@@ -40,6 +40,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 
 class StreamExtensions {
@@ -298,39 +299,13 @@ class StreamExtensions {
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
-	/**
-	 * Creates a new stream from an existing stream, modifying both the input and output type of the resulting stream.
-	 * Only use this method if you need to modify the input type, otherwise use a normal map or call.
-	 * <p>
-	 * Usage example:
-	 * <pre>
-	 * val IStream<Integer, String> stream1 = int.stream
-	 * 	.map [ toString ]
-	 * 	
-	 * // now lets say we want to make this a Stream<String, Long>, where the
-	 * // string is the output string of stream1, and the long is the length of the string.
-	 * val IStream<String, Long> stream2 = stream1.map(String, Long) [ Integer input, String output, resultFn |
-	 * 	// resultFn takes the output types you specified as parameters (String, Long)
-	 * 	resultFn.apply(output, output.length) 
-	 * ]
-	 * </pre>
-	 */
-	def static <I, O, I2, O2, S extends IStream<I2, O2>> S map(IStream<I, O> stream, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
+	def static <I, O, I2, O2, S extends IStream<I2, O2>> S transform(IStream<I, O> stream, (Entry<I, O>, SubStream<I2, O2>)=>void mapFn) {
 		val newStream = new SubStream<I2, O2>
-		stream.on [
-			each [ i, o |
-				try {
-					val applyFn = [ I2 i2, O2 o2 | newStream.push(i2, o2) ]
-					mapFn.apply(i, o, applyFn)
-				} catch(Throwable t) {
-					newStream.error(null, t)
-				}
-			]
-			finish [ newStream.finish(null) ]
-			closed[ newStream.close ]
+		stream.onChange [ entry |
+			mapFn.apply(entry, newStream)
 		]
 		newStream.controls(stream)
-		newStream as S => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
+		newStream as S => [ operation = 'transform' ]
 	}
 	
 	/**
@@ -673,26 +648,19 @@ class StreamExtensions {
 	/**
 	 * Only allows one value for every timeInMs milliseconds. All other values are dropped.
 	 */
-	def static <I, O> throttle(IStream<I, O> stream, long periodMs) {
+	def static <I, O> throttle(IStream<I, O> stream, Period period) {
 		// -1 means allow, we want to allow the first incoming value
 		val startTime = new AtomicLong(-1) 
 		stream.filter [
 			val now = System.currentTimeMillis
-			if(startTime.get == -1 || now - startTime.get > periodMs) {
+			if(startTime.get == -1 || now - startTime.get > period.ms) {
 				// period has expired, reset the period and pass one
 				startTime.set(now)
 				true
 			} else false
-		] => [ stream.operation = 'throttle(periodMs=' + periodMs + ')' ]
+		] => [ stream.operation = 'throttle(period=' + period + ')' ]
 	}
 	
-	/**
-	 * Only allows one value per given period. Other values are dropped.
-	 */
-	def static <I, O> throttle(IStream<I, O> stream, Period period) {
-		stream.throttle(period.ms)
-	}
-
 	/** 
 	 * Only allows one value for every timeInMs milliseconds to pass through the stream.
 	 * All other values are buffered, and dropped only after the buffer has reached a given size.
@@ -713,9 +681,9 @@ class StreamExtensions {
 	 * </pre>
 	 * FIX: BREAKS ON ERRORS
 	 */
-	def static <I, O> ratelimit(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+	def static <I, O> ratelimit(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
 		// check if we really need to ratelimit at all!
-		if(periodMs <= 0) return stream
+		if(period.ms <= 0) return stream
 		// -1 means allow, we want to allow the first incoming value
 		val lastNextMs = new AtomicLong(-1)
 		val isTiming = new AtomicBoolean
@@ -725,17 +693,16 @@ class StreamExtensions {
 			next [
 				val now = System.currentTimeMillis
 				// perform a next right now?
-				if(lastNextMs.get == -1 || now - lastNextMs.get > periodMs) {
+				if(lastNextMs.get == -1 || now - lastNextMs.get > period.ms) {
 					lastNextMs.set(now)
 					stream.next
 				// or, if we are not already timing, set up a delayed next on the timerFn
 				} else if(!isTiming.get) {
 					// delay the next for the remaining time
-					val delayMs = now + periodMs - lastNextMs.get
-					timerFn.apply(delayMs) [
+					val delay = new Period(now + period.ms - lastNextMs.get)
+					timerFn.apply(delay).then [
 						isTiming.set(false)
-						val now2 = System.currentTimeMillis
-						lastNextMs.set(now2)
+						lastNextMs.set(System.currentTimeMillis)
 						stream.next
 					]
 				}
@@ -743,7 +710,7 @@ class StreamExtensions {
 			skip [ stream.skip ]
 			close [ stream.close ]
 		]
-		newStream => [ stream.operation = 'ratelimit(periodMs=' + periodMs + ')' ]
+		newStream => [ stream.operation = 'ratelimit(period=' + period + ')' ]
 	}
 
 	/**
@@ -754,9 +721,8 @@ class StreamExtensions {
 	 * up to a maximum period of one hour per error. The moment a normal value gets processed, the period is reset 
 	 * to the initial period.
 	 */
-	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, (long, =>void)=>void timerFn) {
-		val hourMs = 60 * 60 * 1000
-		stream.backoff(errorType, periodMs, 2, hourMs, timerFn)
+	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, Period period, (Period)=>Task timerFn) {
+		stream.backoff(errorType, period, 2, 1.hours, timerFn)
 	}
 	
 	/**
@@ -769,27 +735,27 @@ class StreamExtensions {
 	 * 
 	 * FIX: not working correctly!
 	 */
-	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, long periodMs, int factor, long maxPeriodMs, (long, =>void)=>void timerFn) {
-		if(periodMs <= 0 || maxPeriodMs <= 0) return stream
-		val delay = new AtomicLong(periodMs)
+	def static <I, O> backoff(IStream<I, O> stream, Class<? extends Throwable> errorType, Period period, int factor, Period maxPeriod, (Period)=>Task timerFn) {
+		if(period.ms <= 0 || maxPeriod.ms <= 0) return stream
+		val delay = new AtomicLong(period.ms)
 		val newStream = new SubStream<I, O>
 		stream.on [
 			each [
 				newStream.push($0, $1)
-				delay.set(periodMs)
+				delay.set(period.ms)
 			]
 			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 			error [
 				// delay the error for the period
-				timerFn.apply(delay.get) [ newStream.error($0, $1) ]
+				timerFn.apply(new Period(delay.get)).then [ newStream.error($0, $1) ]
 				// double the delay for a next error, up to the maxiumum
-				val newDelay = Math.min(delay.get * factor, maxPeriodMs)
+				val newDelay = Math.min(delay.get * factor, maxPeriod.ms)
 				delay.set(newDelay)
 			]
 		]
 		newStream.controls(stream)
-		newStream => [ stream.operation = 'onErrorBackoff(periodMs=' + periodMs + ', factor=' + factor + ', maxPeriodMs=' + maxPeriodMs + ')' ]
+		newStream => [ stream.operation = 'onErrorBackoff(period=' + period + ', factor=' + factor + ', maxPeriod=' + maxPeriod + ')' ]
 	}
 
 	/** 
@@ -799,14 +765,14 @@ class StreamExtensions {
 	 * FIX: this can break the finishes, lists may come in after a finish.
 	 * FIX: somehow ratelimit and window in a single stream do not time well together
 	 */
-	def static <I, O> window(IStream<I, O> stream, long periodMs, (long, =>void)=>void timerFn) {
+	def static <I, O> window(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
 		val newStream = new SubStream<I, List<O>>
 		val list = new AtomicReference<List<O>>
 		stream.on [
 			each [
 				if(list.get == null) {
 					list.set(newLinkedList)
-					timerFn.apply(periodMs) [
+					timerFn.apply(period).then [
 						newStream.push($0, list.getAndSet(null))
 					]
 				}
