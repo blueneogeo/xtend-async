@@ -159,7 +159,6 @@ class PromiseExtensions {
 	def static <I, O, R> SubPromise<I, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
 		val newPromise = new SubPromise<I, R>
 		promise
-			.on(Throwable) [ r, it | newPromise.error(r, it) ]
 			.effect [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
 			.on(Throwable) [ r, it | newPromise.error(r, it) ]
 		newPromise => [ operation = 'map' ]
@@ -209,14 +208,16 @@ class PromiseExtensions {
 	/** Perform some side-effect action based on the promise. */
 	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
 		val newPromise = new SubPromise<I, O>
-		promise.then [ in, out |
-			try {
-				listener.apply(in, out)
-				newPromise.set(in, out)
-			} catch(Throwable t) {
-				newPromise.error(in, t)
-			} 
-		]
+		promise
+			.then [ in, out |
+				try {
+					listener.apply(in, out)
+					newPromise.set(in, out)
+				} catch(Throwable t) {
+					newPromise.error(in, t)
+				} 
+			]
+			.on(Throwable) [ in, out | newPromise.error(in, out) ]
 		newPromise => [ operation = 'effect' ]
 	}
 	
