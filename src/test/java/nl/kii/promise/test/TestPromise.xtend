@@ -156,6 +156,7 @@ class TestPromise {
 		threads.promise [| 
 			println('hello')
 			task.complete
+			task
 		]
 	}
 	

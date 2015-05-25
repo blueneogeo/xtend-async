@@ -62,6 +62,11 @@ class PromiseExtensions {
 		new Task => [ complete ]
 	}
 
+	/** Shortcut for quickly creating a completed task */	
+	def static <I> complete(I from) {
+		new SubTask => [ complete(from) ]
+	}
+
 	/** Shortcut for quickly creating a promise with an error */	
 	def static Task error(String message) {
 		new Task => [ it.error(new Exception(message)) ]
@@ -382,7 +387,14 @@ class PromiseExtensions {
 		newPromise as P => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
 	}
 	
-	
+	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P transform(IPromise<I, O> promise, (Entry<I, O>, SubPromise<I2, O2>)=>void mapFn) {
+		val newPromise = new SubPromise<I2, O2>
+		promise.onChange [ entry |
+			mapFn.apply(entry, newPromise)
+		]
+		newPromise as P => [ operation = 'transform' ]
+	}
+
 	/** Create a stream out of a promise of a stream. */
 	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
