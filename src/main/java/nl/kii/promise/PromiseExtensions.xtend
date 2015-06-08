@@ -286,16 +286,21 @@ class PromiseExtensions {
 	}
 	
 	// ASYNCHRONOUSLY TRANSFORM ERRORS INTO A SIDEEFFECT //////////////////////
+
+	/** Asynchronously transform an error into a sideeffect. Swallows the error. */
+	def static <I, O> perform(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, ?> handler) {
+		promise.perform(errorType) [ from, it | handler.apply(it) ]
+	}
 	
 	/** Asynchronously transform an error into a sideeffect. Swallows the error. */
-	def static <I, O> perform(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, ?> mappingFn) {
+	def static <I, O> perform(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, ?> handler) {
 		val newPromise = new SubPromise<I, O>
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
 				// apply the mapping and throw away the result. pass any error to the subpromise.
 				try {
-					mappingFn.apply(from, e)
+					handler.apply(from, e)
 						.on(Throwable) [ newPromise.error(from, it) ]
 				} catch(Exception e2) {
 					newPromise.error(from, e2)
