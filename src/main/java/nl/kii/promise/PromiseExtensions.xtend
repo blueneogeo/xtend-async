@@ -285,6 +285,29 @@ class PromiseExtensions {
 		promise.on(errorType, true, handler)
 	}
 	
+	// ASYNCHRONOUSLY TRANSFORM ERRORS INTO A SIDEEFFECT //////////////////////
+	
+	/** Asynchronously transform an error into a sideeffect. Swallows the error. */
+	def static <I, O> perform(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, ?> mappingFn) {
+		val newPromise = new SubPromise<I, O>
+		promise
+			// catch the specific error
+			.on(errorType, true) [ from, e |
+				// apply the mapping and throw away the result. pass any error to the subpromise.
+				try {
+					mappingFn.apply(from, e)
+						.on(Throwable) [ newPromise.error(from, it) ]
+				} catch(Exception e2) {
+					newPromise.error(from, e2)
+				}
+			]
+			// if a specific error was not caught, propagate the throwable
+			.on(Throwable) [ from, e | newPromise.error(from, e) ]
+			// pass a normal value
+			.then [ from, e | newPromise.set(from, e) ]
+		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
+	}
+	
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
 
 	/** Map an error back to a value. Swallows the error. */
