@@ -43,7 +43,7 @@ class AsyncException extends Exception {
 	
 	override getMessage() {
 		val root = cause.rootCause
-		'''«message»
+		'''«super.message»
 		«operation»«IF root!=null && root.message != null» gave error "«root.message»«ENDIF»"«IF value!=null && value.toString.length < valueWrapSize» for value: "«value»"«ENDIF»
 		«IF value!=null && value.toString.length >= valueWrapSize»For value: { «value.toString.limit(maxValueStringLength)» }«ENDIF»
 		«IF cause!=null»
