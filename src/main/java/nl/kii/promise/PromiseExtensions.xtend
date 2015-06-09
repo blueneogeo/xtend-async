@@ -254,6 +254,7 @@ class PromiseExtensions {
 	 * Map an error to a new PromiseException with a message, 
 	 * passing the value, and with the original error as the cause.
 	 */
+	@Deprecated
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, String message) {
 		promise.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
 	}

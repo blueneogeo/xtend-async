@@ -38,13 +38,13 @@ class AsyncException extends Exception {
 		super(cause)
 		this.operation = operation
 		this.value = value
-		// this.clean(unwantedStacktraces)
+		this.clean(unwantedStacktraces)
 	}
 	
 	override getMessage() {
 		val root = cause.rootCause
-		'''
-		Stream.«operation»«IF root!=null && root.message != null» gave error "«root.message»«ENDIF»"«IF value!=null && value.toString.length < valueWrapSize» for value: "«value»"«ENDIF»
+		'''«message»
+		«operation»«IF root!=null && root.message != null» gave error "«root.message»«ENDIF»"«IF value!=null && value.toString.length < valueWrapSize» for value: "«value»"«ENDIF»
 		«IF value!=null && value.toString.length >= valueWrapSize»For value: { «value.toString.limit(maxValueStringLength)» }«ENDIF»
 		«IF cause!=null»
 		«FOR e : root.stackTrace.take(traceSize)»

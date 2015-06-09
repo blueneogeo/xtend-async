@@ -853,7 +853,7 @@ class StreamExtensions {
 				promise
 					// in case of a processing error, report it to the listening stream
 					.on(Throwable) [ 
-						newStream.error(r, new AsyncException('resolve', r, it))
+						newStream.error(r, it)
 						// are we done processing? and did we finish? then finish now 
 						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
 							newStream.finish(r)
@@ -999,6 +999,7 @@ class StreamExtensions {
 	 * Map an error to a new AsyncException with a message. 
 	 * passing the value, and with the original error as the cause.
 	 */
+	@Deprecated
 	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
 		stream.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
 	}
