@@ -651,6 +651,11 @@ class StreamExtensions {
 		newStream => [ operation = stream.operation ]
 	}
 	
+	/** Delay each entry coming through for a time period */
+	def static <I, O> wait(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
+		stream.perform [ timerFn.apply(period) ]
+	}
+	
 	/**
 	 * Only allows one value for every timeInMs milliseconds. All other values are dropped.
 	 */
@@ -691,26 +696,29 @@ class StreamExtensions {
 		// check if we really need to ratelimit at all!
 		if(period.ms <= 0) return stream
 		// -1 means allow, we want to allow the first incoming value
-		val lastNextMs = new AtomicLong(-1)
+		val lastNextSentMs = new AtomicLong(-1)
 		val isTiming = new AtomicBoolean
 		val newStream = new SubStream<I, O>
 		stream.onChange [ newStream.apply(it) ]
 		newStream.when [
 			next [
-				val now = System.currentTimeMillis
+				val justNow = now
 				// perform a next right now?
-				if(lastNextMs.get == -1 || now - lastNextMs.get > period.ms) {
-					lastNextMs.set(now)
+				if(lastNextSentMs.get == -1 || justNow - lastNextSentMs.get > period.ms) {
+					lastNextSentMs.set(justNow)
 					stream.next
 				// or, if we are not already timing, set up a delayed next on the timerFn
 				} else if(!isTiming.get) {
 					// delay the next for the remaining time
-					val delay = new Period(now + period.ms - lastNextMs.get)
-					timerFn.apply(delay).then [
+					val elapsed = justNow - lastNextSentMs.get
+					val remaining = period.ms - elapsed
+					isTiming.set(true)
+					timerFn.apply(new Period(remaining)).then [
 						isTiming.set(false)
-						lastNextMs.set(System.currentTimeMillis)
+						lastNextSentMs.set(now)
 						stream.next
 					]
+				// if there is already a timer running
 				}
 			]
 			skip [ stream.skip ]

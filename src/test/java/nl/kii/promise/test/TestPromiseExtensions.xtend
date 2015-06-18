@@ -2,7 +2,6 @@ package nl.kii.promise.test
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
@@ -12,6 +11,7 @@ import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.stream.test.StreamAssert.*
+import static extension nl.kii.util.DateExtensions.*
 import static extension org.junit.Assert.*
 
 class TestPromiseExtensions {
@@ -158,8 +158,9 @@ class TestPromiseExtensions {
 	@Test
 	def void testWait() {
 		val exec = Executors.newSingleThreadScheduledExecutor
-		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
-		complete.wait(100, timerFn).then [ anyDone = true ]
+//		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
+//		complete.wait(100, timerFn).then [ anyDone = true ]
+		complete.wait(100.ms, exec.timer).then [ anyDone = true ]
 		assertFalse(anyDone) // only done after 100 ms
 		Thread.sleep(1000) // wait long enough
 		assertTrue(anyDone) // should be done now

@@ -212,8 +212,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 
 	/** helper function for informing the notify listener */
 	def protected notify(StreamEvent command) {
-		if(notificationListener != null)
-			notificationListener.apply(command)
+		notificationListener?.apply(command)
 	}
 	
 	override toString() '''Stream { operation: «operation», open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''

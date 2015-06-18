@@ -475,34 +475,30 @@ class TestStreamExtensions {
 	
 	
 	// TODO: use assertions here instead of printing
+	// FIX: still gives undetermined and changing results when using resolve(30! 
+	// seems a problem with capturing the finishes.
+	// using resolve(1) will capture all finishes, however
+	// using resolve() will eliminate all finishes and return a single list..
 	@Test
 	def void testResolving() {
 		val doSomethingAsync = [ String x |
-			threads.promise [|
-				for(i : 1..5) {
-					Thread.sleep(10)
-					println(x + i)
-				}
+			threads.promise [
+				Thread.sleep(50)
 				x
 			]
 		]
 		val s = String.stream
 		s << 'a' << 'b' << 'c' << finish << 'd' << 'e' << finish << 'f' << finish
-		println(s.queue)
 		s
-			.map [
-				// println('pushing ' + it)
-				it
-			]
 			.map(doSomethingAsync)
-			.resolve(3)
+			.resolve(1)
 			.collect
 			.effect [ println('got: ' + it) ]
 			.start
-		s << 'f' << 'g' << finish << 'h' << finish
-		s << 'd' << 'e' << finish
-		s << 'a' << 'b' << 'c' << finish
-		Thread.sleep(100)
+		s << '1' << '2' << finish 
+		s << 'x' << 'y' << finish
+		s << 'A' << 'B' << 'C' << finish
+		Thread.sleep(1000)
 	}
 	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
@@ -597,10 +593,13 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testRateLimit() {
-		val stream = (1..1000).stream
-		val limited = stream.ratelimit(100.ms, schedulers.timer).ratelimit(500.ms, schedulers.timer)
-		limited.effect [ println(it) ].start
-		Thread.sleep(5000)
+		val stream = (1..10).stream
+		val limited = stream
+			.ratelimit(100.ms, schedulers.timer)
+			.ratelimit(200.ms, schedulers.timer)
+		limited
+			.effect [ println(it) ]
+			.collect.first.future.get
 	}
 
 	@Test
@@ -608,13 +607,26 @@ class TestStreamExtensions {
 		val stream = (1..4).stream
 		val limited = stream
 			.map [ 1000 / (2-it) * 1000 ]
-			.ratelimit(1.secs, schedulers.timer)
+			.ratelimit(200.ms, schedulers.timer)
 			.map [ 1000 / (2-it) * 1000 ]
 		limited
+			.on(Exception, true) [ println(it) ]
+			.effect [ println(it) ]
+			.collect.first.future.get
+	}
+	
+	@Test
+	def void testRateLimitAsyncProcessing() {
+		val list = (1..10).toList
+		val stream = list.streamList
+		val limited = stream
+			.ratelimit(1.secs, schedulers.timer)
+			.wait(200.ms, schedulers.timer)
+		val result = limited
 			.on(Exception) [ println(it) ]
 			.effect [ println(it) ]
-			.start
-		Thread.sleep(5000)
+			.collect.first.future.get
+		assertEquals(list, result)
 	}
 	
 	@Test

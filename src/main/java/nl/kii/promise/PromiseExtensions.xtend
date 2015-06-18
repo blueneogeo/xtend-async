@@ -12,6 +12,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.util.Period
 
 class PromiseExtensions {
 	
@@ -474,16 +475,8 @@ class PromiseExtensions {
 	 * @param timerFn a function with two parameters: a delay in milliseconds, and a closure
 	 * 			calling the function should execute the closure after the delay.
 	 */	
-	def static <I, O> wait(IPromise<I, O> promise, long periodMs, Procedure2<Long, Procedure0> timerFn) {
-		val newPromise = new SubPromise<I, O>
-		promise
-			.effect [ input, value |
-				timerFn.apply(periodMs) [
-					newPromise.set(input, value)
-				]
-			]
-			.on(Throwable) [ in, it | newPromise.error(in, it) ]
-		newPromise
+	def static <I, O> wait(IPromise<I, O> promise, Period period, (Period)=>Task timerFn) {
+		promise.perform [ timerFn.apply(period) ]
 	}
 
 	// ENDPOINTS //////////////////////////////////////////////////////////////
