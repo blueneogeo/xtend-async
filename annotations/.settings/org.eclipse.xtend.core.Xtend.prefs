@@ -1,0 +1,13 @@
+#Sun Jun 28 15:45:55 CEST 2015
+outlet.DEFAULT_OUTPUT.generatedAnnotationComment=
+//outlet.DEFAULT_OUTPUT.sourceFolder.src/test/java.directory=build/xtend-gen/test
+outlet.DEFAULT_OUTPUT.generateGeneratedAnnotation=false
+BuilderConfiguration.is_project_specific=true
+outlet.DEFAULT_OUTPUT.generateSuppressWarnings=true
+outlet.DEFAULT_OUTPUT.installDslAsPrimarySource=false
+outlet.DEFAULT_OUTPUT.userOutputPerSourceFolder=true
+outlet.DEFAULT_OUTPUT.hideLocalSyntheticVariables=true
+is_project_specific=true
+eclipse.preferences.version=1
+outlet.DEFAULT_OUTPUT.includeDateInGenerated=false
+//outlet.DEFAULT_OUTPUT.sourceFolder.src/main/java.directory=build/xtend-gen/main

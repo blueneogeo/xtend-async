@@ -1,0 +1,185 @@
+{
+  "version" : "1.0.1",
+  "name" : "xtend-async",
+  "number" : "1435656455649",
+  "type" : "GRADLE",
+  "buildAgent" : {
+    "name" : "Gradle",
+    "version" : "2.4"
+  },
+  "agent" : {
+    "name" : "Gradle",
+    "version" : "2.4"
+  },
+  "started" : "2015-06-30T11:27:35.398+0200",
+  "durationMillis" : 21199,
+  "principal" : "christianvogel",
+  "artifactoryPrincipal" : "deployer",
+  "licenseControl" : {
+    "runChecks" : false,
+    "includePublishedArtifacts" : false,
+    "autoDiscover" : false,
+    "licenseViolationsRecipientsList" : "",
+    "scopesList" : ""
+  },
+  "buildRetention" : {
+    "count" : -1,
+    "deleteBuildArtifacts" : true,
+    "buildNumbersNotToBeDiscarded" : [ ]
+  },
+  "modules" : [ {
+    "id" : "com.kimengi.util:core:4.0",
+    "artifacts" : [ {
+      "type" : "javadoc-jar",
+      "sha1" : "07f1396ed12ddeb8d1311886318d322ce45faa5d",
+      "md5" : "7dfd9d24d16c3e23fed307862c535646",
+      "name" : "xtend-async-4.0-javadoc.jar"
+    }, {
+      "type" : "jar",
+      "sha1" : "c00848832a4e7f06da4f0504c8d82c3e99307698",
+      "md5" : "69c3f6c701f1a02049b3f42de1b8731b",
+      "name" : "xtend-async-4.0.jar"
+    }, {
+      "type" : "pom",
+      "sha1" : "78e23a4d12e5ea7e494fdcbdbb0832ecd8c43c16",
+      "md5" : "0a3fa0aa9d59fcbd2b05e1d5e713e19b",
+      "name" : "xtend-async-4.0.pom"
+    }, {
+      "type" : "sources-jar",
+      "sha1" : "683003ea26953e0522c7637f6830756338f7a72f",
+      "md5" : "4ab581e605f17b6c5e9fd37040302b2c",
+      "name" : "xtend-async-4.0-sources.jar"
+    } ],
+    "excludedArtifacts" : [ ],
+    "dependencies" : [ {
+      "type" : "jar",
+      "sha1" : "c7404538a42c93de129767e25aaeca58687e0d2a",
+      "md5" : "a53478ba7539665cd2e959f94938de4f",
+      "id" : "com.kimengi.util:annotations:4.0",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "2973d150c0dc1fefe998f834810d68f278ea58ec",
+      "md5" : "5b38c40c97fbd0adee29f91e60405584",
+      "id" : "junit:junit:4.12",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "16fc17f34b11e521d4a9464692ea45737ec93728",
+      "md5" : "b9327b04f171806b3cce0278c639a4db",
+      "id" : "com.kimengi.util:xtend-tools:8.2",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "a0433de4816215e2acbd6d72c13f6707daabfb06",
+      "md5" : "ef3def5d686f3e03b01979d9866022e6",
+      "id" : "org.eclipse.xtend:org.eclipse.xtend.lib:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "f4f5a87bf2536f975e8565a05cb79259c80e5f93",
+      "md5" : "f2dc30e04d099150506787667d6413e6",
+      "id" : "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "42a25dc3219429f0e5d060061f71acb49bf010a0",
+      "md5" : "6393363b47ddcbba82321110c3e07519",
+      "id" : "org.hamcrest:hamcrest-core:1.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "0ce1edb914c94ebc388f086c6827e8bdeec71ac2",
+      "md5" : "4d5c1693079575b362edf41500630bbd",
+      "id" : "commons-lang:commons-lang:2.6",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "d90276fff414f06cb375f2057f6778cd63c6082f",
+      "md5" : "19ec751a4fe907ddb204dff93103acbb",
+      "id" : "ch.qos.logback:logback-classic:1.1.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "8e20852d05222dc286bf1c71d78d0531e177c317",
+      "md5" : "68910bf95dbcf90ce5859128f0f75d1e",
+      "id" : "org.slf4j:slf4j-api:1.7.12",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "55732ae4fb63fa4f55a143f0051a97fe82d3261d",
+      "md5" : "e7c87258de88a23b3bee60c351912103",
+      "id" : "org.eclipse.xtend:org.eclipse.xtend.lib.macro:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "69e12f4c6aeac392555f1ea86fab82b5e5e31ad4",
+      "md5" : "58553f87d83b9f8ec74bd3529083ee2f",
+      "id" : "com.google.guava:guava:14.0.1",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "e3c02049f2dbbc764681b40094ecf0dcbc99b157",
+      "md5" : "94975ef44aa05c5067563875a783351e",
+      "id" : "ch.qos.logback:logback-core:1.1.3",
+      "scopes" : [ "compile" ]
+    } ]
+  }, {
+    "id" : "com.kimengi.util:annotations:4.0",
+    "artifacts" : [ {
+      "type" : "pom",
+      "sha1" : "9c166083f77eed8b45634e890b0fc7240edcac4c",
+      "md5" : "2663162c62dd07169df6b4f4067af948",
+      "name" : "xtend-async-annotations-4.0.pom"
+    }, {
+      "type" : "jar",
+      "sha1" : "c7404538a42c93de129767e25aaeca58687e0d2a",
+      "md5" : "a53478ba7539665cd2e959f94938de4f",
+      "name" : "xtend-async-annotations-4.0.jar"
+    }, {
+      "type" : "sources-jar",
+      "sha1" : "ebf2544dcf2a894c0d65a78067bf90f56b33145d",
+      "md5" : "f24666a7295be77c465eda2c25ea5393",
+      "name" : "xtend-async-annotations-4.0-sources.jar"
+    }, {
+      "type" : "javadoc-jar",
+      "sha1" : "0c48f8484903990eda4947152fb948f9df65f05f",
+      "md5" : "118f932349225d6969ca0aa972aa65ad",
+      "name" : "xtend-async-annotations-4.0-javadoc.jar"
+    } ],
+    "excludedArtifacts" : [ ],
+    "dependencies" : [ {
+      "type" : "jar",
+      "sha1" : "a0433de4816215e2acbd6d72c13f6707daabfb06",
+      "md5" : "ef3def5d686f3e03b01979d9866022e6",
+      "id" : "org.eclipse.xtend:org.eclipse.xtend.lib:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "f4f5a87bf2536f975e8565a05cb79259c80e5f93",
+      "md5" : "f2dc30e04d099150506787667d6413e6",
+      "id" : "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "55732ae4fb63fa4f55a143f0051a97fe82d3261d",
+      "md5" : "e7c87258de88a23b3bee60c351912103",
+      "id" : "org.eclipse.xtend:org.eclipse.xtend.lib.macro:2.8.3",
+      "scopes" : [ "compile" ]
+    }, {
+      "type" : "jar",
+      "sha1" : "69e12f4c6aeac392555f1ea86fab82b5e5e31ad4",
+      "md5" : "58553f87d83b9f8ec74bd3529083ee2f",
+      "id" : "com.google.guava:guava:14.0.1",
+      "scopes" : [ "compile" ]
+    } ]
+  } ],
+  "governance" : {
+    "blackDuckProperties" : {
+      "runChecks" : false,
+      "includePublishedArtifacts" : false,
+      "autoCreateMissingComponentRequests" : false,
+      "autoDiscardStaleComponentRequests" : false
+    }
+  }
+}
