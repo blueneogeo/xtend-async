@@ -39,7 +39,6 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
-import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 
