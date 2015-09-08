@@ -24,7 +24,11 @@ class Entries<I, O> implements StreamMessage {
 class Value<I, O> implements Entry<I, O> {
 	public val I from
 	public val O value
-	new(I from, O value) { this.from = from this.value = value }
+	new(I from, O value) { 
+		this.from = from
+		if (value == null) throw new IllegalArgumentException('value in stream entry cannot be null')
+		this.value = value
+	}
 	override toString() { value.toString }
 	override equals(Object o) { o instanceof Value<?, ?> && (o as Value<?, ?>).value == this.value }
 }

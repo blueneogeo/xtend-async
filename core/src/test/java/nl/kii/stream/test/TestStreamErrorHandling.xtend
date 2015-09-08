@@ -1,11 +1,13 @@
 package nl.kii.stream.test
-import static org.junit.Assert.*
+
 import nl.kii.async.annotation.Atomic
+import nl.kii.stream.Stream
 import org.junit.Test
 
-import static extension nl.kii.stream.StreamExtensions.*
+import static org.junit.Assert.*
+
 import static extension nl.kii.promise.PromiseExtensions.*
-import nl.kii.stream.Stream
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestStreamErrorHandling {
 
@@ -271,6 +273,21 @@ class TestStreamErrorHandling {
 		assertEquals(7, count) // 3, 6 and 9 had an error, so 10-3 were successful
 		assertEquals(3, errorCount) // because of the 10
 		assertTrue(finished) // end of iteration
+	}
+	
+	@Test
+	def void correctlyHandlesNullEntries() {
+		val stream = stream(Integer)
+		finished = false
+		stream << 5
+
+		stream
+			.map [ null ]
+			.on(Throwable) [ finished = true ]
+			.effect [ finished = false ]
+			.start
+
+		assertTrue(finished)
 	}
 	
 }
