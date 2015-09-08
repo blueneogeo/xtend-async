@@ -402,8 +402,10 @@ class PromiseExtensions {
 	 * 	resultFn.apply(output, output.length) 
 	 * ]
 	 * </pre>
+	 * 
+	 * Deprecated: replaced with transform
 	 */
-	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P map(IPromise<I, O> promise, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
+	@Deprecated def static <I, O, I2, O2, P extends IPromise<I2, O2>> P map(IPromise<I, O> promise, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
 		val newPromise = new SubPromise<I2, O2>
 		promise
 			.on(Throwable) [ newPromise.error(null, it) ]
@@ -418,6 +420,11 @@ class PromiseExtensions {
 		newPromise as P => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
 	}
 	
+	/**
+	 * Creates a new promise from an existing promise, 
+	 * giving you an entry and a promise to complete, 
+	 * and letting you decide how that entry fulfills the promise.
+	 */
 	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P transform(IPromise<I, O> promise, (Entry<I, O>, SubPromise<I2, O2>)=>void mapFn) {
 		val newPromise = new SubPromise<I2, O2>
 		promise.onChange [ entry |
