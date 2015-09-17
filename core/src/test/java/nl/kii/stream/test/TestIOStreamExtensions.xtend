@@ -12,7 +12,7 @@ class TestIOStreamExtensions {
 	
 	@Test
 	def void testFileStreaming() {
-		val file = new File('gradle.properties')
+		val file = new File('../gradle.properties')
 		file.stream
 			.toText
 			.map [ '- ' + it ]

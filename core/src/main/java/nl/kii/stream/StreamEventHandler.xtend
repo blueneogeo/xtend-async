@@ -11,6 +11,10 @@ interface StreamEventHandler {
 	def void onSkip()
 	
 	def void onClose()
+
+	def void onPause()
+
+	def void onResume()
 	
 	def void onOverflow(Entry<?, ?> entry)
 	
@@ -21,6 +25,8 @@ class StreamEventResponder implements StreamEventHandler {
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn
 	@Atomic Procedure1<Void> closeFn
+	@Atomic Procedure1<Void> pauseFn
+	@Atomic Procedure1<Void> resumeFn
 	@Atomic Procedure1<Entry<?, ?>> overflowFn
 	
 	// BUILDER METHODS /////////////////////////////////////////////////////////
@@ -41,6 +47,14 @@ class StreamEventResponder implements StreamEventHandler {
 		overflowFn = handler
 	}
 	
+	def pause((Void)=>void handler) {
+		pauseFn = handler
+	}
+
+	def resume((Void)=>void handler) {
+		resumeFn = handler
+	}
+	
 	// STREAMLISTENER IMPLEMENTATION ///////////////////////////////////////////
 	
 	override onNext() {
@@ -57,6 +71,14 @@ class StreamEventResponder implements StreamEventHandler {
 	
 	override onOverflow(Entry<?, ?> entry) {
 		overflowFn?.apply(entry)
+	}
+	
+	override onPause() {
+		pauseFn.apply(null)
+	}
+
+	override onResume() {
+		resumeFn.apply(null)
 	}
 	
 }

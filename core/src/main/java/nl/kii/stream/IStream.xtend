@@ -32,6 +32,8 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 
 	def void next()
 	def void skip()
+	def void pause()
+	def void resume()
 	def void close()
 	
 	// LISTEN /////////////////////////////////////////////////////////////////
@@ -44,6 +46,8 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	def boolean isOpen()
 	def boolean isReady()
 	def boolean isSkipping()
+	def boolean isPaused()
+	def boolean isBufferFull()
 	
 	def Integer getConcurrency()
 	def void setConcurrency(Integer concurrency)

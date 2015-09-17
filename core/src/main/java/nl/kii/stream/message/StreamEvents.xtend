@@ -14,6 +14,12 @@ class Skip implements StreamEvent { }
 /** Request the stream to close and stop sending */
 class Close implements StreamEvent{ }
 
+/** Request the stream to pause sending */
+class Pause implements StreamEvent{ }
+
+/** Request the stream to resume sending */
+class Resume implements StreamEvent{ }
+
 /** Warns that the buffer is full */
 class Overflow implements StreamEvent {
 	public val Entry<?,?> entry

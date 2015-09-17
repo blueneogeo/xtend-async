@@ -428,7 +428,11 @@ class PromiseExtensions {
 	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P transform(IPromise<I, O> promise, (Entry<I, O>, SubPromise<I2, O2>)=>void mapFn) {
 		val newPromise = new SubPromise<I2, O2>
 		promise.onChange [ entry |
-			mapFn.apply(entry, newPromise)
+			try {
+				mapFn.apply(entry, newPromise)
+			} catch(Throwable t) {
+				newPromise.apply(new Error(null, t))
+			}
 		]
 		newPromise as P => [ operation = 'transform' ]
 	}

@@ -20,6 +20,8 @@ import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
 
 import static com.google.common.collect.Queues.*
+import nl.kii.stream.message.Pause
+import nl.kii.stream.message.Resume
 
 abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<I, O> {
 
@@ -31,6 +33,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	@Atomic val boolean open = true // whether the stream is open
 	@Atomic val boolean ready = false // whether the listener is ready
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
+	@Atomic val boolean paused = false // whether the stream is paused
 
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamEvent)=>void notificationListener // listener for notifications give by this stream
@@ -63,7 +66,11 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	
 	override isSkipping() { getSkipping }
 	
+	override isPaused() { getPaused }
+	
 	override getBufferSize() { buffersize }
+	
+	override isBufferFull() { bufferSize >= maxBufferSize }
 	
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
@@ -75,6 +82,10 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	
 	/** Close the stream, which will stop the listener from recieving values */
 	override close() { apply(new Close) }
+	
+	override pause() { apply(new Pause) }
+	
+	override resume() { apply(new Resume) }
 	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
@@ -109,8 +120,8 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 		if(isOpen) {
 			switch entry {
 				Value<I, O>, Finish<I, O>, Error<I, O>: {
-					// check for buffer overflow
-					if(buffersize >= maxBufferSize) {
+					// check for buffer overflow or paused
+					if(buffersize + 1 > maxBufferSize || isPaused) {
 						notify(new Overflow(entry))
 						done.apply
 						return
@@ -121,6 +132,14 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 					publishNext
 				}
 				Entries<I, O>: {
+					// check for buffer overflow or paused
+					if(buffersize + entry.entries.size >= maxBufferSize || isPaused) {
+						for(e : entry.entries) {
+							notify(new Overflow(e))
+						}
+						done.apply
+						return
+					}
 					// add the entries to the queue 
 					queue.addAll(entry.entries)
 					incBuffersize(entry.entries.size)
@@ -134,7 +153,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 					if(!published) notify(entry)
 				}
 				Skip: {
-					if(isSkipping) return 
+					if(isSkipping) return
 					else skipping = true		
 					// discard everything up to finish from the queue
 					while(isSkipping && !queue.empty) {
@@ -146,10 +165,21 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 					// if we are still skipping, notify the parent stream it needs to skip
 					if(isSkipping) notify(entry)			
 				}
+				Pause: {
+					notify(entry)
+					paused = true
+				}
+				Resume: {
+					paused = false
+					// notify that we resumed
+					notify(entry)
+					publishNext
+				}
 				Close: {
 					// and publish the closed command downwards
 					queue.add(new Closed)
 					incBuffersize
+					paused = false
 					publishNext
 					notify(entry)
 					open = false

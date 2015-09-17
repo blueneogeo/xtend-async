@@ -41,6 +41,8 @@ import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
+import nl.kii.stream.message.Pause
+import nl.kii.stream.message.Resume
 
 class StreamExtensions {
 	
@@ -175,6 +177,8 @@ class StreamExtensions {
 				Next: controller.onNext
 				Skip: controller.onSkip
 				Close: controller.onClose
+				Pause: controller.onPause
+				Resume: controller.onResume
 				Overflow: controller.onOverflow(entry)
 			}
 		]

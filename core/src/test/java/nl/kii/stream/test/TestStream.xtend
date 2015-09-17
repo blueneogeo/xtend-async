@@ -38,13 +38,14 @@ class TestStream {
 
 	@Test
 	def void testObservingAStream() {
-		
 		//val Stream<Integer> s = (1..3).stream
 		val s = new Stream<Integer>
 		s.handle(new StreamEventHandler {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
+			override onPause() { }
+			override onResume() { }
 			override onOverflow(Entry<?, ?> entry) { println('overflow! of ' + entry) }
 		})
 		s.observe(new StreamObserver<Integer, Integer> {
@@ -68,8 +69,7 @@ class TestStream {
 		})
 			// .then [ println('done!') ]
 			// .onError [ println('caught: ' + it)]
-		 s << 1 << 2 << 3 << finish
-
+		s << 1 << 2 << 3 << finish
 		s.next
 	}
 
@@ -190,5 +190,62 @@ class TestStream {
 		stream << 5 // should break here too
 		assertEquals(2, overflowCount)
 	}
+
+	@Atomic int pauseCount
+	@Atomic int resumeCount
+	
+	@Test
+	def void testStreamPauseAndResume() {
+		// set up a stream and an effect of a push
+		val stream = int.stream
+		stream.when [ 
+			overflow [ incOverflowCount ]
+			pause [ incPauseCount ]
+			resume [ incResumeCount ]
+		]
+		stream.effect [ incCounter ]
+		
+		// first push something and see that it arrives
+		counter = 0
+		overflowCount = 0
+		stream.push(1)
+		stream.next // process the next value
+		stream.push(1)
+		stream.next
+		assertEquals(2, counter)
+		assertEquals(0, overflowCount)
+		
+		// now pause the stream and see that now it does not work, and the value overflowed
+		counter = 0
+		overflowCount = 0
+		stream.pause
+		stream.push(1)
+		stream.next
+		stream.push(1)
+		stream.next
+		assertEquals(0, counter)
+		assertEquals(2, overflowCount)
+		assertEquals(1, pauseCount)
+		
+		// resume and we should get both values
+		stream.resume
+		stream.push(1)
+		stream.next
+		assertEquals(1, counter)
+		assertEquals(2, overflowCount)
+		assertEquals(1, resumeCount)
+		
+	}
 	
 }
+
+
+
+
+
+
+
+
+
+
+
