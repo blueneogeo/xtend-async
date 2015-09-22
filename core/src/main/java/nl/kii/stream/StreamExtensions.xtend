@@ -40,9 +40,11 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import static extension com.google.common.io.ByteStreams.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.util.DateExtensions.*
+import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import nl.kii.stream.message.Pause
 import nl.kii.stream.message.Resume
+import nl.kii.util.Opt
 
 class StreamExtensions {
 	
@@ -393,6 +395,13 @@ class StreamExtensions {
 		newStream.controls(stream)
 		stream.operation = 'filter'
 		newStream
+	}
+		
+	/** Disposes undefined optionals and continues the stream with the remaining optionals unboxed. */
+	def static <I, O> filterDefined(IStream<I, Opt<O>> stream) {
+		stream
+			.filter [ defined ]
+			.map [ value ]
 	}
 	
 	/**
