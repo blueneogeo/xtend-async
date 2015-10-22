@@ -21,7 +21,7 @@ class Pause implements StreamEvent{ }
 class Resume implements StreamEvent{ }
 
 /** Warns that the buffer is full */
-class Overflow implements StreamEvent {
-	public val Entry<?,?> entry
-	new(Entry<?,?> entry) { this.entry = entry }
+class Overflow<I, O> implements StreamEvent {
+	public val Entry<I, O> entry
+	new(Entry<I, O> entry) { this.entry = entry }
 }

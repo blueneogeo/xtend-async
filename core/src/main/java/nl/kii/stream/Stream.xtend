@@ -6,6 +6,10 @@ import nl.kii.stream.message.Value
 
 class Stream<T> extends BaseStream<T, T> {
 
+	new() { super() }
+	
+	new(int bufferSize) { super(bufferSize) }
+	
 	/** Queue a value on the stream for pushing to the listener */
 	def push(T value) { apply(new Value(value, value)) }
 	

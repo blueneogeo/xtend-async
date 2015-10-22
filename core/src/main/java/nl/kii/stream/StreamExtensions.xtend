@@ -173,7 +173,7 @@ class StreamExtensions {
 	}
 	
 	/** Listen to commands given to the stream. */
-	def static <I, O> void handle(IStream<I, O> stream, StreamEventHandler controller) {
+	def static <I, O> void handle(IStream<I, O> stream, StreamEventHandler<I, O> controller) {
 		stream.onNotify [ notification |
 			switch it : notification {
 				Next: controller.onNext
@@ -181,7 +181,7 @@ class StreamExtensions {
 				Close: controller.onClose
 				Pause: controller.onPause
 				Resume: controller.onResume
-				Overflow: controller.onOverflow(entry)
+				Overflow<I, O>: controller.onOverflow(entry)
 			}
 		]
 	}
@@ -354,13 +354,21 @@ class StreamExtensions {
 
 	/**
 	 * Filter items in a stream to only the ones that the filterFn
+	 * returns a true for.
+	 */
+	def static <I, O> filter(IStream<I, O> stream, (I, O)=>boolean filterFn) {
+		stream.filter [ from, it, index, passed | filterFn.apply(from, it) ]
+	}
+
+	/**
+	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for. This version also counts the number of
 	 * items passed into the stream (the index) and the number of
 	 * items passed by this filter so far. Both of these numbers
 	 * are reset by a finish.
 	 */
 	def static <I, O> filter(IStream<I, O> stream, (O, Long, Long)=>boolean filterFn) {
-		stream.filter [ r, it, index, passed | filterFn.apply(it, index, passed) ]
+		stream.filter [ from, it, index, passed | filterFn.apply(it, index, passed) ]
 	}
 
 	/**
@@ -640,7 +648,7 @@ class StreamExtensions {
 	 * Tell the stream what size its buffer should be, and what should happen in case
 	 * of a buffer overflow.
 	 */	
-	def static <I, O> buffer(IStream<I, O> stream, int maxSize, (Entry<?, ?>)=>void onOverflow) {
+	def static <I, O> buffer(IStream<I, O> stream, int maxSize, (Entry<I, ?>)=>void onOverflow) {
 		switch stream {
 			BaseStream<I, O>: stream.maxBufferSize = maxSize
 		}
@@ -674,13 +682,17 @@ class StreamExtensions {
 	def static <I, O> throttle(IStream<I, O> stream, Period period) {
 		// -1 means allow, we want to allow the first incoming value
 		val startTime = new AtomicLong(-1) 
-		stream.filter [
+		stream.filter [ from, it |
 			val now = System.currentTimeMillis
 			if(startTime.get == -1 || now - startTime.get > period.ms) {
 				// period has expired, reset the period and pass one
 				startTime.set(now)
 				true
-			} else false
+			} else {
+				// we are dismissing data from processing! report it as overflow
+				stream.apply(new Overflow(new Value(from, it)))
+				false
+			}
 		] => [ stream.operation = 'throttle(period=' + period + ')' ]
 	}
 	
@@ -735,6 +747,7 @@ class StreamExtensions {
 			]
 			skip [ stream.skip ]
 			close [ stream.close ]
+			overflow [ stream.apply(new Overflow(it)) ]
 		]
 		newStream => [ stream.operation = 'ratelimit(period=' + period + ')' ]
 	}
@@ -1398,7 +1411,7 @@ class StreamExtensions {
 	 * ]
 	 * </pre>
 	 */
-	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder)=>void handlerFn) {
+	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder<I, O>)=>void handlerFn) {
 		val handler = new StreamEventResponder
 		handlerFn.apply(handler)
 		stream.handle(handler)
@@ -1754,72 +1767,6 @@ class StreamExtensions {
 		newStream
 	}
 	
-	// MONITORING ///////////////////////////////////////////////////////////////
-
-	def static <I, O> monitor(IStream<I, O> stream, StreamMonitor monitor) {
-		stream.monitor(stream.operation, monitor)
-	}
-	
-	def static <I, O> monitor(IStream<I, O> stream, String name, StreamMonitor monitor) {
-		val stats = new StreamStats
-		monitor.add(name, stats)
-		stream.monitor(stats)
-	}
-
-	def static <I, O> monitor(IStream<I, O> stream, StreamStats stats) {
-		val splitter = stream.split
-		splitter.stream.on [ extension builder |
-
-			stats.startTS = now
-
-			each [ from, value |
-				stats => [
-					if(firstEntryTS == 0) firstEntryTS = now
-					if(firstValueTS == 0) firstValueTS = now
-					lastEntryTS = now
-					lastValueTS = now
-					lastValue = value
-					valueCount = valueCount + 1
-				]
-				builder.stream.next
-			]
-			
-			error [ from, t |
-				stats => [
-					if(firstEntryTS == 0) firstEntryTS = now
-					if(firstErrorTS == 0) firstErrorTS = now
-					lastEntryTS = now
-					lastErrorTS = now
-					lastError = t
-					errorCount = errorCount + 1
-				]
-				builder.stream.next
-			]
-			
-			finish [ from, t |
-				stats => [
-					if(firstEntryTS == 0) firstEntryTS = now
-					if(firstFinishTS == 0) firstFinishTS = now
-					lastEntryTS = now
-					lastFinishTS = now
-					finishCount = finishCount + 1
-				]
-				builder.stream.next
-			]
-			
-			closed [
-				stats => [
-					lastEntryTS = now
-					closeTS = now
-				]
-			]
-			
-			builder.stream.next
-		]
-
-		splitter.stream
-	}
-
 	// OTHER //////////////////////////////////////////////////////////////////
 	
 	/** 

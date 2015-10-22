@@ -1,12 +1,16 @@
 package nl.kii.stream.message
 
 import java.util.List
+import org.eclipse.xtend.lib.annotations.Accessors
 
 /** 
  * An entry is a stream message that contains either a value or stream state information.
  * Entries travel downwards a stream towards the listeners of the stream at the end.
  */
-interface Entry<I, O> extends StreamMessage { }
+interface Entry<I, O> extends StreamMessage {
+	/** Get the data the generated the entry */
+	def I getFrom()
+}
 
 /** 
  * Use entries to push multiple entries onto the stream for one recieved entry.
@@ -22,7 +26,7 @@ class Entries<I, O> implements StreamMessage {
 
 /** Wraps a streamed data value of type T */
 class Value<I, O> implements Entry<I, O> {
-	public val I from
+	@Accessors(PUBLIC_GETTER) val I from
 	public val O value
 	new(I from, O value) { 
 		this.from = from
@@ -39,7 +43,7 @@ class Value<I, O> implements Entry<I, O> {
  * which level of data was finished.
  */
 class Finish<I, O> implements Entry<I, O> {
-	public val I from
+	@Accessors(PUBLIC_GETTER) val I from
 	public val int level
 	new() { this(null, 0) }
 	new(I from, int level) { this.from = from this.level = level }
@@ -49,12 +53,13 @@ class Finish<I, O> implements Entry<I, O> {
 
 /** Indicates that the stream was closed and no more data will be passed */
 class Closed<I, O> implements Entry<I, O> {
+	override getFrom() { null }
 	override toString() { 'closed stream' }
 }
 
 /**  Indicates that the stream encountered an error while processing information. */
 class Error<I, O> implements Entry<I, O> {
-	public val I from
+	@Accessors(PUBLIC_GETTER) val I from
 	public val Throwable error
 	new(I from, Throwable error) { this.from = from this.error = error }
 	override toString() { 'error: ' + error.message }

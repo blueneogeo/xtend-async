@@ -40,13 +40,13 @@ class TestStream {
 	def void testObservingAStream() {
 		//val Stream<Integer> s = (1..3).stream
 		val s = new Stream<Integer>
-		s.handle(new StreamEventHandler {
+		s.handle(new StreamEventHandler<Integer, Integer> {
 			override onNext() { println('next!') }
 			override onSkip() { println('skip!') }
 			override onClose() { println('close!') }
 			override onPause() { }
 			override onResume() { }
-			override onOverflow(Entry<?, ?> entry) { println('overflow! of ' + entry) }
+			override onOverflow(Entry<Integer, Integer> entry) { println('overflow! of ' + entry) }
 		})
 		s.observe(new StreamObserver<Integer, Integer> {
 			override onValue(Integer from, Integer value) {
