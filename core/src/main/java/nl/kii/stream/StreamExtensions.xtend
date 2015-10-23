@@ -716,7 +716,7 @@ class StreamExtensions {
 	 * </pre>
 	 * FIX: BREAKS ON ERRORS
 	 */
-	def static <I, O> ratelimit(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
+	def static <I, O> ratelimitOLD(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
 		// check if we really need to ratelimit at all!
 		if(period.ms <= 0) return stream
 		// -1 means allow, we want to allow the first incoming value
@@ -750,6 +750,14 @@ class StreamExtensions {
 			overflow [ stream.apply(new Overflow(it)) ]
 		]
 		newStream => [ stream.operation = 'ratelimit(period=' + period + ')' ]
+	}
+	
+	def static <I, O> ratelimit(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
+		val started = new AtomicBoolean(false)
+		stream.perform(1) [
+			if(started.compareAndSet(false, true)) complete
+			else timerFn.apply(period)
+		] as IStream<I, O>
 	}
 
 	/**
