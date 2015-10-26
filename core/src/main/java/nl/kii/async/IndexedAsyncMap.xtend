@@ -14,7 +14,7 @@ interface IndexedAsyncMap<I, K, V> {
 	/** Perform a query and promise a map of keys and values. 
 	 * All parameters are optional and may be null.
 	 */
-	def Promise<Map<K, V>> query(I index, String query, K startKey, K endKey, Integer skip, Integer limit)
+	def Promise<Map<K, V>> query(I index, String query, K startKey, K endKey, Integer skip, Integer limit, boolean descending)
 
 	/** 
 	 * Perform a query and promise a list of keys whose values match the query. 
