@@ -15,6 +15,7 @@ import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.util.JUnitExtensions.*
+import nl.kii.promise.IPromise
 
 class TestPromise {
 	
@@ -196,6 +197,19 @@ class TestPromise {
 			.on(Throwable) [ foundError = true  ]
 		p.set(1)
 		assertTrue(foundError)
+	}
+	
+	@Test
+	def void testRecursivePromise() {
+		faculty(5, 0).then [ 
+			println(it)
+			assertEquals(15, it)
+		]
+	}
+	
+	@Async def void faculty(int i, int result, Promise<Integer> promise) {
+		if(i == 0) promise << result
+		else faculty(i - 1, result + i, promise)
 	}
 
 }
