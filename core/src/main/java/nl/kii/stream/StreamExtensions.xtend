@@ -644,6 +644,13 @@ class StreamExtensions {
 
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
 
+	def static <I, O> buffer(IStream<I, O> stream, int maxSize) {
+		switch stream {
+			BaseStream<I, O>: stream.maxBufferSize = maxSize
+		}
+		stream
+	}	
+
 	/**
 	 * Tell the stream what size its buffer should be, and what should happen in case
 	 * of a buffer overflow.
