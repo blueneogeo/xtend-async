@@ -100,6 +100,7 @@ class StreamExtensions {
 			} else {
 				finished.set(true)
 				stream.finish
+				stream.close
 			}
 		]
 		stream.when [
