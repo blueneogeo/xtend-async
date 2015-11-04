@@ -15,6 +15,7 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension org.junit.Assert.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 class TestStreamExtensions {
 
@@ -34,6 +35,14 @@ class TestStreamExtensions {
 		println(s.queue)
 		val s2 = s.map[it+1]
 		s2.assertStreamContains(2.value, 3.value, 4.value, finish)
+	}
+	
+	@Test
+	def void testListStreamForEmptyList() {
+		val s = #[]
+		val done = new AtomicBoolean
+		s.streamList.collect.first.then [ done.set(true) ]
+		assertTrue(done.get)
 	}
 	
 	@Test
@@ -517,8 +526,15 @@ class TestStreamExtensions {
 
 	@Test
 	def void testSkipAndTake() {
-		val s = (1..1_000_000_000).stream // will loop only 3 times!
-		s.skip(3).take(3).collect.first.assertPromiseEquals(#[4, 5, 6])
+		val s = (1..20).stream // will loop only 3 times!
+//		 s.skip(3).take(3).collect.first.assertPromiseEquals(#[4, 5, 6])
+//		 s.skip(3).take(3).effect [ println(it) ].start
+		s.skip(3).take(10).on [
+			each [ println($1) stream.next ]
+			finish [ println('finish') stream.next ]
+			closed [ println('closed') ]
+			stream.next
+		]
 	}
 	
 	@Test

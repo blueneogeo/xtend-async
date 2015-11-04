@@ -105,10 +105,9 @@ class StreamExtensions {
 		]
 		stream.when [
 			next [ pushNext.apply ]
-			skip [ finished.set(true) stream.finish ]
+			skip [ finished.set(true) stream.finish stream.close ]
 		]
 		stream.operation = 'iterate'
-		pushNext.apply
 		stream
 	}
 	

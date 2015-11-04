@@ -158,7 +158,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 					// discard everything up to finish from the queue
 					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
-							Finish<I, O> case level==0: skipping = false
+							Finish<I, O> case level==0: { skipping = false }
 							default: { queue.poll decBuffersize }
 						}
 					}
