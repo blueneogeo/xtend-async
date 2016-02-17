@@ -1,1 +1,2 @@
-include 'annotations','core'
+include 'annotations'
+include 'core'

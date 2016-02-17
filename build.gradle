@@ -1,131 +1,108 @@
 // SETUP BUILDSCRIPT ///////////////////////////////////////////////////////////
-
 buildscript {
-    repositories {
-        maven {
-            url "${artifactory_url}/plugins-release"
-            credentials {
-                username = "${artifactory_user}"
-                password = "${artifactory_password}"
-            }
-        }
+  repositories {
+    jcenter()
+    maven {
+      url 'https://plugins.gradle.org/m2/'
     }
-    dependencies {
-        classpath 'org.xtend:xtend-gradle-plugin:0.4.7'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.1.1'
+    maven {
+      url "${artifactory_url}/plugins-release"
+      credentials {
+        username artifactory_user
+        password artifactory_password
+      }
     }
+  }
+
+  dependencies {
+    classpath 'org.xtext:xtext-gradle-plugin:1.0.2'
+    classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:3.0.3'
+  }
 }
 
 
 // CONFIGURE ALL SUBPROJECTS ///////////////////////////////////////////////////
-
 subprojects {
-    apply plugin: 'com.jfrog.artifactory'
-    apply plugin: 'java'
-    apply plugin: 'org.xtend.xtend'
-    apply plugin: 'eclipse'
-    apply plugin: 'maven-publish'
+  apply plugin: 'eclipse'
+  apply plugin: 'nebula.provided-base'
+  apply plugin: 'java'
+  apply plugin: 'org.xtext.xtend'
+  apply plugin: 'maven-publish'
 
-    sourceCompatibility=javaVersion
-    targetCompatibility=javaVersion
+  sourceCompatibility = javaVersion
+  targetCompatibility = javaVersion
 
-    configurations {
-        all*.exclude group: 'log4j', module: 'log4j'
-        provided {
-            dependencies.all { dep -> configurations.default.exclude group: dep.group, module: dep.name }
+  eclipse.project.name = rootProject.name + '-' + project.name
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+      url "${artifactory_url}/libs-release"
+      credentials {
+        username artifactory_user
+        password artifactory_password
+      }
+    }
+    maven {
+      url "${artifactory_url}/libs-snapshot"
+      credentials {
+        username artifactory_user
+        password artifactory_password
+      }
+    }
+  }
+
+  dependencies {
+    compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
+    compile "org.slf4j:slf4j-api:${slf4jVersion}"
+    compile "ch.qos.logback:logback-classic:${logbackVersion}"
+    testCompile "junit:junit:${junitVersion}"
+  }
+
+  task sourcesJar( type: Jar, dependsOn: classes ) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+  }
+
+  task javadocJar( type: Jar, dependsOn: javadoc ) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+  }
+
+  tasks.withType( Javadoc ) {
+    if ( JavaVersion.current().isJava8Compatible() ) {
+      options.addStringOption( 'Xdoclint:none', '-quiet' )
+    }
+  }
+
+  task install( dependsOn: publishToMavenLocal )
+
+  publishing {
+    publications {
+      mavenJava( MavenPublication ) {
+        artifactId rootProject.name + '-' + project.name
+        from components.java
+        artifact sourcesJar
+        artifact javadocJar
+      }
+    }
+    repositories {
+      maven {
+        url "${artifactory_url}/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+        credentials {
+          username artifactory_user
+          password artifactory_password
         }
-        compile.extendsFrom provided
-        testCompile.extendsFrom provided
+      }
     }
-
-    dependencies {
-        compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
-	    compile "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:${xtendVersion}"
-    }
-    
-    eclipse.project.name = "${parent.name}-${name}"
-
-    task install(dependsOn: publishToMavenLocal)
-    task export(dependsOn: artifactoryPublish)
-    
-    task sourceJar(type: Jar) {
-        from sourceSets.main.allSource
-        classifier = 'sources'
-    }
-    
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier = 'javadoc'
-        from javadoc.destinationDir
-    }
-    
-    artifactoryPublish {
-        dependsOn sourceJar, javadocJar
-    }
-
-    tasks.withType(Javadoc) {
-        if (JavaVersion.current().isJava8Compatible()) {
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
-    }
-
-    eclipse.project.name = "${parent.name}-${project.name}"
-
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifactId "${parent.name}-${project.name}"
-                artifact sourceJar
-                artifact javadocJar
-                from components.java
-                pom.withXml {
-                    // Replace runtime to compile
-                    asNode().dependencies.'*'.findAll() {
-                        it.scope.text() == 'runtime'
-                    }.each() {
-                       it.scope*.value = 'compile'
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-// SETUP PROJECT SPECIFIC SETTINGS /////////////////////////////////////////////
-
-project( 'annotations' ) {
+  }
 }
 
 project( 'core' ) {
-    dependencies {
-        compile project( ':annotations' )
-        compile 'com.kimengi.util:xtend-tools-core:latest.release'
-        testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
-    }
-}
-
-
-// CONFIGURE ARTIFACTORY ///////////////////////////////////////////////////////
-
-artifactory {
-    contextUrl = "${artifactory_url}"
-    publish {
-        repository {
-            repoKey = "${artifactory_release_repo}"
-            username = "${artifactory_user}"
-            password = "${artifactory_password}"
-            maven = true
-        }
-        defaults {
-            publications ('mavenJava')
-        }        
-    }
-    resolve {
-        repository {
-            repoKey = 'repos'
-            username = "${artifactory_user}"
-            password = "${artifactory_password}"
-            maven = true
-        }
-    }
+  dependencies {
+    compile project( ':annotations' )
+    compile 'com.kimengi.util:xtend-tools-core:latest.release'
+    testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+  }
 }
