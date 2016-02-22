@@ -2,6 +2,7 @@ package nl.kii.promise
 
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
+import nl.kii.stream.options.StreamOptions
 
 /** 
  * A Task is a promise that some task gets done. 
@@ -9,6 +10,10 @@ import nl.kii.stream.message.Value
  * A SubTask is a task based on a promise/task.
  */
 class SubTask<I> extends SubPromise<I, Boolean> {
+	
+	new(StreamOptions options) {
+		super(options.copy)
+	}
 	
 	def complete(I from) {
 		apply(new Value(from, true))

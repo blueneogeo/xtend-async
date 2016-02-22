@@ -4,6 +4,7 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Stream
 import org.junit.Test
 
+import static nl.kii.stream.test.StreamAssert.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*

@@ -1,23 +1,31 @@
 package nl.kii.promise
 
-import static extension nl.kii.util.OptExtensions.*
-
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Atomic
 import nl.kii.observe.Publisher
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
+import nl.kii.stream.options.StreamOptions
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
+
+import static extension nl.kii.util.OptExtensions.*
 
 /**
  * Base implementation of IPromise. 
  */
 abstract class BasePromise<I, O> implements IPromise<I, O> {
 	
-	val publisher = new Publisher<Entry<I, O>>
+	@Accessors(PUBLIC_GETTER) val StreamOptions options
+	val Publisher<Entry<I, O>> publisher
+	
+	new(StreamOptions options) {
+		this.options = options.copy
+		this.publisher = new Publisher(options.newPromiseActorQueue, true)
+	}
 	
 	/** Property to see if the promise has an error handler assigned */
 	@Atomic public val boolean hasErrorHandler = false
@@ -27,9 +35,6 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 
 	/** The result of the promise, if any, otherwise null */
 	@Atomic protected val Entry<I, O> entry
-
-	/** name of the operation the listener is performing */
-	@Atomic public val String operation
 	
 	// GETTERS AND SETTERS ////////////////////////////////////////////////////
 	
@@ -45,7 +50,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 		publisher.apply(it)
 	}
 	
-	/** only has a value when finished, otherwise null */
+	/** has Some(value) when fulfilled, otherwise None */
 	override get() { entry.option }
 	
 	override getFulfilled() { entry != null	}
@@ -76,7 +81,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 
 	/** Call the passed onValue procedure when the promise has been fulfilled with value. This also starts the onError and always listening. */
 	override then(Procedure2<I, O> valueFn) {
-		val newPromise = new SubPromise
+		val newPromise = new SubPromise(this)
 		onChange [
 			switch it { 
 				Value<I, O>: { 
@@ -113,7 +118,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	 * since there is a generics problem trying to assign the values.
 	 */
 	override on(Class<? extends Throwable> errorType, boolean swallow, Procedure2<I, Throwable> errorFn) {
-		val subPromise = new SubPromise
+		val subPromise = new SubPromise(this)
 		onChange [
 			switch it {
 				Value<I, O>: subPromise.set(from, value)
@@ -133,6 +138,6 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 		subPromise
 	}
 
-	override toString() '''Promise { fulfilled: «fulfilled», entry: «get» }'''
+	override toString() '''Promise { fulfilled: «fulfilled», entry: «get», options: «options» }'''
 	
 }

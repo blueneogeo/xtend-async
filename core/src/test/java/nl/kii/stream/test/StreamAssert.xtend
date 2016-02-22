@@ -51,8 +51,28 @@ class StreamAssert {
 		ref.get.assertArrayEquals(value)
 	}
 	
-	def static <R, T> value(T value) {
-		new Value<R, T>(null, value)
+	def static <I, T> value(T value) {
+		new Value<I, T>(null, value)
 	}
+
+	def static <I, T> value(I in, T value) {
+		new Value<I, T>(in, value)
+	}
+	
+	/** Lets you easily pass a Finish entry using the << or >> operators */
+	def static <I, O> finish() {
+		new Finish<I, O>(null, 0)
+	}
+
+	/** Lets you easily pass a Finish entry using the << or >> operators */
+	def static <I, O> finish(int level ) {
+		new Finish<I, O>(null, level)
+	}
+
+	/** Lets you easily pass a Finish entry using the << or >> operators */
+	def static <I, O> finish(I in, int level ) {
+		new Finish<I, O>(in, level)
+	}
+
 	
 }

@@ -2,7 +2,7 @@ package nl.kii.stream.source
 
 import java.util.List
 import java.util.concurrent.CopyOnWriteArrayList
-import nl.kii.act.Actor
+import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.IStream
 import nl.kii.stream.SubStream
@@ -15,7 +15,7 @@ import nl.kii.stream.message.StreamMessage
  * for other streams. It usually implements a specific value
  * distribution system.
  */
-abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements StreamSource<I, O> {
+abstract class StreamSplitter<I, O> extends NonBlockingAsyncActor<StreamMessage> implements StreamSource<I, O> {
 	
 	/** the source stream that gets distributed */
 	protected val IStream<I, O> source
@@ -24,6 +24,7 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 	@Atomic protected val List<IStream<I, ?>> streams
 	
 	new(IStream<I, O> source) {
+		super(source.options.newActorQueue)
 		this.source = source
 		this.streams = new CopyOnWriteArrayList
 		source.onChange [ apply ]
@@ -39,11 +40,11 @@ abstract class StreamSplitter<I, O> extends Actor<StreamMessage> implements Stre
 	}
 	
 	override stream() {
-		new SubStream<I, O> => [ pipe ]
+		new SubStream<I, O>(source) => [ pipe ]
 	}
 	
 	/** we are wrapping in an actor to make things threadsafe */
-	override protected act(StreamMessage message, =>void done) {
+	override act(StreamMessage message, =>void done) {
 		switch message {
 			Entry<I, O>: onEntry(message)
 			StreamEvent: onCommand(message)

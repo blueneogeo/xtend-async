@@ -1,5 +1,5 @@
 package nl.kii.promise
-
+import static extension nl.kii.util.OptExtensions.*
 import java.util.List
 import java.util.Map
 import nl.kii.async.AsyncException
@@ -13,6 +13,7 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.stream.StreamExtensions.*
 import nl.kii.util.Period
+import nl.kii.util.Opt
 
 class PromiseExtensions {
 	
@@ -22,7 +23,7 @@ class PromiseExtensions {
 	def static <T> promise(Class<T> type) {
 		new Promise<T>
 	}
-
+	
 	/** Create a promise of a list of the given type */
 	def static <T> promiseList(Class<T> type) {
 		new Promise<List<T>>
@@ -41,7 +42,7 @@ class PromiseExtensions {
 	}
 
 	def static <I, O> promise(I from, O value) {
-		new SubPromise<I, O> => [ set(from, value) ]
+		new SubPromise<I, O>(Stream.DEFAULT_STREAM_OPTIONS) => [ set(from, value) ]
 	}
 	
 	/** Create a promise of a pair */
@@ -55,7 +56,7 @@ class PromiseExtensions {
 			.call(concurrency, operationFn)
 			.collect // see it as a list of results
 			.first
-			=> [ operation = 'call(concurrency=' + concurrency + ')' ]
+			=> [ options.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 
 	/** Shortcut for quickly creating a completed task */	
@@ -65,7 +66,7 @@ class PromiseExtensions {
 
 	/** Shortcut for quickly creating a completed task */	
 	def static <I> complete(I from) {
-		new SubTask => [ complete(from) ]
+		new SubTask(Stream.DEFAULT_STREAM_OPTIONS.copy) => [ complete(from) ]
 	}
 
 	/** Shortcut for quickly creating a promise with an error */	
@@ -158,11 +159,11 @@ class PromiseExtensions {
 
 	/** Transform the value of a promise */ 
 	def static <I, O, R> SubPromise<I, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
-		val newPromise = new SubPromise<I, R>
+		val newPromise = new SubPromise<I, R>(promise)
 		promise
 			.effect [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
 			.on(Throwable) [ r, it | newPromise.error(r, it) ]
-		newPromise => [ operation = 'map' ]
+		newPromise => [ options.operation = 'map' ]
 	}
 	
 	// ASYNC MAPPING //////////////////////////////////////////////////////////
@@ -170,13 +171,13 @@ class PromiseExtensions {
 	/** Asynchronously transform the value of a promise */ 
 	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (O)=>P promiseFn) {
 		promise.map(promiseFn).resolve
-			=> [ operation = 'call' ]
+			=> [ options.operation = 'call' ]
 	}
 
 	/** Asynchronously transform the value of a promise */ 
 	def static <I, O, R, P extends IPromise<?, R>> call(IPromise<I, O> promise, (I, O)=>P promiseFn) {
 		promise.map(promiseFn).resolve
-			=> [ operation = 'call' ]
+			=> [ options.operation = 'call' ]
 	}
 
 	// CHECKS /////////////////////////////////////////////////////////////////
@@ -208,7 +209,7 @@ class PromiseExtensions {
 
 	/** Perform some side-effect action based on the promise. */
 	def static <I, O> effect(IPromise<I, O> promise, (I, O)=>void listener) {
-		val newPromise = new SubPromise<I, O>
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.then [ in, out |
 				try {
@@ -219,7 +220,7 @@ class PromiseExtensions {
 				} 
 			]
 			.on(Throwable) [ in, out | newPromise.error(in, out) ]
-		newPromise => [ operation = 'effect' ]
+		newPromise => [ options.operation = 'effect' ]
 	}
 	
 	// ASYNC SIDEEFFECTS //////////////////////////////////////////////////////
@@ -234,7 +235,7 @@ class PromiseExtensions {
 		promise
 			.map[ i, o | promiseFn.apply(i, o).map[o] ]
 			.resolve
-			=> [ operation = 'perform' ]
+			=> [ options.operation = 'perform' ]
 	}
 	
 	// RESPOND TO ERRORS, BUT DO NOT SWALLOW THE ERROR ////////////////////////
@@ -296,7 +297,7 @@ class PromiseExtensions {
 	
 	/** Asynchronously transform an error into a sideeffect. Swallows the error. */
 	def static <I, O> perform(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, ?> handler) {
-		val newPromise = new SubPromise<I, O>
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
@@ -312,7 +313,7 @@ class PromiseExtensions {
 			.on(Throwable) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
-		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
+		newPromise => [ options.operation = 'call(' + errorType.simpleName + ')' ]
 	}
 	
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
@@ -324,7 +325,7 @@ class PromiseExtensions {
 	
 	/** Map an error back to a value. Swallows the error. */
 	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
-		val newPromise = new SubPromise<I, O>
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
@@ -342,7 +343,7 @@ class PromiseExtensions {
 			.on(Throwable) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
-		newPromise => [ operation = 'map(' + errorType.simpleName + ')' ]
+		newPromise => [ options.operation = 'map(' + errorType.simpleName + ')' ]
 	}
 
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
@@ -354,7 +355,7 @@ class PromiseExtensions {
 			
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
-		val newPromise = new SubPromise<I, O>
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			// catch the specific error
 			.on(errorType, true) [ from, e |
@@ -371,7 +372,7 @@ class PromiseExtensions {
 			.on(Throwable) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
-		newPromise => [ operation = 'call(' + errorType.simpleName + ')' ]
+		newPromise => [ options.operation = 'call(' + errorType.simpleName + ')' ]
 	}
 
 	@Deprecated
@@ -406,7 +407,7 @@ class PromiseExtensions {
 	 * Deprecated: replaced with transform
 	 */
 	@Deprecated def static <I, O, I2, O2, P extends IPromise<I2, O2>> P map(IPromise<I, O> promise, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
-		val newPromise = new SubPromise<I2, O2>
+		val newPromise = new SubPromise<I2, O2>(promise)
 		promise
 			.on(Throwable) [ newPromise.error(null, it) ]
 			.then [ i, o |
@@ -417,7 +418,7 @@ class PromiseExtensions {
 					newPromise.error(null, t)
 				}
 			]
-		newPromise as P => [ operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
+		newPromise as P => [ options.operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
 	}
 	
 	/**
@@ -426,7 +427,7 @@ class PromiseExtensions {
 	 * and letting you decide how that entry fulfills the promise.
 	 */
 	def static <I, O, I2, O2, P extends IPromise<I2, O2>> P transform(IPromise<I, O> promise, (Entry<I, O>, SubPromise<I2, O2>)=>void mapFn) {
-		val newPromise = new SubPromise<I2, O2>
+		val newPromise = new SubPromise<I2, O2>(promise)
 		promise.onChange [ entry |
 			try {
 				mapFn.apply(entry, newPromise)
@@ -434,7 +435,7 @@ class PromiseExtensions {
 				newPromise.apply(new Error(null, t))
 			}
 		]
-		newPromise as P => [ operation = 'transform' ]
+		newPromise as P => [ options.operation = 'transform' ]
 	}
 
 	/** Create a stream out of a promise of a stream. */
@@ -448,7 +449,7 @@ class PromiseExtensions {
 
 	/** Resolve a promise of a promise to directly a promise. */
 	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
-		val newPromise = new SubPromise<I, O>
+		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			.on(Throwable) [ r, e | newPromise.error(r, e) ]
 			.then [ r, p |
@@ -456,18 +457,40 @@ class PromiseExtensions {
 					.then [ newPromise.set(r, it) ]
 					.on(Throwable) [ newPromise.error(r, it) ] 
 			]
-		newPromise => [ operation = 'resolve' ]
+		newPromise => [ options.operation = 'resolve' ]
 	}
 
 	/** Flattens a promise of a promise to directly a promise. Alias of .resolve */
 	def static <I1, I2, O, P extends IPromise<I1, O>> flatten(IPromise<I2, P> promise) {
-		promise.resolve => [ operation = 'flatten' ]
+		promise.resolve => [ options.operation = 'flatten' ]
 	}
 
 	/** Performs a flatmap, which is a combination of map and flatten/resolve. Alias of .call */	
 	def static <I, O, R, P extends IPromise<I, R>> IPromise<I, R> flatMap(IPromise<I, O> promise, (O)=>P promiseFn) {
-		promise.call(promiseFn) => [ operation = 'flatMap' ]
+		promise.call(promiseFn) => [ options.operation = 'flatMap' ]
 	}	
+
+	/** 
+	 * Transform the input of a promise based on the existing input and output.
+	 * <p>
+	 * The input mapping function is passed both an input and an output parameter. The output
+	 * is only available when a normal value comes in, and not for errors or finishes, in which
+	 * case it is none.
+	 */	
+	def static <I, O, T> IPromise<T, O> mapInput(IPromise<I, O> promise, (I, Opt<O>)=>T inputMappingFn)	{
+		val newPromise = new SubPromise<T, O>(promise)
+		promise
+			.then [ in, it | newPromise.set(inputMappingFn.apply(in, some(it)), it) ]
+			.on(Throwable) [ in, e | newPromise.error(inputMappingFn.apply(in, none), e) ]
+		newPromise => [ options.operation = 'mapInput' ]
+	}
+
+	/** 
+	 * Creates a new promise without the input data of the original promise.
+	 */
+	def static <T> IPromise<T, T> removeInput(IPromise<?, T> promise) {
+		promise.mapInput [ in, out | out.orNull ]
+	}
 
 	// TIMING /////////////////////////////////////////////////////////////////
 
@@ -517,5 +540,5 @@ class PromiseExtensions {
 			.effect [ r, it | task.set(true) ]
 			.on(Throwable) [ r, it | task.error(it) ]
 	}
-
+	
 }

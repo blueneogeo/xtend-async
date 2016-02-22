@@ -2,22 +2,10 @@ package nl.kii.act
 
 import java.util.Queue
 import nl.kii.async.annotation.Atomic
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
-
-import static com.google.common.collect.Queues.*
 
 /**
- * An Actor<T> is a computational unit that processes incoming messages, spawn other actors,
- * send messages to other actors and code, and that can contain its own state.
- * <p>
- * http://en.wikipedia.org/wiki/Actor_model
- * <p>
- * In Java an Actor<T> is a threadsafe procedure that guarantees that the execution of the act method is
- * single threaded. To accomplish this, it has an inbox (which is a queue) which gathers all
- * incoming messages of type T. Calls from one or more threads to the apply function simply add to
- * this queue. The actor then uses a singlethreaded process loop to process these messages one by one.
- * The acting is implemented by extending this actor and implementing the act method.
- * 
+ * Non blocking asynchronous actor.
+ *  
  * <h3>Asynchronous act method</h3>
  * 
  * The act method of this actor is asynchronous. This means that you have to call done.apply to indicate
@@ -41,7 +29,7 @@ import static com.google.common.collect.Queues.*
  * 
  * <pre>
  * // anonymous class version
- * val Actor<String> greeter = new Actor() {
+ * val Actor<String> greeter = new NonBlockingActor() {
  *     def act(String message, =>void done) {
  *         println('hello ' + message + '!')
  *         done.apply // signal we are done processing the message
@@ -61,7 +49,7 @@ import static com.google.common.collect.Queues.*
  * 'world' >> greeter
  * </pre>
  */
-abstract class Actor<T> implements Procedure1<T> {
+abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
 
 	/** 
 	 * Since the actor supports asynchronous callbacks, its main loop must be implemented via 
@@ -90,11 +78,6 @@ abstract class Actor<T> implements Procedure1<T> {
 	 */
 	@Atomic val boolean processing = false
 	
-	/** Create a new actor with a concurrentlinkedqueue as inbox */
-	new() {	
-		this(newConcurrentLinkedQueue)
-	}
-
 	/** 
 	 * Create an actor with the given queue as inbox. 
 	 * Queue implementation must be threadsafe and non-blocking.
@@ -113,7 +96,7 @@ abstract class Actor<T> implements Procedure1<T> {
 	 * Perform the actor on the next message in the inbox. 
 	 * You must call done.apply when you have completed processing!
 	 */
-	protected abstract def void act(T message, =>void done)
+	abstract override act(T message, =>void done)
 
 	/**
 	 * Start processing as many messages as possible before releasing the thread.
@@ -172,7 +155,7 @@ abstract class Actor<T> implements Procedure1<T> {
 	Actor {
 		processing: «processing»,
 		inbox size: «inbox.size»,
-		«IF inbox.size < Actor.MAX_INBOX_TO_PRINT» 
+		«IF inbox.size < MAX_INBOX_TO_PRINT» 
 			inbox: {
 				«FOR item : inbox SEPARATOR ','»
 					«item»

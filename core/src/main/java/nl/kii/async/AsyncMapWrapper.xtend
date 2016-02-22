@@ -1,11 +1,11 @@
 package nl.kii.async
 
+import java.util.List
 import java.util.Map
 import java.util.concurrent.ConcurrentHashMap
 import nl.kii.promise.Task
 
-import static extension nl.kii.promise.PromiseExtensions.*
-import java.util.List
+import static nl.kii.promise.PromiseExtensions.*
 
 /** 
  * Converts a normal Map into an AsyncMap
@@ -26,7 +26,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	}
 	
 	override get(K key) {
-		map.get(key).promise
+		promise(key, map.get(key))
 	}
 	
 	override remove(K key) {
@@ -35,7 +35,8 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	}
 	
 	override get(List<K> keys) {
-		keys.map [ it->map.get(it) ].toMap.promise
+		val result = keys.map [ it->map.get(it) ].toMap
+		promise(keys, result)
 	}
 	
 	// copied from xtend-tools/IterableExtensions.toMap

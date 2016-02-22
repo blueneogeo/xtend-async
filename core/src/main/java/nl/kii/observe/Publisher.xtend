@@ -1,8 +1,10 @@
 package nl.kii.observe
 
+import com.google.common.collect.Queues
 import java.util.List
+import java.util.Queue
 import java.util.concurrent.CopyOnWriteArrayList
-import nl.kii.act.Actor
+import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
@@ -17,15 +19,22 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * <p>
  * For it to work correctly, the listeners should be non-blocking. 
  */
-class Publisher<T> extends Actor<T> implements Procedure1<T>, Observable<T> {
+class Publisher<T> extends NonBlockingAsyncActor<T> implements Procedure1<T>, Observable<T> {
 	
 	@Atomic public val boolean publishing = true
 	@Atomic transient val List<Procedure1<T>> observers 
 
-	new() { }
+//	new() {
+//		this(Queues.newConcurrentLinkedQueue, true)
+//	}
+
+	new(Queue<T> queue, boolean isPublishing) {
+		super(queue)
+		publishing = isPublishing
+	}
 	
 	new(boolean isPublishing) {
-		publishing = isPublishing
+		this(Queues.newConcurrentLinkedQueue, isPublishing)
 	}
 
 	/** Listen for publications from the publisher */

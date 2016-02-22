@@ -12,6 +12,7 @@ import nl.kii.stream.message.Entry
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
+import static nl.kii.stream.test.StreamAssert.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
@@ -183,7 +184,7 @@ class TestStream {
 	
 	@Test
 	def void testStreamBufferOverflow() {
-		val stream = int.stream => [ maxBufferSize = 3 ]
+		val stream = int.stream => [ options.maxQueueSize = 3 ]
 		stream.when [ overflow [ incOverflowCount ] ]
 		stream << 1 << 2 << 3 // so far so good
 		stream << 4 // should break here

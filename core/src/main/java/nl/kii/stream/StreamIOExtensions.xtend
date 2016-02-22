@@ -52,7 +52,7 @@ class StreamIOExtensions {
 		stream
 			.map [ new String(it, encoding).split('\n').toList ]
 			.separate
-			=> [ stream.operation = 'toText(encoding=' +  encoding + ')' ]
+			=> [ stream.options.operation = 'toText(encoding=' +  encoding + ')' ]
 	}
 	
 	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream) {
@@ -62,7 +62,7 @@ class StreamIOExtensions {
 	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream, String encoding) {
 		stream
 			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
-			=> [ stream.operation = 'toBytes(encoding=' +  encoding + ')' ]
+			=> [ stream.options.operation = 'toBytes(encoding=' +  encoding + ')' ]
 	}
 
 	/** write a buffered bytestream to an standard java outputstream */
@@ -83,7 +83,7 @@ class StreamIOExtensions {
 				stream.next
 			]
 		]
-		stream.operation = 'writeTo'
+		stream.options.operation = 'writeTo'
 		stream.next
 		task
 	}
@@ -94,7 +94,7 @@ class StreamIOExtensions {
 		val sink = Files.asByteSink(file)
 		val out = sink.openBufferedStream
 		stream.writeTo(out).pipe(task)
-		stream.operation = 'writeTo(file=' + file.absolutePath + ')'
+		stream.options.operation = 'writeTo(file=' + file.absolutePath + ')'
 		task
 	}
 	

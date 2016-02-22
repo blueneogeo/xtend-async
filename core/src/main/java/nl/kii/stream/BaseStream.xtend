@@ -1,11 +1,10 @@
 package nl.kii.stream
 
 import java.util.Queue
-import nl.kii.act.Actor
+import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.AsyncException
 import nl.kii.async.UncaughtAsyncException
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.IStream
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
@@ -14,19 +13,18 @@ import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Next
 import nl.kii.stream.message.Overflow
+import nl.kii.stream.message.Pause
+import nl.kii.stream.message.Resume
 import nl.kii.stream.message.Skip
 import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
+import nl.kii.stream.options.StreamOptions
+import org.eclipse.xtend.lib.annotations.Accessors
 
-import static com.google.common.collect.Queues.*
-import nl.kii.stream.message.Pause
-import nl.kii.stream.message.Resume
+abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
-abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<I, O> {
-
-	val public static DEFAULT_MAX_BUFFERSIZE = 1000 // default max size for the queue
-
+	@Accessors(PUBLIC_GETTER) val protected StreamOptions options
 	val protected Queue<Entry<I, O>> queue // queue for incoming values, for buffering when there is no ready listener
 
 	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
@@ -38,27 +36,19 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
 	@Atomic val (StreamEvent)=>void notificationListener // listener for notifications give by this stream
 
-	@Atomic public val int concurrency = 0 // the default concurrency to use for async processing
-	@Atomic public val int maxBufferSize // the maximum size of the queue
-	@Atomic public val String operation // name of the operation the listener is performing
-
-	/** Create the stream with a memory concurrent queue */
-	new() { this(newConcurrentLinkedQueue, DEFAULT_MAX_BUFFERSIZE) }
-
-	new(int maxBufferSize) { this(newConcurrentLinkedQueue, maxBufferSize) }
-
 	/** 
 	 * Create the stream with your own provided queue. 
 	 * Note: the queue must be threadsafe for streams to be threadsafe!
 	 */
-	new(Queue<Entry<I, O>> queue, int maxBufferSize) { 
-		this.queue = queue
-		this.maxBufferSize = maxBufferSize
-		this.operation = 'source'
+	
+	new(StreamOptions options) {
+		super(options.newActorQueue)
+		this.queue = options.newStreamQueue
+		this.options = options.copy
 	}
 	
 	/** Get the queue of the stream. will only be an unmodifiable view of the queue. */
-	override getQueue() { queue.unmodifiableView	}
+	override getQueue() { queue.unmodifiableView }
 
 	override isOpen() { getOpen }
 	
@@ -70,7 +60,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	
 	override getBufferSize() { buffersize }
 	
-	override isBufferFull() { bufferSize >= maxBufferSize }
+	override isBufferFull() { bufferSize >= options.maxQueueSize }
 	
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
@@ -116,12 +106,12 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 	// STREAM INPUT PROCESSING ////////////////////////////////////////////////
 
 	/** Process a single incoming stream message from the actor queue. */
-	override protected act(StreamMessage entry, =>void done) {
+	override act(StreamMessage entry, =>void done) {
 		if(isOpen) {
 			switch entry {
 				Value<I, O>, Finish<I, O>, Error<I, O>: {
 					// check for buffer overflow or paused
-					if(buffersize + 1 > maxBufferSize || isPaused) {
+					if(buffersize + 1 > options.maxQueueSize || isPaused) {
 						notify(new Overflow(entry))
 						done.apply
 						return
@@ -133,7 +123,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 				}
 				Entries<I, O>: {
 					// check for buffer overflow or paused
-					if(buffersize + entry.entries.size >= maxBufferSize || isPaused) {
+					if(buffersize + entry.entries.size >= options.maxQueueSize || isPaused) {
 						for(e : entry.entries) {
 							notify(new Overflow(e))
 						}
@@ -221,7 +211,7 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 			if(entry instanceof Error<?, ?>) {
 				switch t {
 					AsyncException: throw t
-					default: throw new AsyncException(operation, entry, t)
+					default: throw new AsyncException(options.operation, entry, t)
 				}
 			}
 			// check if next was called by the handler
@@ -230,8 +220,8 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 			ready = true
 			// otherwise push the error on the stream
 			switch entry {
-				Value<I, O>: apply(new Error(entry.from, new AsyncException(operation, entry, t)))
-				Error<I, O>: apply(new Error(entry.from, new AsyncException(operation, entry, t)))
+				Value<I, O>: apply(new Error(entry.from, new AsyncException(options.operation, entry, t)))
+				Error<I, O>: apply(new Error(entry.from, new AsyncException(options.operation, entry, t)))
 			}
 			// if next was not called, it would halt the stream, so call it now
 			if(!nextCalled) this.next
@@ -245,6 +235,6 @@ abstract class BaseStream<I, O> extends Actor<StreamMessage> implements IStream<
 		notificationListener?.apply(command)
 	}
 	
-	override toString() '''Stream { operation: «operation», open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null» }'''
+	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null», options: «options» }'''
 	
 }

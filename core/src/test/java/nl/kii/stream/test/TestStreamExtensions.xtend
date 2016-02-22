@@ -1,5 +1,6 @@
 package nl.kii.stream.test
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
@@ -15,7 +16,6 @@ import static extension nl.kii.stream.StreamExtensions.*
 import static extension nl.kii.stream.test.StreamAssert.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension org.junit.Assert.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 class TestStreamExtensions {
 
@@ -114,6 +114,16 @@ class TestStreamExtensions {
 		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
 		val mapped = s.map [ it + 1 ]
 		mapped.assertStreamContains(2.value, 3.value, 4.value, finish, 5.value, 6.value)
+	}
+	
+	@Test
+	def void testMapInput() {
+		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
+		val mapped = s
+			.map [ it + 1 ]
+			.mapInput [ in, it | 'x' + in ]
+		mapped.assertStreamContains(value('x1', 2), value('x2', 3), value('x3', 4), finish('xnull', 0), value('x4', 5), value('x5', 6))
+		
 	}
 	
 	@Test

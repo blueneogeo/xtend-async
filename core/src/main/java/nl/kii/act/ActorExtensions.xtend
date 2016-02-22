@@ -1,17 +1,21 @@
 package nl.kii.act
 
+import nl.kii.stream.Stream
+
 class ActorExtensions {
 
-	def static <T> Actor<T> actor((T, =>void)=>void actFn) {
-		new Actor<T>() {
+	/** Creates a threadsafe asynchronous actor using the default stream options */
+	def static <T> AsyncActor<T> actor((T, =>void)=>void actFn) {
+		new NonBlockingAsyncActor<T>(Stream.DEFAULT_STREAM_OPTIONS.newActorQueue) {
 			override act(T input, ()=>void done) {
 				actFn.apply(input, done)
 			}
 		}
 	}
 	
-	def static <T> Actor<T> actor((T)=>void actFn) {
-		new Actor<T>() {
+	/** Creates a threadsafe blocking actor using the default stream options */
+	def static <T> AsyncActor<T> actor((T)=>void actFn) {
+		new NonBlockingAsyncActor<T>(Stream.DEFAULT_STREAM_OPTIONS.newActorQueue) {
 			override act(T input, ()=>void done) {
 				actFn.apply(input)
 				done.apply
@@ -19,11 +23,13 @@ class ActorExtensions {
 		}
 	}
 
-	def static <T> >> (T value, Actor<T> actor) {
+	/** Apply a value to the actor */
+	def static <T> >> (T value, AsyncActor<T> actor) {
 		actor.apply(value)
 	}
 		
-	def static <T> << (Actor<T> actor, T value) {
+	/** Apply a value to the actor */
+	def static <T> << (AsyncActor<T> actor, T value) {
 		actor.apply(value)
 	}
 

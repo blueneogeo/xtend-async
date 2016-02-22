@@ -2,6 +2,7 @@ package nl.kii.promise
 
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
+import nl.kii.stream.options.StreamOptions
 
 class SubPromise<I, O> extends BasePromise<I, O> {
 	
@@ -42,8 +43,17 @@ class SubPromise<I, O> extends BasePromise<I, O> {
 //	}
 	
 	/** set the promised value */
+	
+	new(IPromise<?, ?> parent) {
+		super(parent.options.copy)
+	}
+	
+	new(StreamOptions options) {
+		super(options.copy)
+	}
+	
 	def void set(I from, O value) { apply(new Value(from, value)) }
 
 	def void error(I from, Throwable t) { apply(new Error(from, t)) }
-
+	
 }

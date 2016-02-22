@@ -1,9 +1,11 @@
 package nl.kii.act.test
 
 import java.util.concurrent.atomic.AtomicInteger
-import nl.kii.act.Actor
+import nl.kii.act.AsyncActor
 import nl.kii.async.annotation.Async
 import nl.kii.async.annotation.Atomic
+import nl.kii.stream.Stream
+import org.junit.Before
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -13,8 +15,14 @@ import static extension nl.kii.act.ActorExtensions.*
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import nl.kii.stream.options.SingleThreadedStreamOptions
 
 class TestActor {
+	
+	@Before
+	def void setup() {
+		Stream.DEFAULT_STREAM_OPTIONS = new SingleThreadedStreamOptions(0, true, 1000, 'input')
+	}
 	
 	@Test
 	def void testHelloWorld() {
@@ -34,17 +42,14 @@ class TestActor {
 	@Test
 	def void testActorsAreSingleThreaded() {
 		// create an actor that does some simple counting
-		val actor = new Actor<Integer> {
-			// synchronized // both synchronized and not synchronized should yield the same result
-			override protected act(Integer message, ()=>void done) {
+		val actor = actor [ it, done |
 				// check that only a single thread has access
 				val a = incAccess
 				if(a > 1) incMultipleThreadAccessViolation
 				value = value + 1
 				decAccess
 				done.apply
-			}
-		}
+		]
 		// give the actor a lot of parallel work to do
 		val threads = newCachedThreadPool
 		threads.task [ for(i : 1..1000) actor.apply(i) ]
@@ -61,7 +66,7 @@ class TestActor {
 	// bit of a constructed test to simulate two actors using async processes
 	// calling eachother, to see if deadlocks are avoided.
 	
-	@Atomic Actor<Integer> decreaser
+	@Atomic AsyncActor<Integer> decreaser
 	
 	@Test
 	def void testAsyncCrosscallingActors() {

@@ -3,6 +3,7 @@ package nl.kii.stream
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
+import nl.kii.stream.options.StreamOptions
 
 /**
  * Streams can be chained with operations, such as map, effect, and onEach.
@@ -15,11 +16,12 @@ import nl.kii.stream.message.Value
  */
 class SubStream<I, O> extends BaseStream<I, O> {
 
-	new() {
+	new(StreamOptions options) {
+		super(options.copy)
 	}
 
-	new (int maxSize) {
-		super(maxSize)
+	new(IStream<?, ?> parent) {
+		super(parent.options.copy)
 	}
 
 	// APPLYING PAIRS TO THE SUBSTREAM

@@ -8,7 +8,7 @@ class TestPublisher {
 	@Test
 	def void testPublishAndObserve() {
 		val collector = String.stream
-		val publisher = new Publisher<String>
+		val publisher = new Publisher<String>(true)
 		
 		// register two listeners
 		publisher.onChange [ '1:' + it >> collector ]
