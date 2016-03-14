@@ -55,8 +55,6 @@ subprojects {
 
   dependencies {
     compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
-    // compile "org.slf4j:slf4j-api:${slf4jVersion}"
-    // compile "ch.qos.logback:logback-classic:${logbackVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
 
