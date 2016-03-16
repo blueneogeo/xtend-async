@@ -61,7 +61,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 				returnType = promise.get.type
 				// and build the code that wraps the old method
 				body = ['''
-					final «promise.get.type.simpleName» «promise.get.simpleName» = new «promise.get.type.simpleName»();
+					final «promise.get.type.name» «promise.get.simpleName» = new «promise.get.type.name»();
 					try {
 						«method.simpleName»(«FOR parameter : method.parameters SEPARATOR ','»«parameter.simpleName»«ENDFOR»);
 					} catch(Throwable t) {
