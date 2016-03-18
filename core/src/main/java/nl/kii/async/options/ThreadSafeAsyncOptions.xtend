@@ -1,23 +1,27 @@
-package nl.kii.stream.options
+package nl.kii.async.options
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import nl.kii.stream.queues.ThreadSafeSingleItemQueue
 import nl.kii.util.annotations.NamedParams
 import org.eclipse.xtend.lib.annotations.Accessors
+import nl.kii.util.annotations.*
 
-class ThreadSafeStreamOptions implements StreamOptions {
+@Accessors
+class ThreadSafeAsyncOptions implements AsyncOptions {
 	
-	@Accessors int concurrency
-	@Accessors boolean controlled
-	@Accessors int maxQueueSize
-	@Accessors String operation
+	int concurrency
+	boolean controlled
+	int maxQueueSize
+	String operation
+	int actorMaxCallDepth
 	
 	@NamedParams
-	new(int concurrency, boolean controlled, int maxQueueSize, String operation) {
+	new(@I(0) int concurrency, @B(true) boolean controlled, @I(1000) int maxQueueSize, @Null String operation, @I(100) int actorMaxCallDepth) {
 		this.concurrency = concurrency
 		this.controlled = controlled
 		this.maxQueueSize = maxQueueSize
 		this.operation = operation
+		this.actorMaxCallDepth = actorMaxCallDepth
 	}
 	
 	override <T> newPromiseActorQueue() {
@@ -39,20 +43,16 @@ class ThreadSafeStreamOptions implements StreamOptions {
 	}
 
 	override clone() throws CloneNotSupportedException {
-		new ThreadSafeStreamOptions [
-			it.concurrency = concurrency
-			it.controlled = controlled
-			it.maxQueueSize = maxQueueSize
-			it.operation = operation
-		]
+		copy
 	}
 	
 	override copy() {
-		new ThreadSafeStreamOptions [
+		new ThreadSafeAsyncOptions [
 			it.concurrency = this.concurrency
 			it.controlled = this.controlled
 			it.maxQueueSize = this.maxQueueSize
 			it.operation = this.operation
+			it.actorMaxCallDepth = this.actorMaxCallDepth
 		]
 	}
 	
@@ -62,6 +62,7 @@ class ThreadSafeStreamOptions implements StreamOptions {
 			- expectingNext: «controlled»
 			- maxQueueSize: «maxQueueSize»
 			- operation: «operation»
+			- actorMaxCallDepth: «actorMaxCallDepth»
 		}
 	'''
 	

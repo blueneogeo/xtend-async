@@ -4,6 +4,7 @@ import java.util.Queue
 import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.UncaughtAsyncException
 import nl.kii.async.annotation.Atomic
+import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Close
 import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
@@ -18,12 +19,11 @@ import nl.kii.stream.message.Skip
 import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
 import org.eclipse.xtend.lib.annotations.Accessors
 
 abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
-	@Accessors(PUBLIC_GETTER) val protected StreamOptions options
+	@Accessors(PUBLIC_GETTER) val protected AsyncOptions options
 	val protected Queue<Entry<I, O>> queue // queue for incoming values, for buffering when there is no ready listener
 
 	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
@@ -40,8 +40,8 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	 * Note: the queue must be threadsafe for streams to be threadsafe!
 	 */
 	
-	new(StreamOptions options) {
-		super(options.newActorQueue)
+	new(AsyncOptions options) {
+		super(options.newActorQueue, options.actorMaxCallDepth)
 		this.queue = options.newStreamQueue
 		this.options = options.copy
 	}
@@ -202,10 +202,15 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 			entryListener.apply(entry)
 			// something was published
 			true
-		} catch (UncaughtAsyncException e) {
+		} catch (UncaughtAsyncException t) {
+			// clean up the stacktrace
+			t.cleanStackTrace
 			// this error is meant to break the publishing loop
-			throw e
+			throw t
 		} catch (Throwable t) {
+			// clean up the stacktrace
+			t.cleanStackTrace
+			// println(' A ' + ThrowableExtensions.format(t))
 			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
 			if(entry instanceof Error<?, ?>) throw t
 			// check if next was called by the handler
@@ -228,6 +233,30 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 		notificationListener?.apply(command)
 	}
 	
+	val static unwantedStacktraces = #[
+		// 'nl.kii.stream.+',
+		'nl.kii.stream.BaseStream.*',
+		'nl.kii.stream.StreamEventHandler.*',
+		'nl.kii.stream.StreamEventResponder.*',
+		'nl.kii.stream.StreamResponder.*',
+		'nl.kii.stream.StreamObserver.*',
+		// 'nl.kii.promise.+',
+		'nl.kii.act.*',
+		'nl.kii.observe.*'
+	]
+
+	public static def void cleanStackTrace(Throwable t) {
+		t.stackTrace = t.stackTrace.cleanStackTraceElements
+		if(t.cause != null) t.cause.stackTrace.cleanStackTraceElements // recursive
+	}
+	
+	public static def StackTraceElement[] cleanStackTraceElements(StackTraceElement[] stack) {
+		stack.filter [ trace | unwantedStacktraces.findFirst[
+			trace.className.matches(it) || trace.lineNumber == 1
+		] == null ]
+	}
+
 	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null», options: «options» }'''
+
 	
 }

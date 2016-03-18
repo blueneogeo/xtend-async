@@ -1,23 +1,29 @@
-package nl.kii.stream.options
+package nl.kii.async.options
 
 import com.google.common.collect.Queues
 import nl.kii.stream.queues.SingleThreadedSingleItemQueue
+import nl.kii.util.annotations.B
+import nl.kii.util.annotations.I
 import nl.kii.util.annotations.NamedParams
+import nl.kii.util.annotations.Null
 import org.eclipse.xtend.lib.annotations.Accessors
 
-class SingleThreadedStreamOptions implements StreamOptions {
+@Accessors
+class SingleThreadedAsyncOptions implements AsyncOptions {
 	
-	@Accessors int concurrency
-	@Accessors boolean controlled
-	@Accessors int maxQueueSize
-	@Accessors String operation
+	int concurrency
+	boolean controlled
+	int maxQueueSize
+	String operation
+	int actorMaxCallDepth
 	
 	@NamedParams
-	new(int concurrency, boolean controlled, int maxQueueSize, String operation) {
+	new(@I(0) int concurrency, @B(true) boolean controlled, @I(1000) int maxQueueSize, @Null String operation, @I(100) int actorMaxCallDepth) {
 		this.concurrency = concurrency
 		this.controlled = controlled
 		this.maxQueueSize = maxQueueSize
 		this.operation = operation
+		this.actorMaxCallDepth = actorMaxCallDepth
 	}
 	
 	override <T> newPromiseActorQueue() {
@@ -27,32 +33,28 @@ class SingleThreadedStreamOptions implements StreamOptions {
 	override <T> newActorQueue() {
 		switch maxQueueSize {
 			case 0, case 1: new SingleThreadedSingleItemQueue<T>
-			default: Queues.newLinkedBlockingQueue
+			default: Queues.newArrayDeque
 		}
 	}
 
 	override <T> newStreamQueue() {
 		switch maxQueueSize {
 			case 0, case 1: new SingleThreadedSingleItemQueue<T>
-			default: Queues.newLinkedBlockingQueue
+			default: Queues.newArrayDeque
 		}
 	}
 
 	override clone() throws CloneNotSupportedException {
-		new ThreadSafeStreamOptions [
-			it.concurrency = concurrency
-			it.controlled = controlled
-			it.maxQueueSize = maxQueueSize
-			it.operation = operation
-		]
+		copy
 	}
 	
 	override copy() {
-		new ThreadSafeStreamOptions [
+		new SingleThreadedAsyncOptions [
 			it.concurrency = this.concurrency
 			it.controlled = this.controlled
 			it.maxQueueSize = this.maxQueueSize
 			it.operation = this.operation
+			it.actorMaxCallDepth = actorMaxCallDepth
 		]
 	}
 	
@@ -61,6 +63,7 @@ class SingleThreadedStreamOptions implements StreamOptions {
 			- concurrency: «concurrency»
 			- expectingNext: «controlled»
 			- maxQueueSize: «maxQueueSize»
+			- actorMaxCallDepth: «actorMaxCallDepth»
 			- operation: «operation»
 		}
 	'''

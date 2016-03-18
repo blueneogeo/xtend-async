@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.AbstractFuture
 import java.util.List
 import java.util.Map
 import java.util.concurrent.Future
+import nl.kii.async.options.AsyncDefault
 import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
@@ -42,7 +43,7 @@ class PromiseExtensions {
 	}
 
 	def static <I, O> promise(I from, O value) {
-		new SubPromise<I, O>(Stream.DEFAULT_STREAM_OPTIONS) => [ set(from, value) ]
+		new SubPromise<I, O>(AsyncDefault.options) => [ set(from, value) ]
 	}
 	
 	/** Create a promise of a pair */
@@ -66,7 +67,7 @@ class PromiseExtensions {
 
 	/** Shortcut for quickly creating a completed task */	
 	def static <I> complete(I from) {
-		new SubTask(Stream.DEFAULT_STREAM_OPTIONS.copy) => [ complete(from) ]
+		new SubTask(AsyncDefault.options) => [ complete(from) ]
 	}
 
 	/** Shortcut for quickly creating a promise with an error */	
@@ -112,7 +113,7 @@ class PromiseExtensions {
 		for(promise : promises) {
 			promise
 				.then [ task.complete ]
-				.on(Throwable, true) [ task.error(it) ]
+				.on(Throwable) [ task.error(it) ]
 		}
 		task
 	}
@@ -122,7 +123,7 @@ class PromiseExtensions {
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
 	def static <I, O> always(IPromise<I, O> promise, Procedures.Procedure1<Entry<?, O>> resultFn) {
 		promise.then [ resultFn.apply(new Value(null, it)) ]
-		promise.on(Throwable, true) [ resultFn.apply(new Error(null, it)) ]
+		promise.on(Throwable) [ resultFn.apply(new Error(null, it)) ]
 		promise
 	}
 	
@@ -250,18 +251,6 @@ class PromiseExtensions {
 		promise.on(errorType, false, handler)
 	}
 
-	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
-
-	/** Transform an error into a sideeffect */
-	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		promise.on(errorType, true) [ from, it | handler.apply(it) ] 
-	}
-
-	/** Transform an error into a sideeffect */
-	def static <I, O> effect(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		promise.on(errorType, true, handler)
-	}
-	
 	// ASYNCHRONOUSLY TRANSFORM ERRORS INTO A SIDEEFFECT //////////////////////
 
 	/** Asynchronously transform an error into a sideeffect. Swallows the error. */
@@ -278,7 +267,7 @@ class PromiseExtensions {
 				// apply the mapping and throw away the result. pass any error to the subpromise.
 				try {
 					handler.apply(from, e)
-						.on(Throwable, true) [ newPromise.error(from, it) ]
+						.on(Throwable) [ newPromise.error(from, it) ]
 				} catch(Exception e2) {
 					newPromise.error(from, e2)
 				}
@@ -337,7 +326,7 @@ class PromiseExtensions {
 				try {
 					mappingFn.apply(from, e)
 						.then [ newPromise.set(from, it) ]
-						.on(Throwable, true) [ newPromise.error(from, it) ]
+						.on(Throwable) [ newPromise.error(from, it) ]
 				} catch(Exception e2) {
 					newPromise.error(from, e2)
 				}
@@ -373,7 +362,7 @@ class PromiseExtensions {
 		val newStream = new Stream<T>
 		promise
 			.then [ s | s.pipe(newStream) ] 
-			.on(Throwable, true) [ newStream.error(it) ]
+			.on(Throwable) [ newStream.error(it) ]
 		newStream
 	}
 
@@ -384,7 +373,7 @@ class PromiseExtensions {
 			.then [ r, p |
 				p
 					.then [ newPromise.set(r, it) ]
-					.on(Throwable, true) [ newPromise.error(r, it) ] 
+					.on(Throwable) [ newPromise.error(r, it) ] 
 			]
 			.on(Throwable, true) [ r, e | newPromise.error(r, e) ]
 		newPromise => [ options.operation = 'resolve' ]
@@ -447,7 +436,7 @@ class PromiseExtensions {
 	
 	/** Convert or forward a promise to a task */	
 	def static <I, O> asTask(IPromise<I, O> promise) {
-		new Task => [ promise.completes(it) ]
+		new Task(promise.options) => [ promise.completes(it) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
@@ -480,7 +469,7 @@ class PromiseExtensions {
 			def observe(IPromise<?, T> promise) {
 				promise
 					.then [ set(it) ]
-					.on(Throwable, true) [ this.exception = it ]
+					.on(Throwable) [ this.exception = it ]
 			}
 		} => [ observe(promise) ]
 	}

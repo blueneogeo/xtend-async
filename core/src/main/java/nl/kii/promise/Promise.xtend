@@ -1,22 +1,22 @@
 package nl.kii.promise
 
-import nl.kii.stream.Stream
+import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
+import nl.kii.async.options.AsyncDefault
 
 class Promise<T> extends BasePromise<T, T> {
 
-	new(StreamOptions options) {
+	new(AsyncOptions options) {
 		super(options.copy)
 	}
 
 	new() {
-		super(Stream.DEFAULT_STREAM_OPTIONS.copy)
+		super(AsyncDefault.options)
 	}
 
 	new(T t) {
-		super(Stream.DEFAULT_STREAM_OPTIONS.copy)
+		super(AsyncDefault.options)
 		set(t)
 	}
 

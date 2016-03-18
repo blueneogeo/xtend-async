@@ -1,14 +1,18 @@
 package nl.kii.observe
-import static extension org.junit.Assert.*
-import static extension nl.kii.stream.StreamExtensions.*
+
+import com.google.common.collect.Queues
 import org.junit.Test
+
+import static org.junit.Assert.*
+
+import static extension nl.kii.stream.StreamExtensions.*
 
 class TestPublisher {
 	
 	@Test
 	def void testPublishAndObserve() {
 		val collector = String.stream
-		val publisher = new Publisher<String>(true)
+		val publisher = new Publisher<String>(Queues.newSynchronousQueue, true, 10)
 		
 		// register two listeners
 		publisher.onChange [ '1:' + it >> collector ]

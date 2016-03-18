@@ -49,7 +49,7 @@ import nl.kii.async.annotation.Atomic
  * 'world' >> greeter
  * </pre>
  */
-abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
+abstract class NonBlockingAsyncActor<T> implements AsyncActor<T> {
 
 	/** 
 	 * Since the actor supports asynchronous callbacks, its main loop must be implemented via 
@@ -65,7 +65,7 @@ abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
 	 * an X amount of process depth. The MAX_PROCESS_DEPTH setting below sets how many time the
 	 * processNextAsync call can be called recursively before it breaks out through an exception. 
 	 */
-	val static MAX_PROCESS_DEPTH = 1
+	val int maxProcessDepth
 	
 	/**
 	 * The queue of messages waiting to be processed by this actor.
@@ -77,13 +77,14 @@ abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
 	 * Indicates if this actor is busy processing the queue.
 	 */
 	@Atomic val boolean processing = false
-	
+
 	/** 
 	 * Create an actor with the given queue as inbox. 
 	 * Queue implementation must be threadsafe and non-blocking.
 	 */
-	new(Queue<T> queue) { 
+	new(Queue<T> queue, int maxProcessDepth) { 
 		inbox = queue
+		this.maxProcessDepth = maxProcessDepth
 	}
 	
 	/** Give the actor something to process */
@@ -107,7 +108,7 @@ abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
 		while(!inbox.empty) {
 			try {
 				// processNextAsync will try to recurse through the entire inbox,
-				processNextAsync(MAX_PROCESS_DEPTH)
+				processNextAsync(maxProcessDepth)
 				// in which case we are done processing and looping...
 				// processing = false
 				return;

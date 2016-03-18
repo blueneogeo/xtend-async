@@ -1,17 +1,17 @@
 package nl.kii.promise
 
-import nl.kii.stream.Stream
+import nl.kii.async.options.AsyncDefault
+import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Error
-import nl.kii.stream.options.StreamOptions
 
 /** A Task is a promise that some task gets done. It has no result, it can just be completed or have an error. */
 class Task extends Promise<Boolean> {
 	
 	new() {
-		super(Stream.DEFAULT_STREAM_OPTIONS.copy)
+		super(AsyncDefault.options.copy)
 	}
 	
-	new(StreamOptions options) {
+	new(AsyncOptions options) {
 		super(options.copy)
 	}
 	

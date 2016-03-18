@@ -1,6 +1,5 @@
 package nl.kii.observe
 
-import com.google.common.collect.Queues
 import java.util.List
 import java.util.Queue
 import java.util.concurrent.CopyOnWriteArrayList
@@ -28,14 +27,14 @@ class Publisher<T> extends NonBlockingAsyncActor<T> implements Procedure1<T>, Ob
 //		this(Queues.newConcurrentLinkedQueue, true)
 //	}
 
-	new(Queue<T> queue, boolean isPublishing) {
-		super(queue)
+	new(Queue<T> queue, boolean isPublishing, int maxCallDepth) {
+		super(queue, maxCallDepth)
 		publishing = isPublishing
 	}
 	
-	new(boolean isPublishing) {
-		this(Queues.newConcurrentLinkedQueue, isPublishing)
-	}
+//	new(boolean isPublishing) {
+//		this(Queues.newConcurrentLinkedQueue, isPublishing, 1)
+//	}
 
 	/** Listen for publications from the publisher */
 	override =>void onChange((T)=>void observeFn) {

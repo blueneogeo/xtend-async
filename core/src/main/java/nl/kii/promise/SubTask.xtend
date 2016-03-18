@@ -2,7 +2,7 @@ package nl.kii.promise
 
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
+import nl.kii.async.options.AsyncOptions
 
 /** 
  * A Task is a promise that some task gets done. 
@@ -11,7 +11,7 @@ import nl.kii.stream.options.StreamOptions
  */
 class SubTask<I> extends SubPromise<I, Boolean> {
 	
-	new(StreamOptions options) {
+	new(AsyncOptions options) {
 		super(options.copy)
 	}
 	

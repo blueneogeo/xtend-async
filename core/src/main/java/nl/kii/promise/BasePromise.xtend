@@ -6,25 +6,25 @@ import nl.kii.observe.Publisher
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
 import static extension nl.kii.util.OptExtensions.*
+import nl.kii.async.options.AsyncOptions
 
 /**
  * Base implementation of IPromise. 
  */
 abstract class BasePromise<I, O> implements IPromise<I, O> {
 	
-	@Accessors(PUBLIC_GETTER) val StreamOptions options
+	@Accessors(PUBLIC_GETTER) val AsyncOptions options
 	val Publisher<Entry<I, O>> publisher
 	
-	new(StreamOptions options) {
+	new(AsyncOptions options) {
 		this.options = options.copy
-		this.publisher = new Publisher(options.newPromiseActorQueue, true)
+		this.publisher = new Publisher(options.newPromiseActorQueue, true, options.actorMaxCallDepth)
 	}
 	
 	/** Property to see if the promise has an error handler assigned */
@@ -100,22 +100,18 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	}
 
 	/** 
-	 * If the promise recieved or recieves an error, onError is called with the throwable.
-	 * Removes the error from the chain, so the returned promise no longer receives the error.
-	 * 
-	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
-	 * since there is a generics problem trying to assign the values.
+	 * If the promise recieved or recieves an error of the passed errorType, or a subclass of the errorType,
+	 * errorFn is called with the error. Returns a promise that simply passes through the incoming value or error.
 	 */
-	override <T extends Throwable> on(Class<T> errorType, boolean swallow, (T)=>void errorFn) {
-		on(errorType, swallow) [ from, e | errorFn.apply(e) ]
+	override <T extends Throwable> on(Class<T> errorType, (T)=>void errorFn) {
+		on(errorType, false) [ from, e | errorFn.apply(e) ]
 	}
 
 	/** 
-	 * If the promise recieved or recieves an error, onError is called with the throwable.
-	 * Removes the error from the chain, so the returned promise no longer receives the error.
-	 * 
-	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
-	 * since there is a generics problem trying to assign the values.
+	 * If the promise recieved or recieves an error of the passed errorType, or a subclass of the errorType,
+	 * errorFn is called with the error. If swallow is true, the error will be swallowed by this handler and
+	 * not passed on. WARNING: normally it is dangerous to swallow an error, since there will be no result
+	 * from the promise anymore.
 	 */
 	override <T extends Throwable> on(Class<T> errorType, boolean swallow, (I, T)=>void errorFn) {
 		val subPromise = new SubPromise(this)

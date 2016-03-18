@@ -24,7 +24,7 @@ abstract class StreamSplitter<I, O> extends NonBlockingAsyncActor<StreamMessage>
 	@Atomic protected val List<IStream<I, ?>> streams
 	
 	new(IStream<I, O> source) {
-		super(source.options.newActorQueue)
+		super(source.options.newActorQueue, source.options.actorMaxCallDepth)
 		this.source = source
 		this.streams = new CopyOnWriteArrayList
 		source.onChange [ apply ]

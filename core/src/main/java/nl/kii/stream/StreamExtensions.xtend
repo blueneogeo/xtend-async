@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.options.AsyncOptions
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
@@ -30,7 +31,6 @@ import nl.kii.stream.message.Pause
 import nl.kii.stream.message.Resume
 import nl.kii.stream.message.Skip
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
 import nl.kii.stream.source.LoadBalancer
 import nl.kii.stream.source.StreamCopySplitter
 import nl.kii.stream.source.StreamSource
@@ -71,9 +71,9 @@ class StreamExtensions {
 
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
 	def static <R, T, T2 extends Iterable<T>> stream(IPromise<R, T2> promise) {
-		val newStream = new Stream<T>
+		val newStream = new Stream<T>(promise.options)
 		promise
-			.on(Throwable, true) [ newStream.error(it) ]
+			.on(Throwable) [ newStream.error(it) ]
 			.then [	stream(it).pipe(newStream) ]
 		newStream
 	}
@@ -126,7 +126,7 @@ class StreamExtensions {
 	}
 	
 	/** Modify the stream options for the above stream */
-	def static <I, O> IStream<I, O> options(IStream<I, O> stream, (StreamOptions)=>void optionsModifierFn) {
+	def static <I, O> IStream<I, O> options(IStream<I, O> stream, (AsyncOptions)=>void optionsModifierFn) {
 		optionsModifierFn.apply(stream.options)
 		stream
 	}
@@ -156,7 +156,7 @@ class StreamExtensions {
 	/** create an unending stream of random integers in the range you have given */
 	def static streamRandom(IntegerRange range) {
 		val randomizer = new Random
-		val newStream = int.stream
+		val newStream = new Stream<Integer>
 		newStream.when [
 			next [
 				if(newStream.open) {
@@ -212,7 +212,7 @@ class StreamExtensions {
 	 * created Publisher will eagerly pull all data from the stream for publishing.
 	 */
 	def static <I, O> publisher(IStream<I, O> stream) {
-		val publisher = new Publisher<O>(true)
+		val publisher = new Publisher<O>(stream.options.newActorQueue, true, stream.options.actorMaxCallDepth)
 		stream.on [
 			each [
 				publisher.apply($1)
@@ -989,7 +989,7 @@ class StreamExtensions {
 							newStream.finish(r)
 					]
 					// in case of a processing error, report it to the listening stream
-					.on(Throwable, true) [ 
+					.on(Throwable) [ 
 						newStream.error(r, it)
 						// are we done processing? and did we finish? then finish now 
 						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
@@ -1719,7 +1719,7 @@ class StreamExtensions {
 	}
 
 	def static Task toTask(IStream<?, ?> stream) {
-		val task = new Task
+		val task = new Task(stream.options)
 		stream.pipe(task)
 		task
 	}

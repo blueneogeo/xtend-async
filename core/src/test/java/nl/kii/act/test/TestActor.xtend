@@ -4,24 +4,25 @@ import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.act.AsyncActor
 import nl.kii.async.annotation.Async
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.Stream
+import nl.kii.async.options.AsyncDefault
+import nl.kii.async.options.ThreadSafeAsyncOptions
 import org.junit.Before
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
+import static nl.kii.async.options.AsyncDefault.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.act.ActorExtensions.*
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.options.SingleThreadedStreamOptions
 
 class TestActor {
 	
 	@Before
 	def void setup() {
-		Stream.DEFAULT_STREAM_OPTIONS = new SingleThreadedStreamOptions(0, true, 1000, 'input')
+		AsyncDefault.options = new ThreadSafeAsyncOptions(0, true, 1000, 'input', 50)
 	}
 	
 	@Test
@@ -43,12 +44,12 @@ class TestActor {
 	def void testActorsAreSingleThreaded() {
 		// create an actor that does some simple counting
 		val actor = actor [ it, done |
-				// check that only a single thread has access
-				val a = incAccess
-				if(a > 1) incMultipleThreadAccessViolation
-				value = value + 1
-				decAccess
-				done.apply
+			// check that only a single thread has access
+			val a = incAccess
+			if(a > 1) incMultipleThreadAccessViolation
+			value = value + 1
+			decAccess
+			done.apply
 		]
 		// give the actor a lot of parallel work to do
 		val threads = newCachedThreadPool

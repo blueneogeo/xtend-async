@@ -1,11 +1,11 @@
 package nl.kii.stream
 
 import java.util.Collection
+import nl.kii.async.options.AsyncOptions
 import nl.kii.observe.Observable
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.StreamMessage
-import nl.kii.stream.options.StreamOptions
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
 /**
@@ -52,6 +52,6 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	
 	def int getBufferSize()
 	def Collection<Entry<I, O>> getQueue()
-	def StreamOptions getOptions()
+	def AsyncOptions getOptions()
 	
 }

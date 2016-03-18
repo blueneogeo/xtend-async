@@ -48,7 +48,7 @@ class TestPromiseErrorHandling {
 			.map [ it / 0 ]
 			.then [ fail('an error should occur') ]
 			.on(ArithmeticException) [ match1 = true ]
-			.effect(Exception) [ match2 = true ] // swallows the above error
+			.on(Exception, true) [ match2 = true ] // swallows the above error
 			.on(Throwable) [ match3 = true ] // so this no longer matches
 		p << 10
 		true <=> match1

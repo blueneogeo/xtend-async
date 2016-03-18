@@ -1,8 +1,18 @@
-package nl.kii.stream.options
+package nl.kii.async.options
 
 import java.util.Queue
 
-interface StreamOptions {
+/** 
+ * Options for the Async library. 
+ * <p>
+ * These are centralised for Actors, Promises and Streams, because streams and promises can 
+ * be chained, and will pass these options down the chain. Since Streams and Promises and Tasks 
+ * are Actors and uses Actors and queues, the actor settings are part of these options as well.
+ * <p>
+ * You can set the default options to use in the AsyncDefault.options property. However you can
+ * also set up stream and promise chains with specific options.
+ */
+interface AsyncOptions {
 
 	// SETTINGS
 
@@ -26,6 +36,9 @@ interface StreamOptions {
 	/** Set the name of the current operation performed by the stream */
 	def void setOperation(String operationDesciption)
 
+	/** Set how many steps deep an actor will go until it breaks out of the stacktrace */
+	def int getActorMaxCallDepth()
+
 	// FACTORIES
 
 	/** Create a new queue for streams actor queues. */	
@@ -38,6 +51,6 @@ interface StreamOptions {
 	// OTHER
 
 	/** Make a copy of these StreamOptions */
-	def StreamOptions copy()
+	def AsyncOptions copy()
 
 }

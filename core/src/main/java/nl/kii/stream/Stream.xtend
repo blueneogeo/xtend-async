@@ -1,23 +1,16 @@
 package nl.kii.stream
 
+import nl.kii.async.options.AsyncDefault
+import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
-import nl.kii.stream.options.ThreadSafeStreamOptions
 
 class Stream<T> extends BaseStream<T, T> {
 
-	var public static StreamOptions DEFAULT_STREAM_OPTIONS = new ThreadSafeStreamOptions [
-		concurrency = 0 // infinite concurrency
-		maxQueueSize = 1000 // default max size for the queue
-		operation = 'input' // streams start as inputs, unless they are substreams
-		controlled = true // most streams support backpressure by asking for the next value 
-	]
-
-	new() { super(DEFAULT_STREAM_OPTIONS.copy) }
+	new() { super(AsyncDefault.options.copy) }
 	
-	new(StreamOptions options) { super(options.copy) }
+	new(AsyncOptions options) { super(options.copy) }
 	
 	/** Queue a value on the stream for pushing to the listener */
 	def push(T value) { apply(new Value(value, value)) }

@@ -1,9 +1,9 @@
 package nl.kii.stream
 
+import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
-import nl.kii.stream.options.StreamOptions
 
 /**
  * Streams can be chained with operations, such as map, effect, and onEach.
@@ -16,7 +16,7 @@ import nl.kii.stream.options.StreamOptions
  */
 class SubStream<I, O> extends BaseStream<I, O> {
 
-	new(StreamOptions options) {
+	new(AsyncOptions options) {
 		super(options.copy)
 	}
 

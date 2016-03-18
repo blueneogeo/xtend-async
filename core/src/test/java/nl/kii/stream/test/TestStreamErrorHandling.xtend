@@ -9,6 +9,8 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
+import static extension nl.kii.util.ThrowableExtensions.*
+import nl.kii.stream.BaseStream
 
 class TestStreamErrorHandling {
 
@@ -289,6 +291,22 @@ class TestStreamErrorHandling {
 			.start
 
 		assertTrue(finished)
+	}
+	
+	@Test
+	def void collapsesStacktraces() {
+		try {
+		(1..10_000).stream
+			.map [ it % 9_000 ]
+			.map [ 100 / it ] // division by 0 for 9000
+			.start
+			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
+			.asFuture.get
+		} catch(Exception e) {
+			// All actor references are filtered out! And we have a nicer stacktrace
+			assertNull(e.cause.stackTrace.findFirst [ trace | trace.className.contains('actor') ])
+		}
+		
 	}
 	
 }

@@ -1,12 +1,12 @@
 package nl.kii.act
 
-import nl.kii.stream.Stream
+import nl.kii.async.options.AsyncDefault
 
 class ActorExtensions {
 
 	/** Creates a threadsafe asynchronous actor using the default stream options */
 	def static <T> AsyncActor<T> actor((T, =>void)=>void actFn) {
-		new NonBlockingAsyncActor<T>(Stream.DEFAULT_STREAM_OPTIONS.newActorQueue) {
+		new NonBlockingAsyncActor<T>(AsyncDefault.options.newActorQueue, AsyncDefault.options.actorMaxCallDepth) {
 			override act(T input, ()=>void done) {
 				actFn.apply(input, done)
 			}
@@ -15,7 +15,7 @@ class ActorExtensions {
 	
 	/** Creates a threadsafe blocking actor using the default stream options */
 	def static <T> AsyncActor<T> actor((T)=>void actFn) {
-		new NonBlockingAsyncActor<T>(Stream.DEFAULT_STREAM_OPTIONS.newActorQueue) {
+		new NonBlockingAsyncActor<T>(AsyncDefault.options.newActorQueue, AsyncDefault.options.actorMaxCallDepth) {
 			override act(T input, ()=>void done) {
 				actFn.apply(input)
 				done.apply
