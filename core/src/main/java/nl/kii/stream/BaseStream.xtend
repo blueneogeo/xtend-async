@@ -2,7 +2,6 @@ package nl.kii.stream
 
 import java.util.Queue
 import nl.kii.act.NonBlockingAsyncActor
-import nl.kii.async.AsyncException
 import nl.kii.async.UncaughtAsyncException
 import nl.kii.async.annotation.Atomic
 import nl.kii.stream.message.Close
@@ -208,20 +207,14 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 			throw e
 		} catch (Throwable t) {
 			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
-			if(entry instanceof Error<?, ?>) {
-				switch t {
-					AsyncException: throw t
-					default: throw new AsyncException(options.operation, entry, t)
-				}
-			}
+			if(entry instanceof Error<?, ?>) throw t
 			// check if next was called by the handler
 			val nextCalled = isReady
 			// make the stream ready again
 			ready = true
 			// otherwise push the error on the stream
 			switch entry {
-				Value<I, O>: apply(new Error(entry.from, new AsyncException(options.operation, entry, t)))
-				Error<I, O>: apply(new Error(entry.from, new AsyncException(options.operation, entry, t)))
+				Value<I, O>, Error<I, O>: apply(new Error(entry.from, t))
 			}
 			// if next was not called, it would halt the stream, so call it now
 			if(!nextCalled) this.next

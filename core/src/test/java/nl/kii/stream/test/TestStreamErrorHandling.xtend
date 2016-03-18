@@ -81,14 +81,14 @@ class TestStreamErrorHandling {
 		val s = new Stream<Integer>
 		s
 			.map [ it / 0 ]
-			.map(IllegalArgumentException) [ 10 ] // should not match, not the correct error type
-			.map(ArithmeticException) [ 20 ] // should match, convert error to 20
-			.map(Throwable) [ 30 ] // never gets triggered, map above filtered it out
+			.map(IllegalArgumentException) [ 1 ] // should not match, not the correct error type
+			.map(ArithmeticException) [ 10 ] // should match, convert error to 20
+			.map(Throwable) [ 100 ] // never gets triggered, map above filtered it out
 			.effect [ result = result + it ]
 			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
-		assertEquals(60, result) // 3 results, each coverted to 20, added together
+		assertEquals(30, result) // 3 results, each coverted to 20, added together
 	}
 
 	@Test
@@ -103,7 +103,7 @@ class TestStreamErrorHandling {
 			.start
 		s << 1 << 2 << 3
 		assertEquals(false, failed)
-		assertEquals(60, result) // 3 results, each coverted to 20, added together
+		assertEquals(60, result) // 3 results, each converted to 20, added together
 	}
 
 	@Test

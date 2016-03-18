@@ -2,10 +2,13 @@ package nl.kii.promise.test
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
+import nl.kii.async.annotation.Async
 import nl.kii.async.annotation.Atomic
 import nl.kii.promise.Promise
 import nl.kii.promise.Task
 import org.junit.Test
+
+import static java.util.concurrent.Executors.*
 
 import static extension nl.kii.async.ExecutorExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
@@ -21,7 +24,7 @@ class TestPromiseExtensions {
 	@Test
 	def void testFuture() {
 		val promise = Integer.promise
-		val future = promise.future
+		val future = promise.asFuture
 		promise << 2
 		future.done.assertTrue
 		future.get.assertEquals(2)
@@ -30,7 +33,7 @@ class TestPromiseExtensions {
 	@Test
 	def void testFutureError() {
 		val promise = Integer.promise
-		val future = promise.future
+		val future = promise.asFuture
 		promise.error(new Exception)
 		try {
 			future.get
@@ -158,14 +161,131 @@ class TestPromiseExtensions {
 	@Test
 	def void testWait() {
 		val exec = Executors.newSingleThreadScheduledExecutor
-//		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
-//		complete.wait(100, timerFn).then [ anyDone = true ]
 		complete.wait(100.ms, exec.timer).then [ anyDone = true ]
 		assertFalse(anyDone) // only done after 100 ms
 		Thread.sleep(1000) // wait long enough
 		assertTrue(anyDone) // should be done now
 	}
 	
-	private def power2(int i) { new Promise(i*i) }
+	@Test
+	def void testPromiseChaining() {
+		val p = new Promise(1)
+		val p2 = p.map [ return new Promise(2) ].resolve
+		p2.assertPromiseEquals(2)
+	}
+
+	@Test def void testTaskChain() {
+		complete
+			.map [ sayHello ]
+			.resolve
+			.map [ sayHello ]
+			.resolve
+			.map [ sayHello ]
+			.resolve
+			.asFuture.get
+	}
+
+	@Test def void testLongChain() {
+		val result = 1.addOne
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.asFuture.get
+		assertEquals(10, result)
+	}
+
+	@Atomic boolean alwaysDone	
+	@Atomic Throwable caughtError
+	
+	@Test(expected=Exception) def void testLongChainWithError() {
+		1.addOne
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [
+				if(it != null) {
+					println(it)
+					throw new Exception('help!')
+				} 
+				addOne
+			]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.call [ addOne ]
+			.asFuture.get
+	}	
+	
+	val threads = newCachedThreadPool
+
+	@Async
+	def addOne(int n, Promise<Integer> promise) {
+		threads.promise [
+			promise << n + 1
+		]
+	}
+	
+	@Async
+	def sayHello(Task task) {
+		threads.promise [ 
+			println('hello')
+			task.complete
+			task
+		]
+	}
+	
+	@Test(expected=ExecutionException)
+	def void testPromiseErrorChaining() {
+		val p = new Promise(1)
+		p
+			.map [it - 1]
+			.map [ 1 / it ] // creates /0 exception
+			.map [ it + 1]
+			.asFuture.get
+	}
+	
+	@Atomic boolean foundError
+
+	@Test
+	def void testPromiseWithLaterError2() {
+		foundError = false
+		val p = int.promise
+		p
+			.map [ it / 0 ]
+			.then [ fail('it/0 should not succeed') ]
+			.on(Throwable) [ foundError = true  ]
+		p.set(1)
+		assertTrue(foundError)
+	}
+	
+	@Test
+	def void testRecursivePromise() {
+		assertEquals(15, faculty(5).asFuture.get)
+	}
+
+	def faculty(int i) {
+		faculty(i, 0)
+	}
+	
+	def power2(int i) { 
+		new Promise(i*i)
+	}
+	
+	@Async def void faculty(int i, int result, Promise<Integer> promise) {
+		try {
+			if(i == 0) promise << result
+			else faculty(i - 1, result + i, promise)
+		} catch(Throwable t) {
+			promise.error(t)
+		}
+	}
 	
 }

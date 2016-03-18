@@ -2,37 +2,23 @@ package nl.kii.async
 
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.promise.IPromise
 import nl.kii.promise.Promise
-import nl.kii.promise.PromiseFuture
 import nl.kii.promise.Task
 import nl.kii.stream.IStream
 import nl.kii.stream.Stream
 import nl.kii.stream.SubStream
+import nl.kii.util.Period
 
 import static java.util.concurrent.TimeUnit.*
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.util.Period
 
 class ExecutorExtensions {
 	
-	/** 
-	 * Convert a promise into a Future.
-	 * Promises are non-blocking. However you can convert to a Future 
-	 * if you must block and wait for a promise to resolve.
-	 * <pre>
-	 * val result = promise.future.get // blocks code until the promise is fulfilled
-	 */
-	def static <R, T> Future<T> future(IPromise<R, T> promise) {
-		new PromiseFuture(promise)
-	}
-
 	/** 
 	 * Execute the callable in the background and return as a promise.
 	 * Lets you specify the executorservice to run on.

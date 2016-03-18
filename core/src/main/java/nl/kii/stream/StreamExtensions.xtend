@@ -12,8 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.AsyncException
-import nl.kii.async.UncaughtAsyncException
 import nl.kii.observe.Observable
 import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
@@ -75,7 +73,7 @@ class StreamExtensions {
 	def static <R, T, T2 extends Iterable<T>> stream(IPromise<R, T2> promise) {
 		val newStream = new Stream<T>
 		promise
-			.on(Throwable) [ newStream.error(it) ]
+			.on(Throwable, true) [ newStream.error(it) ]
 			.then [	stream(it).pipe(newStream) ]
 		newStream
 	}
@@ -97,7 +95,7 @@ class StreamExtensions {
 		val =>void pushNext = [|
 			if(finished.get) return;
 			if(iterator.hasNext) {
-				iterator.next >> stream
+				stream.push(iterator.next)
 			} else {
 				finished.set(true)
 				stream.finish
@@ -111,6 +109,28 @@ class StreamExtensions {
 		stream.options.operation = 'iterate'
 		stream
 	}
+	
+	/** Forwards commands given to the newStream directly to the parent. */
+	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
+		newStream.when [
+			next [ parent.next ]
+			skip [ parent.skip ]
+			close [ parent.close ]
+		]		
+	}
+	
+	/** Set the concurrency of the stream, letting you keep chaining by returning the stream. */
+	def static <I, O> IStream<I, O> concurrency(IStream<I, O> stream, int value) {
+		stream.options.concurrency = value
+		stream
+	}
+	
+	/** Modify the stream options for the above stream */
+	def static <I, O> IStream<I, O> options(IStream<I, O> stream, (StreamOptions)=>void optionsModifierFn) {
+		optionsModifierFn.apply(stream.options)
+		stream
+	}
+	
 	
 	/** stream a standard Java inputstream. closing the stream closes the inputstream. */
 	def static Stream<List<Byte>> stream(InputStream stream) {
@@ -220,6 +240,66 @@ class StreamExtensions {
 		]
 		newStream
 	}
+
+	// LISTENER BUILDERS //////////////////////////////////////////////////////
+
+	/**
+	 * Convenient builder to easily asynchronously respond to stream entries.
+	 * Defaults for each[], finish[], and error[] is to simply ask for the next entry.
+	 * <p>
+	 * Note: you can only have a single entry handler for a stream.  
+	 * <p>
+	 * Usage example:
+	 * <pre>
+	 * val stream = (1.10).stream
+	 * stream.on [
+	 *    each [ println('got ' + it) stream.next ] // do not forget to ask for the next entry
+	 *    error [ printStackTrace stream.next true ] // true to indicate you want to throw the error
+	 * ]
+	 * stream.next // do not forget to start the stream!
+	 * </pre>
+	 * @return a task that completes on finish(0) or closed, or that gives an error
+	 * if the stream passed an error. 
+	 */
+	def static <I, O> on(IStream<I, O> stream, (StreamResponder<I, O>)=>void handlerFn) {
+		stream.on [ s, builder | handlerFn.apply(builder) ]
+	}
+
+	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamResponder<I, O>)=>void handlerFn) {
+		val handler = new StreamResponder<I, O> => [
+			it.stream = stream
+			// by default, do nothing but call the next item from the stream
+			each [ stream.next ]
+			finish [ stream.next ]
+			error [ stream.next ]
+		]
+		// observing first so the handlerFn is last and can issue stream commands
+		stream.observe(handler) 
+		handlerFn.apply(stream, handler)
+		// return the stream so things can be applied
+		stream
+	}
+
+	/**
+	 * Convenient builder to easily respond to commands given to a stream.
+	 * <p>
+	 * Note: you can only have a single monitor for a stream.
+	 * <p>
+	 * Example: 
+	 * <pre>
+	 * stream.when [
+	 *     next [ println('next was called on the stream') ]
+	 *     close [ println('the stream was closed') ]
+	 * ]
+	 * </pre>
+	 */
+	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder<I, O>)=>void handlerFn) {
+		val handler = new StreamEventResponder
+		handlerFn.apply(handler)
+		stream.handle(handler)
+		stream
+	}
+
 	
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
@@ -275,27 +355,6 @@ class StreamExtensions {
 	/** split a source into a new destination stream */
 	def static <I, O> >> (StreamSource<I, O> source, IStream<I, O> dest) {
 		source.pipe(dest)
-	}
-
-	/** Forwards commands given to the newStream directly to the parent. */
-	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
-		newStream.when [
-			next [ parent.next ]
-			skip [ parent.skip ]
-			close [ parent.close ]
-		]		
-	}
-	
-	/** Set the concurrency of the stream, letting you keep chaining by returning the stream. */
-	def static <I, O> IStream<I, O> concurrency(IStream<I, O> stream, int value) {
-		stream.options.concurrency = value
-		stream
-	}
-	
-	/** Modify the stream options for the above stream */
-	def static <I, O> IStream<I, O> options(IStream<I, O> stream, (StreamOptions)=>void optionsModifierFn) {
-		optionsModifierFn.apply(stream.options)
-		stream
 	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
@@ -921,17 +980,17 @@ class StreamExtensions {
 			each [ r, promise |
 				// listen for the process to complete
 				promise
-					// in case of a processing error, report it to the listening stream
-					.on(Throwable) [ 
-						newStream.error(r, it)
-						// are we done processing? and did we finish? then finish now 
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
-							newStream.finish(r)
-					]
 					// in case of a processing value, push it to the listening stream
 					.then [ 
 						// we are doing one less parallel process
 						newStream.push(r, it)
+						// are we done processing? and did we finish? then finish now 
+						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
+							newStream.finish(r)
+					]
+					// in case of a processing error, report it to the listening stream
+					.on(Throwable, true) [ 
+						newStream.error(r, it)
 						// are we done processing? and did we finish? then finish now 
 						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
 							newStream.finish(r)
@@ -1004,46 +1063,36 @@ class StreamExtensions {
 
 	// MONITORING ERRORS //////////////////////////////////////////////////////
 
-	@Deprecated
-	def static <I, O> onError(IStream<I, O> stream, (Throwable)=>void handler) {
-		stream.on(Throwable, handler)
-	}
-
-	@Deprecated
-	def static <I, O> onError(IStream<I, O> stream, (I, Throwable)=>void handler) {
-		stream.on(Throwable, handler)
+	/** Catch errors of the specified type, call the handler, and pass on the error. */
+	def static <T extends Throwable, I, O> on(IStream<I, O> stream, Class<T> errorType, (T)=>void handler) {
+		stream.on(errorType, false) [ in, it | handler.apply(it as T) ]
 	}
 
 	/** Catch errors of the specified type, call the handler, and pass on the error. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		stream.on(errorType, false) [ in, it | handler.apply(it) ]
-	}
-
-	/** Catch errors of the specified type, call the handler, and pass on the error. */
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
-		stream.on(errorType, false) [ in, it | handler.apply(in, it) ]
+	def static <T extends Throwable, I, O> on(IStream<I, O> stream, Class<T> errorType, (I, T)=>void handler) {
+		stream.on(errorType, false) [ in, it | handler.apply(in, it as T) ]
 	}
 
 	/** 
 	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
 	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
 	 */	
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (Throwable)=>void handler) {
-		stream.on(errorType, swallow) [ in, it | handler.apply(it) ]
+	def static <T extends Throwable, I, O> on(IStream<I, O> stream, Class<T> errorType, boolean swallow, (T)=>void handler) {
+		stream.on(errorType, swallow) [ in, it | handler.apply(it as T) ]
 	}
 	
 	/** 
 	 * Catch errors of the specified type coming from the stream, and call the handler with the error.
 	 * If swallow is true, the error will be caught and not be passed on (much like you expect a normal Java catch to work).
 	 */	
-	def static <I, O> on(IStream<I, O> stream, Class<? extends Throwable> errorType, boolean swallow, (I, Throwable)=>void handler) {
+	def static <T extends Throwable, I, O> on(IStream<I, O> stream, Class<T> errorType, boolean swallow, (I, T)=>void handler) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
 					if(err.matches(errorType)) {
-						handler.apply(from, err)
+						handler.apply(from, err as T)
 						if(!swallow) {
 							newStream.error(from, err)
 						} else {
@@ -1063,43 +1112,32 @@ class StreamExtensions {
 		newStream
 	}
 	
-	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
-
-	/** 
-	 * Map an error to a new AsyncException with a message. 
-	 * passing the value, and with the original error as the cause.
-	 */
-	@Deprecated
-	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, String message) {
-		stream.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
-	}
-
 	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
 
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
-	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
+	def static <T extends Throwable, I, O> effect(IStream<I, O> stream, Class<T> errorType, (T)=>void handler) {
 		stream.on(errorType, true) [ in, it | handler.apply(it) ]
 	}
 	
 	/** Catch errors of the specified type, call the handler, and swallow them from the stream chain. */
-	def static <I, O> effect(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+	def static <T extends Throwable, I, O> effect(IStream<I, O> stream, Class<T> errorType, (I, T)=>void handler) {
 		stream.on(errorType, true) [ in, it | handler.apply(in, it) ]
 	}
 
 	// TRANSFORM ERRORS INTO AN ASYNCHRONOUS SIDEEFFECT ////////////////////////
 
-	def static <I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>P handler) {
+	def static <T extends Throwable, I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<T> errorType, (T)=>P handler) {
 		stream.perform(errorType) [ i, e | handler.apply(e) ]
 	}
 	
-	def static <I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>P handler) {
+	def static <T extends Throwable, I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<T> errorType, (I, T)=>P handler) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
 					if(err.matches(errorType)) {
-						handler.apply(from, err)
+						handler.apply(from, err as T)
 							.then [ stream.next ]
 							.on(Throwable) [ newStream.error(from, it) ]
 					} else {
@@ -1119,19 +1157,19 @@ class StreamExtensions {
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
 
 	/** Map an error back to a value. Swallows the error. */
-	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>O mappingFn) {
+	def static <T extends Throwable, I, O> map(IStream<I, O> stream, Class<T> errorType, (T)=>O mappingFn) {
 		stream.map(errorType) [ input, err | mappingFn.apply(err) ]
 	}
 
 	/** Map an error back to a value. Swallows the error. */
-	def static <I, O> map(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>O mappingFn) {
+	def static <T extends Throwable, I, O> map(IStream<I, O> stream, Class<T> errorType, (I, T)=>O mappingFn) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
 					if(err.matches(errorType)) {
-						val value = mappingFn.apply(from, err)
+						val value = mappingFn.apply(from, err as T)
 						newStream.push(from, value)
 					} else {
 						newStream.error(from, err)
@@ -1150,19 +1188,19 @@ class StreamExtensions {
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
+	def static <T extends Throwable, I, O> call(IStream<I, O> stream, Class<T> errorType, (T)=>IPromise<?, O> mappingFn) {
 		stream.call(errorType) [ input, err | mappingFn.apply(err) ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	def static <I, O> call(IStream<I, O> stream, Class<? extends Throwable> errorType, (I, Throwable)=>IPromise<?, O> mappingFn) {
+	def static <T extends Throwable, I, O> call(IStream<I, O> stream, Class<T> errorType, (I, T)=>IPromise<?, O> mappingFn) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ from, err |
 				try {
 					if(err.matches(errorType)) {
-						mappingFn.apply(from, err)
+						mappingFn.apply(from, err as T)
 							.then [ newStream.push(from, it) ]
 							.on(Throwable) [ newStream.error(from, it) ]
 					} else {
@@ -1204,25 +1242,6 @@ class StreamExtensions {
 		task
 	}
 	
-
-	@Deprecated	
-	def static <I, O> onErrorThrow(IStream<I, O> stream) {
-		stream.onErrorThrow('onErrorThrow')
-	}
-
-	@Deprecated	
-	def static <I, O> onErrorThrow(IStream<I, O> stream, String message) {
-		val newStream = new SubStream<I, O>(stream)
-		stream.on [
-			each [ newStream.push($0, $1) ]
-			error [	throw new UncaughtAsyncException(message, $0, $1) ]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
-		]
-		newStream.controls(stream)
-		newStream
-	}
-
 	/** Lets you respond to the closing of the stream */
 	def static <I, O> onClosed(IStream<I, O> stream, (Void)=>void handler) {
 		val newStream = new SubStream<I, O>(stream)
@@ -1240,63 +1259,6 @@ class StreamExtensions {
 		]
 		newStream.controls(stream)
 		newStream
-	}
-
-	/** 
-	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
-	 * Returns a task that completes once the stream finishes or closes.
-	 */
-	@Deprecated
-	def static <I, O> SubTask<I> onEach(IStream<I, O> stream, (O)=>void handler) {
-		stream.onEach [ r, it | handler.apply(it) ]
-	}
-
-	/** 
-	 * Deprecated, instead use stream.effect[].start
-	 * Synchronous listener to the stream, that automatically requests the next value after each value is handled.
-	 * Returns a task that completes once the stream finishes or closes.
-	 */
-	@Deprecated
-	def static <I, O> SubTask<I> onEach(IStream<I, O> stream, (I, O)=>void handler) {
-		val task = new SubTask<I>(stream.options)
-		stream.on [
-			each [ handler.apply($0, $1) stream.next ]
-			error [ task.error($0, $1) stream.next ]
-			finish [
-				if($1 == 0) task.set($0, true)
-				stream.next
-			]
-			closed [ stream.close ]
-		] 
-		stream.options.operation = 'onEach'
-		stream.next
-		task
-	}
-
-	/**
-	 * Deprecated, instead use stream.call[].start
-	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
-	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
-	 * Returns a task that completes once the stream finishes or closes.
-	 */
-	@Deprecated
-	def static <I, I2, O, R, P extends IPromise<I2, R>> onEachCall(IStream<I, O> stream, (I, O)=>P taskFn) {
-		stream.map(taskFn).resolve.onEach [
-			// just ask for the next 
-		] => [ stream.options.operation = 'onEachCall' ]
-	}
-
-	/**
-	 * Deprecated, instead use stream.call[].start
-	 * Asynchronous listener to the stream, that automatically requests the next value after each value is handled.
-	 * Performs the task for every value, and only requests the next value from the stream once the task has finished.
-	 * Returns a task that completes once the stream finishes or closes.
-	 */
-	@Deprecated
-	def static <I, I2, O, R, P extends IPromise<I2, R>> onEachCall(IStream<I, O> stream, (O)=>P taskFn) {
-		stream.map(taskFn).resolve.onEach [
-			// just ask for the next 
-		] => [ stream.options.operation = 'onEachCall' ]
 	}
 
 	/**
@@ -1393,65 +1355,6 @@ class StreamExtensions {
 			=> [ stream.options.operation = 'then' ]
 	}
 	
-	// LISTENER BUILDERS //////////////////////////////////////////////////////
-
-	/**
-	 * Convenient builder to easily asynchronously respond to stream entries.
-	 * Defaults for each[], finish[], and error[] is to simply ask for the next entry.
-	 * <p>
-	 * Note: you can only have a single entry handler for a stream.  
-	 * <p>
-	 * Usage example:
-	 * <pre>
-	 * val stream = (1.10).stream
-	 * stream.on [
-	 *    each [ println('got ' + it) stream.next ] // do not forget to ask for the next entry
-	 *    error [ printStackTrace stream.next true ] // true to indicate you want to throw the error
-	 * ]
-	 * stream.next // do not forget to start the stream!
-	 * </pre>
-	 * @return a task that completes on finish(0) or closed, or that gives an error
-	 * if the stream passed an error. 
-	 */
-	def static <I, O> on(IStream<I, O> stream, (StreamResponder<I, O>)=>void handlerFn) {
-		stream.on [ s, builder | handlerFn.apply(builder) ]
-	}
-
-	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamResponder<I, O>)=>void handlerFn) {
-		val handler = new StreamResponder<I, O> => [
-			it.stream = stream
-			// by default, do nothing but call the next item from the stream
-			each [ stream.next ]
-			finish [ stream.next ]
-			error [ stream.next ]
-		]
-		// observing first so the handlerFn is last and can issue stream commands
-		stream.observe(handler) 
-		handlerFn.apply(stream, handler)
-		// return the stream so things can be applied
-		stream
-	}
-
-	/**
-	 * Convenient builder to easily respond to commands given to a stream.
-	 * <p>
-	 * Note: you can only have a single monitor for a stream.
-	 * <p>
-	 * Example: 
-	 * <pre>
-	 * stream.when [
-	 *     next [ println('next was called on the stream') ]
-	 *     close [ println('the stream was closed') ]
-	 * ]
-	 * </pre>
-	 */
-	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder<I, O>)=>void handlerFn) {
-		val handler = new StreamEventResponder
-		handlerFn.apply(handler)
-		stream.handle(handler)
-		stream
-	}
-
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
 
 	/**
@@ -1779,9 +1682,7 @@ class StreamExtensions {
 	 */
 	def static <I, O> latest(IStream<I, O> stream) {
 		val value = new AtomicReference<O>
-		stream.latest(value).onEach [
-			// do nothing
-		]
+		stream.latest(value).start
 		value
 	}
 	

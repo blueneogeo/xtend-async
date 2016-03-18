@@ -1,19 +1,19 @@
 package nl.kii.promise
-import static extension nl.kii.util.OptExtensions.*
+
+import com.google.common.util.concurrent.AbstractFuture
 import java.util.List
 import java.util.Map
-import nl.kii.async.AsyncException
+import java.util.concurrent.Future
 import nl.kii.stream.Stream
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
 import nl.kii.stream.message.Value
 import nl.kii.util.AssertionException
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
+import nl.kii.util.Opt
+import nl.kii.util.Period
 
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.util.Period
-import nl.kii.util.Opt
+import static extension nl.kii.util.OptExtensions.*
 
 class PromiseExtensions {
 	
@@ -111,8 +111,8 @@ class PromiseExtensions {
 		val Task task = new Task
 		for(promise : promises) {
 			promise
-				.on(Throwable) [ task.error(it) ]
 				.then [ task.complete ]
+				.on(Throwable, true) [ task.error(it) ]
 		}
 		task
 	}
@@ -121,8 +121,8 @@ class PromiseExtensions {
 
 	/** Always call onResult, whether the promise has been either fulfilled or had an error. */
 	def static <I, O> always(IPromise<I, O> promise, Procedures.Procedure1<Entry<?, O>> resultFn) {
-		promise.on(Throwable) [ resultFn.apply(new Error(null, it)) ]
 		promise.then [ resultFn.apply(new Value(null, it)) ]
+		promise.on(Throwable, true) [ resultFn.apply(new Error(null, it)) ]
 		promise
 	}
 	
@@ -161,8 +161,8 @@ class PromiseExtensions {
 	def static <I, O, R> SubPromise<I, R> map(IPromise<I, O> promise, (I, O)=>R mappingFn) {
 		val newPromise = new SubPromise<I, R>(promise)
 		promise
-			.effect [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
-			.on(Throwable) [ r, it | newPromise.error(r, it) ]
+			.then [ r, it | newPromise.set(r, mappingFn.apply(r, it)) ]
+			.on(Throwable, true) [ r, it | newPromise.error(r, it) ]
 		newPromise => [ options.operation = 'map' ]
 	}
 	
@@ -204,7 +204,7 @@ class PromiseExtensions {
 	
 	/** Perform some side-effect action based on the promise. */
 	def static <I, O> effect(IPromise<I, O> promise, (O)=>void listener) {
-		promise.effect [ r, it | listener.apply(it) ]
+		promise.then [ r, it | listener.apply(it) ]
 	}
 
 	/** Perform some side-effect action based on the promise. */
@@ -219,7 +219,7 @@ class PromiseExtensions {
 					newPromise.error(in, t)
 				} 
 			]
-			.on(Throwable) [ in, out | newPromise.error(in, out) ]
+			.on(Throwable, true) [ in, out | newPromise.error(in, out) ]
 		newPromise => [ options.operation = 'effect' ]
 	}
 	
@@ -241,39 +241,13 @@ class PromiseExtensions {
 	// RESPOND TO ERRORS, BUT DO NOT SWALLOW THE ERROR ////////////////////////
 	
 	/** Listen for an error coming from the promise. Does not swallow the error. */
-	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>void handler) {
-		promise.on(errorType, false) [ from, it | handler.apply(it) ] 
+	def static <T extends Throwable, I, O> on(IPromise<I, O> promise, Class<T> errorType, (T)=>void handler) {
+		promise.on(errorType, false) [ from, it | handler.apply(it) ]
 	}
 
 	/** Listen for an error coming from the promise. Does not swallow the error. */
-	def static <I, O> on(IPromise<I, O> promise, Class<? extends Throwable> errorType, (I, Throwable)=>void handler) {
+	def static <T extends Throwable, I, O>  on(IPromise<I, O> promise, Class<T> errorType, (I, T)=>void handler) {
 		promise.on(errorType, false, handler)
-	}
-
-	// MAP ERRORS INTO ANOTHER ERROR //////////////////////////////////////////
-
-	/** 
-	 * Map an error to a new PromiseException with a message, 
-	 * passing the value, and with the original error as the cause.
-	 */
-	@Deprecated
-	def static <I, O> map(IPromise<I, O> promise, Class<? extends Throwable> errorType, String message) {
-		promise.effect(errorType) [ from, e | throw new AsyncException(message, from, e) ]
-	}
-
-	@Deprecated
-	def static <I, O> onError(IPromise<I, O> promise, (Throwable)=>void handler) {
-		promise.on(Throwable, handler)
-	}
-	
-	@Deprecated
-	def static <I, O> onErrorThrow(IPromise<I, O> promise, (I, Throwable)=>Exception exceptionFn) {
-		promise.on(Throwable) [ i, t | throw exceptionFn.apply(i, t) ]
-	}
-
-	@Deprecated
-	def static <I, O> onErrorThrow(IPromise<I, O> promise, String message) {
-		promise.on(Throwable) [ i, t | throw new Exception(message + ', for input ' + i, t) ]
 	}
 
 	// TRANSFORM ERRORS INTO A SIDEEFFECT /////////////////////////////////////
@@ -304,13 +278,13 @@ class PromiseExtensions {
 				// apply the mapping and throw away the result. pass any error to the subpromise.
 				try {
 					handler.apply(from, e)
-						.on(Throwable) [ newPromise.error(from, it) ]
+						.on(Throwable, true) [ newPromise.error(from, it) ]
 				} catch(Exception e2) {
 					newPromise.error(from, e2)
 				}
 			]
 			// if a specific error was not caught, propagate the throwable
-			.on(Throwable) [ from, e | newPromise.error(from, e) ]
+			.on(Throwable, true) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
 		newPromise => [ options.operation = 'call(' + errorType.simpleName + ')' ]
@@ -328,7 +302,7 @@ class PromiseExtensions {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			// catch the specific error
-			.on(errorType, true) [ from, e |
+			.on(errorType, false) [ from, e |
 				// apply the mapping and set the result to the new promise
 				try {
 					if(!newPromise.fulfilled) {
@@ -340,13 +314,13 @@ class PromiseExtensions {
 				}
 			]
 			// if a specific error was not caught, propagate the throwable
-			.on(Throwable) [ from, e | newPromise.error(from, e) ]
+			.on(Throwable, true) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
 		newPromise => [ options.operation = 'map(' + errorType.simpleName + ')' ]
 	}
-
-	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
+//
+//	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <I, O> call(IPromise<I, O> promise, Class<? extends Throwable> errorType, (Throwable)=>IPromise<?, O> mappingFn) {
@@ -358,68 +332,24 @@ class PromiseExtensions {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
 			// catch the specific error
-			.on(errorType, true) [ from, e |
+			.on(errorType, false) [ from, e |
 				// apply the mapping and set the result to the new promise
 				try {
 					mappingFn.apply(from, e)
-						.on(Throwable) [ newPromise.error(from, it) ]
 						.then [ newPromise.set(from, it) ]
+						.on(Throwable, true) [ newPromise.error(from, it) ]
 				} catch(Exception e2) {
 					newPromise.error(from, e2)
 				}
 			]
-			// if a specific error was not caught, propagate the throwable
-			.on(Throwable) [ from, e | newPromise.error(from, e) ]
 			// pass a normal value
 			.then [ from, e | newPromise.set(from, e) ]
+			// if a specific error was not caught, propagate the throwable
+			.on(Throwable, true) [ from, e | newPromise.error(from, e) ]
 		newPromise => [ options.operation = 'call(' + errorType.simpleName + ')' ]
 	}
 
-	@Deprecated
-	def static <I, O> onErrorMap(IPromise<I, O> promise, (Throwable)=>O mappingFn) {
-		promise.map(Throwable, mappingFn)
-	}
-
-	@Deprecated
-	def static <I, I2, O> onErrorCall(IPromise<I, O> promise, (Throwable)=>IPromise<I2, O> mappingFn) {
-		promise.call(Throwable, mappingFn)
-	}
-
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
-	
-	/**
-	 * Creates a new promise from an existing promise, modifying both the input and output type of the resulting promise.
-	 * Only use this method if you need to modify the input type, otherwise use a normal map or call.
-	 * <p>
-	 * Usage example:
-	 * <pre>
-	 * val IPromise<Integer, String> promise1 = int.promise
-	 * 	.map [ toString ]
-	 * 	
-	 * // now lets say we want to make this a Promise<String, Long>, where the
-	 * // string is the output string of promise1, and the long is the length of the string.
-	 * val IPromise<String, Long> promise2 = promise1.map(String, Long) [ Integer input, String output, resultFn |
-	 * 	// resultFn takes the output types you specified as parameters (String, Long)
-	 * 	resultFn.apply(output, output.length) 
-	 * ]
-	 * </pre>
-	 * 
-	 * Deprecated: replaced with transform
-	 */
-	@Deprecated def static <I, O, I2, O2, P extends IPromise<I2, O2>> P map(IPromise<I, O> promise, Class<I2> toInputClass, Class<O2> toOutputClass, (I, O, (I2, O2)=>void)=>void mapFn) {
-		val newPromise = new SubPromise<I2, O2>(promise)
-		promise
-			.on(Throwable) [ newPromise.error(null, it) ]
-			.then [ i, o |
-				try {
-					val applyFn = [ I2 i2, O2 o2 | newPromise.set(i2, o2) ]
-					mapFn.apply(i, o, applyFn)
-				} catch(Throwable t) {
-					newPromise.error(null, t)
-				}
-			]
-		newPromise as P => [ options.operation = 'map(' + toInputClass.simpleName + ', ' + toOutputClass.simpleName + ')' ]
-	}
 	
 	/**
 	 * Creates a new promise from an existing promise, 
@@ -442,8 +372,8 @@ class PromiseExtensions {
 	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
 		promise
-			.on(Throwable) [ newStream.error(it) ]
 			.then [ s | s.pipe(newStream) ] 
+			.on(Throwable, true) [ newStream.error(it) ]
 		newStream
 	}
 
@@ -451,12 +381,12 @@ class PromiseExtensions {
 	def static <I, O, P extends IPromise<?, O>> resolve(IPromise<I, P> promise) {
 		val newPromise = new SubPromise<I, O>(promise)
 		promise
-			.on(Throwable) [ r, e | newPromise.error(r, e) ]
 			.then [ r, p |
 				p
 					.then [ newPromise.set(r, it) ]
-					.on(Throwable) [ newPromise.error(r, it) ] 
+					.on(Throwable, true) [ newPromise.error(r, it) ] 
 			]
+			.on(Throwable, true) [ r, e | newPromise.error(r, e) ]
 		newPromise => [ options.operation = 'resolve' ]
 	}
 
@@ -481,7 +411,7 @@ class PromiseExtensions {
 		val newPromise = new SubPromise<T, O>(promise)
 		promise
 			.then [ in, it | newPromise.set(inputMappingFn.apply(in, some(it)), it) ]
-			.on(Throwable) [ in, e | newPromise.error(inputMappingFn.apply(in, none), e) ]
+			.on(Throwable, true) [ in, e | newPromise.error(inputMappingFn.apply(in, none), e) ]
 		newPromise => [ options.operation = 'mapInput' ]
 	}
 
@@ -523,22 +453,36 @@ class PromiseExtensions {
 	/** Forward the events from this promise to another promise of the same type */
 	def static <I, O, O2> pipe(IPromise<I, O> promise, SubPromise<I, O> target) {
 		promise
-			.effect [ in, it | target.set(in, it) ]
-			.on(Throwable) [ in, e | target.error(in, e) ]
+			.then [ in, it | target.set(in, it) ]
+			.on(Throwable, true) [ in, e | target.error(in, e) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
 	def static <I, O, O2> pipe(IPromise<I, O> promise, Promise<O> target) {
 		promise
 			.effect [ in, it | target.set(it) ]
-			.on(Throwable) [ in, e | target.error(e) ]
+			.on(Throwable, true) [ in, e | target.error(e) ]
 	}
 
 	/** Forward the events from this promise to another promise of the same type */
 	def static <I, I2, O> completes(IPromise<I, O> promise, Task task) {
 		promise
 			.effect [ r, it | task.set(true) ]
-			.on(Throwable) [ r, it | task.error(it) ]
+			.on(Throwable, true) [ r, it | task.error(it) ]
 	}
-	
+
+	/** 
+	 * Convert a promise into a future which can block the thread until there is a value by calling .get().
+	 * Use with care, blocking may be evil!
+	 */
+	def static <T> Future<T> asFuture(IPromise<?, T> promise) {
+		new AbstractFuture<T> {
+			def observe(IPromise<?, T> promise) {
+				promise
+					.then [ set(it) ]
+					.on(Throwable, true) [ this.exception = it ]
+			}
+		} => [ observe(promise) ]
+	}
+
 }

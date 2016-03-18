@@ -4,8 +4,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.FutureTask
 import org.junit.Test
 
+import static org.junit.Assert.*
+
 import static extension nl.kii.async.ExecutorExtensions.*
-import static extension org.junit.Assert.*
+import static extension nl.kii.promise.PromiseExtensions.*
 
 class TestPromiseAndFuture {
 	
@@ -26,7 +28,7 @@ class TestPromiseAndFuture {
 	def void testPromise() {
 		
 		val promise = exec.promise ['hi']
-		val result = promise.future.get
+		val result = promise.asFuture.get
 		
 		assertEquals('hi', result)
 		

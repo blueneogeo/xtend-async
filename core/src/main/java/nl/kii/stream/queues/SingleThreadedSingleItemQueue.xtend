@@ -4,7 +4,9 @@ import java.util.Collection
 import java.util.NoSuchElementException
 import java.util.Queue
 
-/** A NOT THREAD SAFE queue of a single item! Used to increase performance */
+/** 
+ * 
+ */
 class SingleThreadedSingleItemQueue<E> implements Queue<E> {
 	
 	var E element = null

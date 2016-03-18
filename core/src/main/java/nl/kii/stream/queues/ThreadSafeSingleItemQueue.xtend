@@ -66,11 +66,17 @@ class ThreadSafeSingleItemQueue<E> implements Queue<E> {
 	}
 	
 	override removeAll(Collection<?> c) {
-		throw new UnsupportedOperationException
+		if(c.contains(element.get)) { 
+			clear
+			true			
+		} else false
 	}
 	
 	override retainAll(Collection<?> c) {
-		throw new UnsupportedOperationException
+		if(!c.contains(element.get)) { 
+			clear
+			true			
+		} else false
 	}
 	
 	override size() {
@@ -82,7 +88,7 @@ class ThreadSafeSingleItemQueue<E> implements Queue<E> {
 	}
 	
 	override <T> toArray(T[] a) {
-		throw new UnsupportedOperationException
+		 { if(empty) #[] else #[element.get] }.toArray(a)
 	}
 	
 }

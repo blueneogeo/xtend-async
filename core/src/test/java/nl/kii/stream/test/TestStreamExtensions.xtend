@@ -625,7 +625,7 @@ class TestStreamExtensions {
 			.ratelimit(200.ms, schedulers.timer)
 		limited
 			.effect [ println(it) ]
-			.collect.first.future.get
+			.collect.first.asFuture.get
 	}
 
 	@Test
@@ -638,20 +638,20 @@ class TestStreamExtensions {
 		limited
 			.on(Exception, true) [ println(it) ]
 			.effect [ println(it) ]
-			.collect.first.future.get
+			.collect.first.asFuture.get
 	}
 	
 	@Test
 	def void testRateLimitAsyncProcessing() {
 		val list = (1..10).toList
-		val stream = list.streamList
-		val limited = stream
+		val s = list.streamList
+		val limited = s
 			.ratelimit(1.secs, schedulers.timer)
 			.wait(200.ms, schedulers.timer)
 		val result = limited
 			.on(Exception) [ println(it) ]
 			.effect [ println(it) ]
-			.collect.first.future.get
+			.collect.first.asFuture.get
 		assertEquals(list, result)
 	}
 	

@@ -158,7 +158,7 @@ class TestActor {
 			.then [ println('synced method took: ' + it) ]
 			.call [ measure(threads) [ for(i : iterations) actor.apply(i) ] ]
 			.then [ println('actor took: ' + it) ]
-			.future
+			.asFuture
 			.get
 	}
 

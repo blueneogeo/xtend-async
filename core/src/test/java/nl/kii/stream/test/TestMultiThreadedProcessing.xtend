@@ -1,9 +1,7 @@
 package nl.kii.stream.test
 
-import java.util.LinkedList
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import org.junit.Test
 
 import static extension nl.kii.async.ExecutorExtensions.*
@@ -38,38 +36,26 @@ class TestMultiThreadedProcessing {
 	
 	@Test
 	def void testAsyncMapping() {
-		val result = new AtomicReference(new LinkedList<Integer>)
-		val s = int.stream << 1 << 2 << 3
-		s
+		val s = (1..3).stream
+		val result = s
 			.map [ power2 ].resolve(1)
 			.map [ it + 1 ]
 			.map[ power2 ].resolve(1)
-			.effect [ result.get.add(it) ]
-			.start
-		0.assertEquals(result.get.size)
-		Thread.sleep(700) 
-		3.assertEquals(result.get.size)
-		4.assertEquals(result.get.get(0))
-		25.assertEquals(result.get.get(1))
-		100.assertEquals(result.get.get(2))
+			.collect.first
+			.asFuture.get
+		assertEquals(#[4, 25, 100], result)
 	}
 	
 	@Test
 	def void testAsyncErrorCatching() {
-		val result = new AtomicInteger
-		val s = int.stream << 1 << 2 << 3
-		s
-			.map [ throwsError ] // this error should propagate down the chain to the .error handler
+		val s = (1..3).stream
+		val sum = s
+			.map [ throwsError ] // this error should propagate down the chain to the .map(Throwable) handler
 			.resolve(1)
-//			.onError [ println('caught error! ' + message) ]
-			.map [ it + 1 ]
-			.map [ power2 ]
-			.resolve
-			.on(Exception) [ result.incrementAndGet ]
-			.effect [ println('result ' + it) ]
-			.start
-		Thread.sleep(500)
-		3.assertEquals(result.get)
+			.map(Throwable) [ 10 ] // convert the error back into a value
+			.sum.first
+			.asFuture.get
+		assertEquals(30, sum, 0) // 30 = 3 times the error value of 10
 	}
 	
 	def power2(int i) {

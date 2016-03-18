@@ -15,8 +15,8 @@ interface IPromise<I, O> extends Procedure1<Entry<I, O>>, Observable<Entry<I, O>
 	def SubPromise<I, O> then(Procedure1<O> valueFn)
 	def SubPromise<I, O> then(Procedure2<I, O> valueFn)
 
-	def SubPromise<I, O> on(Class<? extends Throwable> exceptionType, boolean swallow, Procedure1<Throwable> errorFn)
-	def SubPromise<I, O> on(Class<? extends Throwable> exceptionType, boolean swallow, Procedure2<I, Throwable> errorFn)
+	def <T extends Throwable> SubPromise<I, O> on(Class<T> exceptionType, boolean swallow, (T)=>void errorFn)
+	def <T extends Throwable> SubPromise<I, O> on(Class<T> exceptionType, boolean swallow, (I, T)=>void errorFn)
 
 	def StreamOptions getOptions()
 	

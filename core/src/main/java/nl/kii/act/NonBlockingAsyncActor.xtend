@@ -65,7 +65,7 @@ abstract class NonBlockingAsyncActor<T> implements nl.kii.act.AsyncActor<T> {
 	 * an X amount of process depth. The MAX_PROCESS_DEPTH setting below sets how many time the
 	 * processNextAsync call can be called recursively before it breaks out through an exception. 
 	 */
-	val static MAX_PROCESS_DEPTH = 10
+	val static MAX_PROCESS_DEPTH = 1
 	
 	/**
 	 * The queue of messages waiting to be processed by this actor.

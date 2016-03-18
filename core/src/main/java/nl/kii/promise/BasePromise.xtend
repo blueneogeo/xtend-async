@@ -106,7 +106,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
 	 * since there is a generics problem trying to assign the values.
 	 */
-	override on(Class<? extends Throwable> errorType, boolean swallow, Procedure1<Throwable> errorFn) {
+	override <T extends Throwable> on(Class<T> errorType, boolean swallow, (T)=>void errorFn) {
 		on(errorType, swallow) [ from, e | errorFn.apply(e) ]
 	}
 
@@ -117,7 +117,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 	 * FIX: this method should return a subpromise with the error filtered out, but it returns this,
 	 * since there is a generics problem trying to assign the values.
 	 */
-	override on(Class<? extends Throwable> errorType, boolean swallow, Procedure2<I, Throwable> errorFn) {
+	override <T extends Throwable> on(Class<T> errorType, boolean swallow, (I, T)=>void errorFn) {
 		val subPromise = new SubPromise(this)
 		onChange [
 			switch it {
@@ -125,7 +125,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 				Error<I, O>: {
 					try {
 						if(errorType.isAssignableFrom(error.class)) {
-							errorFn.apply(from, error)
+							errorFn.apply(from, error as T)
 							if(!swallow) subPromise.error(from, error)
 						} else subPromise.error(from, error)
 					} catch(Exception e) {
