@@ -9,8 +9,6 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import static extension nl.kii.util.ThrowableExtensions.*
-import nl.kii.stream.BaseStream
 
 class TestStreamErrorHandling {
 

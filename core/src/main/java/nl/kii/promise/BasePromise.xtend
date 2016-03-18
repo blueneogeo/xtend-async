@@ -2,6 +2,7 @@ package nl.kii.promise
 
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Atomic
+import nl.kii.async.options.AsyncOptions
 import nl.kii.observe.Publisher
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
@@ -11,8 +12,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
+import static extension nl.kii.async.util.AsyncUtils.*
 import static extension nl.kii.util.OptExtensions.*
-import nl.kii.async.options.AsyncOptions
 
 /**
  * Base implementation of IPromise. 
@@ -89,6 +90,7 @@ abstract class BasePromise<I, O> implements IPromise<I, O> {
 						valueFn.apply(from, value)
 						newPromise.set(from, value)
 					} catch(Throwable e) {
+						e.cleanStackTrace
 						newPromise.error(from, e)
 					}
 				}

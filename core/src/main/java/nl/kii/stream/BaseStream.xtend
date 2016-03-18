@@ -21,6 +21,8 @@ import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
 import org.eclipse.xtend.lib.annotations.Accessors
 
+import static extension nl.kii.async.util.AsyncUtils.*
+
 abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
 	@Accessors(PUBLIC_GETTER) val protected AsyncOptions options
@@ -231,29 +233,6 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	/** helper function for informing the notify listener */
 	def protected notify(StreamEvent command) {
 		notificationListener?.apply(command)
-	}
-	
-	val static unwantedStacktraces = #[
-		// 'nl.kii.stream.+',
-		'nl.kii.stream.BaseStream.*',
-		'nl.kii.stream.StreamEventHandler.*',
-		'nl.kii.stream.StreamEventResponder.*',
-		'nl.kii.stream.StreamResponder.*',
-		'nl.kii.stream.StreamObserver.*',
-		// 'nl.kii.promise.+',
-		'nl.kii.act.*',
-		'nl.kii.observe.*'
-	]
-
-	public static def void cleanStackTrace(Throwable t) {
-		t.stackTrace = t.stackTrace.cleanStackTraceElements
-		if(t.cause != null) t.cause.stackTrace.cleanStackTraceElements // recursive
-	}
-	
-	public static def StackTraceElement[] cleanStackTraceElements(StackTraceElement[] stack) {
-		stack.filter [ trace | unwantedStacktraces.findFirst[
-			trace.className.matches(it) || trace.lineNumber == 1
-		] == null ]
 	}
 
 	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null», options: «options» }'''

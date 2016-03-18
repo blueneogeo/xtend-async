@@ -12,7 +12,7 @@ class TestPublisher {
 	@Test
 	def void testPublishAndObserve() {
 		val collector = String.stream
-		val publisher = new Publisher<String>(Queues.newSynchronousQueue, true, 10)
+		val publisher = new Publisher<String>(Queues.newArrayDeque, true, 10)
 		
 		// register two listeners
 		publisher.onChange [ '1:' + it >> collector ]
