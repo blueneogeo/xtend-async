@@ -6,6 +6,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import nl.kii.async.options.AsyncOptions
+import nl.kii.async.options.AsyncDefault
 
 /**
  * A threadsafe non-blocking distributor of events to its registered listeners.
@@ -23,19 +25,22 @@ class Publisher<T> extends NonBlockingAsyncActor<T> implements Procedure1<T>, Ob
 	@Atomic public val boolean publishing = true
 	@Atomic transient val List<Procedure1<T>> observers 
 
-//	new() {
-//		this(Queues.newConcurrentLinkedQueue, true)
-//	}
+	/** Create a publisher using the AsyncDefault options */
+	new() {
+		this(AsyncDefault.options)
+	}
 
+	/** Create a publisher using the options in the passed AsyncOptions */
+	new(AsyncOptions options) {
+		this(options.newPromiseActorQueue, true, options.actorMaxCallDepth)
+	}
+
+	/** Create a new publisher */
 	new(Queue<T> queue, boolean isPublishing, int maxCallDepth) {
 		super(queue, maxCallDepth)
 		publishing = isPublishing
 	}
 	
-//	new(boolean isPublishing) {
-//		this(Queues.newConcurrentLinkedQueue, isPublishing, 1)
-//	}
-
 	/** Listen for publications from the publisher */
 	override =>void onChange((T)=>void observeFn) {
 		if(observers == null) observers = new CopyOnWriteArrayList 
