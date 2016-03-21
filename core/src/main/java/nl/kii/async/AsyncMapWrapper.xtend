@@ -26,7 +26,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	}
 	
 	override get(K key) {
-		promise(key, map.get(key))
+		promise(map.get(key))
 	}
 	
 	override remove(K key) {
@@ -36,7 +36,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	
 	override get(List<K> keys) {
 		val result = keys.map [ it->map.get(it) ].toMap
-		promise(keys, result)
+		promise(result)
 	}
 	
 	// copied from xtend-tools/IterableExtensions.toMap

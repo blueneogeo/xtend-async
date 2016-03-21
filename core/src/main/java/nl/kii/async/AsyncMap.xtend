@@ -2,7 +2,7 @@ package nl.kii.async
 
 import java.util.List
 import java.util.Map
-import nl.kii.promise.IPromise
+import nl.kii.promise.Promise
 import nl.kii.promise.Task
 
 /**
@@ -21,9 +21,9 @@ interface AsyncMap<K, V> {
 	
 	def Task put(K key, V value)
 	
-	def IPromise<K, V> get(K key)
+	def Promise<V> get(K key)
 	
-	def IPromise<List<K>, Map<K, V>> get(List<K> keys)
+	def Promise<Map<K, V>> get(List<K> keys)
 	
 	def Task remove(K key)
 	
