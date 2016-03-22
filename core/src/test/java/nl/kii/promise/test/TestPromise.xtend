@@ -95,8 +95,6 @@ class TestPromise {
 	}
 
 	@Test def void testLongChain() {
-		val alwaysDone = new AtomicBoolean
-		val caughtError = new AtomicReference<Throwable>
 		1.addOne
 			.call [ addOne ]
 			.call [ addOne ]
@@ -106,11 +104,9 @@ class TestPromise {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.on(Throwable) [ caughtError.set(it) ]
-			.always [ alwaysDone.set(true) ]
+			.on( Throwable ) [ fail( 'should not get here' ) ]
+			.always [ assertEquals( 10, it ) ]
 			.assertPromiseEquals(10)
-		assertEquals(true, alwaysDone.get)
-		assertNull(caughtError.get)
 	}
 
 	@Atomic boolean alwaysDone	
@@ -124,22 +120,13 @@ class TestPromise {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.call [
-				if(it != null) {
-					println(it)
-					throw new Exception('help!')
-				} 
-				addOne
-			]
+			.call [ throw new Exception('Forced!') ]
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.on(Throwable) [ println('xxx') caughtError = it ]
-//			.always [ alwaysDone.set(true) ]
-			.then [ println('hello') fail('should not get here' + it) ]
-//		assertEquals(true, alwaysDone.get)
-		assertNotNull(caughtError)
+			.on( Throwable ) [ assertEquals( 'Forced!', message ) ]
+			.then [ fail( 'should not get here' ) ]
 	}	
 	
 	val threads = newCachedThreadPool
