@@ -105,7 +105,6 @@ class TestPromise {
 			.call [ addOne ]
 			.call [ addOne ]
 			.on( Throwable ) [ fail( 'should not get here' ) ]
-			.always [ assertEquals( 10, it ) ]
 			.assertPromiseEquals(10)
 	}
 
