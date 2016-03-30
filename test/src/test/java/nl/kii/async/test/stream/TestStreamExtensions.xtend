@@ -104,7 +104,6 @@ class TestStreamExtensions {
 			.map [ it + 1 ]
 			.mapInput [ in, it | 'x' + in ]
 			.entries <=> #[value('x1', 2), value('x2', 3), value('x3', 4), finish('xnull', 0), value('x4', 5), value('x5', 6)]
-		
 	}
 	
 	@Test
@@ -528,8 +527,8 @@ class TestStreamExtensions {
 	@Test
 	def void testSkipAndTake() {
 		(1..20).stream
-			.takeAndFinish(5)
 			.skip(3)
+			.takeAndFinish(5)
 			<=> #[4, 5, 6, 7, 8]
 	}
 	
