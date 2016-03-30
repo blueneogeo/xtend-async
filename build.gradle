@@ -109,3 +109,11 @@ project( 'core' ) {
     testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
   }
 }
+
+project( 'test') {
+  dependencies {
+    compile project( ':core' )
+    testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+  }
+}
+

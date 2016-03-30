@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentHashMap
 import nl.kii.promise.Task
 
 import static nl.kii.promise.PromiseExtensions.*
+import nl.kii.promise.Promise
+import java.util.NoSuchElementException
 
 /** 
  * Converts a normal Map into an AsyncMap
@@ -26,7 +28,9 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	}
 	
 	override get(K key) {
-		promise(map.get(key))
+		val value = map.get(key)
+		if(value == null) new Promise<V> => [ error(new NoSuchElementException('no value for key ' + key)) ]
+		else promise(map.get(key))
 	}
 	
 	override remove(K key) {

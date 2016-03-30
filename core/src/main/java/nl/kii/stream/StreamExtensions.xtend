@@ -573,10 +573,12 @@ class StreamExtensions {
 	}
 	
 	/**
-	 * Only let pass a certain amount of items through the stream
+	 * Stream until the until condition Fn returns true. 
+	 * It is exclusive, meaning that if the value from the
+	 * stream matches the untilFn, that value will not be passed.
 	 */
-	def static <I, O> limit(IStream<I, O> stream, int amount) {
-		stream.until [ it, c | c > amount ] => [ stream.options.operation = 'limit(amount=' + amount + ')' ]
+	def static <I, O> until(IStream<I, O> stream, (O)=>boolean untilFn) {
+		stream.until(false, false) [ in, out, index, passed | untilFn.apply(out) ]
 	}
 	
 	/**
@@ -584,8 +586,8 @@ class StreamExtensions {
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
-	def static <I, O> until(IStream<I, O> stream, (O)=>boolean untilFn) {
-		stream.until [ it, index, passed | untilFn.apply(it) ]
+	def static <I, O> until(IStream<I, O> stream, (I, O)=>boolean untilFn) {
+		stream.until(false, false) [ in, out, index, passed | untilFn.apply(in, out) ]
 	}
 
 	/**
@@ -593,28 +595,54 @@ class StreamExtensions {
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
-	def static <I, O> until(IStream<I, O> stream, (O, Long, Long)=>boolean untilFn) {
+	def static <I, O> until(IStream<I, O> stream, (I, O, Long)=>boolean untilFn) {
+		stream.until(false, false) [ in, out, index, passed | untilFn.apply(in, out, index) ]
+	}
+
+	/**
+	 * Stream until the until condition Fn returns true. 
+	 * When this happens, the stream will finish. Any other encountered Finish is upgraded one level.
+	 * @Param stream: the stream to process
+	 * @Param inclusive: if true, the value that returned true in untilFn will also be streamed
+	 * @Param finishesStream: if true, when the condition of untilFn is met, until will finish the stream with a finish(0) 
+	 * @Param untilFn: a function that gets the stream value input, output, index and the amount of passed values so far.
+	 * @Return a new substream that contains all the values up to the moment untilFn was called and an additional level 0 finish.
+	 */
+	def static <I, O> until(IStream<I, O> stream, boolean inclusive, boolean finishesStream, (I, O, Long, Long)=>boolean untilFn) {
 		val newStream = new SubStream<I, O>(stream)
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)	
 		stream.on [
 			each [
 				val i = index.incrementAndGet
-				if(untilFn.apply($1, i, passed.get)) {
-					passed.incrementAndGet
+				if(untilFn.apply($0, $1, i, passed.get)) {
+					if(inclusive) {
+						passed.incrementAndGet
+						newStream.push($0, $1)
+					}
 					stream.skip
-					stream.next
+					if(finishesStream) {
+						newStream.finish($0, 0)
+					} else {
+						stream.next
+					}
 				} else {
+					passed.incrementAndGet
 					newStream.push($0, $1)
 				}
 			]
-			error [ newStream.error($0, $1) ]
+			error [ 
+				newStream.error($0, $1)
+			]
 			finish [
+				println('finish!')
 				index.set(0)
 				passed.set(0)
 				newStream.finish($0, $1)
 			]
-			closed [ newStream.close ]
+			closed [ 
+				newStream.close
+			]
 		]
 		stream.options.operation = 'until'
 		newStream.controls(stream)
@@ -622,49 +650,23 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Stream until the until condition Fn returns true. 
-	 * Passes a counter as second parameter to the untilFn, starting at 1.
-	 */
-	def static <I, O> until(IStream<I, O> stream, (O, Long)=>boolean untilFn) {
-		val count = new AtomicLong(0)
-		val newStream = new SubStream<I, O>(stream)
-		stream.on [
-			each [
-				if(untilFn.apply($1, count.incrementAndGet)) {
-					stream.skip
-					stream.next
-				} else {
-					newStream.push($0, $1)
-				}
-			]
-			error [ newStream.error($0, $1) ]
-			finish [ 
-				count.set(0)
-				newStream.finish($0, $1)
-			]
-			closed [ newStream.close ]
-		]
-		stream.options.operation = 'until'
-		newStream.controls(stream)
-		newStream
-	}
-	
-	/**
 	 * Flatten a stream of streams into a single stream.
-	 * <p>
-	 * Note: breaks finishes and flow control!
+	 * Any finishes in a substream becomes a finish(0), and any finish the top level stream becomes a finish(1).
+	 * This allows you to still collect data.
 	 */
-	def static <I, I2, O, S extends IStream<I2, O>> flatten(IStream<I, S> stream) {
+	def static <I, O, S extends IStream<I, O>> flatten(IStream<?, S> stream) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [ 
-			each [ r, s |
-				s.on [
-					each [ newStream.push(r, $1) s.next ]
-					error [ newStream.error(r, $1) s.next ]
+			each [ in, substream |
+				substream.on [
+					each [ in2, value | newStream.push(in2, value) substream.next ]
+					error [ in2, error | newStream.error(in2, error) substream.next ]
+					finish [ in2, level | newStream.finish(in2, level) substream.next ]
 				]
-				s.next
+				substream.next
 			]
-			error [ newStream.error($0, $1) ]
+			error [ in2, e | newStream.error(null, e) ]
+			finish [ in2, level | newStream.finish(null, level + 1) ]
 			closed [ newStream.close ]
 		]
 		stream.options.operation = 'flatten'
@@ -1288,7 +1290,8 @@ class StreamExtensions {
 				 stream.close
 			]
 			finish [ from, e |
-				promise.error(from, new Exception('Stream.first: stream finished without returning a value'))
+				if(!promise.fulfilled)
+					promise.error(from, new Exception('Stream.first: stream finished without returning a value'))
 				stream.close
 			]
 		]
@@ -1343,8 +1346,19 @@ class StreamExtensions {
 	 * Resets at finish.
 	 */
 	def static <I, O> take(IStream<I, O> stream, int amount) {
-		stream.until [ it, index, passed | index > amount ]
-			=> [ stream.options.operation = 'limit(amount=' + amount + ')' ]
+		val sub = new AtomicReference
+		sub.set = stream.until(false, false) [ in, out, index, passed | index > amount ]
+		sub.get => [ stream.options.operation = 'take(amount=' + amount + ')' ]
+	}
+
+	/**
+	 * Take only a set amount of items from the stream. 
+	 * Resets at finish.
+	 */
+	def static <I, O> takeAndFinish(IStream<I, O> stream, int amount) {
+		val sub = new AtomicReference
+		sub.set = stream.until(false, true) [ in, out, index, passed | index > amount ]
+		sub.get => [ stream.options.operation = 'takeAndFinish(amount=' + amount + ')' ]
 	}
 	
 	/**

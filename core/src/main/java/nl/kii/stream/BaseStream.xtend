@@ -147,6 +147,12 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					if(isSkipping) return
 					else skipping = true		
 					// discard everything up to finish from the queue
+//					while(isSkipping && !queue.empty) {
+//						switch it: queue.peek {
+//							Finish<I, O> case level==0: { skipping = false }
+//							default: { queue.poll decBuffersize }
+//						}
+//					}
 					while(isSkipping && !queue.empty) {
 						switch it: queue.peek {
 							Finish<I, O> case level==0: { skipping = false }
@@ -154,7 +160,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 						}
 					}
 					// if we are still skipping, notify the parent stream it needs to skip
-					if(isSkipping) notify(entry)			
+					if(isSkipping) notify(entry)
 				}
 				Pause: {
 					notify(entry)
