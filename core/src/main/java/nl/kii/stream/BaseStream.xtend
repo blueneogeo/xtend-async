@@ -2,26 +2,21 @@ package nl.kii.stream
 
 import java.util.Queue
 import nl.kii.act.NonBlockingAsyncActor
-import nl.kii.async.UncaughtAsyncException
+import nl.kii.async.AsyncException
 import nl.kii.async.annotation.Atomic
 import nl.kii.async.options.AsyncOptions
-import nl.kii.stream.message.Close
-import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
-import nl.kii.stream.message.Finish
-import nl.kii.stream.message.Next
-import nl.kii.stream.message.Overflow
-import nl.kii.stream.message.Pause
-import nl.kii.stream.message.Resume
-import nl.kii.stream.message.Skip
 import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
 import org.eclipse.xtend.lib.annotations.Accessors
 
+import static nl.kii.stream.message.StreamEvent.*
+
 import static extension nl.kii.async.util.AsyncUtils.*
+import nl.kii.stream.message.Closed
 
 abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
@@ -35,7 +30,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	@Atomic val boolean paused = false // whether the stream is paused
 
 	@Atomic val (Entry<I, O>)=>void entryListener // listener for entries from the stream queue
-	@Atomic val (StreamEvent)=>void notificationListener // listener for notifications give by this stream
+	@Atomic val (StreamEvent)=>void eventListener // listener for events from this stream
 
 	/** 
 	 * Create the stream with your own provided queue. 
@@ -55,8 +50,6 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	
 	override isReady() { getReady }
 	
-	override isSkipping() { getSkipping }
-	
 	override isPaused() { getPaused }
 	
 	override getBufferSize() { buffersize }
@@ -66,17 +59,17 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
 	/** Ask for the next value in the buffer to be delivered to the change listener */
-	override next() { apply(new Next) }
+	override next() { apply(StreamEvent.next) }
 	
-	/** Tell the stream to stop sending values until the next Finish(0) */
-	override skip() { apply(new Skip) }
+	/** Close the stream, which will close parent streams and stop the listener from recieving values */
+	override close() {
+		apply(new Closed) // travels down to listeners
+		apply(StreamEvent.close) // travels up, closing parent streams
+	}
 	
-	/** Close the stream, which will stop the listener from recieving values */
-	override close() { apply(new Close) }
+	override pause() { apply(StreamEvent.pause) }
 	
-	override pause() { apply(new Pause) }
-	
-	override resume() { apply(new Resume) }
+	override resume() { apply(StreamEvent.resume) }
 	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
@@ -99,9 +92,9 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	 * the StreamExtensions instead.
 	 * @return unsubscribe function
 	 */
-	override =>void onNotify((StreamEvent)=>void notificationListener) {
-		this.notificationListener = notificationListener
-		return [| this.notificationListener = null ]
+	override =>void onEvent((StreamEvent)=>void notificationListener) {
+		this.eventListener = notificationListener
+		return [| this.eventListener = null ]
 	}
 	
 	// STREAM INPUT PROCESSING ////////////////////////////////////////////////
@@ -110,23 +103,28 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	override act(StreamMessage entry, =>void done) {
 		if(isOpen) {
 			switch entry {
-				Value<I, O>, Finish<I, O>, Error<I, O>: {
+				Value<I, O>, Error<I, O>, Closed<I, O>: {
 					// check for buffer overflow or paused
 					if(buffersize + 1 > options.maxQueueSize || isPaused) {
-						notify(new Overflow(entry))
+						eventListener?.apply(StreamEvent.overflow)
 						done.apply
 						return
 					}
 					// add the entry to the queue
 					queue.add(entry)
 					incBuffersize
+					// publish the entry
 					publishNext
+					// and if it was a finish, close the stream
+					if(entry instanceof Closed<?, ?>) {
+						this.open = false
+					}
 				}
 				Entries<I, O>: {
 					// check for buffer overflow or paused
 					if(buffersize + entry.entries.size >= options.maxQueueSize || isPaused) {
 						for(e : entry.entries) {
-							notify(new Overflow(e))
+							eventListener?.apply(StreamEvent.overflow)
 						}
 						done.apply
 						return
@@ -136,50 +134,29 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					incBuffersize(entry.entries.size)
 					publishNext
 				}
-				Next: {
+				StreamEvent case next: {
 					ready = true
-					// try to publish the next from the queue
-					val published = publishNext
-					// if nothing was published, notify there parent stream we need a next entry
-					if(!published) notify(entry)
-				}
-				Skip: {
-					if(isSkipping) return
-					else skipping = true		
-					// discard everything up to finish from the queue
-//					while(isSkipping && !queue.empty) {
-//						switch it: queue.peek {
-//							Finish<I, O> case level==0: { skipping = false }
-//							default: { queue.poll decBuffersize }
-//						}
-//					}
-					while(isSkipping && !queue.empty) {
-						switch it: queue.peek {
-							Finish<I, O> case level==0: { skipping = false }
-							default: { queue.poll decBuffersize }
-						}
+					if(!isPaused) {
+						// try to publish the next from the queue
+						val published = publishNext
+						// if nothing was published, notify there parent stream we need a next entry
+						if(!published) eventListener?.apply(entry)
 					}
-					// if we are still skipping, notify the parent stream it needs to skip
-					if(isSkipping) notify(entry)
 				}
-				Pause: {
-					notify(entry)
+				StreamEvent case overflow: {
+				}
+				StreamEvent case pause: {
 					paused = true
+					eventListener?.apply(entry)
 				}
-				Resume: {
-					paused = false
-					// notify that we resumed
-					notify(entry)
-					publishNext
-				}
-				Close: {
-					// and publish the closed command downwards
-					queue.add(new Closed)
-					incBuffersize
+				StreamEvent case resume: {
 					paused = false
 					publishNext
-					notify(entry)
+				}
+				StreamEvent case close: {
+					paused = false
 					open = false
+					eventListener?.apply(entry)
 				}
 			}
 		} else {
@@ -194,23 +171,18 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	/** Publish a single entry from the stream queue. */
 	def protected boolean publishNext() {
 		// should we publish at all?
-		if(!isOpen || !isReady || entryListener == null || queue.empty) return false
+		if(!isOpen || isPaused || !isReady || entryListener == null || queue.empty) return false
 		// ok, lets get publishing
 		ready = false
 		// get the next entry from the queue
 		val entry = queue.poll
 		decBuffersize
 		try {
-			// check for some exceptional cases
-			switch it: entry {
-				// a finish of level 0 stops the skipping
-				Finish<I, O>: if(level == 0) skipping = false
-			}
 			// publish the value on the entryListener
-			entryListener.apply(entry)
+			entryListener?.apply(entry)
 			// something was published
 			true
-		} catch (UncaughtAsyncException t) {
+		} catch (AsyncException t) {
 			// clean up the stacktrace
 			t.cleanStackTrace
 			// this error is meant to break the publishing loop
@@ -218,7 +190,6 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 		} catch (Throwable t) {
 			// clean up the stacktrace
 			t.cleanStackTrace
-			// println(' A ' + ThrowableExtensions.format(t))
 			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
 			if(entry instanceof Error<?, ?>) throw t
 			// check if next was called by the handler
@@ -236,12 +207,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 		}
 	}
 
-	/** helper function for informing the notify listener */
-	def protected notify(StreamEvent command) {
-		notificationListener?.apply(command)
-	}
-
-	override toString() '''Stream { open: «isOpen», ready: «isReady», skipping: «isSkipping», queue: «queue.size», hasListener: «entryListener != null», options: «options» }'''
+	override toString() '''Stream { open: «isOpen», ready: «isReady», queue: «queue.size», hasListener: «entryListener != null», options: «options» }'''
 
 	
 }

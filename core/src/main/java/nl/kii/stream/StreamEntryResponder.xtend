@@ -1,7 +1,6 @@
 package nl.kii.stream
 
 import nl.kii.async.annotation.Atomic
-import nl.kii.stream.IStream
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
 
@@ -20,13 +19,12 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure2
  * <p>
  * Remember to call stream.next to start the stream!
  */
-class StreamResponder<I, O> implements StreamObserver<I, O> {
+class StreamEntryResponder<I, O> implements StreamEntryHandler<I, O> {
 	
 	@Atomic public val IStream<I, O> stream
 	@Atomic Procedure2<I, O> valueFn
 	@Atomic Procedure2<I, Throwable> errorFn
-	@Atomic Procedure2<I, Integer> finishFn
-	@Atomic Procedure1<Void> closedFn
+	@Atomic Procedure1<Void> finishFn
 
 	// BUILDER METHODS ////////////////////////////////////////////////////////
 
@@ -35,11 +33,6 @@ class StreamResponder<I, O> implements StreamObserver<I, O> {
 		this.valueFn = handler
 	}
 	
-	/** listen for any finish */
-	def finish((I, Integer)=>void handler) {
-		this.finishFn = handler
-	}
-
 	/** listen for any uncaught errors */
 	def error((I, Throwable)=>void handler) {
 		this.errorFn = handler
@@ -47,7 +40,7 @@ class StreamResponder<I, O> implements StreamObserver<I, O> {
 	
 	/** listen for when the stream closes */
 	def closed((Void)=>void handler) {
-		this.closedFn = handler
+		this.finishFn = handler
 	}
 	
 	// STREAMOBSERVER IMPLEMENTATION //////////////////////////////////////////
@@ -60,12 +53,8 @@ class StreamResponder<I, O> implements StreamObserver<I, O> {
 		errorFn?.apply(from, t)
 	}
 	
-	override onFinish(I from, int level) {
-		finishFn?.apply(from, level)
-	}
-	
 	override onClosed() {
-		closedFn?.apply(null)
+		finishFn?.apply(null)
 	}
 	
 }

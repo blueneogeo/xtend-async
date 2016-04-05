@@ -40,7 +40,7 @@ class TestMultiThreadedProcessing {
 			.map [ throwsError ] // this error should propagate down the chain to the .map(Throwable) handler
 			.resolve(1)
 			.map(Throwable) [ 10 ] // convert the error back into a value
-			.sum.first
+			.sum
 			<=> 30D
 	}
 	

@@ -13,27 +13,19 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.options.AsyncOptions
-import nl.kii.observe.Observable
-import nl.kii.observe.Publisher
 import nl.kii.promise.IPromise
 import nl.kii.promise.SubPromise
 import nl.kii.promise.SubTask
 import nl.kii.promise.Task
-import nl.kii.stream.message.Close
-import nl.kii.stream.message.Closed
+import nl.kii.stream.annotation.Hot
+import nl.kii.stream.annotation.Push
+import nl.kii.stream.annotation.Starter
+import nl.kii.stream.annotation.Unsorted
 import nl.kii.stream.message.Entries
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
-import nl.kii.stream.message.Finish
-import nl.kii.stream.message.Next
-import nl.kii.stream.message.Overflow
-import nl.kii.stream.message.Pause
-import nl.kii.stream.message.Resume
-import nl.kii.stream.message.Skip
+import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.Value
-import nl.kii.stream.source.LoadBalancer
-import nl.kii.stream.source.StreamCopySplitter
-import nl.kii.stream.source.StreamSource
 import nl.kii.util.AssertionException
 import nl.kii.util.Opt
 import nl.kii.util.Period
@@ -44,38 +36,47 @@ import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
+import nl.kii.stream.message.Closed
 
 class StreamExtensions {
 	
 	// CREATION ///////////////////////////////////////////////////////////////
 	
 	/** Create a stream of the given type */
+	@Pure
 	def static <T> stream(Class<T> type) {
 		new Stream<T>
 	}
 	
-	/** 
-	 * Create a stream of a set of data and finish it.
-	 * Note: the reason this method is called datastream instead of stream, is that
-	 * the type binds to anything, even void. That means that datastream() becomes a valid expression
-	 * which is errorprone.
-	 */
-	def static <T> datastream(T... data) {
-		data.iterator.stream
-	}
-
 	/** stream the data of a map as a list of key->value pairs */
+	@Pure
 	def static <K, V> stream(Map<K, V> data) {
 		data.entrySet.map [ key -> value ].stream
 	}
 
 	/** Create a stream of values out of a Promise of a list. If the promise throws an error,  */
-	def static <R, T, T2 extends Iterable<T>> stream(IPromise<R, T2> promise) {
-		val newStream = new Stream<T>(promise.options)
+	def static <I, O, L extends Iterable<O>> stream(IPromise<I, L> promise) {
+		val newStream = new Stream<O>(promise.options)
 		promise
-			.on(Throwable) [ newStream.error(it) ]
-			.then [	stream(it).pipe(newStream) ]
-		newStream
+			.then [	in, list | list.stream.pipe(newStream) ]
+			.on(Throwable) [ in, e | newStream.error(e) ]
+		newStream => [ options.operation = 'stream' ]
+	}
+
+	/** 
+	 * Connect the output of one stream to another stream. 
+	 * Retains flow control.
+	 * @returns a task that completes onces the streams are closed.
+	 */	
+	def static <I, O> Task pipe(IStream<I, O> inputStream, Stream<O> outputStream) {
+		val task = new Task(outputStream.options)
+		inputStream.on [
+			each [ in, it | outputStream.push(it) ]
+			error [ in, e | outputStream.error(e) ]
+			closed [ outputStream.close task.complete ]
+		]
+		outputStream.controls(inputStream)
+		task => [ options.operation = 'pipe' ]
 	}
 
 	/** stream an list, ending with a finish. makes an immutable copy internally. */	
@@ -84,27 +85,21 @@ class StreamExtensions {
 	}
 
 	/** stream an interable, ending with a finish */	
-	def static <T> stream(Iterable<T> iterable) {
+	def static <T> Stream<T> stream(Iterable<T> iterable) {
 		iterable.iterator.stream
 	}
 	
 	/** stream an iterable, ending with a finish */
 	def static <T> stream(Iterator<T> iterator) {
-		val finished = new AtomicBoolean(false)
 		val stream = new Stream<T>
-		val =>void pushNext = [|
-			if(finished.get) return;
-			if(iterator.hasNext) {
-				stream.push(iterator.next)
-			} else {
-				finished.set(true)
-				stream.finish
-				stream.close
-			}
-		]
 		stream.when [
-			next [ pushNext.apply ]
-			skip [ finished.set(true) stream.finish stream.close ]
+			next [
+				if(iterator.hasNext) {
+					stream.push(iterator.next)
+				} else {
+					stream.close
+				}
+			]
 		]
 		stream.options.operation = 'iterate'
 		stream
@@ -114,7 +109,6 @@ class StreamExtensions {
 	def static <I1, I2, O1, O2> controls(IStream<I1, O2> newStream, IStream<I2, O1> parent) {
 		newStream.when [
 			next [ parent.next ]
-			skip [ parent.skip ]
 			close [ parent.close ]
 		]		
 	}
@@ -133,21 +127,28 @@ class StreamExtensions {
 	
 	
 	/** stream a standard Java inputstream. closing the stream closes the inputstream. */
+	@Push
 	def static Stream<List<Byte>> stream(InputStream stream) {
 		val newStream = new Stream<List<Byte>>
-		stream.readBytes(new ByteProcessor {
-			
-			override getResult() { newStream.finish null }
-			
-			override processBytes(byte[] buf, int off, int len) throws IOException {
-				if(!newStream.open) return false
-				newStream.push(buf)
-				true
-			}
-			
-		})
+		val started = new AtomicBoolean
 		newStream.when [
-			skip [ stream.close]
+			next [
+				// when next is called, start piping the data from the inputstream to the new stream
+				// but only once
+				if(!started.getAndSet(true)) {
+					stream.readBytes(new ByteProcessor {
+						
+						override getResult() { newStream.close null }
+						
+						override processBytes(byte[] buf, int off, int len) throws IOException {
+							if(!newStream.open) return false
+							newStream.push(buf)
+							true
+						}
+						
+					})
+				}
+			]
 			close [ stream.close ]
 		]
 		newStream
@@ -164,8 +165,6 @@ class StreamExtensions {
 					newStream.push(next)
 				}
 			]
-			skip [ newStream.close ]
-			close [ newStream.close ]
 		]
 		newStream
 	}
@@ -181,11 +180,10 @@ class StreamExtensions {
 	 * If you are using Xtend, it is recommended to use the StreamExtensions.on [ ]
 	 * instead, for a more concise and elegant builder syntax.
 	 */
-	def static <I, O> void observe(IStream<I, O> stream, StreamObserver<I, O> observer) {
+	def static <I, O> void setEntryHandler(IStream<I, O> stream, StreamEntryHandler<I, O> observer) {
 		stream.onChange [ entry |
 			switch it : entry {
 				Value<I, O>: observer.onValue(from, value)
-				Finish<I, O>: observer.onFinish(from, level)
 				Error<I, O>: observer.onError(from, error)
 				Closed<I, O>: observer.onClosed
 			}
@@ -193,51 +191,48 @@ class StreamExtensions {
 	}
 	
 	/** Listen to commands given to the stream. */
-	def static <I, O> void handle(IStream<I, O> stream, StreamEventHandler<I, O> controller) {
-		stream.onNotify [ notification |
-			switch it : notification {
-				Next: controller.onNext
-				Skip: controller.onSkip
-				Close: controller.onClose
-				Pause: controller.onPause
-				Resume: controller.onResume
-				Overflow<I, O>: controller.onOverflow(entry)
+	def static <I, O> void setEventHandler(IStream<I, O> stream, StreamEventHandler<I, O> controller) {
+		stream.onEvent [ notification |
+			switch notification {
+				case next: controller.onNext
+				case pause: controller.onPause
+				case resume: controller.onResume
+				case overflow: controller.onOverflow
+				case close: controller.onClose
 			}
 		]
 	}
 
 	/** 
-	 * Create a publisher for the stream. This allows you to observe the stream
-	 * with multiple listeners. Publishers do not support flow control, and the
-	 * created Publisher will eagerly pull all data from the stream for publishing.
+	 * Push any entries coming from the stream into an observer stream.
+	 * The observer is being pushed to only, no other flow control.
 	 */
-	def static <I, O> publisher(IStream<I, O> stream) {
-		val publisher = new Publisher<O>(stream.options.newActorQueue, true, stream.options.actorMaxCallDepth)
-		stream.on [
-			each [
-				publisher.apply($1)
-				if(publisher.publishing) stream.next
-			]
-			closed [ publisher.publishing = false ]
+	def static <I, O> addObserver(IStream<I, O> stream, SubStream<I, O> observer) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.onChange [ 
+			observer.apply(it)
+			newStream.apply(it)
 		]
-		stream.next
-		stream.options.operation = 'publish'
-		publisher
+		newStream.controls(stream)
+		newStream
 	}
 
-	/** 
-	 * Create new streams from an observable. Notice that these streams are
-	 * being pushed only, you lose flow control. Closing the stream will also
-	 * unsubscribe from the observable.
+	/**
+	 * Lets you observe a stream with a closure that gets a push-only observer stream.
+	 * The observer is being pushed to only, no other flow control.
+	 * <p>
+	 * Example:
+	 * <pre>
+	 * (1..10).stream
+	 *  .map['hi'+it]
+	 * 	.observe [ collect.effect[println(it)].start ] // prints [hi1,hi2,hi3] when the stream is finished 
+	 *  .pipe(otherStream)
+	 * <pre>
 	 */
-	def static <T> observe(Observable<T> observable) {
-		val newStream = new Stream<T>
-		val stopObserving = observable.onChange [
-			newStream.push(it)
-		]
-		newStream.when [
-			close [ stopObserving.apply ]
-		]
+	def static <I, O> observe(IStream<I, O> stream, (IStream<I, O>)=>void observeStreamFn) {
+		val observer = new SubStream<I, O>(stream)
+		val newStream = stream.addObserver(observer)
+		observeStreamFn.apply(observer)
 		newStream
 	}
 
@@ -261,27 +256,26 @@ class StreamExtensions {
 	 * @return a task that completes on finish(0) or closed, or that gives an error
 	 * if the stream passed an error. 
 	 */
-	def static <I, O> on(IStream<I, O> stream, (StreamResponder<I, O>)=>void handlerFn) {
+	def static <I, O> void on(IStream<I, O> stream, (StreamEntryResponder<I, O>)=>void handlerFn) {
 		stream.on [ s, builder | handlerFn.apply(builder) ]
 	}
 
-	def static <I, O> on(IStream<I, O> stream, (IStream<I, O>, StreamResponder<I, O>)=>void handlerFn) {
-		val handler = new StreamResponder<I, O> => [
+	def static <I, O> void on(IStream<I, O> stream, (IStream<I, O>, StreamEntryResponder<I, O>)=>void handlerFn) {
+		val handler = new StreamEntryResponder<I, O> => [
 			it.stream = stream
 			// by default, do nothing but call the next item from the stream
 			each [ stream.next ]
-			finish [ stream.next ]
 			error [ stream.next ]
+			closed [ stream.next ]
 		]
 		// observing first so the handlerFn is last and can issue stream commands
-		stream.observe(handler) 
+		stream.entryHandler = handler 
 		handlerFn.apply(stream, handler)
-		// return the stream so things can be applied
-		stream
 	}
 
 	/**
 	 * Convenient builder to easily respond to commands given to a stream.
+	 * Defaults for each action is to propagate it to the stream.
 	 * <p>
 	 * Note: you can only have a single monitor for a stream.
 	 * <p>
@@ -293,11 +287,28 @@ class StreamExtensions {
 	 * ]
 	 * </pre>
 	 */
-	def static <I, O> when(IStream<I, O> stream, (StreamEventResponder<I, O>)=>void handlerFn) {
+	def static <I, O> void when(IStream<I, O> stream, (StreamEventResponder<I, O>)=>void handlerFn) {
 		val handler = new StreamEventResponder
 		handlerFn.apply(handler)
-		stream.handle(handler)
-		stream
+		stream.eventHandler = handler
+	}
+
+	/** Lets you respond to the closing of the stream */
+	def static <I, O> onClosed(IStream<I, O> stream, (Void)=>void handler) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ newStream.push($0, $1) ]
+			error [ newStream.error($0, $1) ]
+			closed [
+				try {
+					handler.apply(null)
+				} finally {
+					newStream.close
+				}
+			]
+		]
+		newStream.controls(stream)
+		newStream
 	}
 
 	
@@ -305,7 +316,8 @@ class StreamExtensions {
 	
 	/** Add a value to a stream */
 	def static <T> >> (T input, Stream<T> stream) {
-		stream << input
+		stream.push(input)
+		stream
 	}
 	
 	/** Add a value to a stream */
@@ -316,7 +328,8 @@ class StreamExtensions {
 
 	/** Add a list of values to a stream */
 	def static <T> >> (List<T> values, Stream<T> stream) {
-		stream << values
+		for(value : values) stream.push(value)
+		stream
 	}
 	
 	/** Add a list of values to a stream */
@@ -332,8 +345,9 @@ class StreamExtensions {
 	}
 
 	/** Lets you easily pass an Error<T> to the stream using the >> operator */
-	def static <T> >> (Throwable t, Stream<T> stream) {
-		stream << t
+	def static <I, O> >> (Throwable t, Stream<O> stream) {
+		stream.apply(new Error<I, O>(null, t))
+		stream
 	}
 
 	/** Lets you easily pass an Error<T> to the stream using the << operator */
@@ -341,22 +355,7 @@ class StreamExtensions {
 		stream.apply(new Error<I, O>(null, t))
 		stream
 	}
-
-	/** pipe a stream into another stream */
-	def static <I, O> >> (IStream<I, O> source, IStream<I, O> dest) {
-		dest << source
-	}
-
-	/** pipe a stream into another stream */
-	def static <I, O> << (IStream<I, O> dest, IStream<I, O> source) {
-		source.pipe(dest)
-	}
-
-	/** split a source into a new destination stream */
-	def static <I, O> >> (StreamSource<I, O> source, IStream<I, O> dest) {
-		source.pipe(dest)
-	}
-
+	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 
 	/**
@@ -386,7 +385,6 @@ class StreamExtensions {
 		stream.on [
 			each [ in, it | newStream.push(inputMappingFn.apply(in, some(it)), it) ]
 			error [ in, e | newStream.error(inputMappingFn.apply(in, none), e) ]
-			finish [ in, level | newStream.finish(inputMappingFn.apply(in, none), level) ]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -418,7 +416,6 @@ class StreamExtensions {
 				newStream.push($0, mapped)
 			]
 			error [	newStream.error($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -474,11 +471,6 @@ class StreamExtensions {
 				}
 			]
 			error [	newStream.error($0, $1) ]
-			finish [
-				index.set(0)
-				passed.set(0)
-				newStream.finish($0, $1)
-			]
 			closed [ newStream.close ]
 		]
 		newStream.controls(stream)
@@ -494,91 +486,12 @@ class StreamExtensions {
 	}
 	
 	/**
-	 * Splits a stream into multiple parts. These parts are separated by Finish entries.
-	 * <p>
-	 * Streams support multiple levels of finishes, to indicate multiple levels of splits.
-	 * This allows you to split a stream, and then split it again. Rules for splitting a stream:
-	 * <ul>
-	 * <li>when a new split is applied, it is always at finish level 0
-	 * <li>all other stream operations that use finish, always use this level
-	 * <li>the existing splits are all upgraded a level. so a level 0 finish becomes a level 1 finish
-	 * <li>splits at a higher level always are carried through to a lower level. so wherever there is a
-	 *     level 1 split for example, there is also a level 0 split
-	 * </ul> 
-	 */
-	def static <I, O> split(IStream<I, O> stream, (O)=>boolean splitConditionFn) {
-		val newStream = new SubStream<I, O>(stream)
-		val skipping = new AtomicBoolean(false)
-		val justPostedFinish0 = new AtomicBoolean(false)
-		stream.on [
-			each [
-				if(skipping.get) {
-					stream.next
-				} else {
-					if(splitConditionFn.apply($1)) {
-						// apply multiple entries at once for a single next
-						val entries = #[ new Value($0, $1), new Finish($0, 0) ]
-						justPostedFinish0.set(true)
-						newStream.apply(new Entries(entries))
-					} else {
-						justPostedFinish0.set(false)
-						newStream.apply(new Value($0, $1))
-					}
-				}
-			]
-			error [ newStream.error($0, $1) ]
-			finish [
-				// stop skipping if it is a level 0 finish
-				if($1 == 0) skipping.set(false)
-				// a higher level split also splits up the lower level
-				if(justPostedFinish0.get) {
-					// we don't put finish(0)'s in a row
-					newStream.apply(new Finish($0, $1 + 1))
-				} else {
-					justPostedFinish0.set(true)
-					val entries = #[ new Finish($0, 0), new Finish($0, $1 + 1) ]
-					newStream.apply(new Entries(entries))
-				}
-			]
-			closed [ newStream.close ]
-		]
-		stream.options.operation = 'split'
-		newStream.when [
-			next [ stream.next ]
-			close[ stream.close ]
-			skip [ skipping.set(true) ]
-		]
-		newStream
-	}
-	
-	/**
-	 * Merges one level of finishes. 
-	 * @see StreamExtensions.split
-	 */
-	def static <I, O> merge(IStream<I, O> stream) {
-		val newStream = new SubStream<I, O>(stream)
-		stream.on [
-			each [ newStream.apply(new Value($0, $1)) ]
-			error [ newStream.error($0, $1) ]
-			finish [
-				if($1 > 0)
-					newStream.finish($0, $1 - 1)
-				else stream.next
-			]
-			closed [ newStream.close ]
-		]
-		stream.options.operation = 'merge'
-		newStream.controls(stream)
-		newStream
-	}
-	
-	/**
 	 * Stream until the until condition Fn returns true. 
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
 	def static <I, O> until(IStream<I, O> stream, (O)=>boolean untilFn) {
-		stream.until(false, false) [ in, out, index, passed | untilFn.apply(out) ]
+		stream.until [ in, out, index, passed | untilFn.apply(out) ]
 	}
 	
 	/**
@@ -587,7 +500,7 @@ class StreamExtensions {
 	 * stream matches the untilFn, that value will not be passed.
 	 */
 	def static <I, O> until(IStream<I, O> stream, (I, O)=>boolean untilFn) {
-		stream.until(false, false) [ in, out, index, passed | untilFn.apply(in, out) ]
+		stream.until [ in, out, index, passed | untilFn.apply(in, out) ]
 	}
 
 	/**
@@ -596,7 +509,7 @@ class StreamExtensions {
 	 * stream matches the untilFn, that value will not be passed.
 	 */
 	def static <I, O> until(IStream<I, O> stream, (I, O, Long)=>boolean untilFn) {
-		stream.until(false, false) [ in, out, index, passed | untilFn.apply(in, out, index) ]
+		stream.until [ in, out, index, passed | untilFn.apply(in, out, index) ]
 	}
 
 	/**
@@ -608,7 +521,7 @@ class StreamExtensions {
 	 * @Param untilFn: a function that gets the stream value input, output, index and the amount of passed values so far.
 	 * @Return a new substream that contains all the values up to the moment untilFn was called and an additional level 0 finish.
 	 */
-	def static <I, O> until(IStream<I, O> stream, boolean inclusive, boolean finishesStream, (I, O, Long, Long)=>boolean untilFn) {
+	def static <I, O> until(IStream<I, O> stream, (I, O, Long, Long)=>boolean untilFn) {
 		val newStream = new SubStream<I, O>(stream)
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)	
@@ -616,16 +529,7 @@ class StreamExtensions {
 			each [
 				val i = index.incrementAndGet
 				if(untilFn.apply($0, $1, i, passed.get)) {
-					if(inclusive) {
-						passed.incrementAndGet
-						newStream.push($0, $1)
-					}
-					stream.skip
-					if(finishesStream) {
-						newStream.finish($0, 0)
-					} else {
-						stream.next
-					}
+					newStream.close
 				} else {
 					passed.incrementAndGet
 					newStream.push($0, $1)
@@ -633,12 +537,6 @@ class StreamExtensions {
 			]
 			error [ 
 				newStream.error($0, $1)
-			]
-			finish [
-				println('finish!')
-				index.set(0)
-				passed.set(0)
-				newStream.finish($0, $1)
 			]
 			closed [ 
 				newStream.close
@@ -648,12 +546,30 @@ class StreamExtensions {
 		newStream.controls(stream)
 		newStream
 	}
+	
+	/**
+	 * Skip an amount of items from the stream, and process only the ones after that.
+	 */
+	def static <I, O> SubStream<I, O> skip(IStream<I, O> stream, int amount) {
+		stream.filter [ it, index, passed | index > amount ] 
+			=> [ stream.options.operation = 'skip(amount=' + amount + ')' ]
+	}
+
+	/**
+	 * Take only a set amount of items from the stream. 
+	 */
+	def static <I, O> take(IStream<I, O> stream, int amount) {
+		stream.until [ in, out, index, passed | index > amount ]
+			=> [ stream.options.operation = 'take(amount=' + amount + ')' ]
+	}
+	
 
 	/**
 	 * Flatten a stream of streams into a single stream.
-	 * Any finishes in a substream becomes a finish(0), and any finish the top level stream becomes a finish(1).
 	 * This allows you to still collect data.
 	 */
+	@Hot
+	@Unsorted
 	def static <I, O, S extends IStream<I, O>> flatten(IStream<?, S> stream) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [ 
@@ -661,12 +577,11 @@ class StreamExtensions {
 				substream.on [
 					each [ in2, value | newStream.push(in2, value) substream.next ]
 					error [ in2, error | newStream.error(in2, error) substream.next ]
-					finish [ in2, level | newStream.finish(in2, level) substream.next ]
+					closed [ substream.next ]
 				]
 				substream.next
 			]
 			error [ in2, e | newStream.error(null, e) ]
-			finish [ in2, level | newStream.finish(null, level + 1) ]
 			closed [ newStream.close ]
 		]
 		stream.options.operation = 'flatten'
@@ -697,10 +612,6 @@ class StreamExtensions {
 		stream.on [
 			each [ newStream.push($0, counter.incrementAndGet -> $1) ]
 			error [ newStream.error($0, $1) ]
-			finish [
-				if($1 == 0) counter.set(0)
-				newStream.finish($0, $1)
-			]
 			closed [ newStream.close ]
 		]
 		stream.options.operation = 'index'
@@ -708,21 +619,23 @@ class StreamExtensions {
 		newStream
 	}
 	
-	// SPLITTING //////////////////////////////////////////////////////////////
-	
-	/**
-	 * Create a splitter StreamSource from a stream that lets you listen to the stream 
-	 * with multiple listeners.
+	/** 
+	 * Flatten a stream of lists of items into a stream of the items in those lists.
 	 */
-	def static <I, O> split(IStream<I, O> stream) {
-		new StreamCopySplitter(stream)
-	}
-
-	/**
-	 * Balance the stream into multiple listening streams.
-	 */
-	def static <T> balance(Stream<T> stream) {
-		new LoadBalancer(stream)
+	def static <I, O> SubStream<I, O> separate(IStream<I, List<O>> stream) {
+		val newStream = new SubStream<I, O>(stream)
+		stream.on [
+			each [ r, list |
+				// apply multiple entries at once for a single next
+				val entries = list.map [ new Value(r, it) ]
+				newStream.apply(new Entries(entries))
+			]
+			error [ newStream.error($0, $1) ]
+			closed [newStream.close ]
+		]
+		stream.options.operation = 'separate'
+		newStream.controls(stream)
+		newStream
 	}
 
 	// FLOW CONTROL ///////////////////////////////////////////////////////////
@@ -738,7 +651,7 @@ class StreamExtensions {
 	 * Tell the stream what size its buffer should be, and what should happen in case
 	 * of a buffer overflow.
 	 */	
-	def static <I, O> buffer(IStream<I, O> stream, int maxSize, (Entry<I, ?>)=>void onOverflow) {
+	def static <I, O> buffer(IStream<I, O> stream, int maxSize, =>void onOverflow) {
 		switch stream {
 			BaseStream<I, O>: stream.options.maxQueueSize = maxSize
 		}
@@ -746,24 +659,25 @@ class StreamExtensions {
 		stream.on [
 			each [ newStream.push($0, $1) ]
 			error [ newStream.error($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
 			closed [ newStream.close ]
 		]
 		newStream.when [
 			next[ stream.next ]
-			skip [ stream.skip ]
 			close [ stream.close ]
-			overflow [ onOverflow.apply(it) ]
+			overflow [ onOverflow.apply ]
 		]
 		stream.when [
-			overflow [ onOverflow.apply(it) ]
+			overflow [ onOverflow.apply ]
 		]
 		newStream
 	}
 	
-	/** Delay each entry coming through for a time period */
+	/** 
+	 * Delay each entry coming through for a time period.
+	 * Note: this will set concurrency to 1! (one entry at a time)
+	 */
 	def static <I, O> wait(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
-		stream.perform [ timerFn.apply(period) ]
+		stream.perform(1) [ timerFn.apply(period) ]
 	}
 	
 	/**
@@ -780,7 +694,7 @@ class StreamExtensions {
 				true
 			} else {
 				// we are dismissing data from processing! report it as overflow
-				stream.apply(new Overflow(new Value(from, it)))
+				stream.apply(StreamEvent.overflow)
 				false
 			}
 		] => [ stream.options.operation = 'throttle(period=' + period + ')' ]
@@ -835,9 +749,8 @@ class StreamExtensions {
 				// if there is already a timer running
 				}
 			]
-			skip [ stream.skip ]
 			close [ stream.close ]
-			overflow [ stream.apply(new Overflow(it)) ]
+			overflow [ stream.apply(StreamEvent.overflow) ]
 		]
 		newStream => [ stream.options.operation = 'ratelimit(period=' + period + ')' ]
 	}
@@ -881,8 +794,6 @@ class StreamExtensions {
 				newStream.push($0, $1)
 				delay.set(period.ms)
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
 			error [
 				// delay the error for the period
 				timerFn.apply(new Period(delay.get)).then [ newStream.error($0, $1) ]
@@ -890,6 +801,7 @@ class StreamExtensions {
 				val newDelay = Math.min(delay.get * factor, maxPeriod.ms)
 				delay.set(newDelay)
 			]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream => [ stream.options.operation = 'onErrorBackoff(period=' + period + ', factor=' + factor + ', maxPeriod=' + maxPeriod + ')' ]
@@ -899,9 +811,9 @@ class StreamExtensions {
 	 * Splits a stream of values up into a stream of lists of those values, 
 	 * where each new list is started at each period interval.
 	 * <p>
-	 * FIX: this can break the finishes, lists may come in after a finish.
 	 * FIX: somehow ratelimit and window in a single stream do not time well together
 	 */
+	@Hot @Starter
 	def static <I, O> window(IStream<I, O> stream, Period period, (Period)=>Task timerFn) {
 		val newStream = new SubStream<I, List<O>>(stream)
 		val list = new AtomicReference<List<O>>
@@ -916,9 +828,8 @@ class StreamExtensions {
 				list.get?.add($1)
 				stream.next
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
 			error [ newStream.error($0, $1) ]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream
@@ -929,6 +840,7 @@ class StreamExtensions {
 	 * <p>
 	 * Errors on the timerstream are put onto the stream. Closing the timerstream also closes the stream.
 	 */
+	@Hot @Starter
 	def static <I, O> synchronizeWith(IStream<I, O> stream, IStream<?, ?> timerStream) {
 		val newStream = new SubStream<I, O>(stream)
 		timerStream.on [
@@ -937,16 +849,14 @@ class StreamExtensions {
 				if(stream.open) stream.next else timerStream.close
 				timerStream.next
 			]
-			closed [ stream.close ]
+			closed [stream.close ]
 		]
 		stream.on [
 			each [ newStream.push($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
 			error [ newStream.error($0, $1) ]
-			closed [ newStream.close ]
+			closed [newStream.close ]
 		]
 		newStream.when [
-			skip [ stream.skip ]
 			close [ stream.close ]
 		]
 		stream.options.operation = 'forEvery'
@@ -961,6 +871,7 @@ class StreamExtensions {
 	 * values, and builds a stream of that.
 	 * It only asks the next promise from the stream when the previous promise has been resolved.  
 	 */
+	@Unsorted
 	def static <I, I2, O> resolve(IStream<I, ? extends IPromise<I2, O>> stream) {
 		stream.resolve(stream.options.concurrency) => [ stream.options.operation = 'resolve' ]
 	}
@@ -972,56 +883,56 @@ class StreamExtensions {
 	 * Allows concurrent promises to be resolved in parallel.
 	 * Passing a concurrency of 0 means all incoming promises will be called concurrently.
 	 */
+	@Unsorted
 	def static <I, O> SubStream<I, O> resolve(IStream<I, ? extends IPromise<?, O>> stream, int concurrency) {
 		val newStream = new SubStream<I, O>(stream)
-		val isFinished = new AtomicBoolean(false)
+		val isClosed = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
+		val closeIfAllProcessesFinished = [|
+			// close the new stream only when all async processes have finished
+			if(processes.decrementAndGet == 0 && isClosed.compareAndSet(true, false)) {
+				newStream.close
+			} 
+		]
 		stream.on [
-
 			// consider each incoming promise a new parallel process
 			each [ r, promise |
 				// listen for the process to complete
 				promise
 					// in case of a processing value, push it to the listening stream
 					.then [ 
-						// we are doing one less parallel process
 						newStream.push(r, it)
-						// are we done processing? and did we finish? then finish now 
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
-							newStream.finish(r)
+						closeIfAllProcessesFinished.apply
 					]
 					// in case of a processing error, report it to the listening stream
 					.on(Throwable) [ 
 						newStream.error(r, it)
-						// are we done processing? and did we finish? then finish now 
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) 
-							newStream.finish(r)
+						closeIfAllProcessesFinished.apply
 					]
 				// if we have space for more parallel processes, ask for the next value
 				// concurrency of 0 is unlimited concurrency
-				if(concurrency > processes.incrementAndGet || concurrency == 0) stream.next
+				if(concurrency > processes.incrementAndGet || concurrency == 0) {
+					stream.next
+				}
 			]
 
 			// forward errors to the listening stream directly
 			error [ newStream.error($0, $1) ]
 
-			// if we finish, we only want to forward the finish when all processes are done
-			finish [ 
+			// only close the new stream when all processes are done
+			closed [
 				if(processes.get == 0) {
 					// we are not parallel processing, you may inform the listening stream
-					newStream.finish($0, $1)
+					newStream.close
 				} else {
 					// we are still busy, so remember to call finish when we are done
-					isFinished.set(true)
+					isClosed.set(true)
 				}
 			]
-
-			closed [ newStream.close ]
 		]
 		newStream.when [
 			next [ stream.next ]
 			// next [ if(concurrency > processes.incrementAndGet || concurrency == 0) stream.next ]
-			skip [ stream.skip ]
 			close [ stream.close ]
 		]
 		stream.options.operation = 'resolve(concurrency=' + concurrency + ')'
@@ -1034,6 +945,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.call(stream.concurrency)
 	 */	
+	@Unsorted
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (O)=>P promiseFn) {
 		stream.call(stream.options.concurrency, promiseFn) => [ stream.options.operation = 'call' ]
 	}
@@ -1042,6 +954,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.call(stream.concurrency)
 	 */	
+	@Unsorted
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, (I, O)=>P promiseFn) {
 		stream.call(stream.options.concurrency, promiseFn)
 	}
@@ -1050,6 +963,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
+	@Unsorted
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (O)=>P promiseFn) {
 		stream.call(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
@@ -1058,6 +972,7 @@ class StreamExtensions {
 	 * Make an asynchronous call.
 	 * This is an alias for stream.map(mappingFn).resolve(concurrency)
 	 */	
+	@Unsorted
 	def static <I, O, R, P extends IPromise<?, R>> call(IStream<I, O> stream, int concurrency, (I, O)=>P promiseFn) {
 		stream.map(promiseFn).resolve(concurrency)
 			=> [ stream.options.operation = 'call(concurrency=' + concurrency + ')' ]
@@ -1107,8 +1022,7 @@ class StreamExtensions {
 					newStream.error(from, t)
 				}
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream
@@ -1128,10 +1042,12 @@ class StreamExtensions {
 
 	// TRANSFORM ERRORS INTO AN ASYNCHRONOUS SIDEEFFECT ////////////////////////
 
+	@Unsorted
 	def static <T extends Throwable, I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<T> errorType, (T)=>P handler) {
 		stream.perform(errorType) [ i, e | handler.apply(e) ]
 	}
 	
+	@Unsorted
 	def static <T extends Throwable, I, O, R, P extends IPromise<?, R>> perform(IStream<I, O> stream, Class<T> errorType, (I, T)=>P handler) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
@@ -1149,8 +1065,7 @@ class StreamExtensions {
 					newStream.error(from, t)
 				}
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream
@@ -1180,8 +1095,7 @@ class StreamExtensions {
 					newStream.error(from, t)
 				}
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream
@@ -1190,11 +1104,13 @@ class StreamExtensions {
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
+	@Unsorted
 	def static <T extends Throwable, I, O> call(IStream<I, O> stream, Class<T> errorType, (T)=>IPromise<?, O> mappingFn) {
 		stream.call(errorType) [ input, err | mappingFn.apply(err) ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
+	@Unsorted
 	def static <T extends Throwable, I, O> call(IStream<I, O> stream, Class<T> errorType, (I, T)=>IPromise<?, O> mappingFn) {
 		val newStream = new SubStream<I, O>(stream)
 		stream.on [
@@ -1212,8 +1128,7 @@ class StreamExtensions {
 					newStream.error(from, t)
 				}
 			]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
+			closed [newStream.close ]
 		]
 		newStream.controls(stream)
 		newStream
@@ -1226,15 +1141,12 @@ class StreamExtensions {
 	 * until the stream ends.
 	 * @return a task that either contains an error if the stream had errors, or completes if the stream completes 
 	 */
+	@Starter
 	def static <I, O> SubTask<I> start(IStream<I, O> stream) {
 		val task = new SubTask<I>(stream.options)
 		stream.on [
 			each [ stream.next ]
 			error [ task.error($0, $1) stream.next ]
-			finish [
-				if($1 == 0) task.complete($0)
-				stream.next
-			]
 			closed [
 				task.complete(null)
 				stream.close
@@ -1242,131 +1154,6 @@ class StreamExtensions {
 		] 
 		stream.next // this kicks off the stream
 		task
-	}
-	
-	/** Lets you respond to the closing of the stream */
-	def static <I, O> onClosed(IStream<I, O> stream, (Void)=>void handler) {
-		val newStream = new SubStream<I, O>(stream)
-		stream.on [
-			each [ newStream.push($0, $1) ]
-			error [ newStream.error($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
-			closed [ 
-				try {
-					handler.apply(null)
-				} finally {
-					newStream.close
-				}
-			]
-		]
-		newStream.controls(stream)
-		newStream
-	}
-
-	/**
-	 * Shortcut for splitting a stream and then performing a pipe to another stream.
-	 * @return a CopySplitter source that you can connect more streams to. 
-	 */
-	def static <I, O> pipe(IStream<I, O> stream, IStream<I, ?> target) {
-		stream.split.pipe(target)
-			=> [ stream.options.operation = 'pipe' ]
-	}
-	
-	 /**
-	  * Start the stream and promise the first value coming from the stream.
-	  * Closes the stream once it has the value or an error.
-	  */
-	def static <I, O> IPromise<I, O> first(IStream<I, O> stream) {
-		val promise = new SubPromise<I, O>(stream.options)
-		stream.on [
-			each [ 
-				if(!promise.fulfilled)
-					promise.set($0, $1) 
-				stream.close 
-			]
-			error [
-				if(!promise.fulfilled)
-					promise.error($0, $1) 
-				 stream.close
-			]
-			finish [ from, e |
-				if(!promise.fulfilled)
-					promise.error(from, new Exception('Stream.first: stream finished without returning a value'))
-				stream.close
-			]
-		]
-	 	stream.next
-		promise
-	}
-	
-	 /**
-	  * Start the stream and promise the first value coming from the stream.
-	  * Will keep asking next on the stream until it gets to the last value!
-	  * Skips any stream errors, and closes the stream when it is done.
-	  */
-	def static <I, O> last(IStream<I, O> stream) {
-		val promise = new SubPromise<I, O>(stream.options)
-		val last = new AtomicReference<O>
-		stream.on [
-			each [ 
-				if(!promise.fulfilled) last.set($1) 
-				stream.next
-			]
-			finish [
-				if($1 == 0) {
-					if(!promise.fulfilled && last.get != null) {
-						promise.set($0, last.get)
-						stream.close
-					} else promise.error($0, new Exception('stream finished without passing a value, no last entry found.'))
-				} else stream.next 
-			]
-			closed [ 
-				if(!promise.fulfilled && last.get != null) {
-					promise.set(null, last.get)
-					stream.close
-				}
-			]
-			error [	stream.next ]
-		]
-		stream.next
-		promise
-	}
-
-	/**
-	 * Skip an amount of items from the stream, and process only the ones after that.
-	 * Resets at finish.
-	 */
-	def static <I, O> SubStream<I, O> skip(IStream<I, O> stream, int amount) {
-		stream.filter [ it, index, passed | index > amount ] 
-			=> [ stream.options.operation = 'skip(amount=' + amount + ')' ]
-	}
-
-	/**
-	 * Take only a set amount of items from the stream. 
-	 * Resets at finish.
-	 */
-	def static <I, O> take(IStream<I, O> stream, int amount) {
-		val sub = new AtomicReference
-		sub.set = stream.until(false, false) [ in, out, index, passed | index > amount ]
-		sub.get => [ stream.options.operation = 'take(amount=' + amount + ')' ]
-	}
-
-	/**
-	 * Take only a set amount of items from the stream. 
-	 * Resets at finish.
-	 */
-	def static <I, O> takeAndFinish(IStream<I, O> stream, int amount) {
-		val sub = new AtomicReference
-		sub.set = stream.until(false, true) [ in, out, index, passed | index > amount ]
-		sub.get => [ stream.options.operation = 'takeAndFinish(amount=' + amount + ')' ]
-	}
-	
-	/**
-	 * Start the stream and and promise the first value from it.
-	 */
-	def static <I, O> then(IStream<I, O> stream, Procedure1<O> listener) {
-		stream.first.then(listener)
-			=> [ stream.options.operation = 'then' ]
 	}
 	
 	// SIDEEFFECTS ////////////////////////////////////////////////////////////
@@ -1404,11 +1191,13 @@ class StreamExtensions {
 	}
 
 	/** Perform some side-effect action based on the stream. */
+	@Unsorted
 	def static <I, O> perform(IStream<I, O> stream, (O)=>IPromise<?,?> promiseFn) {
 		stream.perform(stream.options.concurrency, promiseFn)
 	}
 
 	/** Perform some side-effect action based on the stream. */
+	@Unsorted
 	def static <I, O> perform(IStream<I, O> stream, (I, O)=>IPromise<?,?> promiseFn) {
 		stream.perform(stream.options.concurrency, promiseFn)
 	}
@@ -1417,6 +1206,7 @@ class StreamExtensions {
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
+	@Unsorted
 	def static <I, O> perform(IStream<I, O> stream, int concurrency, (O)=>IPromise<?, ?> promiseFn) {
 		stream.perform(concurrency) [ i, o | promiseFn.apply(o) ]
 	}
@@ -1425,43 +1215,61 @@ class StreamExtensions {
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
+	@Unsorted
 	def static <I, O> perform(IStream<I, O> stream, int concurrency, (I, O)=>IPromise<?,?> promiseFn) {
 		stream.call(concurrency) [ i, o | promiseFn.apply(i, o).map [ o ] ]
 			=> [ stream.options.operation = 'perform(concurrency=' + concurrency + ')' ]
 	}
 
-	// REVERSE AGGREGATIONS ///////////////////////////////////////////////////
-	
-	/** 
-	 * Opposite of collect, separate each list in the stream into separate
-	 * stream entries and streams those separately.
-	 */
-	def static <I, O> SubStream<I, O> separate(IStream<I, List<O>> stream) {
-		val newStream = new SubStream<I, O>(stream)
-		stream.on [
-			each [ r, list |
-				// apply multiple entries at once for a single next
-				val entries = list.map [ new Value(r, it) ]
-				newStream.apply(new Entries(entries))
-			]
-			error [ newStream.error($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
-			closed [ newStream.close ]
-		]
-		stream.options.operation = 'separate'
-		newStream.controls(stream)
-		newStream
-	}
-
 	// AGGREGATIONS ///////////////////////////////////////////////////////////
 
 	/**
-	 * Collect all items from a stream, separated by finishes
+	 * Reduce a stream of values to a single value, and pass a counter in the function.
+	 * Errors in the stream are suppressed. Starts the stream.
 	 */
+	@Starter
+	def static <I, O, R> IPromise<R, R> reduce(IStream<I, O> stream, R initial, (R, O)=>R reducerFn) {
+		stream.reduce(initial) [ r, i, o | reducerFn.apply(r, o) ]
+	}
+
+	/**
+	 * Reduce a stream of values to a single value, and pass a counter in the function.
+	 * Errors in the stream are suppressed. Starts the stream.
+	 */
+	@Starter
+	def static <I, O, R> IPromise<R, R> reduce(IStream<I, O> stream, R initial, (R, I, O)=>R reducerFn) {
+		val promise = new SubPromise<R, R>(stream.options)
+		val reduced = new AtomicReference<R>(initial)
+		stream.on [
+			each [
+				try {
+					reduced.set(reducerFn.apply(reduced.get, $0, $1))
+				} finally {
+					stream.next
+				}
+			]
+			error [
+				reduced.set(null)
+				promise.error(initial, $1)
+			]
+			closed [
+				val result = reduced.get
+				if(result != null) promise.set(initial, result)
+				else if(initial != null) promise.set(initial, initial)
+				else promise.error(initial, new Exception('no value came from the stream to reduce'))
+			]
+		]
+		stream.next
+		promise => [ options.operation = 'reduce(initial=' + initial + ')' ]
+	}
+
+	/**
+	 * Promises a list of all items from a stream. Starts the stream.
+	 */
+	@Starter
 	def static <I, O> collect(IStream<I, O> stream) {
-		val SubStream<I, List<O>> s = stream.reduce(newArrayList) [ list, it | list.concat(it) ]
-		stream.options.operation = 'collect'
-		s
+		stream.reduce(newArrayList as List<O>) [ list, it | list.concat(it) ]
+			=> [ options.operation = 'collect' ]
 	}
 
 	/**
@@ -1469,6 +1277,7 @@ class StreamExtensions {
 	 * <pre>
 	 * (1..3).stream.join('-').then [ println(it) ] // prints 1-2-3
 	 */	
+	@Starter
 	def static <I, O> join(IStream<I, O> stream, String separator) {
 		stream.reduce('') [ acc, it | acc + (if(acc != '') separator else '') + it.toString ]
 			=> [ stream.options.operation = 'join' ]
@@ -1477,6 +1286,7 @@ class StreamExtensions {
 	/**
 	 * Add the value of all the items in the stream until a finish.
 	 */
+	@Starter
 	def static <I, O extends Number> sum(IStream<I, O> stream) {
 		stream.reduce(0D) [ acc, it | acc + doubleValue ]
 			=> [ stream.options.operation = 'sum' ]
@@ -1485,6 +1295,7 @@ class StreamExtensions {
 	/**
 	 * Average the items in the stream until a finish.
 	 */
+	@Starter
 	def static <I, O extends Number> average(IStream<I, O> stream) {
 		stream
 			.index
@@ -1496,6 +1307,7 @@ class StreamExtensions {
 	/**
 	 * Count the number of items passed in the stream until a finish.
 	 */
+	@Starter
 	def static <I, O> count(IStream<I, O> stream) {
 		stream.reduce(0) [ acc, it | acc + 1 ]
 			=> [ stream.options.operation = 'count' ]
@@ -1505,68 +1317,27 @@ class StreamExtensions {
 	 * Gives the maximum value found on the stream.
 	 * Values must implement Comparable
 	 */
+	@Starter
 	def static <I, O extends Comparable<O>> max(IStream<I, O> stream) {
-		val SubStream<I, O> s = stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
-		stream.options.operation = 'max'
-		s
+		stream.reduce(null) [ Comparable<O> acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
+			=> [ options.operation = 'max' ]
 	}
 
 	/**
 	 * Gives the minimum value found on the stream.
 	 * Values must implement Comparable
 	 */
+	@Starter
 	def static <I, O extends Comparable<O>> min(IStream<I, O> stream) {
-		val SubStream<I, O> s = stream.reduce(null) [ acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
-		stream.options.operation = 'min'
-		s
+		stream.reduce(null) [ Comparable<O> acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
+		 => [ options.operation = 'min ' ]
 	}
 
-	/**
-	 * Reduce a stream of values to a single value, and pass a counter in the function.
-	 * Errors in the stream are suppressed.
-	 */
-	def static <I, O, R> reduce(IStream<I, O> stream, R initial, (R, O)=>R reducerFn) {
-		val reduced = new AtomicReference<R>(initial)
-		val newStream = new SubStream<I, R>(stream)
-		stream.on [
-			each [
-				try {
-					reduced.set(reducerFn.apply(reduced.get, $1))
-				} finally {
-					stream.next
-				}
-			]
-			finish [
-				if($1 == 0) {
-					val result = reduced.getAndSet(initial)
-					if(result != null) {
-						newStream.push($0, result)
-					} else {
-						stream.next
-					}
-				} else {
-					newStream.finish($0, $1 - 1)
-				}
-			]
-			error [
-				// on errors, skip the whole reduction and propagate an error
-				// println('error! skipping the stream ' + $1.message)
-				reduced.set(null)
-				stream.skip
-				newStream.error($0, $1)
-			]
-			closed [ newStream.close ]
-		]
-		stream.options.operation = 'reduce(initial=' + initial + ')'
-		newStream.controls(stream)
-		newStream
-	}
-
-	def static <I, O, R> scan(IStream<I, O> stream, R initial, (R, O)=>R reducerFn) {
+	def static <I, O, R> IStream<I, R> scan(IStream<I, O> stream, R initial, (R, O)=>R reducerFn) {
 		stream.scan(initial) [ p, r, it | reducerFn.apply(p, it) ]
 	}
 	
-	def static <I, O, R> scan(IStream<I, O> stream, R initial, (R, I, O)=>R reducerFn) {
+	def static <I, O, R> IStream<I, R> scan(IStream<I, O> stream, R initial, (R, I, O)=>R reducerFn) {
 		val reduced = new AtomicReference<R>(initial)
 		val newStream = new SubStream<I, R>(stream)
 		stream.on [
@@ -1574,14 +1345,14 @@ class StreamExtensions {
 				val result = reducerFn.apply(reduced.get, $0, $1)
 				reduced.set(result)
 				if(result != null) newStream.push($0, result)
-				stream.next
+				else stream.next
 			]
-			finish [
-				reduced.set(initial) 
-				newStream.finish($0, $1)
+			error [ 
+				newStream.error($0, $1)
 			]
-			error [ newStream.error($0, $1) ]
-			closed [ newStream.close ]
+			closed [
+				newStream.close
+			]
 		]
 		stream.options.operation = 'scan(initial=' + initial + ')'
 		newStream.controls(stream)
@@ -1589,8 +1360,10 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Streams true if all stream values match the test function
+	 * Promises true if all stream values match the test function.
+	 * Starts the stream.
 	 */
+	@Starter
 	def static <I, O> all(IStream<I, O> stream, (O)=>boolean testFn) {
 		val s = stream.reduce(true) [ acc, it | acc && testFn.apply(it) ]
 		stream.options.operation = 'all'
@@ -1598,8 +1371,10 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Streams true if no stream values match the test function
+	 * Promises true if no stream values match the test function.
+	 * Starts the stream.
 	 */
+	@Starter
 	def static <I, O> none(IStream<I, O> stream, (O)=>boolean testFn) {
 		val s = stream.reduce(true) [ acc, it | acc && !testFn.apply(it) ]
 		stream.options.operation = 'none'
@@ -1607,96 +1382,124 @@ class StreamExtensions {
 	}
 
 	/**
-	 * Streams true if any of the values match the passed testFn.
-	 * <p>
-	 * Note that this is not a normal reduction, since no finish is needed
-	 * for any to fire true. The moment testFn gives off true, true is streamed
-	 * and the rest of the incoming values are skipped.
+	 * Promises true if any of the values match the passed testFn.
+	 * Starts the stream.
 	 */
+	@Starter
 	def static <I, O> any(IStream<I, O> stream, (O)=>boolean testFn) {
-		val anyMatch = new AtomicBoolean(false)
-		val newStream = new SubStream<I, Boolean>(stream)
+		val promise = new SubPromise<I, Boolean>(stream.options)
 		stream.on [
 			each [
-				// if we get a match, we communicate directly and tell the stream we are done
 				if(testFn.apply($1)) {	
-					anyMatch.set(true)
-					newStream.push($0, true)
-					stream.skip
-				}
-				stream.next
-			]
-			finish [
-				if($1 == 0) {
-					val matched = anyMatch.get
-					anyMatch.set(false)
-					if(!matched) newStream.push($0, false)
+					promise.set($0, true)
+					stream.close
 				} else {
-					newStream.finish($0, $1 - 1)
+					stream.next
 				}
 			]
-			error [ newStream.error($0, $1) ]
-			closed [ newStream.close ]
+			error [ 
+				promise.error($0, $1)
+				stream.close
+			]
+			closed [
+				promise.set(null, false)
+			]
 		]
-		stream.options.operation = 'any'
-		newStream.controls(stream)
-		newStream
+		stream.next
+		promise => [ options.operation = 'any' ]
+	}
+	
+	 /**
+	  * Start the stream and promise the first value coming from the stream.
+	  * Closes the stream once it has the value or an error.
+	  */
+	@Starter
+	def static <I, O> IPromise<I, O> first(IStream<I, O> stream) {
+		stream.first [ true ]
 	}
 	
 	/**
-	 * Streams the first value that matches the testFn
-	 * <p>
-	 * Note that this is not a normal reduction, since no finish is needed to fire a value.
-	 * The moment testFn gives off true, the value is streamed and the rest of the incoming 
-	 * values are skipped.
+	 * Promises the first value that matches the testFn.
+	 * Starts the stream.
 	 */
+	@Starter
 	def static <I, O> first(IStream<I, O> stream, (O)=>boolean testFn) {
 		stream.first [ r, it | testFn.apply(it) ]
 	}
 
 	/**
-	 * Streams the first value that matches the testFn
-	 * <p>
-	 * Note that this is not a normal reduction, since no finish is needed to fire a value.
-	 * The moment testFn gives off true, the value is streamed and the rest of the incoming 
-	 * values are skipped.
+	 * Promises the first value that matches the testFn.
+	 * Starts the stream.
 	 */
+	@Starter
 	def static <I, O> first(IStream<I, O> stream, (I, O)=>boolean testFn) {
-		val match = new AtomicReference<O>
-		val newStream = new SubStream<I, O>(stream)
+		val promise = new SubPromise<I, O>(stream.options)
 		stream.on [
 			each [
-				// if we get a match, we communicate directly and tell the stream we are done
 				if(testFn.apply($0, $1)) {	
-					match.set($1)
-					newStream.push($0, $1)
-					stream.skip
+					promise.set($0, $1)
+					stream.close
+				} else {
+					stream.next
 				}
+			]
+			error [ 
+				promise.error($0, $1)
+				stream.close
+			]
+			closed [
+				if(!promise.fulfilled) promise.error(null, new Exception('StreamExtensions.first: no value was streamed before the stream was closed.'))
+			]
+		]
+		stream.next
+		promise => [ options.operation = 'first' ]
+	}
+	
+	/**
+	 * Start the stream and and promise the first value from it.
+	 */
+	@Starter
+	def static <I, O> then(IStream<I, O> stream, Procedure1<O> listener) {
+		stream.first.then(listener)
+			=> [ stream.options.operation = 'then' ]
+	}
+	
+	 /**
+	  * Start the stream and promise the last value coming from the stream.
+	  * Will keep asking next on the stream until it gets to the last value!
+	  * Skips any stream errors, and closes the stream when it is done.
+	  */
+	@Starter
+	def static <I, O> last(IStream<I, O> stream) {
+		val promise = new SubPromise<I, O>(stream.options)
+		val last = new AtomicReference<Pair<I, O>>
+		stream.on [
+			each [ 
+				if(!promise.fulfilled) last.set($0->$1) 
 				stream.next
 			]
-			finish [
-				if($1 == 0) {
-					match.set(null)
-				} else {
-					newStream.finish($0, $1 - 1)
-				}
+			closed [
+				if(!promise.fulfilled && last.get != null) {
+					promise.set(last.get.key, last.get.value)
+					stream.close
+				} else promise.error(null, new Exception('stream closed without passing a value, no last entry found.'))
 			]
-			error [ newStream.error($0, $1) ]
-			closed [ newStream.close ]
+			error [	stream.next ]
 		]
-		stream.options.operation = 'first'
-		newStream.controls(stream)
-		newStream
+		stream.next
+		promise
 	}
 
 	/** 
 	 * Returns an atomic reference which updates as new values come in.
 	 * This way you can always get the latest value that came from the stream.
+	 * Starts the stream.
 	 * @return the latest value, self updating. may be null if no value has yet come in.
 	 */
-	def static <I, O> latest(IStream<I, O> stream) {
+	@Starter
+	def static <I, O> AtomicReference<O> latest(IStream<I, O> stream) {
 		val value = new AtomicReference<O>
-		stream.latest(value).start
+		stream.latest(value).next
 		value
 	}
 	
@@ -1709,7 +1512,7 @@ class StreamExtensions {
 		stream.on [
 			each [ latestValue.set($1) newStream.push($0, $1) ]
 			error [ newStream.error($0, $1) ]
-			finish [ newStream.finish($0, $1) ]
+			closed [newStream.close ]
 		]
 		stream.options.operation = 'latest'
 		newStream.controls(stream)
@@ -1722,19 +1525,21 @@ class StreamExtensions {
 	 * Complete a task when the stream finishes or closes, 
 	 * or give an error on the task when the stream gives an error.
 	 */	
-	def static void pipe(IStream<?, ?> stream, Task task) {
+	@Starter
+	def static void completes(IStream<?, ?> stream, Task task) {
 		stream.on [
-			closed [ task.complete ]
-			finish [ stream.close task.complete ]
-			error [ stream.close task.error($1) ]
 			each [ /* discard values */]
+			error [ stream.close task.error($1) ]
+			closed [task.complete ]
 		]
+		stream.next
 		stream.options.operation = 'pipe'
 	}
 
+	@Starter
 	def static Task toTask(IStream<?, ?> stream) {
 		val task = new Task(stream.options)
-		stream.pipe(task)
+		stream.completes(task)
 		task
 	}
 	

@@ -32,7 +32,6 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	// CONTROL ////////////////////////////////////////////////////////////////
 
 	def void next()
-	def void skip()
 	def void pause()
 	def void resume()
 	def void close()
@@ -40,13 +39,12 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	// LISTEN /////////////////////////////////////////////////////////////////
 	
 	override =>void onChange((Entry<I, O>)=>void observeFn)
-	def =>void onNotify((StreamEvent)=>void notificationListener)
+	def =>void onEvent((StreamEvent)=>void notificationListener)
 
 	// STATUS /////////////////////////////////////////////////////////////////
 	
 	def boolean isOpen()
 	def boolean isReady()
-	def boolean isSkipping()
 	def boolean isPaused()
 	def boolean isBufferFull()
 	

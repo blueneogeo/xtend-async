@@ -3,7 +3,6 @@ package nl.kii.stream
 import nl.kii.async.options.AsyncDefault
 import nl.kii.async.options.AsyncOptions
 import nl.kii.stream.message.Error
-import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
 
 class Stream<T> extends BaseStream<T, T> {
@@ -20,11 +19,5 @@ class Stream<T> extends BaseStream<T, T> {
 	 * but passed and can be listened for down the stream.
 	 */
 	def error(Throwable error) { apply(new Error(null, error)) }
-	
-	/** Tell the stream the current batch of data is finished. The same as finish(0). */
-	def finish() { apply(new Finish(null, 0)) }	
-
-	/** Tell the stream a batch of the given level has finished. */
-	def finish(int level) { apply(new Finish(null, level)) }	
- 	
+	 	
 }

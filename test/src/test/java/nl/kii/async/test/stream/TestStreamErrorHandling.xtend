@@ -4,11 +4,11 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.stream.Stream
 import org.junit.Test
 
-import static org.junit.Assert.*
-
+import static extension nl.kii.async.test.AsyncJUnitExtensions.*
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import static nl.kii.async.test.AsyncJUnitExtensions.*
+import static extension nl.kii.util.JUnitExtensions.*
+import nl.kii.async.AsyncException
 
 class TestStreamErrorHandling {
 
@@ -18,17 +18,21 @@ class TestStreamErrorHandling {
 	@Atomic boolean complete
 	@Atomic boolean failed
 
-
 	@Test
-	def void canMonitorErrors() {
-		val s = new Stream<Integer>
-		s
+	def void streamsErrorsBreakTheStreamButDoNotThrowExceptions() {
+		(1..3).stream
 			.map [ it / 0 ]
 			.on(Throwable) [ errors = errors + 1 ]
-			.effect [ fail('an error should occur') ]
 			.start
-		s << 1 << 2 << 3
-		assertEquals(3, errors)
+			.on(Throwable) [ errors = errors + 1 ]
+		errors <=> 2 // one from listening inside the stream, one from listening at the tail
+	}
+	
+	@Test(expected=AsyncException)
+	def void canBreakOutOfStreamWithAsyncException() {
+		(1..3).stream
+			.effect [ throw new AsyncException('time to stop streaming!') ]
+			.start
 	}
 
 	@Test
@@ -41,8 +45,8 @@ class TestStreamErrorHandling {
 			.effect [ fail('an error should occur') ]
 			.start
 		s << 1 << 2 << 3
-		assertEquals(false, failed)
-		assertEquals(3, errors)
+		failed <=> false
+		errors <=> 3
 	}
 	
 	@Test
@@ -54,11 +58,11 @@ class TestStreamErrorHandling {
 			.on(ArithmeticException) [ errors = errors + 1 ]
 			.effect(Exception) [ errors = errors + 1 ]
 			.on(Throwable) [ failed = true ]
-			.effect [ fail('an error should occur') ]
+			.effect [ throw new AsyncException('an error should occur') ]
 			.start
 		s << 1 << 2 << 3
-		assertEquals(false, failed)
-		assertEquals(6, errors)
+		failed <=> false
+		errors <=> 6
 	}
 
 	@Test
@@ -72,8 +76,8 @@ class TestStreamErrorHandling {
 			.effect [ result = result + it ]
 			.start
 		s << 1 << 2 << 3
-		assertEquals(false, failed)
-		assertEquals(30, result) // 3 results, each coverted to 10, added together
+		failed <=> false
+		result <=> 30 // 3 results, each coverted to 10, added together
 	}
 
 	@Test
@@ -87,8 +91,8 @@ class TestStreamErrorHandling {
 			.effect [ result = result + it ]
 			.start
 		s << 1 << 2 << 3
-		assertEquals(false, failed)
-		assertEquals(30, result) // 3 results, each coverted to 20, added together
+		failed <=> false
+		result <=> 30 // 3 results, each coverted to 20, added together
 	}
 
 	@Test
@@ -102,14 +106,13 @@ class TestStreamErrorHandling {
 			.effect [ result = result + it ]
 			.start
 		s << 1 << 2 << 3
-		assertEquals(false, failed)
-		assertEquals(60, result) // 3 results, each converted to 20, added together
+		failed <=> false
+		result <=> 60 // 3 results, each converted to 20, added together
 	}
 
 	@Test
 	def void testStreamsSwallowExceptions() {
-		val s = int.stream
-		s
+		(1..5).stream
 			.map [ it ]
 			.map [
 				if(it == 2 || it == 4) throw new Exception
@@ -119,11 +122,10 @@ class TestStreamErrorHandling {
 			.effect [ incCounter ]
 			.start
 			.then [ complete = true ]
-		s << 1 << 2 << 3 << 4 << 5 finish
 		// gets here without an error, and there were two errors, for 2 and 4
-		assertEquals(3, counter)
+		counter <=> 3
 		// the whole operation did not complete without errors
-		assertFalse(complete)
+		complete <=> false
 	}
 
 	@Test
@@ -141,79 +143,29 @@ class TestStreamErrorHandling {
 			.start
 			.then [ complete = true ]
 			.on(Throwable) [ failed = true ]
-		s << 1 << 2 << 3 << 4 << 5 << finish
+		s << 1 << 2 << 3 << 4 << 5 << close
 		// there were two errors
-		assertEquals(2, errors)
+		errors <=> 2
 		// gets here without an error, and there were two errors, for 2 and 4
-		assertEquals(3, counter)
+		counter <=> 3
 		// the whole operation now does complete, since the error was swallowed
-		assertTrue(complete)
-		assertFalse(failed)
+		complete <=> true
+		failed <=> false
+	}
+
+	@Test(expected=Exception)
+	def void testAnyErrorInAStreamFailsTheAggregation() {
+		(1..5).stream
+			.map [ if(it % 2 == 0) throw new Exception else it ]
+			.count <=> 5
 	}
 
 	@Test
-	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream() {
-		(1..20).stream
-			.split [ it % 4 == 0 ]
-			.map [
-				if(it % 6 == 0) throw new Exception
-				it
-			]
-			.collect
-			.on(Exception, true) [ println('error ' + it) ]
-			.effect [ println('result : ' + it) ]
-			.start
-			.then [ println('done') ]
-			.on(Throwable) [ fail(message) ]
-	}
-
-	@Test
-	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream2() {
-		val s = int.stream << 1 << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9 << 10 << finish(0) << finish(1)
-
-		s
-			.split [ it % 4 == 0 ]
-			.map [
-				if(it % 6 == 0) throw new Exception
-				it
-			]
-			.collect
-			.on(Exception, true) [ println('error ' + it) ]
-			.effect [ println('result : ' + it) ]
-			.start
-			.then [ println('done') ]
-			.on(Throwable) [ fail(message) ]
-	}
-
-	@Test
-	def void testStreamAggregationsShouldFailOnInternalErrorsButNotBreakTheStream3() {
-		val s = int.stream << 1 << 2 << 3 << 4 << finish(0) << 5 << 6 << 7 << 8 << finish(0) << 9 << 10 << finish(0) << finish(1)
-			//.split [ it % 4 == 0 ]
-		s
-			.map [
-				if(it % 6 == 0) throw new Exception
-				it
-			]
-			.collect
-			.on(Exception, true) [ println('error ' + it) ]
-			.effect [ println('result : ' + it) ]
-			.start
-			.then [ println('done') ]
-			.on(Throwable) [ 
-				println('error')
-				fail(message)
-			]
-	}
-
-	@Test
-	def void testSplit() {
-		(1..10).stream.split [ it % 4 == 0 ]
-			.on [ 
-				each [ println($1) stream.next ]
-				finish [ println('finish ' + $1) stream.next ]
-				stream.next
-			]
-			
+	def void testErrorMapping() {
+		(1..5).stream
+			.map [ if(it % 2 == 0) throw new Exception else it ]
+			.map(Exception) [ -1 ] // transforms the error back to a value, in this case -1
+			.count <=> 5
 	}
 
 	@Atomic Throwable caught
@@ -228,11 +180,11 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.on(Exception) [ caught = it ] // below the filter method, above the oneach, will filter out the error
 				.start
-			s << 1 << 2 << finish
+			s << 1 << 2 << close
 		} catch(Exception e) {
 			fail('error should be handled')
 		}
-		assertNotNull(caught)
+		(caught != null) <=> true
 	}
 
 	@Test
@@ -245,50 +197,43 @@ class TestStreamErrorHandling {
 				.map [ it ]
 				.start
 				.on(Throwable) [ caught = it ] // below onEach, listening to the created task
-			s << 1 << 2 << finish
+			s << 1 << 2 << close
 		} catch(Exception e) {
 			fail('error should be handled')
 		}
-		assertNotNull(caught)
+		(caught != null) <=> true
 	}
-	
-	@Atomic boolean finished
-	@Atomic int errorCount
-	@Atomic int count
 	
 	@Test
 	def void testErrorHandlingBeforeCollect() {
-		finished = false
-		errorCount = 0
-		count = 0
 		val s = (1..10).stream
 		s
 			.map [ it % 3 ]
 			.map [ 100 / it ] // division by 10 for s = 3, 6, 9
-			.effect(Exception) [ incErrorCount ] 
-			.effect [ incCount ]
+			.effect(Exception) [ incErrors ] 
+			.effect [ incCounter ]
 			.start
 			// onError is consumed AFTER the aggregation, so we only get a task with a single error and no finish
-			.then [ finished = true ]
-			
-		assertEquals(7, count) // 3, 6 and 9 had an error, so 10-3 were successful
-		assertEquals(3, errorCount) // because of the 10
-		assertTrue(finished) // end of iteration
+			.then [ complete = true ]
+
+		counter <=> 7
+		errors <=> 3
+		complete <=> true			
 	}
 	
 	@Test
 	def void correctlyHandlesNullEntries() {
-		val stream = stream(Integer)
-		finished = false
+		val stream = int.stream
+		complete = false
 		stream << 5
 
 		stream
 			.map [ null ]
-			.on(Throwable) [ finished = true ]
-			.effect [ finished = false ]
+			.on(Throwable) [ complete = true ]
+			.effect [ complete = false ]
 			.start
 
-		assertTrue(finished)
+		complete <=> true
 	}
 	
 	@Test
@@ -302,7 +247,8 @@ class TestStreamErrorHandling {
 			.asFuture.get
 		} catch(Exception e) {
 			// All actor references are filtered out! And we have a nicer stacktrace
-			assertNull(e.cause.stackTrace.findFirst [ trace | trace.className.contains('actor') ])
+			val error = e.cause.stackTrace.findFirst [ trace | trace.className.contains('actor') ]
+			(error == null) <=> true
 		}
 		
 	}

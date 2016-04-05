@@ -4,7 +4,7 @@ import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 
 /** 
- * An entry is a stream message that contains either a value or stream state information.
+ * Stream entries contain data for the listener.
  * Entries travel downwards a stream towards the listeners of the stream at the end.
  */
 interface Entry<I, O> extends StreamMessage {
@@ -37,30 +37,17 @@ class Value<I, O> implements Entry<I, O> {
 	override equals(Object o) { o instanceof Value<?, ?> && (o as Value<?, ?>).value == this.value }
 }
 
-/** 
- * Indicates that a batch of data has finished.
- * Batches of data can be of different levels. The finish has a level property that indicates
- * which level of data was finished.
- */
-class Finish<I, O> implements Entry<I, O> {
-	@Accessors(PUBLIC_GETTER) val I from
-	public val int level
-	new() { this(null, 0) }
-	new(I from, int level) { this.from = from this.level = level }
-	override toString() { 'finish(' + level + ')' }
-	override equals(Object o) { o instanceof Finish<?,?> && (o as Finish<?,?>).level == level }
-}
-
-/** Indicates that the stream was closed and no more data will be passed */
-class Closed<I, O> implements Entry<I, O> {
-	override getFrom() { null }
-	override toString() { 'closed stream' }
-}
-
 /**  Indicates that the stream encountered an error while processing information. */
 class Error<I, O> implements Entry<I, O> {
 	@Accessors(PUBLIC_GETTER) val I from
 	public val Throwable error
 	new(I from, Throwable error) { this.from = from this.error = error }
 	override toString() { 'error: ' + error.message }
+}
+
+/** Indicates that there is no more data and the stream can be closed */
+class Closed<I, O> implements Entry<I, O> {
+	override getFrom() { null }
+	override equals(Object o) { o instanceof Closed<?, ?> }
+	override toString() { 'finish' }
 }

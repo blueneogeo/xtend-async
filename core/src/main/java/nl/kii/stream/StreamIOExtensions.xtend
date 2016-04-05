@@ -20,7 +20,7 @@ class StreamIOExtensions {
 		val newStream = new Stream<List<Byte>>
 		stream.readBytes(new ByteProcessor {
 			
-			override getResult() { newStream.finish null }
+			override getResult() { newStream.close null }
 			
 			override processBytes(byte[] buf, int off, int len) throws IOException {
 				if(!newStream.isOpen) return false
@@ -30,7 +30,6 @@ class StreamIOExtensions {
 			
 		})
 		newStream.when [
-			skip [ stream.close ]
 			close [ stream.close ]
 		]
 		newStream
@@ -69,18 +68,17 @@ class StreamIOExtensions {
 	def static <I> Task writeTo(IStream<I, List<Byte>> stream, OutputStream out) {
 		val task = new Task
 		stream.on [
-			closed [ out.close task.complete ]
-			finish [ 
-				if(it == 0) out.close task.complete 
+			each [
+				out.write($1)
 				stream.next
 			]
 			error [ 
 				task.error($1)
 				stream.close
 			]
-			each [
-				out.write($1)
-				stream.next
+			closed [ 
+				out.close
+				task.complete
 			]
 		]
 		stream.options.operation = 'writeTo'

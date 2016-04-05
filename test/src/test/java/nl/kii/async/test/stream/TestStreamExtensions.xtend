@@ -2,9 +2,6 @@ package nl.kii.async.test.stream
 
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
-import nl.kii.promise.Promise
-import nl.kii.stream.Stream
-import nl.kii.stream.message.Value
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -20,7 +17,7 @@ import static extension nl.kii.util.JUnitExtensions.*
 class TestStreamExtensions {
 
 	val threads = newCachedThreadPool
-	val schedulers = newScheduledThreadPool(1)
+	val schedulers = newScheduledThreadPool(5)
 
 	// CREATION ///////////////////////////////////////////////////////////////
 
@@ -28,14 +25,14 @@ class TestStreamExtensions {
 	def void testRangeStream() {
 		(5..7).stream
 			.map[it]
-			.entries <=> #[5.value, 6.value, 7.value, finish]
+			.entries <=> #[5.value, 6.value, 7.value, close]
 	}
 
 	@Test
 	def void testListStream() {
 		#[1, 2, 3].streamList
 			.map[it+1]
-			.entries <=> #[2.value, 3.value, 4.value, finish]
+			.entries <=> #[2.value, 3.value, 4.value, close]
 	}
 	
 	@Test
@@ -47,15 +44,15 @@ class TestStreamExtensions {
 	def void testMapStream() {
 		#{1->'a', 2->'b'}.stream
 			.map[key+1->value]
-			.entries <=> #[value(2->'a'), value(3->'b'), finish]
+			.entries <=> #[value(2->'a'), value(3->'b'), close]
 	}
 	
 	@Test
 	def void testRandomStream() {
 		(1..3).streamRandom
-			.takeAndFinish(1000)
+			.take(1000)
 		 	.effect [ assertTrue(it >= 1 && it <= 3) ]
-			.count.first <=> 1000
+			.count <=> 1000
 	}
 	
 	// OBSERVABLE /////////////////////////////////////////////////////////////
@@ -65,320 +62,128 @@ class TestStreamExtensions {
 		val count1 = new AtomicInteger(0)
 		val count2 = new AtomicInteger(0)
 		
-		val s = int.stream
-		val publisher = s.publisher
+		val source = int.stream
+		source
+			.observe [ observer | observer.effect [ count2.addAndGet(it) ].start ]
+			.effect [ count1.addAndGet(it) ]
+			.start
 		
-		val s1 = publisher.observe
-		val s2 = publisher.observe
-		
-		s1.effect [ count1.addAndGet(it) ].start
-		s2.effect [ count2.addAndGet(it) ].start
-		
-		s << 1 << 2 << 3
+		source << 1 << 2 << 3
 		// both counts are listening, both should increase
 		count1 <=> 6
 		count2 <=> 6
-		
-		// we cancel the first listener by closing the stream, now the first count should no longer change
-		s1.close
-		
-		s << 4 << 5
-		count1 <=> 6
-		count2 <=> 15
 	}
 	
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	@Test
 	def void testMap() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
-		s
-			.map [ it + 1 ]
-			.entries <=> #[2.value, 3.value, 4.value, finish, 5.value, 6.value]
+		(1..3).stream.map [ it + 1 ] <=> #[2, 3, 4]
 	}
 	
 	@Test
 	def void testMapInput() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
-		s
+		(1..3).stream
 			.map [ it + 1 ]
 			.mapInput [ in, it | 'x' + in ]
-			.entries <=> #[value('x1', 2), value('x2', 3), value('x3', 4), finish('xnull', 0), value('x4', 5), value('x5', 6)]
+			.entries <=> #[value('x1', 2), value('x2', 3), value('x3', 4), close]
 	}
 	
 	@Test
 	def void testFilter() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5
-		s
-			.filter [ it % 2 == 0]
-			.entries <=> #[2.value, finish, 4.value]
-	}
-	
-	@Test
-	def void testSplit() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.split [ it % 2 == 0]
-			.entries <=> #[1.value, 2.value, finish(0), 3.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1)]
-	}
-
-	@Test
-	def void testSplitWithSkip() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		val split = s.split [ it % 4 == 0]
-		val collect = int.stream
-		split.on [
-			each [ 
-				if($1 == 1) stream.skip
-				collect << $1
-			]
-			finish [ 
-				collect << finish($1)
-			]
-		]
-		split.next
-		split.next
-		split.next
-		split.next
-		split.next
-		split.next
-		split.next
-		split.next
-		collect.entries <=> #[1.value, finish(0), finish(1), 4.value, finish(0), 5.value, finish(0), finish(1)]
-	}
-
-	
-	@Test
-	def void testMerge() {
-		val s = Integer.stream << 1 << 2 << finish(0) << 3 << finish(1) << 4 << finish(0) << 5 
-		s
-			.merge
-			.entries <=> #[1.value, 2.value, 3.value, finish, 4.value, 5.value]
+		(1..5).stream.filter [it%2 == 0] <=> #[2, 4]
 	}
 	
 	// REDUCTIONS /////////////////////////////////////////////////////////////
 
 	@Test
 	def void testCollect() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish << 6
-		// 6 is missing below because there is no finish to collect 6
-		s
-			.collect
-			.entries <=> #[#[1, 2, 3].value, #[4, 5].value]
+		(1..3).stream.collect <=> #[1, 2, 3]
 	}
-	
-	@Test
-	def void testDoubleCollect() {
-		val s = (1..11).stream
-		val split = s.split [ it % 4 == 0 ] // finish after 4, 8
-		val split2 = split.split [ it % 2 == 0 ] // finish after 2, 4, 6, 8, 10
-		val collect = split2.collect // [1, 2], [3, 4], f0, [5, 6], [7, 8], f0, [9, 10], f1
-		val collect2 = collect.collect // [[1, 2], [3, 4]], [[5, 6], [7, 8]
-		val collect3 = collect2.collect
-		collect3.first <=> #[#[#[1, 2], #[3, 4]], #[#[5, 6], #[7, 8]], #[#[9, 10], #[11]]]
-	}
-	
-	@Test
-	def void testGuardDoubleSplits() {
-		val s = (1..11).stream
-		val split = s.split [ it % 4 == 0 ]
-		val split2 = split.split [ it % 3 == 0 ] // should also split at %4
-		val split3 = split2.split [ it % 2 == 0 ] // should also split at %4 and %3
-		val collect = split3.collect
-		val collect2 = collect.collect
-		val collect3 = collect2.collect
-		val collect4 = collect3.collect 
-		collect4.first <=> #[
-			#[
-				#[
-					#[1, 2], // %2 
-					#[3] // %2
-				], // %3
-				#[
-					#[4] // %2
-				] // %3
-			], // %4 
-			#[
-				#[
-					#[5, 6] // %2
-				], // %3
-				#[
-					#[7, 8] // %2
-				] // %3
-			], // %4
-			#[
-				#[
-					#[9] // %2
-				], // %3 
-				#[
-					#[10],  // %2
-					#[11] // %2
-				] // %3
-			] // end of stream finish
-		]
-	}
-	
 	
 	@Test
 	def void testSum() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.sum
-			.entries <=> #[6D.value, 9D.value]
+		(1..3).stream.map[it*2].sum <=> 2+4+6 as double
 	}
 
 	@Test
 	def void testAvg() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.average
-			.entries <=> #[2D.value, 4.5D.value]
+		(0..4).stream.map[it+1].average <=> (1+2+3+4+5) / 5 as double
 	}
-	
+
 	@Test
 	def void testMax() {
-		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
-		s
-			.max
-			.entries <=> #[8.value, 7.value]
+		#[1, 6, 3, 4, 2, 5].iterator.stream.max <=> 6
 	}
 	
 	@Test
 	def void testMin() {
-		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
-		s
-			.min
-			.entries <=> #[1.value, 4.value]
+		#[6, 3, 4, 1, 2, 5].iterator.stream.min <=> 1
 	}
 	
 	@Test
 	def void testAll() {
-		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
-		s
-			.all [ it > 3 ]
-			.entries <=> #[false.value, true.value]
+		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it < 7 ] <=> true
+		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it >= 7 ] <=> false
 	}
 
 	@Test
 	def void testNone() {
-		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish
-		s
-			.none [ it < 3 ]
-			.entries <=> #[false.value, true.value]
+		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it >= 7 ] <=> true
+		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it < 7 ] <=> false
 	}
+
+	@Atomic int counter
 
 	@Test
 	def void testFirstMatch() {
-		val s = Integer.stream << 1 << 8 << 3 << 2 << 3 << finish << 7 << 4 << 5 << finish << 1 << 10 // note no finish here
-		s
+		#[1, 7, 3, 8, 1, 2, 5].iterator.stream
+			.effect [ incCounter ]
+			.check('stop streaming after match found') [ println(counter) counter != 5 ]
 			.first [ it % 2 == 0 ]
-			.entries <=> #[8.value, 4.value, 10.value] // 10 is still streamed
+			<=> 8 
 	}
 
 	@Test
 	def void testCount() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.count
-			.entries <=> #[3.value, 2.value]
+		(1..3).stream.count <=> 3
 	}
 	
 	@Test
 	def void testReduce() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.reduce(1) [ a, b | a + b ]
-			.entries <=> #[7.value, 10.value]
+		(1..3).stream.reduce(1) [ last, in, out | last + out ] <=> 7
 	}
 
 	@Test
 	def void testScan() {
-		val s = Integer.stream << 1 << 2 << 3 << finish << 4 << 5 << finish
-		s
-			.scan(1) [ a, b | a + b ]
-			.entries <=> #[2.value, 4.value, 7.value, finish, 5.value, 10.value, finish]
+		(1..3).stream.scan(1) [ last, in, out | last + out ] <=> #[2, 4, 7]
 	}
 
 	@Test
 	def void testFlatten() {
 		#[1..3, 4..6, 7..10]
 			.map[stream(it)] // create a list of 3 streams
-			.datastream // create a stream of 3 streams
+			.iterator.stream // create a stream of 3 streams
 			.flatten // flatten into a single stream
-			.collect
-			<=> #[#[1, 2, 3], #[4, 5, 6], #[7, 8, 9, 10]]
-	}
-
-	@Test
-	def void testFlattenWithMerge() {
-		#[1..3, 4..6, 7..10]
-			.map[stream(it)] // create a list of 3 streams
-			.datastream // create a stream of 3 streams
-			.flatten // flatten into a single stream
-			.merge // remove the finishes from the stream
 			<=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 	}
 
 	@Test
-	def void testTake() {
-		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
-		s
-			.take(1)
-			.entries 
-			 <=> #[1L.value, finish, 4L.value, finish]
-	}
-	
-	@Test
-	def void testTakeBeforeCollect() {
-		val s = Long.stream << 1L << 2L << 3L << finish << 4L << 5L << finish
-		s
-			.take(1)
-			.collect
-			.entries <=> #[#[1L].value, #[4L].value]
-	}
-
-	@Test
 	def void testUntil() {
-		val s = Long.stream << 1L << 2L << 3L << finish
-		println(s
-			.until [ it > 2 ]
-			.entries) <=> #[1L.value, 2L.value, finish]
+		(1..1_000_000_000).stream.until [ it > 2 ] <=> #[1, 2]
 	}
 	
 	@Test
-	def void testUntilWithMultipleParts() {
-		val s = Long.stream << 1L << 2L << 3L << 4L << finish << 1L << 2L << 5L << 6L << finish
-		s
-			.until [ it > 3 ]
-			.collect
-			.entries <=> #[ #[1L, 2L, 3L].value, #[1L, 2L].value ]
+	def void testTake() {
+		(1..1_000_000_000).stream.take(3) <=> #[1, 2, 3]
+	}
+	
+	@Test
+	def void testAnyMatch() {
+		#[false, false, true, false].iterator.stream.any[it] <=> true
+		#[false, false, false, false].iterator.stream.any[it] <=> false
 	}
 
-	@Test
-	def void testAnyMatchNoFinish() {
-		val s = Boolean.stream << false << false << true << false
-		s
-			.any[it]
-			.first <=> true
-	}
-
-	@Test
-	def void testAnyMatchWithFinish() {
-		val s = Boolean.stream << false << false << false << finish
-		val matches = s.any[it].first
-		matches <=> false
-	}
-	
-	@Test
-	def void testSeparate() {
-		(1..10).stream
-			.split [ it % 3 == 0 ]
-			.collect
-			.separate
-			.collect
-			.first <=> (1..10).toList
-	}
-	
 	@Test
 	def void testSeparate2() {
 		#[ #[1, 2, 3], #[4, 5] ]
@@ -396,7 +201,7 @@ class TestStreamExtensions {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.on(Exception) [ message >> errors ] // not filtering errors here
 			.collect // so this collect fails
-			.first <=> null
+			<=> null
 	}
 
 	@Test
@@ -407,7 +212,7 @@ class TestStreamExtensions {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.effect(Exception) [ message >> errors ] // filter errors here
 			.collect // so this collect succeeds
-			.first <=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
+			<=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
 		errors.queue.size <=> 2
 	}
 	
@@ -454,62 +259,6 @@ class TestStreamExtensions {
 		overflowCount <=> 2
 	}
 
-	// PARALLEL ///////////////////////////////////////////////////////////////
-	
-	@Test
-	def void testResolve() {
-		val t1 = int.promise
-		val t2 = int.promise
-		val s = #[t1, t2].streamList.resolve
-		s.onChange [
-			switch it {
-				Value<?, Integer>: {
-					println(value)
-					s.next
-				}
-			}
-		]
-		println('start') 
-		s.next
-		println('A')
-		t1.set(1)
-		println('B') 
-		// s.next
-		println('C')
-		t2.set(2)
-		println('D')
-		println('E')
-	}
-	
-	
-	
-	// TODO: use assertions here instead of printing
-	// FIX: still gives undetermined and changing results when using resolve(30! 
-	// seems a problem with capturing the finishes.
-	// using resolve(1) will capture all finishes, however
-	// using resolve() will eliminate all finishes and return a single list..
-	@Test
-	def void testResolving() {
-		val doSomethingAsync = [ String x |
-			threads.promise [
-				Thread.sleep(50)
-				x
-			]
-		]
-		val s = String.stream
-		s << 'a' << 'b' << 'c' << finish << 'd' << 'e' << finish << 'f' << finish
-		s
-			.map(doSomethingAsync)
-			.resolve(1)
-			.collect
-			.effect [ println('got: ' + it) ]
-			.start
-		s << '1' << '2' << finish 
-		s << 'x' << 'y' << finish
-		s << 'A' << 'B' << 'C' << finish
-		Thread.sleep(1000)
-	}
-	
 	// ENDPOINTS //////////////////////////////////////////////////////////////
 	
 	@Test
@@ -528,89 +277,41 @@ class TestStreamExtensions {
 	def void testSkipAndTake() {
 		(1..20).stream
 			.skip(3)
-			.takeAndFinish(5)
+			.take(5)
 			<=> #[4, 5, 6, 7, 8]
 	}
 	
 	@Test
-	def void testFirstAfterCollect() {
-		val s = Integer.stream << 1 << 2 << finish << 3 << 4 << finish
-		s.collect.first <=> #[1, 2]
-	}
-	
-	@Test
-	def void testCollectCollect() {
-		val s = Integer.stream << 1 << 2 << finish << 3 << 4 << finish << finish(1)
-		s.collect.collect.first <=> #[#[1, 2], #[3, 4]]
-	}
-	
-	@Test
-	def void testPipe() {
-		val s = (1..3).stream
-//		s.split.stream.on [
-//			each [ println('x' + $1) ]
-//			finish [ println('done') ]
-//		]
-		val s2 = s.split.stream
-		s2.on [
-			each [ println('x' + $1) ]
-			//error [ s2.next true ]
-			//finish [ s2.next ]
-			//closed [ s2.close ]
-		]
-		s2.next
-	}
-	
-	@Test
-	def void testStreamForwardTo() {
-		// since we use flow control, we can stream forward a lot without using much memory
-		val s1 = int.stream << 1 << 2 << 3
-		// val s2 = int.stream
-		// s1.pipe(s2)
-		val s2 = s1.split.stream
-		s2.effect [ println(it) ].then [ println('done') ]
-		//s2.count.then [ assertEquals(1_000, it, 0) ]
-	}
-	
-	@Test
-	def void testStreamPromise() {
-		val s = int.stream
-		val p = s.promise
-		s << 1 << 2 << finish
-		val s2 = p.toStream
-		s2
-			.effect [ println(it) ]
-			.start
-			<=> true
+	def void testListPromiseToStream() {
+		(1..2).stream.promise.toStream <=> #[1, 2]
 	}
 
-	// @Test FIX!
-	def void testStreamPromiseLater() {
-		val p = new Promise<Stream<Integer>>
-		val s = int.stream
-		p.set(s)
-		s << 1 << 2 << finish
-		val s2 = p.toStream
-		s2
-			.effect [ println(it) ]
-			.start
-			<=> true
+	@Test
+	def void testWait() {
+		val start = now
+		val times = 100
+		val period = 5.ms;
+		(1..times).stream
+			.wait(period, schedulers.timer)
+			.count <=> times
+		val waited = now - start
+		assertTrue(waited > times * period)
 	}
-	
+
 	@Test
 	def void testThrottle() {
-		(1..1000).stream.throttle(10.ms).effect [ println(it) ].start
+		(1..100).stream
+			.wait(5.ms, schedulers.timer)
+			.throttle(50.ms)
+			.count <=> 12 // 6 * 100 items / 50 ms = 12 items. the first item is always delayed, giving one extra item, so from 5 to 6
 	}
 	
 	@Test
 	def void testRateLimit() {
-		val stream = (1..10).stream
-		val limited = stream
+		(1..10).stream
 			.ratelimit(100.ms, schedulers.timer)
 			.ratelimit(200.ms, schedulers.timer)
-		limited
-			.effect [ println(it) ]
-			.collect.first.asFuture.get
+			.count <=> 10
 	}
 
 	@Test
@@ -623,17 +324,20 @@ class TestStreamExtensions {
 		limited
 			.on(Exception, true) [ println(it) ]
 			.effect [ println(it) ]
-			.collect.first.asFuture.get
+			.collect.asFuture.get
 	}
 	
 	@Test
 	def void testRateLimitAsyncProcessing() {
-		val list = (1..10).toList
+		val list = (1..8).toList
+		val start = now
 		list.streamList
-			.ratelimit(1.secs, schedulers.timer)
-			.wait(200.ms, schedulers.timer)
+			.ratelimit(150.ms, schedulers.timer)
 			.effect [ println(it) ]
-			<=> list
+			<=> list;
+		val timeTaken = now - start
+		val minTimeTaken = 8 * 100.ms;
+		assertTrue(timeTaken > minTimeTaken)
 	}
 	
 	// FIX: needs better test, and is currently broken!
@@ -648,13 +352,6 @@ class TestStreamExtensions {
 			.ratelimit(100.ms, schedulers.timer)
 			.pipe(newStream)
 		Thread.sleep(5000)
-	}
-	
-	// @Test FIX: latest does not work yet
-	def void testLatest() {
-		// val scheduler = newSingleThreadScheduledExecutor;
-		// (5..10).streamRandom.every(1000, scheduler).latest.onEach [ println(it) ]
-		// Thread.sleep(5000)
 	}
 	
 }

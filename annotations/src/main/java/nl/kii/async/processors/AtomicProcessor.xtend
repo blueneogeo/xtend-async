@@ -68,7 +68,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 			primarySourceElement = field
 			visibility = methodVisibility
 			static = field.static
-			returnType = type
+			returnType = type.primitiveIfWrapper
 			body = '''
 				return this.«field.simpleName».get();
 			'''
@@ -80,7 +80,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 			visibility = atomicMethodsVisibility
 			static = field.static
 			addParameter('value', type)
-			returnType = type
+			returnType = type.primitiveIfWrapper
 			body = '''
 				return this.«field.simpleName».getAndSet(value);
 			'''
@@ -94,7 +94,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 				primarySourceElement = field
 				visibility = atomicMethodsVisibility
 				static = field.static
-				returnType = type
+				returnType = type.primitiveIfWrapper
 				body = '''
 					return this.«field.simpleName».incrementAndGet();
 				'''
@@ -105,7 +105,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 				primarySourceElement = field
 				visibility = atomicMethodsVisibility
 				static = field.static
-				returnType = type
+				returnType = type.primitiveIfWrapper
 				body = '''
 					return this.«field.simpleName».decrementAndGet();
 				'''
@@ -121,7 +121,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 				addParameter('value', type)
 				static = field.static
 				visibility = atomicMethodsVisibility
-				returnType = type
+				returnType = type.primitiveIfWrapper
 				body = '''
 					return this.«field.simpleName».addAndGet(value);
 				'''

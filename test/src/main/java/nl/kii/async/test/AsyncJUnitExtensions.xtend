@@ -1,21 +1,22 @@
 package nl.kii.async.test
 
 import java.util.List
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 import nl.kii.promise.IPromise
+import nl.kii.promise.Promise
+import nl.kii.stream.IStream
+import nl.kii.stream.message.Closed
+import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
-import nl.kii.stream.message.Finish
 import nl.kii.stream.message.Value
+import nl.kii.util.Period
 
 import static org.junit.Assert.*
-import static extension nl.kii.util.DateExtensions.*
+
 import static extension nl.kii.promise.PromiseExtensions.*
 import static extension nl.kii.stream.StreamExtensions.*
-import nl.kii.stream.IStream
-import nl.kii.util.Period
-import java.util.concurrent.TimeUnit
-import nl.kii.stream.message.Entry
-import nl.kii.promise.Promise
-import java.util.concurrent.ExecutionException
+import static extension nl.kii.util.DateExtensions.*
 
 class AsyncJUnitExtensions {
 
@@ -26,7 +27,7 @@ class AsyncJUnitExtensions {
 	 * Throws a timeout exception if there is no result after the period in AsyncAssert.DEFAULT_TIMEOUT
 	 * WARNING: it will wait until the stream finishes, so a Finish must be put on the stream.
 	 */
-	def static <T> entries(IStream<?, T> stream) {
+	def static <I, O> entries(IStream<I, O> stream) {
 		stream.entries(DEFAULT_TIMEOUT)
 	}
 
@@ -35,14 +36,13 @@ class AsyncJUnitExtensions {
 	 * Throws a timeout exception if there is no result within the timeout period.
 	 * WARNING: it will wait until the stream finishes, so a Finish must be put on the stream.
 	 */
-	def static <T> entries(IStream<?, T> stream, Period timeout) {
-		val List<Entry<Object, T>> results = newArrayList
-		val promise = new Promise<List<Entry<Object, T>>>
+	def static <I, O> entries(IStream<I, O> stream, Period timeout) {
+		val List<Entry<I, O>> results = newArrayList
+		val promise = new Promise<List<Entry<I, O>>>
 		stream.on [ r |
 			r.each [ i, o | results.add(value(i, o)) r.stream.next ]
-			r.finish [ i, l | results.add(finish(i, l)) r.stream.next ]
 			r.error[ i, e | results.add(error(e)) r.stream.next ]
-			r.closed [ promise.set(results) ]
+			r.closed [ results.add(AsyncJUnitExtensions.close) promise.set(results) ]
 		]
 		stream.next
 		stream.close
@@ -74,7 +74,7 @@ class AsyncJUnitExtensions {
 	 */
 	def static <T> assertEquals(List<T> value, IStream<?, T> stream, Period timeout) {
 		try {	
-			assertEquals(value, stream.collect.first.asFuture.get(timeout.ms, TimeUnit.MILLISECONDS))
+			assertEquals(value, stream.collect.asFuture.get(timeout.ms, TimeUnit.MILLISECONDS))
 		} catch(ExecutionException e) {
 			throw e.cause
 		}
@@ -151,20 +151,9 @@ class AsyncJUnitExtensions {
 		new Error<I, T>(null, t)
 	}
 	
-	/** Lets you easily pass a Finish entry using the << or >> operators */
-	def static <I, O> finish() {
-		new Finish<I, O>(null, 0)
+	/** Lets you easily pass the end of a stream entry using the << or >> operators */
+	def static <I, T> close() {
+		new Closed<I, T>
 	}
-
-	/** Lets you easily pass a Finish entry using the << or >> operators */
-	def static <I, O> finish(int level ) {
-		new Finish<I, O>(null, level)
-	}
-
-	/** Lets you easily pass a Finish entry using the << or >> operators */
-	def static <I, O> finish(I in, int level ) {
-		new Finish<I, O>(in, level)
-	}
-
 	
 }

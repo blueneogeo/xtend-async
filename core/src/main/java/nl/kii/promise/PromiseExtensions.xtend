@@ -52,11 +52,10 @@ class PromiseExtensions {
 	}
 
 	/** Distribute work using an asynchronous method */	
-	def static <I, I2, O, P extends IPromise<I2, O>> IPromise<I, List<O>> call(List<I> data, int concurrency, (I)=>P operationFn) {
+	def static <I, I2, O, P extends IPromise<I2, O>> IPromise<?, List<O>> call(List<I> data, int concurrency, (I)=>P operationFn) {
 		stream(data)
 			.call(concurrency, operationFn)
 			.collect // see it as a list of results
-			.first
 			=> [ options.operation = 'call(concurrency=' + concurrency + ')' ]
 	}
 
@@ -93,7 +92,7 @@ class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends IPromise<?, ?>> promises) {
-		promises.map[asTask].stream.call[ Task it | it ].collect.first.asTask
+		promises.map[asTask].stream.call[ Task it | it ].collect.asTask
 	}
 	
 	/** 
@@ -361,7 +360,7 @@ class PromiseExtensions {
 	def static <I, P extends IPromise<I, Stream<T>>, T> toStream(P promise) {
 		val newStream = new Stream<T>
 		promise
-			.then [ s | s.pipe(newStream) ] 
+			.then [ wrappedStream | wrappedStream.pipe(newStream) ] 
 			.on(Throwable) [ newStream.error(it) ]
 		newStream
 	}
