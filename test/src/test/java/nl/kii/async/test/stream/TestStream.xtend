@@ -241,6 +241,37 @@ class TestStream {
 		
 	}
 	
+	@Test
+	def void closedStreamsNoLongerAllowInput() {
+		val s = int.stream
+		s.push(0)
+		s.effect [ incCounter ]
+		s.next
+		counter <=> 1
+		s.close
+		s.push(0)
+		s.next
+		counter <=> 1
+	}
+	
+	@Test
+	def void closedStreamsStillFinishTheirQueue() {
+		// set up a stream that counts
+		val s = int.stream
+		s.effect [ incCounter ]
+		
+		// push a value and see that it increases the counter
+		s.push(0)
+		s.next
+		counter <=> 1
+		
+		// now push a value, close the stream, and still ask for the next value from the queue
+		s.push(0)
+		s.close
+		s.next
+		counter <=> 2
+	}
+
 }
 
 

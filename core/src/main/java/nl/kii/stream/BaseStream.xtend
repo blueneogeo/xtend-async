@@ -61,7 +61,10 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	/** Ask for the next value in the buffer to be delivered to the change listener */
 	override next() { apply(StreamEvent.next) }
 	
-	/** Close the stream, which will close parent streams and stop the listener from recieving values */
+	/** 
+	 * Close the stream, which will close parent streams and prevents new input.
+	 * Queued entries may still be processed!
+	 */
 	override close() {
 		apply(new Closed) // travels down to listeners
 		apply(StreamEvent.close) // travels up, closing parent streams
@@ -101,9 +104,9 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 
 	/** Process a single incoming stream message from the actor queue. */
 	override act(StreamMessage entry, =>void done) {
-		if(isOpen) {
-			switch entry {
-				Value<I, O>, Error<I, O>, Closed<I, O>: {
+		switch entry {
+			Value<I, O>, Error<I, O>, Closed<I, O>: {
+				if(isOpen) {
 					// check for buffer overflow or paused
 					if(buffersize + 1 > options.maxQueueSize || isPaused) {
 						eventListener?.apply(StreamEvent.overflow)
@@ -114,13 +117,15 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					queue.add(entry)
 					incBuffersize
 					// publish the entry
-					publishNext
+					publishNext(null)
 					// and if it was a finish, close the stream
 					if(entry instanceof Closed<?, ?>) {
 						this.open = false
 					}
 				}
-				Entries<I, O>: {
+			}
+			Entries<I, O>: {
+				if(isOpen) {
 					// check for buffer overflow or paused
 					if(buffersize + entry.entries.size >= options.maxQueueSize || isPaused) {
 						for(e : entry.entries) {
@@ -132,36 +137,33 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					// add the entries to the queue 
 					queue.addAll(entry.entries)
 					incBuffersize(entry.entries.size)
-					publishNext
-				}
-				StreamEvent case next: {
-					ready = true
-					if(!isPaused) {
-						// try to publish the next from the queue
-						val published = publishNext
-						// if nothing was published, notify there parent stream we need a next entry
-						if(!published) eventListener?.apply(entry)
-					}
-				}
-				StreamEvent case overflow: {
-				}
-				StreamEvent case pause: {
-					paused = true
-					eventListener?.apply(entry)
-				}
-				StreamEvent case resume: {
-					paused = false
-					publishNext
-				}
-				StreamEvent case close: {
-					paused = false
-					open = false
-					eventListener?.apply(entry)
+					publishNext(null)
 				}
 			}
-		} else {
-			queue.clear
-			buffersize = 0
+			StreamEvent case next: {
+				ready = true
+				if(!isPaused) {
+					// try to publish the next from the queue
+					val published = publishNext(null)
+					// if nothing was published, notify there parent stream we need a next entry
+					if(!published) eventListener?.apply(entry)
+				}
+			}
+			StreamEvent case overflow: {
+			}
+			StreamEvent case pause: {
+				paused = true
+				eventListener?.apply(entry)
+			}
+			StreamEvent case resume: {
+				paused = false
+				publishNext(null)
+			}
+			StreamEvent case close: {
+				paused = false
+				open = false
+				eventListener?.apply(entry)
+			}
 		}
 		done.apply
 	}
@@ -169,14 +171,18 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	// STREAM PUBLISHING //////////////////////////////////////////////////////
 	
 	/** Publish a single entry from the stream queue. */
-	def protected boolean publishNext() {
+	def protected boolean publishNext(Entry<I, O> nextEntry) {
 		// should we publish at all?
-		if(!isOpen || isPaused || !isReady || entryListener == null || queue.empty) return false
+		if(isPaused || !isReady || entryListener == null || queue.empty) return false
 		// ok, lets get publishing
 		ready = false
 		// get the next entry from the queue
-		val entry = queue.poll
-		decBuffersize
+		val entry = if(nextEntry != null) {
+			nextEntry 
+		} else {
+			queue.poll => [ if(it != null) decBuffersize ]
+		}
+		// val entry = queue.poll
 		try {
 			// publish the value on the entryListener
 			entryListener?.apply(entry)

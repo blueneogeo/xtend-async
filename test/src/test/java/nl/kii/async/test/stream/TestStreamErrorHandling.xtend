@@ -19,13 +19,13 @@ class TestStreamErrorHandling {
 	@Atomic boolean failed
 
 	@Test
-	def void streamsErrorsBreakTheStreamButDoNotThrowExceptions() {
+	def void streamsErrorsDoNotBreakTheStream() {
 		(1..3).stream
 			.map [ it / 0 ]
-			.on(Throwable) [ errors = errors + 1 ]
+			.on(Throwable) [ errors = errors + 1 println(message) ]
 			.start
 			.on(Throwable) [ errors = errors + 1 ]
-		errors <=> 2 // one from listening inside the stream, one from listening at the tail
+		errors <=> 4 // three from listening inside the stream, one from listening at the tail
 	}
 	
 	@Test(expected=AsyncException)

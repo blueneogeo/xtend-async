@@ -547,6 +547,14 @@ class StreamExtensions {
 		newStream
 	}
 	
+	 /**
+	  * Skips the head and returns a stream of the trailing entries.
+	  * Alias for Stream.skip(1) 
+	  */
+	def static <I, O> tail(IStream<I, O> stream) {
+		stream.skip(1)
+	}
+	
 	/**
 	 * Skip an amount of items from the stream, and process only the ones after that.
 	 */
@@ -1138,7 +1146,7 @@ class StreamExtensions {
 
 	/** 
 	 * Start the stream by asking for the next value, and keep asking for the next value
-	 * until the stream ends.
+	 * until the stream ends. Errors do not break the stream.
 	 * @return a task that either contains an error if the stream had errors, or completes if the stream completes 
 	 */
 	@Starter
@@ -1407,6 +1415,17 @@ class StreamExtensions {
 		]
 		stream.next
 		promise => [ options.operation = 'any' ]
+	}
+
+	
+	 /**
+	  * Start the stream and promise the first value coming from the stream.
+	  * Alias for Stream.first
+	  * Closes the stream once it has the value or an error.
+	  */
+	@Starter
+	def static <I, O> IPromise<I, O> head(IStream<I, O> stream) {
+		stream.first [ true ]
 	}
 	
 	 /**
