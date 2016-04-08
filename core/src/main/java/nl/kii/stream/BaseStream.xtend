@@ -21,9 +21,9 @@ import nl.kii.stream.message.Closed
 abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
 	@Accessors(PUBLIC_GETTER) val protected AsyncOptions options
-	val protected Queue<Entry<I, O>> queue // queue for incoming values, for buffering when there is no ready listener
+	@Atomic protected Queue<Entry<I, O>> entryQueue // queue for incoming values, for buffering when there is no ready listener
 
-	@Atomic val int buffersize = 0 // keeps track of the size of the stream buffer
+	@Atomic val int queueSize = 0 // keeps track of the size of the stream buffer
 	@Atomic val boolean open = true // whether the stream is open
 	@Atomic val boolean ready = false // whether the listener is ready
 	@Atomic val boolean skipping = false // whether the stream is skipping incoming values to the finish
@@ -39,12 +39,14 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	
 	new(AsyncOptions options) {
 		super(options.newActorQueue, options.actorMaxCallDepth)
-		this.queue = options.newStreamQueue
 		this.options = options.copy
 	}
 	
-	/** Get the queue of the stream. will only be an unmodifiable view of the queue. */
-	override getQueue() { queue.unmodifiableView }
+	/** Get the queue of the stream. Will create it JIT. */
+	override getQueue() { 
+		if(entryQueue == null) entryQueue = options.newStreamQueue
+		entryQueue
+	}
 
 	override isOpen() { getOpen }
 	
@@ -52,9 +54,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	
 	override isPaused() { getPaused }
 	
-	override getBufferSize() { buffersize }
-	
-	override isBufferFull() { bufferSize >= options.maxQueueSize }
+	override isQueueFull() { queueSize >= options.maxQueueSize }
 	
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
@@ -108,16 +108,24 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 			Value<I, O>, Error<I, O>, Closed<I, O>: {
 				if(isOpen) {
 					// check for buffer overflow or paused
-					if(buffersize + 1 > options.maxQueueSize || isPaused) {
+					if(queueSize + 1 > options.maxQueueSize || isPaused) {
 						eventListener?.apply(StreamEvent.overflow)
 						done.apply
 						return
 					}
-					// add the entry to the queue
-					queue.add(entry)
-					incBuffersize
-					// publish the entry
-					publishNext(null)
+					// add the entry to the queue if necessary, otherwise execute immediately!
+					// (we must check if there is a listener, to prevent pushing things out before
+					// a stream chain had a chance to be set up)
+					if(false && queueSize == 0 && eventListener != null) {
+						// publish the entry immediately, bypassing the queue
+						publishNext(entry)
+					} else {
+						// add it to the queue
+						queue.add(entry)
+						incQueueSize
+						// publish the next entry
+						publishNext(null)
+					}
 					// and if it was a finish, close the stream
 					if(entry instanceof Closed<?, ?>) {
 						this.open = false
@@ -127,7 +135,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 			Entries<I, O>: {
 				if(isOpen) {
 					// check for buffer overflow or paused
-					if(buffersize + entry.entries.size >= options.maxQueueSize || isPaused) {
+					if(queueSize + entry.entries.size >= options.maxQueueSize || isPaused) {
 						for(e : entry.entries) {
 							eventListener?.apply(StreamEvent.overflow)
 						}
@@ -136,7 +144,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					}
 					// add the entries to the queue 
 					queue.addAll(entry.entries)
-					incBuffersize(entry.entries.size)
+					incQueueSize(entry.entries.size)
 					publishNext(null)
 				}
 			}
@@ -172,17 +180,21 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	
 	/** Publish a single entry from the stream queue. */
 	def protected boolean publishNext(Entry<I, O> nextEntry) {
-		// should we publish at all?
-		if(isPaused || !isReady || entryListener == null || queue.empty) return false
+		// are we allowed to publish? Note: we do not check for !open on purpose. 
+		if(isPaused || !isReady || entryListener == null) return false
+		// is there something to publish?
+		if(nextEntry == null && queueSize == 0) return false
 		// ok, lets get publishing
 		ready = false
-		// get the next entry from the queue
+		// get the next entry to publish. either get the passed one or get one from the queue
 		val entry = if(nextEntry != null) {
 			nextEntry 
 		} else {
-			queue.poll => [ if(it != null) decBuffersize ]
+			// get the next entry from the queue and update the queue size
+			val polledEntry = queue.poll
+			if(polledEntry == null) return false else decQueueSize
+			polledEntry
 		}
-		// val entry = queue.poll
 		try {
 			// publish the value on the entryListener
 			entryListener?.apply(entry)
@@ -199,17 +211,15 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 			// if we were already processing an error, throw and exit. do not re-wrap existing stream exceptions
 			if(entry instanceof Error<?, ?>) throw t
 			// check if next was called by the handler
-			val nextCalled = isReady
+			// val nextCalled = isReady
 			// make the stream ready again
 			ready = true
-			// otherwise push the error on the stream
-			switch entry {
-				Value<I, O>, Error<I, O>: apply(new Error(entry.from, t))
-			}
+			// publish the throwable as an error to the entryListener
+			entryListener?.apply(new Error(entry.from, t))
 			// if next was not called, it would halt the stream, so call it now
-			if(!nextCalled) this.next
+			// if(!nextCalled) this.next
 			// ok, done, nothing was published
-			false
+			true
 		}
 	}
 

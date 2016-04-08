@@ -43,22 +43,22 @@ class StreamIOExtensions {
 	
 	// WRITING TO OUTPUT STREAMS AND FILES ///////////////////////////////////
 
-	def static <I> SubStream<I, String> toText(IStream<I, List<Byte>> stream) {
+	def static <I> IStream<I, String> toText(IStream<I, List<Byte>> stream) {
 		stream.toText('UTF-8')
 	}
 	
-	def static <I> SubStream<I, String> toText(IStream<I, List<Byte>> stream, String encoding) {
+	def static <I> IStream<I, String> toText(IStream<I, List<Byte>> stream, String encoding) {
 		stream
 			.map [ new String(it, encoding).split('\n').toList ]
 			.separate
 			=> [ stream.options.operation = 'toText(encoding=' +  encoding + ')' ]
 	}
 	
-	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream) {
+	def static <I> IStream<I, List<Byte>> toBytes(IStream<I, String> stream) {
 		stream.toBytes('UTF-8')
 	}
 
-	def static <I> SubStream<I, List<Byte>> toBytes(IStream<I, String> stream, String encoding) {
+	def static <I> IStream<I, List<Byte>> toBytes(IStream<I, String> stream, String encoding) {
 		stream
 			.map [ (it + '\n').getBytes(encoding) as List<Byte> ]
 			=> [ stream.options.operation = 'toBytes(encoding=' +  encoding + ')' ]

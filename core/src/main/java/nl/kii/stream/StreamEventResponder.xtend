@@ -3,7 +3,7 @@ package nl.kii.stream
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-class StreamEventResponder<I, O> implements StreamEventHandler<I, O> {
+class StreamEventResponder implements StreamEventHandler {
 	
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn

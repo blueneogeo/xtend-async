@@ -1,6 +1,6 @@
 package nl.kii.stream
 
-interface StreamEventHandler<I, O> {
+interface StreamEventHandler {
 	
 	def void onNext()
 	

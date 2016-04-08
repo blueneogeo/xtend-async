@@ -4,7 +4,6 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.async.options.AsyncDefault
 import nl.kii.async.options.ThreadSafeAsyncOptions
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -21,7 +20,7 @@ class TestActor {
 		AsyncDefault.options = new ThreadSafeAsyncOptions(0, true, 1000, 'input', 50)
 	}
 	
-	@Ignore
+	// @Ignore
 	@Test
 	def void testHelloWorld() {
 		val greeter = actor [ it, done |

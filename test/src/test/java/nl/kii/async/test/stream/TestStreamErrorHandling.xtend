@@ -20,9 +20,12 @@ class TestStreamErrorHandling {
 
 	@Test
 	def void streamsErrorsDoNotBreakTheStream() {
-		(1..3).stream
+		val s = new Stream<Integer>
+		// val e = new Exception
+		s << 1 << 2 << 3
+		s
 			.map [ it / 0 ]
-			.on(Throwable) [ errors = errors + 1 println(message) ]
+			.on(Throwable) [ errors = errors + 1 ]
 			.start
 			.on(Throwable) [ errors = errors + 1 ]
 		errors <=> 4 // three from listening inside the stream, one from listening at the tail

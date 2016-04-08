@@ -30,14 +30,14 @@ class TestStreamExtensions {
 
 	@Test
 	def void testListStream() {
-		#[1, 2, 3].streamList
+		#[1, 2, 3].iterator.stream
 			.map[it+1]
 			.entries <=> #[2.value, 3.value, 4.value, close]
 	}
 	
 	@Test
 	def void testListStreamForEmptyList() {
-		#[].streamList <=> #[]
+		#[].iterator.stream <=> #[]
 	}
 	
 	@Test
@@ -187,7 +187,7 @@ class TestStreamExtensions {
 	@Test
 	def void testSeparate2() {
 		#[ #[1, 2, 3], #[4, 5] ]
-			.streamList
+			.iterator.stream
 			.separate <=> #[1, 2, 3, 4, 5]
 	}
 	
@@ -316,22 +316,20 @@ class TestStreamExtensions {
 
 	@Test
 	def void testRateLimitWithErrors() {
-		val stream = (1..4).stream
-		val limited = stream
+		(1..4).stream
 			.map [ 1000 / (2-it) * 1000 ]
 			.ratelimit(200.ms, schedulers.timer)
 			.map [ 1000 / (2-it) * 1000 ]
-		limited
-			.on(Exception, true) [ println(it) ]
-			.effect [ println(it) ]
-			.collect.asFuture.get
+			.on(Exception, true) [ incErrorCount ]
+			<=> #[0, 0, 0]
+		errorCount <=> 1
 	}
 	
 	@Test
 	def void testRateLimitAsyncProcessing() {
 		val list = (1..8).toList
 		val start = now
-		list.streamList
+		list.iterator.stream
 			.ratelimit(150.ms, schedulers.timer)
 			.effect [ println(it) ]
 			<=> list;

@@ -12,11 +12,11 @@ interface IPromise<I, O> extends Procedure1<Entry<I, O>>, Observable<Entry<I, O>
 	def Opt<Entry<I, O>> get()
 	def boolean getFulfilled()
 
-	def SubPromise<I, O> then(Procedure1<O> valueFn)
-	def SubPromise<I, O> then(Procedure2<I, O> valueFn)
+	def IPromise<I, O> then(Procedure1<O> valueFn)
+	def IPromise<I, O> then(Procedure2<I, O> valueFn)
 
-	def <T extends Throwable> SubPromise<I, O> on(Class<T> exceptionType, (T)=>void errorFn)
-	def <T extends Throwable> SubPromise<I, O> on(Class<T> exceptionType, boolean swallow, (I, T)=>void errorFn)
+	def <T extends Throwable> IPromise<I, O> on(Class<T> exceptionType, (T)=>void errorFn)
+	def <T extends Throwable> IPromise<I, O> on(Class<T> exceptionType, boolean swallow, (I, T)=>void errorFn)
 
 	def AsyncOptions getOptions()
 	

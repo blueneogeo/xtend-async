@@ -1,6 +1,6 @@
 package nl.kii.stream
 
-import java.util.Collection
+import java.util.Queue
 import nl.kii.async.options.AsyncOptions
 import nl.kii.observe.Observable
 import nl.kii.stream.message.Entry
@@ -46,10 +46,9 @@ interface IStream<I, O> extends Procedure1<StreamMessage>, Observable<Entry<I, O
 	def boolean isOpen()
 	def boolean isReady()
 	def boolean isPaused()
-	def boolean isBufferFull()
+	def boolean isQueueFull()
 	
-	def int getBufferSize()
-	def Collection<Entry<I, O>> getQueue()
+	def Queue<Entry<I, O>> getQueue()
 	def AsyncOptions getOptions()
 	
 }

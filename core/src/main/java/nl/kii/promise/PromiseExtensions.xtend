@@ -452,11 +452,35 @@ class PromiseExtensions {
 			.on(Throwable, true) [ in, e | target.error(e) ]
 	}
 
+	/** When this promise completes without errors, onResult is called with the value */
+	def static <I, O> pipe(IPromise<I, O> promise, (O)=>void onResult) {
+		promise.then [ onResult.apply(it) ]
+	}
+
+	/** When this promise completes without errors, onResult is called with the value, otherwise onError is called */
+	def static <I, O> pipe(IPromise<I, O> promise, (O)=>void onResult, (Throwable)=>void onError) {
+		promise
+			.then [ onResult.apply(it) ]
+			.on(Throwable) [ onError.apply(it) ]
+	}
+
 	/** Forward the events from this promise to another promise of the same type */
 	def static <I, I2, O> completes(IPromise<I, O> promise, Task task) {
 		promise
 			.effect [ r, it | task.set(true) ]
 			.on(Throwable, true) [ r, it | task.error(it) ]
+	}
+
+	/** When this promise completes without errors, onComplete is called */
+	def static <I, O> completes(IPromise<I, O> promise, =>void onComplete) {
+		promise.then [ onComplete.apply ]
+	}
+
+	/** When this promise completes without errors, onComplete is called, otherwise onError is called */
+	def static <I, O> completes(IPromise<I, O> promise, =>void onComplete, (Throwable)=>void onError) {
+		promise
+			.then [ onComplete.apply ]
+			.on(Throwable) [ onError.apply(it) ]
 	}
 
 	/** 
