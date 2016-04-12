@@ -5,18 +5,18 @@ import nl.kii.act.NonBlockingAsyncActor
 import nl.kii.async.AsyncException
 import nl.kii.async.annotation.Atomic
 import nl.kii.async.options.AsyncOptions
+import nl.kii.stream.message.Closed
 import nl.kii.stream.message.Entries
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
+import nl.kii.stream.message.Overflow
 import nl.kii.stream.message.StreamEvent
+import nl.kii.stream.message.StreamEvents
 import nl.kii.stream.message.StreamMessage
 import nl.kii.stream.message.Value
 import org.eclipse.xtend.lib.annotations.Accessors
 
-import static nl.kii.stream.message.StreamEvent.*
-
 import static extension nl.kii.async.util.AsyncUtils.*
-import nl.kii.stream.message.Closed
 
 abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> implements IStream<I, O> {
 
@@ -59,7 +59,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	// CONTROL THE STREAM /////////////////////////////////////////////////////
 
 	/** Ask for the next value in the buffer to be delivered to the change listener */
-	override next() { apply(StreamEvent.next) }
+	override next() { apply(StreamEvents.next) }
 	
 	/** 
 	 * Close the stream, which will close parent streams and prevents new input.
@@ -67,12 +67,12 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 	 */
 	override close() {
 		apply(new Closed) // travels down to listeners
-		apply(StreamEvent.close) // travels up, closing parent streams
+		apply(StreamEvents.close) // travels up, closing parent streams
 	}
 	
-	override pause() { apply(StreamEvent.pause) }
+	override pause() { apply(StreamEvents.pause) }
 	
-	override resume() { apply(StreamEvent.resume) }
+	override resume() { apply(StreamEvents.resume) }
 	
 	// LISTENERS //////////////////////////////////////////////////////////////
 	
@@ -109,23 +109,23 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 				if(isOpen) {
 					// check for buffer overflow or paused
 					if(queueSize + 1 > options.maxQueueSize || isPaused) {
-						eventListener?.apply(StreamEvent.overflow)
+						eventListener?.apply(new Overflow(entry.from))
 						done.apply
 						return
 					}
 					// add the entry to the queue if necessary, otherwise execute immediately!
 					// (we must check if there is a listener, to prevent pushing things out before
 					// a stream chain had a chance to be set up)
-					if(false && queueSize == 0 && eventListener != null) {
-						// publish the entry immediately, bypassing the queue
-						publishNext(entry)
-					} else {
+//					if(false && queueSize == 0 && eventListener != null) {
+//						// publish the entry immediately, bypassing the queue
+//						publishNext(entry)
+//					} else {
 						// add it to the queue
 						queue.add(entry)
 						incQueueSize
 						// publish the next entry
 						publishNext(null)
-					}
+//					}
 					// and if it was a finish, close the stream
 					if(entry instanceof Closed<?, ?>) {
 						this.open = false
@@ -137,7 +137,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					// check for buffer overflow or paused
 					if(queueSize + entry.entries.size >= options.maxQueueSize || isPaused) {
 						for(e : entry.entries) {
-							eventListener?.apply(StreamEvent.overflow)
+							eventListener?.apply(new Overflow(e.from))
 						}
 						done.apply
 						return
@@ -148,7 +148,7 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					publishNext(null)
 				}
 			}
-			StreamEvent case next: {
+			StreamEvents case StreamEvents.next: {
 				ready = true
 				if(!isPaused) {
 					// try to publish the next from the queue
@@ -157,17 +157,17 @@ abstract class BaseStream<I, O> extends NonBlockingAsyncActor<StreamMessage> imp
 					if(!published) eventListener?.apply(entry)
 				}
 			}
-			StreamEvent case overflow: {
+			Overflow<I>: {
 			}
-			StreamEvent case pause: {
+			StreamEvents case StreamEvents.pause: {
 				paused = true
 				eventListener?.apply(entry)
 			}
-			StreamEvent case resume: {
+			StreamEvents case StreamEvents.resume: {
 				paused = false
 				publishNext(null)
 			}
-			StreamEvent case close: {
+			StreamEvents case StreamEvents.close: {
 				paused = false
 				open = false
 				eventListener?.apply(entry)

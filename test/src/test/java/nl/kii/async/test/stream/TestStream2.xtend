@@ -66,12 +66,12 @@ class TestStream2 {
 		}
 
 		// listen for control events
-		s.eventHandler = new StreamEventHandler {
+		s.eventHandler = new StreamEventHandler<Integer> {
 			override onNext() { println('next!') }
 			override onClose() { println('close!') }
 			override onPause() { }
 			override onResume() { }
-			override onOverflow() { println('overflow!') }
+			override onOverflow(Integer input) { println('overflow!') }
 		}
 		
 		s << 1 << 2 << 3 << close
@@ -180,7 +180,6 @@ class TestStream2 {
 	
 	@Test
 	def void testStreamBufferOverflow() {
-		
 		val stream = int.stream
 		stream.options.maxQueueSize = 1
 		stream.entryHandler = new StreamEntryHandler<Integer, Integer> {
@@ -198,7 +197,7 @@ class TestStream2 {
 			}
 			
 		}
-		stream.eventHandler = new StreamEventHandler {
+		stream.eventHandler = new StreamEventHandler<Integer> {
 			
 			override onNext() {
 			}
@@ -212,7 +211,7 @@ class TestStream2 {
 			override onResume() {
 			}
 			
-			override onOverflow() {
+			override onOverflow(Integer value) {
 				println('overflow!')
 			}
 			

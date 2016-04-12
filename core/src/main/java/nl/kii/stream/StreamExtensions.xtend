@@ -24,7 +24,6 @@ import nl.kii.stream.annotation.Unsorted
 import nl.kii.stream.message.Entries
 import nl.kii.stream.message.Entry
 import nl.kii.stream.message.Error
-import nl.kii.stream.message.StreamEvent
 import nl.kii.stream.message.Value
 import nl.kii.util.AssertionException
 import nl.kii.util.Opt
@@ -37,6 +36,8 @@ import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import nl.kii.stream.message.Closed
+import nl.kii.stream.message.StreamEvents
+import nl.kii.stream.message.Overflow
 
 class StreamExtensions {
 	
@@ -192,14 +193,14 @@ class StreamExtensions {
 	}
 	
 	/** Listen to commands given to the stream. */
-	def static <I, O> void setEventHandler(IStream<I, O> stream, StreamEventHandler handler) {
+	def static <I, O> void setEventHandler(IStream<I, O> stream, StreamEventHandler<I> handler) {
 		stream.onEvent [ notification |
 			switch notification {
-				case next: handler.onNext
-				case pause: handler.onPause
-				case resume: handler.onResume
-				case overflow: handler.onOverflow
-				case close: handler.onClose
+				Overflow<I>: handler.onOverflow(notification.from)
+				case StreamEvents.next: handler.onNext
+				case StreamEvents.pause: handler.onPause
+				case StreamEvents.resume: handler.onResume
+				case StreamEvents.close: handler.onClose
 			}
 		]
 	}
@@ -288,7 +289,7 @@ class StreamExtensions {
 	 * ]
 	 * </pre>
 	 */
-	def static <I, O> void when(IStream<I, O> stream, (StreamEventResponder)=>void handlerFn) {
+	def static <I, O> void when(IStream<I, O> stream, (StreamEventResponder<I>)=>void handlerFn) {
 		val handler = new StreamEventResponder
 		handlerFn.apply(handler)
 		stream.eventHandler = handler
@@ -703,7 +704,7 @@ class StreamExtensions {
 				true
 			} else {
 				// we are dismissing data from processing! report it as overflow
-				stream.apply(StreamEvent.overflow)
+				stream.apply(new Overflow(from))
 				false
 			}
 		] => [ stream.options.operation = 'throttle(period=' + period + ')' ]
@@ -759,7 +760,7 @@ class StreamExtensions {
 				}
 			]
 			close [ stream.close ]
-			overflow [ stream.apply(StreamEvent.overflow) ]
+			overflow [ stream.apply(new Overflow(it)) ]
 		]
 		newStream => [ stream.options.operation = 'ratelimit(period=' + period + ')' ]
 	}

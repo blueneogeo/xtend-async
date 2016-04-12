@@ -3,14 +3,14 @@ package nl.kii.stream
 import nl.kii.async.annotation.Atomic
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 
-class StreamEventResponder implements StreamEventHandler {
+class StreamEventResponder<I> implements StreamEventHandler<I> {
 	
 	@Atomic Procedure1<Void> nextFn
 	@Atomic Procedure1<Void> skipFn
 	@Atomic Procedure1<Void> closeFn
 	@Atomic Procedure1<Void> pauseFn
 	@Atomic Procedure1<Void> resumeFn
-	@Atomic Procedure1<Void> overflowFn
+	@Atomic Procedure1<I> overflowFn
 	
 	// BUILDER METHODS /////////////////////////////////////////////////////////
 
@@ -22,7 +22,7 @@ class StreamEventResponder implements StreamEventHandler {
 		closeFn = handler
 	}
 
-	def overflow((Void)=>void handler) {
+	def overflow((I)=>void handler) {
 		overflowFn = handler
 	}
 	
@@ -44,8 +44,8 @@ class StreamEventResponder implements StreamEventHandler {
 		closeFn?.apply(null)
 	}
 	
-	override onOverflow() {
-		overflowFn?.apply(null)
+	override onOverflow(I from) {
+		overflowFn?.apply(from)
 	}
 	
 	override onPause() {

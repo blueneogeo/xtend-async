@@ -1,6 +1,6 @@
 package nl.kii.stream
 
-interface StreamEventHandler {
+interface StreamEventHandler<I> {
 	
 	def void onNext()
 	
@@ -10,6 +10,6 @@ interface StreamEventHandler {
 
 	def void onResume()
 	
-	def void onOverflow()
+	def void onOverflow(I input)
 	
 }
