@@ -1,365 +1,579 @@
-# xtend-tools
+# XTEND-ASYNC
 
-Some tools and Xtend extensions that make life with the Xtend programming language better:
+Xtend-async provides asynchronous streams, promises and functions to Xtend. It can be used for any Java-based project, but is specifically built to work well with the Xtend language. It has no runtime dependencies apart from the small Xtend Java library and Google Guava.
 
-- @NamedParams: named and optional parameters
-- Options: helps avoid NullpointerExceptions
-- Easy date/time manipulation
-- List operations and shortcuts
-- SL4J Logging wrapper: allows more efficient and compact logging
+Main features:
 
-Note: Promises and Streams have been moved to the xtend-async project. 
+- easy to use, beautiful syntax
+- asynchronous, non-blocking and thread-safe 
+- integrates the concepts of streaming and promising
 
-For more information about the Xtend language: http://www.eclipse.org/xtend/
+Some features are:
 
-## Getting Started
+- lightweight, with no dependencies besides Xtend
+- threadsafe
+- streams and promises are integrated and work with each other and use nearly the exact same syntax
+- support for RX-like batches, which is useful for aggregation.
+- clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
+- streams support back pressure, meaning that you can indicate when a listener is ready to process a next item from a stream
+- internally uses thread-borrowing actor that allows asynchronous coding without requiring a new thread or thread pool
+- streams and promises in xtend-stream encapsulate errors thrown in your handlers and propagate them so you can listen for then. 
+- streams and promises can be hard to debug because they encapsulate errors with long stack traces. Xtend-stream tries to find the root cause and presents it to you directly.
 
-If you use maven or gradle, the dependency is the following:
+# QUICK EXAMPLES
 
-	com.kimengi.util:xtend-tools:3.1-SNAPSHOT
+## Asynchronously loading 1000 users in parallel
 
-Note: currently this library is not yet on MavenCentral.
+…but only 3 at the same time!
 
-## NamedParams
+	val userIds = 1..1000 // users to load from db
 
-A drawback in both Java and Xtend is that constructors and methods can have a lot of parameters, which are then often replaced by setters. However that means a lot of new properties, and you lose immutability.
+	userIds.distribute(3) [ id | db.loadUser(id) ]
+		.then [ users | assertEquals(1000, users.length) ]
 
-By using the @NamedParams Active Annotation, you can set your parameters using a closure.
+This will allow 3 loadUser processes in parallel, but will not start new threads by itself.
 
-### The Problem
+It is synonymous for:
 
-For example, you have this existing User constructor:
+	val userIds = 1..1000 // users to load from db
 
-	new(String name, String owner, int age, int duration, boolean isActive, boolean isAdmin) {
-		// some init code
-	}
+	userIds.stream
+		.map [ id | db.loadUser(id) ]
+		.resolve(3)
+		.collect
+		.then [ users | assertEquals(1000, users.length) ]
 
-Calling it is a pain:
+The thing to take away here is that loadUser is an asynchronous, non blocking method. In this example it has a signature of:
 
-	// what does each parameter mean?
-	new User(‘John’, ‘Mary’, 40, 235, true, false)
+	def Promise<User> loadUser(id)
 
-So you may make a shortcut constructor:
+Calling this method returns immediately the promise. It might be part of an object that manages its own thread pool. The async stream library does not care. It simply listens for these promises and resolves at most 3 at a time. And when all are resolved, a promise of a List<User> is returned, which can then be listened and responded to.
 
-	// an extra constructor for most cases
-	new(String name, int age) {
-		this(name, null, age, 10, true, false)
-	}
+## Normal Stream Processing Examples
 
-All a lot of work, especially if more that one parameter is optional. Also, the null is dangerous. You would prefer to use an Optional type here, but setting that is more work.
+Non-blocking collecting:
 
-### Using @NamedParams
+	#[1, 2, 3].stream
+		.map [ it * 2 ]
+		.collect
+		.then [ assertEquals(#[2, 4, 6], it) ]
 
-@NamedParams can be used for both methods and constructors. This is how you can implement the above long constructor:
+Streaming the numbers on demand, not all in memory:
 
-	@NamedParams
-	new(String name, Opt<String> owner, Integer age, @I(10) int duration, @B(true) boolean isActive, @B(false) boolean isAdmin) { 
-		// some init code
-	}
+	(1..1_000_000).stream
+		.filter [ it % 2 == 0 ] // only even numbers
+		.count
+		.then [ assertEquals(500_000, it) ]
 
-In short, you annotate it with @NamedParams, and use annotations  for parameters to indicate if they have a default value or if they are options. Nothing may be null.
+Streaming after creation of the stream:
 
-The default annotations are:
+	val s = int.stream
+	s
+		.onFinish [ println('done!') ]
+		.onEach [ println(it) ]
+	s << 1 << 2 << finish // prints 1 2 done!
 
-- @I(defaultValue) for int and Integer
-- @B(defaultValue) for boolean and Boolean
-- @L(defaultValue) for long and Long
-- @D(defaultValue) for double and Double
-- @S(defaultValue) for String
+Cutting off a stream:
 
-The @NamedParams method creates some extra methods for you in the class, along with a parameters class.
+	(1..1_000_000_000).stream
+		.until [ it > 1000 ]
+		.count
+		.then [ assertEquals(1000, it) ]
 
-You can then use it like this:
+Flow control:
 
-	new User [ 
-		name = ‘John’
-		admin = ‘Mary’
-		age = 40
-		duration = 235
-		active = true
-		admin = false
+	val s = #['John', 'Mary'].stream
+	s.onEach [ name, stream |
+		// ask for the next only after the user is saved
+		saveUserAsync(name) [ stream.next ]
 	]
 
-Notice that you can set the admin property directly as a String, using a setter method on the closure. It will set the option for you.
+## Print all lines with 'Joe' in a file
 
-You can also call the constructor like this:
+	new File('example.txt')
+		.stream
+		.toText
+		.filter [ contains('Joe') ]
+		.onEach [ println(it) ]
 
-	new User [
-		name = ‘John’
-		age = 40
-	]
+## Copy a file
 
-Now admin will be None<String>, duration will be 10, active will be true, and admin will be false.
+	new File('example.txt').stream
+		.writeTo(new File('copy.txt'))
 
-If you fail to set name or age, you will get a NullPointerException at runtime, before your constructor is called.
+## Copy all lines containing Joe to another file
 
-#### Pinning a Parameter
+	new File('example.txt')
+		.stream
+		.toText
+		.filter [ contains('Joe') ]
+		.toBytes
+		.writeTo(new File('filtered.txt'))
 
-To use a method as an extension method, you need the first parameter to be fixed. For example:
+## Async Processing Example
 
-	def static save(Database db, String key, Role role, Security security) { … }
-
-Which can then be called like this:
-
-	db.save(key, role, security)
-
-If you were to add the @NamedParams method here, you would not be able to call it as an extension with the closure.
-
-What you want is to “pin” the first parameter to the method. You can do this with the @Pin annotation.
-
-	@NamedParams
-	def static save(@Pin Database db, String key, Role role, Security security) { … }
-
-Now you can use it like an extension:
-
-	db.save [ key = … role = … security = …	]
-
-## Option Programming
-
-	import static extension nl.kii.util.OptExtensions.*
-	import static extension nl.kii.util.*
-
-A problem in Java is catching NullPointerExceptions. You end up with a lot of NullPointerException checks, or with code that throws one while your program runs. Languages like Scala use the idea of an Option to solve this. It forces you to catch these errors at compile time. By marking something an Opt<T> instead of a T, you are saying that the result is optional, and that the programmer should handle the case of no result.
-
-The interface of Opt<T> is very simple:
-
-https://github.com/blueneogeo/xtend-tools/blob/master/src/main/java/nl/kii/util/Opt.xtend
-
-#### Opt, Some, None, Err
-
-An Opt<T> can be a Some<T>, None<T> or Err<T>. If it is a Some, you can use the value method to get the value. The option extensions let you create an option from a value really easily. For example:
-
-	import static extension nl.kii.util.OptExtensions.*
-	…
-	val o = new Some(12)
-	o.value == 12 // true
-
-	some(12).value == 12 // extension shortcut
-	12.option.value == 12 // extension shortcut
-
-#### .option and .or Extensions
-
-The .option extension also works on null values. This allows you to wrap calls that can return null into options. For example, say that you have a method:
-
-	def User getUser(long userId) { … } // may return null
-
-You can then either choose to alter the method itself:
-
-	def Opt<User> getUser(long userId) {
-		.. original code ..
-		return user.option
+	def loadWebpageInBackground(URL url) {
+		val loaded = new Promise<Webpage>
+		someHttp.loadAsync(url) [ page | loaded.apply(page) ]
+		return loaded
 	}
 
-Or if this is impractical, wrap it when you make the call:
+	val stream = new Stream<URL>
+	stream
+		.map [ loadWebpageInBackground ]
+		.resolve(2) // max two async processes in parallel
+		.onEach [ webpage | println(webpage.content) ]
 
-	val Opt<User> result = getUser(userId).option
+	stream << new URL('http://www.cnn.com') << new URL('http://www.theverge.com') << .. etc. << finish
 
-All this becomes useful when you use it as the result of a function:
+The loadWebpageInBackground method returns a promise of a webpage for a given url. The stream code then uses that method to set up a pipeline that allows you to push in URLs, which get mapped to a stream of webpage promises, which then get resolved into a stream of webpages, which in turn get printed.
 
-	val user = getUser(12).or(defaultUser)
+## Non-blocking Aggregation Example
 
-Here findUser returns an Opt. The .or extension method gives either the found value, or if there is no value, a default. There is also one that executes a closure:
+Instead of having aggregation such as stream.count and stream.collect block the thread, these streams use finish markers to indicate the end of a stream of data.
 
-	val user = findUser(12).or [ loadDefaultUser() ]
+	val stream = int.stream
+	stream.collect.then [ println('got list: ' + it) ]
 
-These can also be chained:
+	stream << 1 << 2 << 3 << finish
 
-	val user = findUser(12)
-		.or [ findUser(defaultUserId) ]
-		.orThrow [ new Exception('help!') ]
+This will print: 
 
-#### Attempt
+	got list [1, 2, 3]
 
-With attempt, you can catch errors, much like when you perform a try/catch. However the difference is that attempt will not throw an Exception, but instead will return an Err, None or Some(value), depending on what happened when executing the passed function.
+## Stream Segmentation Example
 
-	val Opt<User> user = attempt [ findUser(id) ]
+You can easily split a stream into multiple blocks for aggregation using the .split method:
 
-#### Conditional Processing
+	#[1, 2, 3, 4, 5].stream
+		.split [ it % 2 == 0 ]
+		.collect
+		.onEach [ println(it) ]
 
-To perform conditional processing (user is an Opt<User>):
+This will print:
 
-	ifSome(user) [ ..do something with the user.. ]
+	[1, 2]
+	[3, 4]
+	[5]
 
-#### Optional Mapping
+# PROMISES
 
-To map a value that may not exist:
+Promises are a bit like Futures, they represent a promise of a value in the future. This allows you to think of that value as if you already have it, and describe what should happen to it when it arrives. Promises come into their own with asynchronous programming.
 
-	val Opt<Integer> age = user.mapOpt [ it.age ] // user is an  Opt<User>
+## Importing the Extensions
 
-This is just a selection. For more extensions, check the source of OptExtensions.xtend:
+Importing the promise extensions, Promise and Task:
 
-https://github.com/blueneogeo/xtend-tools/blob/master/src/main/java/nl/kii/util/OptExtensions.xtend
+	import static extension nl.kii.promise.PromiseExtensions.*
+	import nl.kii.promise.Promise
+	import nl.kii.promise.Task
 
-## Easy Date Manipulating
+## Creating a Promise
 
-	import static extension nl.kii.util.DateExtensions.*
+Creating a promise, telling what to do when it is fulfilled, and then fulfilling the promise:
 
-Date manipulation becomes very natural with these extensions, since they overload the common operators + - < <= > and =>. Some code examples:
+	val p = new Promise<Integer>
+	p.then [ println('got value ' + it) ]
+	p.set(10)
 
-	// does what it says:
-	println(now + 4.mins + 2.secs)
+The same, but using the extensions for nicer syntax:
 
-	// easily calculate moments and periods
-	val Date yesterday = now - 24.hours
-	val Date tomorrow = now + 1.days
-	val Date in1Hour = now + 1.hour
-	val Period oneHour30Minutes = 1.hour + 30.mins
+	val p = int.promise
+	p.then [ println('got value ' + it ]
+	p << 10
 
-	// calculate newest and oldest between values
-	println(newest(tomorrow, in1Hour, yesterday)) // prints the value of tomorrow
-	println(oldest(tomorrow, in1Hour)) // prints the value of in1Hour
+## Mapping
 
-	println((now - yesterday).days) // prints 1
-	println(now > yesterday) // prints true
-	println(2.mins.secs) // prints 120
-	
-## List Operations
+You can transform a promise into another promise using a mapping:
 
-	import static extension nl.kii.util.IterableExtensions.*
+	val p = 4.promise
+	val p2 = p.map [ it+1 ]
+	p2.then [ println(it) ] // prints 5
 
-Lists have been augmented with Opt and attempt operations as well: (silly example!)
+## Handling Errors
 
-	api.getUsers()
-		.attemptMap [ ..do something that may throw an exception.. ]
-		.mapOpt [ userName ] // get the usernames, only if there is a value
-		.filterEmpty // removes the errors
-		.count // count how often each name occurs: List<Pair<String, Int>>
-		.toMap // becomes Map<String, int>
-		.toPairs // back to List<Pair<String, Int>>
-		.each [ println('name:' + key) ]
-		.each [ println('occurrence:' + value) ]
-		.map [ value ] // getting just the occurrences
-		.avg // average the occurrences
+If the handler has an error, you can catch it using .on(errorType) [ ]:
 
-As you can see, the difference between the standard List.forEach in Xtend and List.each here is that you can chain it.
+	val p = 0.promise
+	p.on(Exception) [ println('got exception ' + it) ]
+	p.then [ println(1/it) ] // throws /0 exception
 
-See for more operations IterableExtensions.xtend:
+A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them.
 
-https://github.com/blueneogeo/xtend-tools/blob/master/src/main/java/nl/kii/util/IterableExtensions.xtend
+	val p = 0.promise
+	val p2 = p.map[1/it] // throws the exception
+	val p3 = p2.map[it + 1]
+	p3.on(Exception) [ println('got error: ' + message) ]
+  p3.then [ println('this will not get printed') ]
 
-#### List Operator Overloading
+In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
 
-You can perform each with an overload:
+## Tasks
 
-	users.each [ … ]
+Tasks are simply an extension of Promise<Boolean>, and represent a task to complete, without a result. To complete a task, you can call Task.complete().
 
-You can also add to a list with an overload:
+# STREAMS
 
-	list.add(3)
-	list.add(5)
-	list << 3 << 5 // almost the same thing
+Streams are like queues that you can listen to. You can push values in, and listen for these incoming values. Like with Promises, you can use operations on streams to transform them. The usage of a stream is almost identical to a promise.
 
-What is different is that the overload either calls List.add or IteratorExtensions.safeAdd, depending on whether the list is immutable. If it is immutable, it will perform an immutable add.
+## Importing the Extensions
 
-This means that if your list is immutable, you have to catch the result:
+Importing the stream extensions:
 
-	// Integer.string creates an immutable list
-	val list = Integer.string
-	val list2 = list << 2 << 5 // catch result in list2
+	import static extension nl.kii.stream.StreamExtensions.*
 
-Often you can also reverse the direction. For example, this has the same result:
+## Creating a Stream
 
-	2 >> list // results in a longer list
-	list << 2 // same
-	
-	list >> [ println(it) ] // print each item in the list
-	[ println(it) ] << list // same
+Creating a stream, telling how to respond to it, and passing some values to it:
 
-## Logging
+	val s = new Stream<Integer>
+	p.forEach [ println('got value ' + it) ]
+	s.push(1)
+	s.push(2)
+	s.push(3)
 
-	import static extension nl.kii.util.LogExtensions.*
-	import static extension org.slf4j.LoggerFactory.*
-	import nl.kii.util.Log
+This will print:
 
-You can use the logging wrapper like this:
+	got value 1
+	got value 2
+	got value 3
 
-	class MyClass {
-		extension Log logger = class.logger.wrapper
+The same, but using the extensions for nicer syntax:
 
-		def someFunction() {
-			debug['minor implementation detail']
-			info['something happened!']
-			warn['watch out!']
-			error['crashed!']
-		}
-	}
+	val s = int.stream
+	s.each [ println('got value ' + it ]
+	s << 1 << 2 << 3
 
-The lambda expression/function will only be called if necessary, which helps performance.
+The syntax for handling incoming items is the same as iterating through Lists. The difference is that with streams, the list never has to end. At any time you can push a new item in, and the handler will be called again.
 
-#### Logger Naming
+You can also create a stream from a list:
 
-You can also add a name to the logger when you create it:
+	val s = #[1, 2, 3].stream
 
-	extension Log logger = class.logger.wrapper('somename')
+Or from any Iterable in fact:
 
-When you do this, this message will be put in front of every log statement made by this logger. This can be handy when you want to distinguish easily between types of messages in your log.
+	(1..1_000_000).stream
+		.onFinish [ println(‘that took a while’) ]
+		.onEach [ println(it) ]
 
-#### Logging List Results
+Note that we are actually not dumping a million numbers into the stream and then processing it. What actually happens is that each number goes down the stream once, and then onEach asks for the next number, etc.
 
-Sometimes you have a list of things that you want to log. A common pattern is to do something like:
+## Mapping
 
-	api.getUsers(condition).each [
-		val user = it
-		info ['found user ' + user ]
-		.. perform more code ..
-	]
+You can transform a stream into another stream using a mapping, just like you would with Lists:
 
-This pollutes your code with side effects (logging). A better alternative would be:
+	#[1, 2, 3].stream
+		.map [ it+1 ]
+		.onEach [ println(it) ] // prints 2, 3 and 4
 
-	api.getUsers(condition)
-		.each [
-			val user = it
-			info ['found user ' + user ]
-		]
-		.each [
-			.. perform more code ..
+## Filtering
+
+Sometimes you only want items to pass that match some criterium.  You can use filter for this, just like you would with Lists:
+
+	#[1, 2, 3].stream
+		.filter [ it < 3 ]
+		.onEach [ print(it) ] // prints 1 and 2
+
+## Handling Errors
+
+If the handler has an error, you can catch it using .on(Throwable):
+
+	#[1, 0, 2].stream
+		.on(Exception) [ println('got exception ' + it) ]
+		.onEach [ println(1/it) ] // throws /0 exception
+
+A nice feature of handling errors this way is that they are wrapped for you, so you can have a single place to handle them. This works for both streams and promises.
+
+	0.promise
+		.map[1/it] // throws the exception, 1/0
+		.map[it + 1] // some code to demonstrate the exception is propagated
+		.on(Exception) [ println('got error: ' + message) ]
+		.then [ println('this will not get printed') ]
+
+In the above code, the mapping throws the error, but that error is passed down the chain up to where you listen for it.
+
+## Controlling a Stream
+
+If you end a stream chain with .onEach [ .. ], this will automatically ask the source of the stream for a new value every time the closure processed the last value.
+
+However you can also control when the next item can be streamed, by using stream.on:
+
+	(1..10).stream
+		.on [
+			each [ println(it) stream.next ]
+			error [ println(‘error:’ + it) stream.next ]
+			finish [ println(‘finished!’) stream.next ]
+			closed [ println(‘stream closed’) ]
 		]
 
-Since this is a common pattern, here is a shortcut:
+As you see here we need to manually call stream.next when we get a value, otherwise the stream will simply never push the next value. This control is useful if you want to implement your own back-pressure.
 
-	api.getUsers(condition)
-		.info(logger)
-		.each [ .. perform more code .. ]
+See the StreamExtensions source for examples of this. The stream extensions are built on this mechanism.
 
-Optionally, you can also pass a logging message:
-	api.getUsers(condition)
-		.info('found users:', logger)
-		.each [ .. perform more code .. ]
+## Observing a stream with multiple listeners
 
-#### Logger Functions
+A stream can only be listened to by a single listener. This keeps flow control predictable and the streams light. However you can wrap a stream into an Observable<T> by calling stream.observe. You can then listen with multiple listeners:
 
-You can also log like this:
+	val s = int.stream
+	val observable = s.observe // now we can listen more often
+	observable.onChange [ println('first listener got value ' + it) ]
+	observable.onChange [ println('second listener got value ' + it) ]
+	s << 1 << 2 << 3 // will trigger both listeners above for each value
 
-	api.getUsers(condition)
-		.each(info)
-		.each [ .. perform some code .. ]
+The Observable.onChange method returns a closure that you can call to stop listening:
 
-Here, info actually is a function that produces a function that gets called by each. It looks cleaner with the operators described below:
+	val stop = observable.onChange [ ... ]
+	...
+	stop.apply // stops the listener from responding
 
-	api.getUsers(condition) >> info >> [ .. perform some code .. ]
+# COMBINING STREAMS AND PROMISES
 
-Here too, you can add a message:
+## From a Stream<T> to a Promise<T>
 
-	api.getUsers(condition) >> info('found user:') >> [ .. perform some code .. ]	
+To convert a stream into a promise, you can use stream.first() to promise the first entry from a stream. Often you want to do this when aggregating a stream.
 
-Note that in this case, the message is put in front of every user.
+	val Promise<Integer> promise = #[1, 2, 3].stream.average.first // promises 2
 
-Note: the logger functions only work if you have the "extension Log logger = class.logger.wrapper" line in your class.
+## From Promise<List<T>> to a Stream<T>
 
-#### Printing
+You can create an asynchronous stream from a list promise. For example:
 
-If you don't want to log but just want to print, You can perform the same thing as above with printEach, which just prints all in the list, and returns the list, so you can keep processing the flow.
+	val promise = new Promise<List<Integer>>
+	promise.stream.onEach [ println(it) ]
+	promise.set(#[1, 2, 3]) // prints 1 2 and 3 on seperate lines
 
-	// via list extension method
-	#['Jane', 'Mark'].printEach
-	#['Jane', 'Mark'].printEach('celebrities:')
+## @Async Functions
 
-	// via printEach lambda
-	#['Jane', 'Mark'] >> printEach
-	#['Jane', 'Mark'] >> printEach('celebrities:')
+The strength of streams comes out best using asynchronous programming. In asynchronous programming, when you call a function, it is executed directly, and this function is executed on another thread or moment. The result from the function is returned later.
 
-	// chaining example
-	#[1, 2, 3] 
-	>> printEach('inputs')
-	>> [ it * 2 ]
-	>> printEach('doubled')
+A promise is a great way to represent this, using promise functions:
+
+	def Promise<String> loadWebpage(String url) {
+		val result = String.promise
+		... code that loads webpage, and calls result.set(webpage)
+		result
+	}
+
+To simply print a webpage, you can then do this:
+
+	loadWebpage('http://cnn.com')
+		.then [ println(it) ]
+
+The nice thing about promise functions is that they allow you to  reuse asynchronous code. Since this is a common pattern, there is an @Async Active Annotation that helps you write this code. For example:
+
+	@Async def loadWebpage(String url, Promise<String> result) {
+		... code that loads webpage, and calls result.set(webpage)
+	}
+
+This syntax makes it clear on the first line that this is an asynchronous function, and it makes sure the promise is returned at the end.
+
+You can then call this async function like before:
+
+	loadWebpage('http://cnn.com')
+		.then [ println(it) ]
+
+The @Async annotation creates a loadWebpage(String url) function, creates the promise, calls your function, then returns the promise. It also catches any exceptions and reports them to the promise, and makes sure the promise is always returned.
+
+You can also have an async function execute on a threadpool or other Executor like this:
+
+	import static java.util.concurrent.Executors.*
+	...
+	val exec = newCachedThreadPool
+	exec.loadWebpage('http://cnn.com')
+		.then [ println(it) ]
+
+This is possible because the @Async active annotation also creates a version of your method that takes an Executor as the first parameter, and executes the task or promise on the executor.
+
+
+## Using Promise Functions in Streams
+
+If you want to load a whole bunch of URL's, you can create a stream of URL's, and then process these with the same promise function:
+
+	val urls = String.stream
+	urls
+		.map [ loadWebpage ] // results in a Stream<Promise<String>
+		.resolve // results in a Stream<String>
+		.then [ println(it) ] // so then we can print it
+	urls << 'http://cnn.com' << 'http://yahoo.com'
+
+The mapping first takes the url and applies it to loadWebpage, which is a function that returns a Promise<String>. We then have a Stream<Promise<String>>. You can then use the resolve function to resolve the promises so you get a Stream<String>, a stream of actual values.
+
+Say that you want to have the above loadWebpage calls run on a thread pool because they are blocking or slow. In that case, you only need a small change:
+
+	import static java.util.concurrent.Executors.*
+	...
+	val exec = newCachedThreadPool
+	val urls = String.stream
+	urls
+		.map [ exec.loadWebpage ] // results in a Stream<Promise<String>
+		.resolve // results in a Stream<String>
+		.then [ println(it) ] // so then we can print it
+	urls << 'http://cnn.com' << 'http://yahoo.com'
+
+The above code will execute on the exec threadpool the loadWebpage calls, one by one. The .resolve call controls how the calls are resolved. If for example you want a maximum of three calls to take place in parallel, you can change .resolve into .resolve(3).
+
+# BATCHES AND AGGREGATION
+
+## Entry
+
+Streams and promises actually do not process and pass just values, they process Entry<T>'s. An entry can be:
+
+- a Value<T>, listen to by using .onEach [ ]
+- a Finish<T>, listen to by using .onFinish [ ]
+- or an Error<T>, listen to by using .onError [ ]
+
+Values and errors you've seen, onFinish is new. You use a finish to indicate the end of the values that have been passed so far (much like RXJava's complete). This is necessary if you want to pass batches of data through a stream. Consider finish the separator between these batches.
+
+## Counting
+
+Quite often, you will want to take a stream of values, and do some aggregation on them, such as counting them.
+
+The stream extensions have some of these reductions built-in, and you can easily add your own as well. For example, to count the amount of values coming down the stream:
+
+	val s = char.stream
+	s.count.then [ println('counted ' + it + ' chars') ]
+	s << 'a' << 'x' << 'c' << finish
+
+Note that counts takes a lambda instead of directly returning a value. This is because counting may not be finished when .count is called, new values may still arrive.
+
+So when does count know that it is finished? Here the finish command comes in. The count function uses the finish to know it has come to the end of the batch.
+
+## Other Aggregations
+
+Other supported aggregation functions are: 
+
+- avg : gives the average of all numbers in a batch
+- sum: sum of all numbers in a batch
+- collect: create a list of a batch
+- anyMatch: true when any entry matches a criteria
+- allMatch: true only when all entries match a criterium
+- reduce: custom aggregation
+
+## Splitting and Merging
+
+It is possible to split a stream multiple times. For example, say we have a stream of the numbers 1 to 10:
+
+	val s = (1..10).stream // produces stream 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, finish(0)
+
+Notice how this already produces a finish at the end, of the lowest level. This means you can collect it, since it ends with a finish(0).
+
+Now lets split it into batches of 4:
+
+	val s2 = s.split [ it%4==0 ] // produces stream 1, 2, 3, 4, finish(0), 5, 6, 7, 8, finish(0), 9, 10, finish(0), finish(1)
+
+Now if you collect it, you get two lists, because each ends with a finish(0):
+
+	val s3 = s2.collect // produces stream #[1,2, 3, 4], #[5, 6,7, 8], #[9, 10], finish(0)
+
+As you see, by collecting, we 'consumed' a split/finish level. The finish(0)'s were used to determine the batches, and those were removed and replaced with the lists. The finish(1) was reduced back into a finish(0). This means that we can collect again to get a list of a list:
+
+	val s4 = s3.collect // produces stream #[ #[1, 2, 3, 4], #[5, 6, 7, 8], #[9, 10] ]
+
+If we want to collect this value from s4, we can get the first entry from the stream using Stream.first(), which produces a Promise of the first value. We can then use .then [ ] on the promise to do something with it.
+
+	s4.first.then [ println(it) ] // prints  [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10] ]
+
+Since this is a common pattern, there is a shortcut:
+
+	s4.then [ println(it) ] // same result as above
+
+The reverse of split is merge. For example:
+
+	val s = int.stream << 1 << 2 << 3 << 4 << finish(0) << 5 << 6 << 7 << 8 << finish(0) << 9 << 10 << finish(0) << finish(1)
+	val s2 = s.merge // produces stream 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, finish(0)
+
+## File Operations
+
+You can create a Stream<List<Byte>> out of a Java File or any Java OutputStream. Once you have a Stream<List<Byte>> you can use StreamExtensions.writeTo to write it to any output stream or file.
+
+For example, to copy a file:
+
+	val source = new File('source.txt')
+	val destination = new File('destination.txt')
+
+	source.stream.writeTo(destination)
+
+In order to process it as text, the toText method takes a Stream<List<Byte>> and converts it into a Stream<String>. Each string is a text line. This allows you to easily process per line of text. The reverse is toBytes, which converts from text lines to byte lists.
+
+For example, to copy only the lines in the file that contain the word 'hello':
+
+	source.stream
+		.toText	// now we have lines of text
+		.filter[contains('hello')] // only allow lines with hello
+		.toBytes // now we have byte lists again
+		.writeTo(destination)
+
+Since streams are so generic, writing any text to disk is now very simple and automatically buffered:
+
+	#['hello', 'second line', 'third and done'].stream
+		.toBytes.writeTo(new File('text.txt'))
+
+# EXTENDING XTEND-STREAM
+
+The following part describes how Streams use flow control internally. This is useful to know if you want to write your own extensions. I recommend you use Promises in most cases, since that gives you automatic flow control.
+
+In order not to clutter the namespace, extensions that use the stream flow control functions must be packaged in package nl.kii.stream.
+
+I recommend you have a look at the PromiseExtensions and StreamExtensions source code as an example.
+
+## FLOW CONTROL
+
+Xtend streams let you control how fast listeners get new data. This is useful when you have heavy asynchronous processes. If you had no way to queue the data coming in, these would be overwhelmed.
+
+Consider the following situation:
+
+	def Promise<Boolean> emailUser(int userId) { ... }
+	(1..10000).stream.onEach [ emailUser ]
+
+The second line would call emailUser, which is an asynchronous functions which returns immediately. So, if a thread pool is being used by the async function, 10000 thread processes are started in parallel!
+
+### Using Stream.next
+
+In order to tell a stream that you want to control it, you can use a different handler version:
+
+	(1..10000).stream.onEach [ it, subscription |
+		emailUser.then [ subscription.next ]
+	]
+
+Here, only a single user will be emailed at the same time. This is because the two-parameter version of forEach does not automatically start streaming everything. Instead, it passes you the stream as well, and only passes you the first entry from the stream. It then stops, until you call stream.next.
+
+### Using Stream.resolve
+
+A nice feature of the Stream.resolve function discussed earlier is, that it calls next for you. So instead of the code above, you could also write:
+
+	(1..10000).stream.map[emailUser].resolve.then [ ... ]
+
+You can also indicate that you want asynchronous concurrency by passing how many concurrent processes you want to allow:
+
+	(1..10000).stream.map[emailUser].resolve(3).then [ ... ]
+
+### Using Stream.skip   
+
+Sometimes a stream can be very large, but you might only need a few items from a batch. You can call stream.skip to tell the stream that it can skip processing the rest of the batch. (it will start again when the next batch arrives).
+
+For example:
+
+	val s = int.stream << 1 << 2 << 3 << finish << 1 << 5 << finish
+	s.onEach [ it, subscription |
+		if(it > 2) subscription.skip else print(it)
+		stream.next
+	]
+
+The above code will print 121. It will first stream 1 and 2, then skip to the finish at 3, then print 1 and skip again at 5.
+
+StreamExtensions.until [] uses this mechanism and is usually easier than implementing your own:
+
+	// only print the first 10
+	(1..10000).stream.until[it > 10].onEach[println(it)]
+
+### Alternative Syntax
+
+Just like the .on [] syntax earlier, you can do a similar thing for flow control:
+
+	(1..1000).stream.onAsync [ s |
+		s.each [ println(it); s.next ]
+		s.error [ println('got error ' + it); s.next ]
+		s.finish [ println('we are done!'); s.next ]
+	]
+
+As you see here we must call s.next on s (which is an AsyncSubscription) in order to get a next value from the stream.
