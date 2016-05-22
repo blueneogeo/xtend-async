@@ -1,3 +1,3 @@
 include 'annotations'
 include 'core'
-include 'test'
+include 'rx'

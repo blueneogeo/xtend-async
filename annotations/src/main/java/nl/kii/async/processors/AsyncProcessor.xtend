@@ -12,8 +12,7 @@ import org.eclipse.xtend.lib.macro.declaration.TypeReference
 class AsyncProcessor extends AbstractMethodProcessor {
 
 	def boolean isPromiseType(TypeReference type) {
-		type.simpleName.startsWith('IPromise') ||
-		type.simpleName.startsWith('Promise') ||
+		type.simpleName.startsWith('Input') ||
 		type.simpleName.startsWith('Task')
 	}
 
@@ -34,8 +33,9 @@ class AsyncProcessor extends AbstractMethodProcessor {
 		method.declaringType.addMethod(method.simpleName) [
 			primarySourceElement = method
 			// copy properties
-			if(!method.typeParameters?.empty)
+			if(!method.typeParameters?.empty) {
 				method.addError('Currently type parameters are not supported for @Async, because Xtend Active Annotation do not fully support typed parameters')
+			}
 			for(typeParameter : method.typeParameters) {
 				addTypeParameter(typeParameter.simpleName, typeParameter.upperBounds)
 			}
@@ -48,11 +48,11 @@ class AsyncProcessor extends AbstractMethodProcessor {
 			// find the promise/task parameter and add the other parameters to the new method
 			val promise = new AtomicReference<MutableParameterDeclaration>
 			for(parameter : method.parameters) {
-				if(
-					parameter.type.simpleName.startsWith('Promise') ||
-					parameter.type.simpleName.startsWith('Task')
-				) promise.set(parameter)
-				else addParameter(parameter.simpleName, parameter.type)
+				if(parameter.type.isPromiseType) {
+					promise.set(parameter)
+				} else {
+					addParameter(parameter.simpleName, parameter.type)
+				}
 			}
 			// we must have found at least one task or promise to return
 			if(promise.get == null) {
@@ -92,11 +92,11 @@ class AsyncProcessor extends AbstractMethodProcessor {
 			// find the promise/task parameter and add the other parameters to the new method
 			val promise = new AtomicReference<MutableParameterDeclaration>
 			for(parameter : method.parameters) {
-				if(
-					parameter.type.simpleName.startsWith('Promise') ||
-					parameter.type.simpleName.startsWith('Task')
-				) promise.set(parameter)
-				else addParameter(parameter.simpleName, parameter.type)
+				if(parameter.type.isPromiseType) {
+					promise.set(parameter)
+				} else {
+					addParameter(parameter.simpleName, parameter.type)
+				}
 			}
 			// we must have found at least one task or promise to return
 			if(promise.get == null) {

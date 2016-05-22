@@ -3,7 +3,7 @@ buildscript {
   repositories {
     jcenter()
     maven {
-      url 'https://plugins.gradle.org/m2/'
+      url "https://plugins.gradle.org/m2/"
     }
     maven {
       url "${artifactory_url}/plugins-release"
@@ -12,19 +12,19 @@ buildscript {
         password artifactory_password
       }
     }
+    mavenCentral()
   }
 
   dependencies {
-    classpath 'org.xtext:xtext-gradle-plugin:1.0.2'
-    classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:3.0.3'
+    classpath "org.xtext:xtext-gradle-plugin:1.0.2"
+    classpath "com.netflix.nebula:gradle-extra-configurations-plugin:3.0.3"
   }
 }
 
 
-// CONFIGURE ALL SUBPROJECTS ///////////////////////////////////////////////////
+// CONFIGURE PROJECTS ///////////////////////////////////////////////////
 subprojects {
   apply plugin: 'eclipse'
-  apply plugin: 'nebula.provided-base'
   apply plugin: 'java'
   apply plugin: 'org.xtext.xtend'
   apply plugin: 'maven-publish'
@@ -54,8 +54,14 @@ subprojects {
     }
   }
 
+  configurations {
+      javaflow
+  }
+
   dependencies {
     compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
+    compile "org.slf4j:slf4j-api:${slf4jVersion}"
+    testCompile "ch.qos.logback:logback-classic:${logbackVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
 
@@ -76,10 +82,6 @@ subprojects {
   }
 
   task install( dependsOn: publishToMavenLocal )
-
-  jar {
-    baseName rootProject.name + '-' + project.name 
-  }
 
   jacoco {
     toolVersion = '0.7.6.201602180812'
@@ -102,7 +104,7 @@ subprojects {
           asNode().dependencies.'*'.each() {
             it.scope*.value = 'compile'
           }
-        }     
+        }
       }
     }
     repositories {
@@ -117,19 +119,22 @@ subprojects {
   }
 }
 
-project( 'core' ) {
+project('annotations') {
+}
+
+project('core') {
   dependencies {
-    compile project( ':annotations' )
+    compile project(':annotations')
     compile 'com.kimengi.util:xtend-tools-core:latest.release'
     testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
   }
 }
 
-project( 'test') {
+project('rx') {
   dependencies {
-    compile project( ':core' )
-    compile "junit:junit:${junitVersion}"
+    compile project(':core')
+    compile 'io.reactivex:rxjava:1.1.3'
     testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
   }
+  
 }
-
