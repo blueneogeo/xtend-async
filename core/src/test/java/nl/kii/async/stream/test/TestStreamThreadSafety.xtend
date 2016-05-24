@@ -18,7 +18,7 @@ class TestStreamThreadSafety {
 	@Test
 	def void testSynchronizedStream() {
 		val threads = 100
-		val iterations = 10_000
+		val iterations = 50_000
 
 		// create a stream we will just dump data into		
 		val input = new Sink<Integer> {
@@ -30,7 +30,7 @@ class TestStreamThreadSafety {
 			.synchronize
 			.effect [ counter = counter + 1 ]
 			.count
-			.then [ println('got count ' + it) ]
+			// .then [ println('got count ' + it) ]
 		// create a bunch of threads that push values in
 		val latch = new CountDownLatch(threads)
 		for(thread : 1..threads) {
@@ -56,7 +56,7 @@ class TestStreamThreadSafety {
 	@Test
 	def void testStreamWithAsyncCall() {
 		val threads = 10
-		val iterations = 10_000
+		val iterations = 50_000
 
 		// create a stream we will just dump data into		
 		val input = new Sink<Integer> {
@@ -65,7 +65,6 @@ class TestStreamThreadSafety {
 		}
 		// listen on the output and count the results
 		input
-			.synchronize // for the multiple threads pushing in
 			.perform [ executor.promise [ ] ]
 			.synchronize // for the executors pushing in
 			.effect [ counter = counter + 1 ]

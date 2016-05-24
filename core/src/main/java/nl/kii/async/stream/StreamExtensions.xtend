@@ -3,6 +3,7 @@ package nl.kii.async.stream
 import com.google.common.collect.Queues
 import java.util.Iterator
 import java.util.List
+import java.util.Map
 import java.util.Queue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -13,6 +14,8 @@ import nl.kii.async.Observer
 import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
+import nl.kii.async.annotation.MultiThreaded
+import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Unsorted
 import nl.kii.async.promise.Deferred
 import nl.kii.async.promise.Promise
@@ -23,12 +26,8 @@ import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.IterableExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-import java.util.Map
-import nl.kii.async.annotation.NoBackpressure
-import nl.kii.async.annotation.MultiThreaded
-import nl.kii.async.annotation.Threadsafe
 
-class StreamExtensions {
+final class StreamExtensions {
 
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
 
@@ -505,70 +504,72 @@ class StreamExtensions {
 	// BUFFERING ///////////////////////////////////////////////////////////////////////////////
 	
 	/**
-	 * Adds a threadsafe buffer to the stream. Usually this is placed at the top of the stream, so
+	 * Adds a buffer to the stream. Usually this is placed at the top of the stream, so
 	 * everything in the chain below it gets buffered. When the chain cannot keep up with the data
 	 * being thrown in at the top, the buffer will call pause on the stream and disregard any
 	 * incoming values. When next is called from the bottom to indicate the stream can process again,
 	 * the stream will resume the input and process from the buffer.
 	 */
-	@Cold @Backpressure @Threadsafe
+	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> buffer(Stream<IN, OUT> stream, int maxSize) {
-		val syncStream = stream.synchronize 
 		val Queue<Pair<IN, OUT>> buffer = Queues.newArrayDeque
 		val ready = new AtomicBoolean(false)
 		val completed = new AtomicBoolean(false)
 		val pipe = new Pipe<IN, OUT> {
 			
 			override next() {
-				// if the stream was paused, next means we can stream again
-				if(!syncStream.isOpen) syncStream.resume
 				// get the next value from the queue to stream
 				val nextValue = buffer.poll
-				// if we have a value, stream it
 				if(nextValue != null) {
+					// we have a buffered value, stream it
 					ready.set(false)
 					value(nextValue.key, nextValue.value)
+					// we have one more slot in the queue now, so resume the stream if it was paused
+					if(!stream.isOpen) stream.resume
 				} else if(completed.get) {
 					// the stream was completed, so now that all values were streamed, complete the pipe as well
 					complete
 				} else {
 					// otherwise remember that we are ready to stream a value
 					ready.set(true)
+					// and ask for the next from the stream
+					stream.next
 				}
 			}
 			
 			override isOpen() {
-				syncStream.isOpen
+				stream.isOpen
 			}
 			
 			override pause() {
-				syncStream.pause
+				stream.pause
 			}
 			
 			override resume() {
-				syncStream.resume
-				syncStream.next
+				stream.resume
+				stream.next
 			}
 			
 			override close() {
 				super.close
-				syncStream.close
+				stream.close
 			}
 			
 		}
-		syncStream.observer = new Observer<IN, OUT> {
+		stream.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {
 				if(buffer.empty && ready.compareAndSet(true, false)) {
 					// if there is nothing in the buffer and the pipe is ready, push it out immediately
 					pipe.value(in, value)
 				} else {
+					// if the buffer still has space
 					if(buffer.size < maxSize) {
 						// buffer the value
 						buffer.add(in -> value)
 						// if the buffer is now full, pause the stream
 						if(buffer.size >= maxSize) {
-							syncStream.pause
+							stream.pause
 						}
 						// if the pipe is ready for a value, push out the last value in the buffer queue
 						if(ready.compareAndSet(true, false)) {
@@ -576,8 +577,8 @@ class StreamExtensions {
 							pipe.value(nextValue.key, nextValue.value)
 						}
 					} else {
-						// normally it should have stopped before 
-						syncStream.pause
+						// the stream is still pushing even though the buffer is full
+						stream.pause
 					}
 				}
 			}
@@ -949,37 +950,37 @@ class StreamExtensions {
 	 * @Param maxConcurrency: sets how many deferred processes get resolved in parallel. 0 for unlimited.
 	 */
 	@Cold @Unsorted @Backpressure
-	def static <IN, IN2, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<IN2, OUT>> stream, int maxConcurrency) {
+	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream, int maxConcurrency) {
 		val pipe = Pipe.connect(stream)
 		ObservableOperation.flatten(stream, pipe, maxConcurrency)
 		pipe
 	}
 
 	@Cold @Unsorted @Backpressure
-	def static <IN, OUT, IN2, MAP, PROMISE extends Promise<IN2, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (IN, OUT)=>PROMISE mapFn) {
+	def static <IN, OUT, MAP> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (IN, OUT)=>Promise<?, MAP> mapFn) {
 		stream.map(mapFn).resolve(maxConcurrency)
 	}
 
 	@Cold @Unsorted @Backpressure
-	def static <IN, OUT, IN2, MAP> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>Promise<IN2, MAP> mapFn) {
+	def static <IN, OUT, MAP> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>Promise<?, MAP> mapFn) {
 		stream.call(maxConcurrency) [ in, out | mapFn.apply(out) ]
 	}
 
 	@Cold @Backpressure
-	def static <IN, OUT, IN2, MAP> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>Promise<IN2, MAP> mapFn) {
+	def static <IN, OUT, MAP> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>Promise<?, MAP> mapFn) {
 		stream.call(1) [ in, out | mapFn.apply(out) ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Backpressure
-	def static <IN, OUT, IN2, OUT2> perform(Stream<IN, OUT> stream, (OUT)=>Promise<IN2, OUT2> promiseFn) {
-		stream.call(1) [ in, value | promiseFn.apply(value).map [ value ] ]
+	def static <IN, OUT, MAP> perform(Stream<IN, OUT> stream, (OUT)=>Promise<?, ?> promiseFn) {
+		stream.call(1) [ in, value | promiseFn.apply(value).map [ value ] as Promise<?, Object> ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Backpressure
-	def static <IN, OUT, IN2, OUT2> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<IN2, OUT2> promiseFn) {
-		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] ]
+	def static <IN, OUT> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<?, ?> promiseFn) {
+		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] as Promise<?, Object> ]
 	}
 
 	/** 
@@ -987,8 +988,8 @@ class StreamExtensions {
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
 	@Cold @Unsorted @Backpressure
-	def static <IN, OUT, IN2, OUT2> perform(Stream<IN, OUT> stream, int concurrency, (OUT)=>Promise<IN2, OUT2> promiseFn) {
-		stream.call(concurrency) [ in, value | promiseFn.apply(value).map [ value ] ]
+	def static <IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (OUT)=>Promise<?, ?> promiseFn) {
+		stream.call(concurrency) [ in, value | promiseFn.apply(value).map [ value ] as Promise<?, Object> ]
 	}
 
 	/** 
@@ -996,7 +997,7 @@ class StreamExtensions {
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
 	@Cold @Unsorted @Backpressure
-	def static <IN, OUT, IN2, OUT2> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (IN, OUT)=>Promise<IN2, OUT2> promiseFn) {
+	def static <IN, OUT> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (IN, OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(concurrency) [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
 	
@@ -1104,7 +1105,6 @@ class StreamExtensions {
 	def static <IN, OUT> collect(Stream<IN, OUT> stream) {
 		stream.reduce(newArrayList as List<OUT>) [ list, it | list.concat(it) ]
 	}
-
 	
 	/**
 	 * Promises a map of all inputs and outputs from a stream. Starts the stream.

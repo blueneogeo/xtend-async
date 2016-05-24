@@ -187,6 +187,14 @@ class TestStreamExtensions {
 		sink.isOpen <=> true
 	}
 	
+	@Test
+	def void testBuffer2() {
+		(1..3).iterator.stream
+			.buffer(1)
+			.effect [ println(it) ]
+			.start
+	}
+	
 	@Atomic int pausedCount
 	@Atomic int resumedCount
 	

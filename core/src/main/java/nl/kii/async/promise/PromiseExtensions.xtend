@@ -18,7 +18,7 @@ import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import nl.kii.util.Opt
 
-class PromiseExtensions {
+final class PromiseExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////////////
 	
@@ -237,11 +237,11 @@ class PromiseExtensions {
 		promise.effect(effectFn).asTask
 	}
 
-	def static <IN, OUT, IN2, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (IN, OUT)=>Promise<IN2, MAP> mapFn) {
+	def static <IN, OUT, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, MAP> mapFn) {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, IN2, OUT, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (OUT)=>Promise<IN2, MAP> mapFn) {
+	def static <IN, OUT, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (OUT)=>Promise<?, MAP> mapFn) {
 		promise.map(mapFn).flatten
 	}
 
@@ -271,9 +271,17 @@ class PromiseExtensions {
 		promise.mapInput [ in1 | inputMapFn.apply(in1) ]
 	}
 
+	// TIME AND RETENTION /////////////////////////////////////////////////////////////
+	
+	def static <IN, OUT> Promise<IN, OUT> delay(Promise<IN, OUT> promise, Period delay, (Period)=>Task timerFn) {
+		val newPromise = new Deferred<IN, OUT>
+		ObservableOperation.delay(promise, newPromise, delay, timerFn)
+		newPromise
+	}
+
 	// REDUCTION //////////////////////////////////////////////////////////////////////
 	
-	def static <IN, OUT, IN2> Promise<IN, OUT> flatten(Promise<IN, ? extends Promise<IN2, OUT>> promise) {
+	def static <IN, OUT> Promise<IN, OUT> flatten(Promise<IN, ? extends Promise<?, OUT>> promise) {
 		val newPromise = new Deferred<IN, OUT>
 		ObservableOperation.flatten(promise, newPromise, 1)
 		newPromise
@@ -400,7 +408,7 @@ class PromiseExtensions {
 	 * @param timerFn a function with two parameters: a delay in milliseconds, and a closure
 	 * 			calling the function should execute the closure after the delay.
 	 */	
-	def static <IN, OUT> delay(Promise<IN, OUT> promise, Period period, (Period)=>Task timerFn) {
+	def static <IN, OUT> delayOLD(Promise<IN, OUT> promise, Period period, (Period)=>Task timerFn) {
 		promise.perform [ timerFn.apply(period) ]
 	}
 

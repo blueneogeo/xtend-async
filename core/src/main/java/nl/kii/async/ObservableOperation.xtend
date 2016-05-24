@@ -9,12 +9,15 @@ import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Unsorted
 import nl.kii.async.promise.Promise
+import nl.kii.async.promise.Task
 import nl.kii.util.Opt
+import nl.kii.util.Period
 
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
+import static extension nl.kii.async.promise.PromiseExtensions.*
 
-class ObservableOperation {
+final class ObservableOperation {
 
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
 
@@ -135,7 +138,7 @@ class ObservableOperation {
 	}
 	
 	@Cold @Unsorted @NoBackpressure
-	def static <IN, OUT, IN2> flatten(Observable<IN, ? extends Observable<IN2, OUT>> observable, Observer<IN, OUT> observer, int maxConcurrency) {
+	def static <IN, OUT, IN2> flatten(Observable<IN, ? extends Observable<?, OUT>> observable, Observer<IN, OUT> observer, int maxConcurrency) {
 		val isFinished = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
 
@@ -328,6 +331,46 @@ class ObservableOperation {
 			
 		}
 		
-	}	
+	}
+	
+	// RETENTION AND TIME //////////////////////////////////////////////////////////////////////
+
+	/** 
+	 * Adds delay to each observed value.
+	 * If the observable is completed, it will only send complete to the observer once all delayed values have been sent.
+	 */	
+	@Cold @Backpressure	
+	def static <IN1, IN, OUT> delay(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period delay, (Period)=>Task timerFn) {
+		observable.observer = new Observer<IN, OUT> {
+			
+			val timers = new AtomicInteger
+			val completed = new AtomicBoolean
+			
+			override value(IN in, OUT value) {
+				timers.incrementAndGet
+				timerFn.apply(delay).then [
+					val openTimers = timers.decrementAndGet
+					observer.value(in, value)
+					if(completed.get || openTimers == 0) {
+						observer.complete
+					}
+				]
+			}
+			
+			override error(IN in, Throwable t) {
+				observer.error(in, t)
+			}
+			
+			override complete() {
+				if(completed.compareAndSet(false, true)) {
+					if(timers.get == 0) observer.complete
+				}
+			}
+			
+		}
+	}
+	
+	
+	
 	
 }

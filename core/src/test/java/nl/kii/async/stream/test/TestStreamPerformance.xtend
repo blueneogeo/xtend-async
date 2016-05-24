@@ -14,6 +14,7 @@ class TestStreamPerformance {
 	def void testStreamsAreFast() {
 		val iterations = 50_000_000
 		val streamStart = System.currentTimeMillis;
+		
 		// iterate a lot over a stream
 		(1..iterations).iterator.stream.start
 		val streamEnd = System.currentTimeMillis
@@ -38,6 +39,7 @@ class TestStreamPerformance {
 	def void testStreamsAreFast2() {
 		val iterations = 50_000_000
 		val streamStart = System.currentTimeMillis;
+		
 		// iterate a lot over a stream
 		val streamResult = (1..iterations).iterator.stream
 			.filter [ it % 2 == 0 ]
@@ -50,16 +52,11 @@ class TestStreamPerformance {
 		println('stream took ' + streamTime + ' ms')
 
 		// compare with a while loop
-		val whileStart = System.currentTimeMillis
-		val i = (1..iterations).iterator
-		var whileResult = 0
-		while(i.hasNext) {
-			val it = i.next
-			if(it % 2 == 0) {
-				'hello' + it => [ ] // to avoid unused warning
-				whileResult++
-			}
-		}
+		val whileStart = System.currentTimeMillis;
+		val whileResult = (1..iterations)
+			.filter [ it % 2 == 0 ]
+			.map [ 'hello ' + it ]
+			.size
 		val whileEnd = System.currentTimeMillis
 		assertEquals(iterations / 2, whileResult)
 		val double whileTime = whileEnd - whileStart
