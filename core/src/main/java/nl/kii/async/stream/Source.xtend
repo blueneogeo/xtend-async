@@ -1,5 +1,7 @@
 package nl.kii.async.stream
 
+import nl.kii.async.Observable
+
 // import java.util.concurrent.atomic.AtomicBoolean
 // import java.util.concurrent.atomic.AtomicReference
 
@@ -22,7 +24,7 @@ package nl.kii.async.stream
  * control by only pushing in new values when onNext() is
  * called.
  */
-abstract class Source<CONTEXT, IN> extends Pipe<CONTEXT, IN> {
+abstract class Source<CONTEXT, IN> extends Pipe<CONTEXT, IN> implements Observable<CONTEXT, IN> {
 
 	var open = true
 	var paused = false

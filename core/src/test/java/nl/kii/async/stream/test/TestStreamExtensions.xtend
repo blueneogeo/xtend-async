@@ -1,13 +1,16 @@
 package nl.kii.async.stream.test
 
+import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.async.stream.Sink
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
+import static org.junit.Assert.*
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
+import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*
 
 class TestStreamExtensions {
@@ -289,34 +292,106 @@ class TestStreamExtensions {
 //		(1..2).stream.promise.toStream <=> #[1, 2]
 //	}
 
-//	@Test
-//	def void testWait() {
-//		val start = now
-//		val times = 100
-//		val period = 5.ms;
-//		(1..times).stream
-//			.wait(period, schedulers.timer)
-//			.count <=> times
-//		val waited = now - start
-//		assertTrue(waited > times * period)
-//	}
+	@Test
+	def void testDelay() {
+		val start = now
+		val times = 100
+		val period = 10.ms;
+		val count = (1..times).stream
+			.delay(period, schedulers.timerFn)
+			.count.await(times * (period + 10.ms)) // 10 msec for overhead 
+		assertEquals(times, count)
+		val waited = now - start
+		assertTrue(waited > times * period)
+	}
 
-//	@Test
-//	def void testThrottle() {
-//		(1..100).stream
-//			.wait(5.ms, schedulers.timer)
-//			.throttle(50.ms)
-//			.count <=> 12 // 6 * 100 items / 50 ms = 12 items. the first item is always delayed, giving one extra item, so from 5 to 6
-//	}
-//	
-//	@Test
-//	def void testRateLimit() {
-//		(1..10).stream
-//			.ratelimit(100.ms, schedulers.timer)
-//			.ratelimit(200.ms, schedulers.timer)
-//			.count <=> 10
-//	}
-//
+	@Test
+	def void testPeriodic() {
+		val results = schedulers.periodic(1.sec / 100, 100)
+			.count
+			.await(2.secs)
+		assertEquals(100, results)
+	}
+
+	@Test
+	def void testThrottle() {
+		val fireAmount = 1000
+		val firePerSec = 500
+		val allowPerSec = 3
+		val count = schedulers.periodic(1.sec / firePerSec, fireAmount)
+			.throttle(1.sec / allowPerSec)
+			.effect [ println(it) ]
+			.count.await(fireAmount / firePerSec * 1.sec)
+		assertEquals(fireAmount / firePerSec * allowPerSec, count) // 100 / 50
+	}
+
+	@Test
+	def void testThrottleWorksWithBuffer() {
+		val fireAmount = 1000
+		val firePerSec = 500
+		val allowPerSec = 10
+		val count = schedulers.periodic(1.sec / firePerSec, fireAmount)
+			.buffer(10)
+			.throttle(1.sec / allowPerSec)
+			.count.await(fireAmount / firePerSec * 1.sec)
+		assertEquals(fireAmount / firePerSec * allowPerSec, count) // 100 / 50
+	}
+	
+	@Test
+	def void testRateLimitUnderControlledStream() {
+		val count = (1..10).stream
+			// .buffer(100) // buffering is unnecessary with a controlled stream
+			.ratelimit(100.ms, schedulers.timerFn)
+			.effect [ println(it) ]
+			.count.await(1.min)
+		assertEquals(10, count)
+	}
+
+	@Test
+	def void testRateLimitUnderPeriodicStream() {
+		val count = schedulers.periodic(10.ms, 10)
+			.buffer(100) // must buffer when the stream is uncontrolled
+			.ratelimit(100.ms, schedulers.timerFn)
+			.effect [ println(it) ]
+			.count.await(1.min)
+		assertEquals(10, count)
+	}
+
+	@Test
+	def void testWindow() {
+		val windowCount = new AtomicInteger
+		val count = schedulers.periodic(260.ms / 5, 50)
+			.window(250.ms)
+			.effect [ windowCount.incrementAndGet ]
+			.flatten
+			.count.await(5.min)
+		assertEquals(50, count)
+		assertEquals(10, windowCount.get)
+	}
+
+	@Test
+	def void testWindowWorksWithBuffer() {
+		val windowCount = new AtomicInteger
+		val count = schedulers.periodic(260.ms / 5, 50)
+			.buffer(10)
+			.window(250.ms)
+			.effect [ windowCount.incrementAndGet ]
+			.flatten
+			.count.await(5.min)
+		assertEquals(50, count)
+		assertEquals(10, windowCount.get)
+	}
+
+	@Test
+	def void testSample() {
+		val samples = schedulers.periodic(260.ms / 5, 50)
+			.sample(240.ms)
+			.effect [ println(it) ]
+			.collect.await(5.min)
+		samples <=> #[5L, 10L, 15L, 20L, 25L, 30L, 35L, 40L, 45L, 50L]
+	}
+
+
 //	@Test
 //	def void testRateLimitWithErrors() {
 //		(1..4).stream

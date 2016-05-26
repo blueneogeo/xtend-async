@@ -1,8 +1,10 @@
 package nl.kii.async
 
+import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
@@ -10,12 +12,14 @@ import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Unsorted
 import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
+import nl.kii.async.stream.Source
+import nl.kii.async.stream.Stream
 import nl.kii.util.Opt
 import nl.kii.util.Period
 
+import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-import static extension nl.kii.async.promise.PromiseExtensions.*
 
 final class ObservableOperation {
 
@@ -338,9 +342,12 @@ final class ObservableOperation {
 	/** 
 	 * Adds delay to each observed value.
 	 * If the observable is completed, it will only send complete to the observer once all delayed values have been sent.
+	 * <p>
+	 * Better than using stream.perform [ timerFn.apply(period) ] since uncontrolled streams then can be completed before
+	 * all values have been pushed.
 	 */	
 	@Cold @Backpressure	
-	def static <IN1, IN, OUT> delay(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period delay, (Period)=>Task timerFn) {
+	def static <IN, OUT> delay(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period delay, (Period)=>Task timerFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			val timers = new AtomicInteger
@@ -348,13 +355,26 @@ final class ObservableOperation {
 			
 			override value(IN in, OUT value) {
 				timers.incrementAndGet
-				timerFn.apply(delay).then [
-					val openTimers = timers.decrementAndGet
-					observer.value(in, value)
-					if(completed.get || openTimers == 0) {
-						observer.complete
+				val task = timerFn.apply(delay)
+				task.observer = new Observer<Boolean, Boolean> {
+					
+					override value(Boolean ignore, Boolean ignore2) {
+						val openTimers = timers.decrementAndGet 
+						observer.value(in, value)
+						if(completed.get && openTimers == 0) {
+							observer.complete
+						}
 					}
-				]
+					
+					override error(Boolean ignore, Throwable t) {
+						observer.error(in, t)
+					}
+					
+					override complete() {
+						// do nothing
+					}
+					
+				}
 			}
 			
 			override error(IN in, Throwable t) {
@@ -363,14 +383,158 @@ final class ObservableOperation {
 			
 			override complete() {
 				if(completed.compareAndSet(false, true)) {
-					if(timers.get == 0) observer.complete
+					if(timers.get == 0) {
+						observer.complete
+					}
 				}
 			}
 			
 		}
 	}
-	
-	
-	
+
+	/**
+	 * Cuts up the incoming observable into time windows. Each window is a stream of values.
+	 */
+	@Cold @NoBackpressure	
+	def static <IN, OUT> window(Observable<IN, OUT> observable, Observer<IN, Stream<IN, OUT>> observer, Period interval) {
+		observable.observer = new Observer<IN, OUT> {
+
+			val lastValueMoment = new AtomicReference<Date>
+			val currentObservable = new AtomicReference<Source<IN, OUT>>	
+			val completed = new AtomicBoolean
+			
+			override value(IN in, OUT value) {
+				val windowExpired = (lastValueMoment.get == null || now - lastValueMoment.get > interval)
+				if(windowExpired || currentObservable.get == null) {
+					currentObservable.get?.complete
+					lastValueMoment.set(now)
+					val newObservable = new Source<IN, OUT> {
+						
+						override onNext() {
+							observable.next
+						}
+						
+						override onClose() {
+							// do nothing
+						}
+						
+					}
+					currentObservable.set(newObservable)
+					observer.value(in, newObservable)
+				}
+				currentObservable.get.value(in, value)
+			}
+			
+			override error(IN in, Throwable t) {
+				observer.error(in, t)
+			}
+			
+			override complete() {
+				currentObservable.get?.complete
+				observer.complete
+			}
+			
+		}
+	}
+
+	/**
+	 * Stream only [amount] values per [period]. Anything more will be rejected and the next value asked.
+	 * Errors and complete are streamed immediately.
+	 */
+	@Cold @Backpressure	
+	def static <IN, OUT> throttle(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval) {
+		observable.observer = new Observer<IN, OUT> {
+
+			val lastValueMoment = new AtomicReference<Date>	
+			val timers = new AtomicInteger
+			val completed = new AtomicBoolean
+			
+			override value(IN in, OUT value) {
+				if(lastValueMoment.get == null || now - lastValueMoment.get > minimumInterval) {
+					lastValueMoment.set(now())
+					observer.value(in, value)
+				} else {
+					observable.next
+				}
+			}
+			
+			override error(IN in, Throwable t) {
+				observer.error(in, t)
+			}
+			
+			override complete() {
+				observer.complete
+			}
+			
+		}
+	}
+
+	/**
+	 * Stream only [amount] values per [period]. Anything more will be buffered until available. 
+	 * Requires a buffered stream to work.
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> ratelimit(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval, (Period)=>Task timerFn) {
+		observable.observer = new Observer<IN, OUT> {
+
+			val lastValueMoment = new AtomicReference<Date>	
+			val timing = new AtomicBoolean
+			val completed = new AtomicBoolean
+			
+			override value(IN in, OUT value) {
+				val now = new Date
+				if(lastValueMoment.get == null) {
+					// we can send right away
+					observer.value(in, value)
+					lastValueMoment.set(now)
+				} else if(now - lastValueMoment.get > minimumInterval) {
+					// we can send right away
+					observer.value(in, value)
+					lastValueMoment.set(now)
+				} else {
+					if(timing.compareAndSet(false, true)) {
+						// not yet, delay this value
+						val timeExpired = now - lastValueMoment.get
+						val timeRemaining = minimumInterval - timeExpired
+						timerFn.apply(timeRemaining).observer = new Observer<Boolean, Boolean> {
+							
+							override value(Boolean ignore, Boolean ignore2) {
+								timing.set(false)
+								lastValueMoment.set(new Date)
+								observer.value(in, value)
+								if(completed.get && !timing.get) {
+									observer.complete
+								}
+							}
+							
+							override error(Boolean ignore, Throwable t) {
+								observer.error(in, t)
+							}
+							
+							override complete() {
+								timing.set(false)
+							}
+						}
+					} else {
+						// too soon for the next value, disregard
+						// when the value has been sent, that will call next from the buffer.
+					}
+				}
+			}
+			
+			override error(IN in, Throwable t) {
+				observer.error(in, t)
+			}
+			
+			override complete() {
+				if(completed.compareAndSet(false, true)) {
+					if(!timing.get) {
+						observer.complete
+					}
+				}
+			}
+			
+		}
+	}
 	
 }

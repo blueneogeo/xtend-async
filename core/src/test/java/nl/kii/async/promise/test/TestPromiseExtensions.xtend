@@ -165,7 +165,7 @@ class TestPromiseExtensions {
 	@Test
 	def void testWait() {
 		val exec = Executors.newSingleThreadScheduledExecutor
-		complete.delay(100.ms, exec.timer).then [ anyDone = true ]
+		complete.delay(100.ms, exec.timerFn).then [ anyDone = true ]
 		assertFalse(anyDone) // only done after 100 ms
 		Thread.sleep(1000) // wait long enough
 		assertTrue(anyDone) // should be done now

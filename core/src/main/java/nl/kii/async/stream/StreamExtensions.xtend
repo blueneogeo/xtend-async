@@ -5,6 +5,9 @@ import java.util.Iterator
 import java.util.List
 import java.util.Map
 import java.util.Queue
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -14,6 +17,7 @@ import nl.kii.async.Observer
 import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
+import nl.kii.async.annotation.Lossy
 import nl.kii.async.annotation.MultiThreaded
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Unsorted
@@ -21,6 +25,7 @@ import nl.kii.async.promise.Deferred
 import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
 import nl.kii.util.Opt
+import nl.kii.util.Period
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.IterableExtensions.*
@@ -159,6 +164,45 @@ final class StreamExtensions {
 		}
 		mergedStream
 	} 
+
+	/**
+	 * Create a periodic trigger stream, doing amount of values per period.
+	 * The value in the stream is a counter. Request next once to start,
+	 * from there on, no more next needs to be called, as the stream will push
+	 * in automatically using the timerFn.
+	 */
+	 @Cold @NoBackpressure
+	 def static <OUT> Stream<Long, Long> periodic(int amount, Period period, (Period)=>Task timerFn) {
+	 	val sink = new Sink<Long> {
+			 	val started = new AtomicBoolean
+			 	val closed = new AtomicBoolean
+				
+				override onNext() {
+					// first next starts, after that, next is ignored until pause/resume
+					if(started.compareAndSet(false, true)) {
+						while(isOpen) {
+							timerFn.apply(period)
+						}
+					}
+				}
+				
+				override resume() {
+					super.resume
+					started.set(false)
+					next
+				}
+				
+				override pause() {
+					super.pause
+				}
+				
+				override onClose() {
+					close
+				}
+	 		
+	 	}
+	 	sink
+	 }
 
 	// STARTING ////////////////////////////////////////////////////////////////////////////////
 
@@ -509,9 +553,14 @@ final class StreamExtensions {
 	 * being thrown in at the top, the buffer will call pause on the stream and disregard any
 	 * incoming values. When next is called from the bottom to indicate the stream can process again,
 	 * the stream will resume the input and process from the buffer.
+	 * <p>
+	 * @param stream the stream to be buffered
+	 * @param maxSize the maximum size of the buffer before it pauses the stream. 
+	 * 	Set to 0 or negative to disable buffering and return the original stream
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> buffer(Stream<IN, OUT> stream, int maxSize) {
+		if(maxSize <= 0) return stream
 		val Queue<Pair<IN, OUT>> buffer = Queues.newArrayDeque
 		val ready = new AtomicBoolean(false)
 		val completed = new AtomicBoolean(false)
@@ -1322,6 +1371,62 @@ final class StreamExtensions {
 		promise
 	}
 
+	// TIMING ///////////////////////////////////////////////////////////////////
+	
+	/** 
+	 * Adds delay to each observed value.
+	 * If the observable is completed, it will only send complete to the observer once all delayed values have been sent.
+	 * <p>
+	 * Better than using stream.perform [ timerFn.apply(period) ] since uncontrolled streams then can be completed before
+	 * all values have been pushed.
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> delay(Stream<IN, OUT> stream, Period delay, (Period)=>Task timerFn) {
+		val pipe = Pipe.connect(stream)
+		ObservableOperation.delay(stream, pipe, delay, timerFn)
+		pipe
+	}
+
+	/**
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> Stream<IN, Stream<IN, OUT>> window(Stream<IN, OUT> stream, Period interval) {
+		val pipe = Pipe.connect(stream)
+		ObservableOperation.window(stream, pipe, interval)
+		pipe as Stream<IN, Stream<IN, OUT>>
+	}
+
+	/**
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> sample(Stream<IN, OUT> stream, Period interval) {
+		stream.window(interval).map [ window | window.last ].resolve(1)
+	}
+	
+	/**
+	 * Stream only [amount] values per [period]. Anything more will be rejected and the next value asked.
+	 * Errors and complete are streamed immediately.
+	 */
+	@Cold @Backpressure @Lossy
+	def static <IN, OUT> throttle(Stream<IN, OUT> stream, Period minimumInterval) {
+		val pipe = Pipe.connect(stream)
+		ObservableOperation.throttle(stream, pipe, minimumInterval)
+		pipe
+	}
+
+	/**
+	 * Limit the output rate of values to 1 value per interval. If an entry comes in sooner, a timer
+	 * is set so that after the remaining interval time has expired, it is still output.
+	 * <p>
+	 * If you use ratelimit with an uncontrolled input stream, you will need to buffer that stream. 
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> ratelimit(Stream<IN, OUT> stream, Period minimumInterval, (Period)=>Task timerFn) {
+		val pipe = Pipe.connect(stream)
+		ObservableOperation.ratelimit(stream, pipe, minimumInterval, timerFn)
+		pipe
+	}
+
 	// ASSERTION ////////////////////////////////////////////////////////////////
 	
 	/**
@@ -1341,6 +1446,70 @@ final class StreamExtensions {
 			if(!checkFn.apply(in, out)) throw new Exception(
 			'stream.check ("' + checkDescription + '") failed for checked value: ' + out + '. Input was: ' + in)
 		]
+	}
+
+	// MULTITHREADED //////////////////////////////////////////////////////////////////
+
+	/**
+	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
+	 * Start the stream by calling next, after which it will auto-push values without needing next.
+	 * @Param executor the scheduler to use
+	 * @Param amount the amount of amount / period
+	 * @Param period the period of amount / period
+	 * @Param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
+	 */
+	@Cold @MultiThreaded
+	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval, int limit) {
+		new Sink<Long> {
+
+			val counter = new AtomicLong(0)
+			val Runnable pushFn = [
+				this.push(counter.incrementAndGet)
+				if(limit > 0 && counter.get >= limit) {
+					complete
+					onClose
+				} 
+			]
+			val repeaterFn = [| executor.scheduleAtFixedRate(pushFn, 0, interval.ms, TimeUnit.MILLISECONDS) ]
+			val repeater = new AtomicReference<ScheduledFuture<?>>
+			
+			override onNext() {
+				if(repeater.get == null) {
+					repeater.set(repeaterFn.apply)
+				}
+			}
+			
+			override onClose() {
+				super.close
+				repeater.get?.cancel(true)
+			}
+			
+			override pause() {
+				super.pause
+				repeater.get?.cancel(true)
+				repeater.set(null)
+			}
+
+			override resume() {
+				super.resume
+				super.next
+			}
+			
+		}
+	}
+
+
+	/**
+	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
+	 * Start the stream by calling next, after which it will auto-push values without needing next.
+	 * @Param executor the scheduler to use
+	 * @Param amount the amount of amount / period
+	 * @Param period the period of amount / period
+	 * @Param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
+	 */
+	@Cold @MultiThreaded
+	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval) {
+		executor.periodic(interval, 0)
 	}
 
 }

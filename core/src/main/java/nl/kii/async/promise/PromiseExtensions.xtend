@@ -394,25 +394,6 @@ final class PromiseExtensions {
 	// MULTITHREADED //////////////////////////////////////////////////////////////////
 
 	/** 
-	 * Create a new promise that delays the output (not the error) of the existing promise.
-	 * The idea here is that since timing has to be executed on another thread, instead of 
-	 * having a threaded implementation, this method requires you to call your own implementation.
-	 * To do so, you implement the timerFn, and then pass it.
-	 * <p>
-	 * Example:
-	 * <pre>
-		val exec = Executors.newSingleThreadScheduledExecutor
-		val timerFn = [ long delayMs, =>void fn | exec.schedule(fn, delayMs, TimeUnit.MILLISECONDS) return ]
-		complete.wait(100, timerFn).then [ anyDone = true ]
-	 * </pre>
-	 * @param timerFn a function with two parameters: a delay in milliseconds, and a closure
-	 * 			calling the function should execute the closure after the delay.
-	 */	
-	def static <IN, OUT> delayOLD(Promise<IN, OUT> promise, Period period, (Period)=>Task timerFn) {
-		promise.perform [ timerFn.apply(period) ]
-	}
-
-	/** 
 	 * Execute the callable in the background and return as a promise.
 	 * Lets you specify the executorservice to run on.
 	 * <pre>
@@ -460,7 +441,8 @@ final class PromiseExtensions {
 	 * Create a timer function to be used in delay methods.
 	 * A timer function takes a period and returns a task that completes when that period has expired.
 	 */
-	def static (Period)=>Task timer(ScheduledExecutorService executor) {
+	@MultiThreaded
+	def static (Period)=>Task timerFn(ScheduledExecutorService executor) {
 		[ period |
 			val task = new Task
 			executor.schedule([ task.complete ], period.ms, TimeUnit.MILLISECONDS)
