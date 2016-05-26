@@ -1,6 +1,6 @@
 package nl.kii.async.stream
 
-import nl.kii.async.Observable
+import nl.kii.async.observable.Observable
 
 // import java.util.concurrent.atomic.AtomicBoolean
 // import java.util.concurrent.atomic.AtomicReference

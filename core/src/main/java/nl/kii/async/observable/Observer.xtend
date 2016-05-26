@@ -1,4 +1,4 @@
-package nl.kii.async
+package nl.kii.async.observable
 
 /** 
  * An observer observes a process. 

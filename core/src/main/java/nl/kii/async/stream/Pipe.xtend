@@ -1,6 +1,6 @@
 package nl.kii.async.stream
 
-import nl.kii.async.Observer
+import nl.kii.async.observable.Observer
 
 /* 
  * A pipe is a controllable stream connection. It is the basic building block for building stream chains.

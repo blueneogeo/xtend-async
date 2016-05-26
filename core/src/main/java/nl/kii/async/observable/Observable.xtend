@@ -1,4 +1,4 @@
-package nl.kii.async
+package nl.kii.async.observable
 
 /** An observable lets you observe it with an observer, for values, errors, and completion. */
 interface Observable<IN, OUT> {

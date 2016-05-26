@@ -8,15 +8,15 @@ import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import nl.kii.async.ObservableOperation
-import nl.kii.async.Observer
 import nl.kii.async.annotation.Blocking
 import nl.kii.async.annotation.MultiThreaded
+import nl.kii.async.observable.ObservableOperation
+import nl.kii.async.observable.Observer
+import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
-import nl.kii.util.Opt
 
 final class PromiseExtensions {
 

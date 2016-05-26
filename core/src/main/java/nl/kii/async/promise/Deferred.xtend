@@ -1,6 +1,6 @@
 package nl.kii.async.promise
 
-import nl.kii.async.Observer
+import nl.kii.async.observable.Observer
 
 /** 
  * A deferred promises a result, based on an incoming request.

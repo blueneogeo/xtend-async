@@ -12,8 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.ObservableOperation
-import nl.kii.async.Observer
 import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
@@ -21,6 +19,8 @@ import nl.kii.async.annotation.Lossy
 import nl.kii.async.annotation.MultiThreaded
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Unsorted
+import nl.kii.async.observable.ObservableOperation
+import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Deferred
 import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task

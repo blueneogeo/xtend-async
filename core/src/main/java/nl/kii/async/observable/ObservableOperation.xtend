@@ -1,4 +1,4 @@
-package nl.kii.async
+package nl.kii.async.observable
 
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean

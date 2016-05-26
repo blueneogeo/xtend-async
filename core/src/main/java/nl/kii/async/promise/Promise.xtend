@@ -1,6 +1,6 @@
 package nl.kii.async.promise
 
-import nl.kii.async.Observable
+import nl.kii.async.observable.Observable
 
 /**
  * A promise is an observable that outputs only a single value.
