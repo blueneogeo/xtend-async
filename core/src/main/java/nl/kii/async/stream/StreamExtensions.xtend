@@ -175,7 +175,6 @@ final class StreamExtensions {
 	 def static <OUT> Stream<Long, Long> periodic(int amount, Period period, (Period)=>Task timerFn) {
 	 	val sink = new Sink<Long> {
 			 	val started = new AtomicBoolean
-			 	val closed = new AtomicBoolean
 				
 				override onNext() {
 					// first next starts, after that, next is ignored until pause/resume

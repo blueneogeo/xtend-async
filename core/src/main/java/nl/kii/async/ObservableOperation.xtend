@@ -401,7 +401,6 @@ final class ObservableOperation {
 
 			val lastValueMoment = new AtomicReference<Date>
 			val currentObservable = new AtomicReference<Source<IN, OUT>>	
-			val completed = new AtomicBoolean
 			
 			override value(IN in, OUT value) {
 				val windowExpired = (lastValueMoment.get == null || now - lastValueMoment.get > interval)
@@ -446,8 +445,6 @@ final class ObservableOperation {
 		observable.observer = new Observer<IN, OUT> {
 
 			val lastValueMoment = new AtomicReference<Date>	
-			val timers = new AtomicInteger
-			val completed = new AtomicBoolean
 			
 			override value(IN in, OUT value) {
 				if(lastValueMoment.get == null || now - lastValueMoment.get > minimumInterval) {

@@ -106,11 +106,7 @@ final class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends Promise<?, ?>> promises) {
-		promises.stream.map[
-			it.asTask.effect[println('jello')]
-		].resolve(0).start.effect[println('done')].asTask
-		//new Task
-		//.stream.call(0)[ it | println(it) it ].effect [ println('yo') ].start
+		promises.stream.map[it.asTask].resolve(0).start
 	}
 	
 	/** 
@@ -203,7 +199,7 @@ final class PromiseExtensions {
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> call(Promise<IN, OUT> stream, Class<ERROR> errorType, (ERROR)=>Promise<Object, OUT> onErrorPromiseFn) {
-		stream.call(errorType) [ IN in, ERROR err | onErrorPromiseFn.apply(err) as Promise<Object, OUT> ]
+		stream.call(errorType) [ IN in, ERROR err | onErrorPromiseFn.apply(err) ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */

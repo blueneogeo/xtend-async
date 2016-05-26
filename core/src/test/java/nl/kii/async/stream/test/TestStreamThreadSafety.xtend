@@ -56,7 +56,7 @@ class TestStreamThreadSafety {
 	@Test
 	def void testStreamWithAsyncCall() {
 		val threads = 10
-		val iterations = 50_000
+		val iterations = 5_000
 
 		// create a stream we will just dump data into		
 		val input = new Sink<Integer> {
@@ -83,7 +83,7 @@ class TestStreamThreadSafety {
 			]
 		}
 		latch.await		
-		Thread.sleep(500) // let processes finish
+		Thread.sleep(200) // let processes finish
 		// when all threads are done, check our results
 		// println('all threads done')
 		// println('results: ' + counter + ', expected: ' + (threads * iterations))

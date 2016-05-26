@@ -37,7 +37,7 @@ class TestStreamPerformance {
 
 	@Test
 	def void testStreamsAreFast2() {
-		val iterations = 50_000_000
+		val iterations = 5_000_000
 		val streamStart = System.currentTimeMillis;
 		
 		// iterate a lot over a stream
