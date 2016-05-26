@@ -356,9 +356,9 @@ final class ObservableOperation {
 			override value(IN in, OUT value) {
 				timers.incrementAndGet
 				val task = timerFn.apply(delay)
-				task.observer = new Observer<Boolean, Boolean> {
+				task.observer = new Observer<Void, Void> {
 					
-					override value(Boolean ignore, Boolean ignore2) {
+					override value(Void ignore, Void ignore2) {
 						val openTimers = timers.decrementAndGet 
 						observer.value(in, value)
 						if(completed.get && openTimers == 0) {
@@ -366,7 +366,7 @@ final class ObservableOperation {
 						}
 					}
 					
-					override error(Boolean ignore, Throwable t) {
+					override error(Void ignore, Throwable t) {
 						observer.error(in, t)
 					}
 					
@@ -493,9 +493,9 @@ final class ObservableOperation {
 						// not yet, delay this value
 						val timeExpired = now - lastValueMoment.get
 						val timeRemaining = minimumInterval - timeExpired
-						timerFn.apply(timeRemaining).observer = new Observer<Boolean, Boolean> {
+						timerFn.apply(timeRemaining).observer = new Observer<Void, Void> {
 							
-							override value(Boolean ignore, Boolean ignore2) {
+							override value(Void ignore, Void ignore2) {
 								timing.set(false)
 								lastValueMoment.set(new Date)
 								observer.value(in, value)
@@ -504,7 +504,7 @@ final class ObservableOperation {
 								}
 							}
 							
-							override error(Boolean ignore, Throwable t) {
+							override error(Void ignore, Throwable t) {
 								observer.error(in, t)
 							}
 							

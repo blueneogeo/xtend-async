@@ -1,9 +1,9 @@
 package nl.kii.async.rx
 
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.Observer
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.NoBackpressure
+import nl.kii.async.observable.Observer
 import nl.kii.async.stream.Sink
 import nl.kii.async.stream.Stream
 import rx.Observable

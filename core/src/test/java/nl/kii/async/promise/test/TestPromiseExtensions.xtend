@@ -125,7 +125,7 @@ class TestPromiseExtensions {
 //		assertFalse(allDone)
 //		assertTrue(t2Done)
 		t3.complete 
-		assertTrue(a.await)
+		a.await
 	}
 	
 	@Atomic boolean anyDone = false
@@ -186,7 +186,7 @@ class TestPromiseExtensions {
 			.flatten
 			.map [ sayHello ]
 			.flatten
-			.await <=> true
+			.await
 	}
 
 	@Test def void testLongChain() {
