@@ -59,7 +59,7 @@ final class StreamExtensions {
 	}
 
 	/** 
-	 * Create a stream out of an iterator. The iterator will be lazily evaluated,
+	 * Create a stream out of an iterable. The iterable will be lazily evaluated,
 	 * meaning that the next value will only be requested when the stream requests
 	 * a next value.
 	 */
@@ -106,11 +106,17 @@ final class StreamExtensions {
 	}
 
 	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
-	@Cold @Backpressure @Unsorted
-	def static <OUT> void push(Source<OUT, OUT> source, List<OUT> values) {
-		all(source, values.iterator.stream)
+	@Cold @Backpressure
+	def static <OUT> void push(Source<OUT, OUT> source, List<? extends OUT> values) {
+		mergeOrdered(source, values.iterator.stream)
 	} 
 
+	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
+	@Cold @Backpressure
+	def static <OUT> void push(Source<OUT, OUT> source, Iterable<? extends OUT> values) {
+		mergeOrdered(source, values.stream)
+	}
+	
 	/** 
 	 * Merge multiple streams into one.
 	 * If the incoming streams are hot, this will simply merge all values into the returned stream.
@@ -119,7 +125,7 @@ final class StreamExtensions {
 	 * into a single stream.
 	 */
 	@Cold @Backpressure
-	def static <IN, OUT> Stream<IN, OUT> all(Stream<IN, OUT>... streams) {
+	def static <IN, OUT> Stream<IN, OUT> merge(Stream<IN, OUT>... streams) {
 		val currentStreamIndex = new AtomicInteger(0)
 		val currentStream = new AtomicReference<Stream<IN, OUT>>(streams.head) 
 		val mergedStream = new Source<IN, OUT> {
@@ -154,6 +160,8 @@ final class StreamExtensions {
 					if(currentStreamIndex.get < streams.size) {
 						// set the next stream as the current stream
 						currentStream.set(streams.get(currentStreamIndex.get))
+						// trigger next on the new current stream
+						currentStream.get.next
 					} else {
 						// all streams have completed, we are done
 						mergedStream.complete
@@ -163,7 +171,7 @@ final class StreamExtensions {
 			}
 		}
 		mergedStream
-	} 
+	} 	
 
 	/**
 	 * Create a periodic trigger stream, doing amount of values per period.
@@ -1496,7 +1504,6 @@ final class StreamExtensions {
 			
 		}
 	}
-
 
 	/**
 	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.

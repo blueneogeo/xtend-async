@@ -49,6 +49,15 @@ class TestStreamExtensions {
 			.await <=> #[1, 2, 3, 4, 5]
 	}
 
+	@Test
+	def void testStreamMerging() {
+		val s1 = (1..10).stream
+		val s2 = (11..20).stream
+		val s3 = #[21, 22, 23].iterator.stream
+		val merged = merge(s1, s2, s3)
+		23 <=> merged.effect [ println(it) ].count.await
+	}
+
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	@Test

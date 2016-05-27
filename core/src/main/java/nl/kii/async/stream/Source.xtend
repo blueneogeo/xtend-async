@@ -2,39 +2,32 @@ package nl.kii.async.stream
 
 import nl.kii.async.observable.Observable
 
-// import java.util.concurrent.atomic.AtomicBoolean
-// import java.util.concurrent.atomic.AtomicReference
-
 /** 
  * A source pushes values into a stream, and manages the flow
  * control. It also makes sure that only one thread is working
  * on the stream and that we don't get stack overflow.
  * <p>
  * Sources pass two values into a stream:
- * <li>a CONTEXT, information about how the value got pushed into
+ * <li>IN: information about how the value got pushed into
  * the stream. For example, it could be a message you can later
  * reply to, or meta information about the data.
- * <li>The IN, the input type of the stream, which simple is the
- * value data you are pushing in.
- * <p>
- * NOTE: If you do not need a context to be retained, use the Sink
- * class instead. 
+ * <li>OUT: the value data that gets pushed out from the source.
  * <p>
  * Sources can be optionally flow controlled. You create flow
  * control by only pushing in new values when onNext() is
  * called.
+ * <p>
+ * Notes:
+ * <li>If you do not need pass input, use Sink\<OUT\> instead. 
+ * <li>Source is NOT threadsafe! Use StreamExtensions.synchronize to make threadsafe.
  */
-abstract class Source<CONTEXT, IN> extends Pipe<CONTEXT, IN> implements Observable<CONTEXT, IN> {
+abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, OUT> {
 
 	var open = true
 	var paused = false
 	var ready = false
 	var busy = false
 
-//	/** ready means the next item may be processed */
-//	val ready = new AtomicBoolean
-//	/** busy means a thread is processing on this sink */
-//	val busy = new AtomicBoolean
 	/** optional listener for the stream being controlled */
 	var Controllable controlListener
 	
@@ -62,16 +55,6 @@ abstract class Source<CONTEXT, IN> extends Pipe<CONTEXT, IN> implements Observab
 			controlListener?.next
 		}
 		busy = false
-
-//		if(!open) return;
-//		ready.set(true)
-//		if(paused) return;
-//		if(!busy.compareAndSet(false, true)) return;
-//		while(ready.compareAndSet(true, false)) {
-//			onNext
-//			controlListener?.next
-//		}
-//		busy.set(false)
 	}
 	
 	override close() {
