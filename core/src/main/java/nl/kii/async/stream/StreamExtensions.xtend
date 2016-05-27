@@ -128,7 +128,8 @@ final class StreamExtensions {
 	def static <IN, OUT> Stream<IN, OUT> merge(Stream<IN, OUT>... streams) {
 		val currentStreamIndex = new AtomicInteger(0)
 		val currentStream = new AtomicReference<Stream<IN, OUT>>(streams.head) 
-		val mergedStream = new Source<IN, OUT> {
+		
+		val target = new Source<IN, OUT> {
 			
 			override onNext() {
 				currentStream.get.next
@@ -138,39 +139,51 @@ final class StreamExtensions {
 				for(stream : streams) {
 					stream.close
 				}
-				super.close
+			}
+			
+			override pause() {
+				super.pause
+				streams.forEach [ pause ]
+			}
+			
+			override resume() {
+				super.resume
+				streams.forEach [ resume ]
 			}
 			
 		}
+		
 		for(stream : streams) {
 			stream.observer = new Observer<IN, OUT> {
 				
 				override value(IN in, OUT value) {
-					mergedStream.value(in, value)
+					target.value(in, value)
 				}
 				
 				override error(IN in, Throwable t) {
-					mergedStream.error(in, t)
+					target.error(in, t)
 				}
 				
 				override complete() {
 					// we are done with the current stream, move to the next
-					currentStreamIndex.incrementAndGet
+					val newIndex = currentStreamIndex.incrementAndGet
 					// are we done with all streams?
-					if(currentStreamIndex.get < streams.size) {
+					if(newIndex < streams.size) {
+						val nextStream = streams.get(newIndex)
 						// set the next stream as the current stream
-						currentStream.set(streams.get(currentStreamIndex.get))
+						currentStream.set(nextStream)
 						// trigger next on the new current stream
-						currentStream.get.next
+						nextStream.next
 					} else {
 						// all streams have completed, we are done
-						mergedStream.complete
+						target.complete
 					}
 				}
 				
 			}
 		}
-		mergedStream
+		
+		target
 	} 	
 
 	/**
