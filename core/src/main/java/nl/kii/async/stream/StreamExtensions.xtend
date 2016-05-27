@@ -108,13 +108,13 @@ final class StreamExtensions {
 	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
 	@Cold @Backpressure
 	def static <OUT> void push(Source<OUT, OUT> source, List<? extends OUT> values) {
-		mergeOrdered(source, values.iterator.stream)
+		merge(source, values.iterator.stream)
 	} 
 
 	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
 	@Cold @Backpressure
 	def static <OUT> void push(Source<OUT, OUT> source, Iterable<? extends OUT> values) {
-		mergeOrdered(source, values.stream)
+		merge(source, values.stream)
 	}
 	
 	/** 
