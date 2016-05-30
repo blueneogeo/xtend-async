@@ -24,6 +24,8 @@ import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Deferred
 import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
+import nl.kii.async.publish.BasicPublisher
+import nl.kii.async.publish.Publisher
 import nl.kii.util.Opt
 import nl.kii.util.Period
 
@@ -104,87 +106,6 @@ final class StreamExtensions {
 			
 		}
 	}
-
-	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
-	@Cold @Backpressure
-	def static <OUT> void push(Source<OUT, OUT> source, List<? extends OUT> values) {
-		merge(source, values.iterator.stream)
-	} 
-
-	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
-	@Cold @Backpressure
-	def static <OUT> void push(Source<OUT, OUT> source, Iterable<? extends OUT> values) {
-		merge(source, values.stream)
-	}
-	
-	/** 
-	 * Merge multiple streams into one.
-	 * If the incoming streams are hot, this will simply merge all values into the returned stream.
-	 * If the incoming streams are cold and have backpressure, this stream will start with the first
-	 * stream, and when it finishes, move onto the next. In effect it will concatinate the streams
-	 * into a single stream.
-	 */
-	@Cold @Backpressure
-	def static <IN, OUT> Stream<IN, OUT> merge(Stream<IN, OUT>... streams) {
-		val currentStreamIndex = new AtomicInteger(0)
-		val currentStream = new AtomicReference<Stream<IN, OUT>>(streams.head) 
-		
-		val target = new Source<IN, OUT> {
-			
-			override onNext() {
-				currentStream.get.next
-			}
-			
-			override onClose() {
-				for(stream : streams) {
-					stream.close
-				}
-			}
-			
-			override pause() {
-				super.pause
-				streams.forEach [ pause ]
-			}
-			
-			override resume() {
-				super.resume
-				streams.forEach [ resume ]
-			}
-			
-		}
-		
-		for(stream : streams) {
-			stream.observer = new Observer<IN, OUT> {
-				
-				override value(IN in, OUT value) {
-					target.value(in, value)
-				}
-				
-				override error(IN in, Throwable t) {
-					target.error(in, t)
-				}
-				
-				override complete() {
-					// we are done with the current stream, move to the next
-					val newIndex = currentStreamIndex.incrementAndGet
-					// are we done with all streams?
-					if(newIndex < streams.size) {
-						val nextStream = streams.get(newIndex)
-						// set the next stream as the current stream
-						currentStream.set(nextStream)
-						// trigger next on the new current stream
-						nextStream.next
-					} else {
-						// all streams have completed, we are done
-						target.complete
-					}
-				}
-				
-			}
-		}
-		
-		target
-	} 	
 
 	/**
 	 * Create a periodic trigger stream, doing amount of values per period.
@@ -285,46 +206,89 @@ final class StreamExtensions {
 	// OPERATORS ///////////////////////////////////////////////////////////////////////////////
 	
 	/** Add a value to a stream */
-	def static <T> >> (T input, Sink<T> sink) {
+	def static <IN> >> (IN input, Sink<IN> sink) {
 		sink.push(input)
 		sink
 	}
 	
 	/** Add a value to a stream */
-	def static <T> << (Sink<T> sink, T input) {
+	def static <IN> << (Sink<IN> sink, IN input) {
 		sink.push(input)
 		sink
 	}
 
 	/** Add a list of values to a stream */
-	def static <T> >> (List<T> values, Sink<T> sink) {
+	def static <IN> >> (List<IN> values, Sink<IN> sink) {
 		for(value : values) sink.push(value)
 		sink
 	}
 	
 	/** Add a list of values to a stream */
-	def static <T> << (Sink<T> sink, List<T> values) {
+	def static <IN> << (Sink<IN> sink, List<IN> values) {
 		for(value : values) sink.push(value)
 		sink
 	}
-
-	/** Lets you easily pass an Error<T> to the stream using the >> operator */
-	def static <I, O> >> (Throwable t, Sink<O> sink) {
+	
+	/** Lets you easily pass an error to the stream using the >> operator */
+	def static <IN> >> (Throwable t, Sink<IN> sink) {
 		sink.push(t)
 		sink
 	}
 
-	/** Lets you easily pass an Error<T> to the stream using the << operator */
-	def static <I, O> << (Sink<O> sink, Throwable t) {
+	/** Lets you easily pass an error to the stream using the << operator */
+	def static <IN> << (Sink<IN> sink, Throwable t) {
 		sink.push(t)
 		sink
 	}
+
+	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
+
+	/** 
+	 * Observe a stream with an observer, without touching the stream itself.
+	 * Allows you to have more than one observer of a stream.
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> Stream<IN, OUT> observeWith(Stream<IN, OUT> stream, Observer<IN, OUT>... observers) {
+		val pipe = Pipe.connect(stream)
+		ObservableOperation.observeWith(stream, #[pipe] + observers.toList)
+		pipe
+	}
+	
+	@Cold @NoBackpressure
+	def static <IN, OUT> Publisher<OUT> publisher(Stream<IN, OUT> stream) {
+		val publisher = new BasicPublisher<OUT> {
+			
+			override start() {
+				super.start
+				stream.next
+			}
+			
+		}
+		stream.observer = new Observer<IN, OUT> {
+			
+			override value(IN in, OUT value) {
+				publisher.publish(value)
+				stream.next
+			}
+			
+			override error(IN in, Throwable error) {
+				publisher.publish(error)
+				stream.next
+			}
+			
+			override complete() {
+				publisher.closeSubscriptions
+			}
+			
+		}
+		publisher
+	} 
 	
 	// FORWARDING //////////////////////////////////////////////////////////////////////////////
 
 	/** 
 	 * Connect the output of one stream to another stream. Retains flow control. 
-	 * @returns a task that completes once the streams are completed or closed
+	 * @return a task that completes once the streams are completed or closed
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Task pipe(Stream<IN, OUT> input, Source<IN, OUT> output) {
@@ -371,7 +335,7 @@ final class StreamExtensions {
 	 * Connect the output of one stream to another stream. Retains flow control.
 	 * The difference with pipe is that you lose the input. However that makes it
 	 * easier to couple to other streams (since they do not need to match type).
-	 * @returns a task that completes once the streams are completed or closed
+	 * @return a task that completes once the streams are completed or closed
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Task forward(Stream<IN, OUT> input, Source<?, OUT> output) {
@@ -424,6 +388,89 @@ final class StreamExtensions {
 		task.next
 	}
 	
+	// MERGING /////////////////////////////////////////////////////////////////////////////////
+	
+	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
+	@Cold @Backpressure
+	def static <OUT> void push(Source<OUT, OUT> source, List<? extends OUT> values) {
+		merge(source, values.iterator.stream)
+	} 
+
+	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
+	@Cold @Backpressure
+	def static <OUT> void push(Source<OUT, OUT> source, Iterable<? extends OUT> values) {
+		merge(source, values.stream)
+	}
+	
+	/** 
+	 * Merge multiple streams into one.
+	 * If the incoming streams are hot, this will simply merge all values into the returned stream.
+	 * If the incoming streams are cold and have backpressure, this stream will start with the first
+	 * stream, and when it finishes, move onto the next. In effect it will concatinate the streams
+	 * into a single stream.
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> Stream<IN, OUT> merge(Stream<IN, OUT>... streams) {
+		val currentStreamIndex = new AtomicInteger(0)
+		val currentStream = new AtomicReference<Stream<IN, OUT>>(streams.head) 
+		
+		val target = new Source<IN, OUT> {
+			
+			override onNext() {
+				currentStream.get.next
+			}
+			
+			override onClose() {
+				for(stream : streams) {
+					stream.close
+				}
+			}
+			
+			override pause() {
+				super.pause
+				streams.forEach [ pause ]
+			}
+			
+			override resume() {
+				super.resume
+				streams.forEach [ resume ]
+			}
+			
+		}
+		
+		for(stream : streams) {
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					target.value(in, value)
+				}
+				
+				override error(IN in, Throwable t) {
+					target.error(in, t)
+				}
+				
+				override complete() {
+					// we are done with the current stream, move to the next
+					val newIndex = currentStreamIndex.incrementAndGet
+					// are we done with all streams?
+					if(newIndex < streams.size) {
+						val nextStream = streams.get(newIndex)
+						// set the next stream as the current stream
+						currentStream.set(nextStream)
+						// trigger next on the new current stream
+						nextStream.next
+					} else {
+						// all streams have completed, we are done
+						target.complete
+					}
+				}
+				
+			}
+		}
+		
+		target
+	} 	
+	
 	// ERROR HANDLING //////////////////////////////////////////////////////////////////////////
 
 	@Cold @Backpressure
@@ -431,7 +478,7 @@ final class StreamExtensions {
 		val pipe = Pipe.connect(stream)
 		ObservableOperation.onError(stream, pipe, errorClass, swallow, errorFn)
 		pipe
-	}	
+	}
 
 	@Cold @Backpressure
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (ERROR)=>void errorFn) {
@@ -549,19 +596,6 @@ final class StreamExtensions {
 	def static <ERROR extends Throwable, IN, OUT, IN2> Stream<IN, OUT> call(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>Promise<IN2, OUT> onErrorPromiseFn) {
 		val pipe = Pipe.connect(stream)
 		ObservableOperation.onErrorCall(stream, pipe, errorType, onErrorPromiseFn)
-		pipe
-	}
-	
-	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
-
-	/** 
-	 * Observe a stream with an observer, without touching the stream itself.
-	 * Allows you to have more than one observer of a stream.
-	 */
-	@Cold @Backpressure
-	def static <IN, OUT> Stream<IN, OUT> observeWith(Stream<IN, OUT> stream, Observer<IN, OUT>... observers) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.observeWith(stream, #[pipe] + observers.toList)
 		pipe
 	}
 	
@@ -844,9 +878,9 @@ final class StreamExtensions {
 	/**
 	 * Stream until the until condition Fn returns true. 
 	 * When this happens, the stream will finish. Any other encountered Finish is upgraded one level.
-	 * @Param stream: the stream to process
-	 * @Param untilFn: a function that gets the stream value input, output, index and the amount of passed values so far.
-	 * @Return a new substream that contains all the values up to the moment untilFn was called and an additional level 0 finish.
+	 * @param stream the stream to process
+	 * @param untilFn a function that gets the stream value input, output, index and the amount of passed values so far.
+	 * @return a new substream that contains all the values up to the moment untilFn was called and an additional level 0 finish.
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> until(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean untilFn) {
@@ -1016,7 +1050,7 @@ final class StreamExtensions {
 	 * Converts a stream of delayed values into a normal stream.
 	 * If concurrency is set to other than 1, the stream will start pulling in next values
 	 * automatically, making it a hot stream.
-	 * @Param maxConcurrency: sets how many deferred processes get resolved in parallel. 0 for unlimited.
+	 * @param maxConcurrency sets how many deferred processes get resolved in parallel. 0 for unlimited.
 	 */
 	@Cold @Unsorted @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream, int maxConcurrency) {
@@ -1473,10 +1507,9 @@ final class StreamExtensions {
 	/**
 	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
 	 * Start the stream by calling next, after which it will auto-push values without needing next.
-	 * @Param executor the scheduler to use
-	 * @Param amount the amount of amount / period
-	 * @Param period the period of amount / period
-	 * @Param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
+	 * @param executor the scheduler to use
+	 * @param interval the period between values pushed onto the stream
+	 * @param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
 	 */
 	@Cold @MultiThreaded
 	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval, int limit) {
@@ -1521,10 +1554,8 @@ final class StreamExtensions {
 	/**
 	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
 	 * Start the stream by calling next, after which it will auto-push values without needing next.
-	 * @Param executor the scheduler to use
-	 * @Param amount the amount of amount / period
-	 * @Param period the period of amount / period
-	 * @Param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
+	 * @param executor the scheduler to use
+	 * @param interval the period between values pushed onto the stream
 	 */
 	@Cold @MultiThreaded
 	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval) {
