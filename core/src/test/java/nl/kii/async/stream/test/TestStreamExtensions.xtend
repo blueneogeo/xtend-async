@@ -315,8 +315,16 @@ class TestStreamExtensions {
 	}
 
 	@Test
-	def void testPeriodic() {
+	def void testPeriodicExecutor() {
 		val results = schedulers.periodic(1.sec / 100, 100)
+			.count
+			.await(2.secs)
+		assertEquals(100, results)
+	}
+
+	@Test
+	def void testPeriodicUsingTimerFn() {
+		val results = schedulers.timerFn.periodic(1.sec / 100, 100)
 			.count
 			.await(2.secs)
 		assertEquals(100, results)

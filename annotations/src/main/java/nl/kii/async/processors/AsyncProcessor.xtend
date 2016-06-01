@@ -13,7 +13,8 @@ class AsyncProcessor extends AbstractMethodProcessor {
 
 	def boolean isPromiseType(TypeReference type) {
 		type.simpleName.startsWith('Input') ||
-		type.simpleName.startsWith('Task')
+		type.simpleName.startsWith('Task') ||
+		type.simpleName.startsWith('Promise')
 	}
 
 	override doTransform(MutableMethodDeclaration method, extension TransformationContext context) {

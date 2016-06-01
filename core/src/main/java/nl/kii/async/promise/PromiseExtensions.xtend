@@ -233,19 +233,23 @@ final class PromiseExtensions {
 		promise.effect(effectFn).asTask
 	}
 
-	def static <IN, OUT, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, MAP> mapFn) {
+	def static <IN, OUT> Task then(Promise<IN, OUT> promise, (IN, OUT)=>void effectFn) {
+		promise.effect(effectFn).asTask
+	}
+
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, (OUT)=>PROMISE mapFn) {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, OUT, MAP> Promise<IN, MAP> call(Promise<IN, OUT> promise, (OUT)=>Promise<?, MAP> mapFn) {
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, (IN, OUT)=>PROMISE mapFn) {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (IN, OUT)=>Task mapFn) {
+	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, ?> mapFn) {
 		promise.call [ in, value | mapFn.apply(in, value).map [ value ] ]
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (OUT)=>Task mapFn) {
+	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (OUT)=>Promise<?, ?> mapFn) {
 		promise.call [ in, value | mapFn.apply(value).map [ value ] ]
 	}
 	
@@ -285,6 +289,7 @@ final class PromiseExtensions {
 	
 	// FORWARDING /////////////////////////////////////////////////////////////////////
 
+	/** Complete a task when a promise is fulfilled */
 	def static <IN, OUT> void completes(Promise<IN, OUT> promise, Task task) {
 		promise.observer = new Observer<IN, OUT> {
 			
@@ -302,7 +307,8 @@ final class PromiseExtensions {
 			
 		}
 	}
-	
+
+	/** Chain the input and output of a promise to a deferred. */
 	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Deferred<IN, OUT> deferred) {
 		promise.observer = new Observer<IN, OUT> {
 			
@@ -321,7 +327,8 @@ final class PromiseExtensions {
 		}
 	}
 
-	def static <IN, OUT, IN2> void forward(Promise<IN, OUT> promise, Deferred<IN2, OUT> deferred) {
+	/** Take the output value of a promise and set it to an input when it is fulfilled */
+	def static <IN, OUT> void fulfills(Promise<IN, OUT> promise, Deferred<?, OUT> deferred) {
 		promise.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {

@@ -226,7 +226,7 @@ class TestPromiseExtensions {
 	val threads = newCachedThreadPool
 
 	@Async
-	def addOne(int n, Input<Integer> promise) {
+	def addOne(Integer n, Input<Integer> promise) {
 		threads.promise [
 			promise << n + 1
 		]
