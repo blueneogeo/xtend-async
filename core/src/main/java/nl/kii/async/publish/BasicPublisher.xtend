@@ -21,6 +21,7 @@ class BasicPublisher<T> implements Publisher<T> {
 	
 	override stop() {
 		publishing = false
+		closeSubscriptions
 	}
 	
 	override isPublishing() {
@@ -44,13 +45,14 @@ class BasicPublisher<T> implements Publisher<T> {
 	@Hot @NoBackpressure
 	override subscribe() {
 		val source = new Sink<T> {
-			override onNext() { }
+			// note: below handlers are implemented in the controllable
+			override onNext() {}
 			override onClose() { }
 		}
 		source.controllable = new Controllable {
 			
 			override next() {
-				// no flow control for subscriptions
+				// basic publisher has no flow control support
 			}
 			
 			override pause() {

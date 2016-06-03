@@ -301,16 +301,66 @@ final class StreamExtensions {
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
 
 	/** 
+	 * Lets you perform an operation on a stream, by creating a new pipe that you can write to,
+	 * and that is configured to send control messages (next, pause, resume, isOpen, close)
+	 * up to the original stream.
+	 * <p>
+	 * In order to create your new operation, implement the closure that takes the newly generated
+	 * pipe. In your closure, you listen to the original stream by setting an observer to the
+	 * stream, and based on incoming values, you write to the pipe.
+	 * <p>
+	 * The operation method returns the new pipe, cast into a Stream, so the receiver can not
+	 * accidentally write to it.
+	 * <p>
+	 * Note: the output of your new stream does not have to be the same as the output of the original
+	 * stream (but the input does). The OUT1 is from the original stream. The OUT2 is for the outgoing
+	 * new pipe, and is inferred from what you do with the pipe by Xtend.
+	 * 
+	 * @param stream the stream to operate on
+	 * @param operationFn a closure that passes a new Pipe that has been preconfigured to 
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT1, OUT2> Stream<IN, OUT2> operation(Stream<IN, OUT1> stream, (Pipe<IN, OUT2>)=>void operationFn) {
+		val pipe = new Pipe<IN, OUT2> {
+
+			override next() { 
+				stream.next
+			}
+
+			override void close() {
+				super.close
+				stream.close
+			}
+			
+			override pause() {
+				stream.pause
+			}
+			
+			override resume() {
+				stream.resume
+				stream.next
+			}
+			
+			override isOpen() {
+				stream.isOpen
+			}
+			
+		}
+		operationFn.apply(pipe)
+		pipe
+	}
+
+	/** 
 	 * Observe a stream with an observer, without touching the stream itself.
 	 * Allows you to have more than one observer of a stream.
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> observeWith(Stream<IN, OUT> stream, Observer<IN, OUT>... observers) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.observeWith(stream, #[pipe] + observers.toList)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.observeWith(stream, #[pipe] + observers.toList)
+		]
 	}
-	
+
 	@Cold @NoBackpressure
 	def static <IN, OUT> Publisher<OUT> publisher(Stream<IN, OUT> stream) {
 		val publisher = new BasicPublisher<OUT> {
@@ -532,9 +582,9 @@ final class StreamExtensions {
 
 	@Cold @Backpressure
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, boolean swallow, (IN, ERROR)=>void errorFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.onError(stream, pipe, errorClass, swallow, errorFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.onError(stream, pipe, errorClass, swallow, errorFn)
+		]
 	}
 
 	@Cold @Backpressure
@@ -564,46 +614,46 @@ final class StreamExtensions {
 	
 	@Cold @Unsorted @Backpressure
 	def static <ERROR extends Throwable, IN, OUT, PROMISE extends Promise<Object, Object>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>PROMISE handler) {
-		val pipe = Pipe.connect(stream)
-		stream.observer = new Observer<IN, OUT> {
-			
-			override value(IN in, OUT value) {
-				pipe.value(in, value)
-			}
-			
-			override error(IN in, Throwable error) {
-				try {
-					if(error.matches(errorType)) {
-						val promise = handler.apply(in, error as ERROR)
-						promise.observer = new Observer<Object, Object> {
-							
-							override value(Object unused, Object value) {
-								stream.next
-							}
-							
-							override error(Object unused, Throwable t) {
-								pipe.error(in, error)
-							}
-							
-							override complete() {
-								// do nothing
-							}
-							
-						}
-					} else {
-						pipe.error(in, error)
-					}
-				} catch(Throwable t) {
-					pipe.error(in, t)
+		stream.operation [ pipe |
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					pipe.value(in, value)
 				}
+				
+				override error(IN in, Throwable error) {
+					try {
+						if(error.matches(errorType)) {
+							val promise = handler.apply(in, error as ERROR)
+							promise.observer = new Observer<Object, Object> {
+								
+								override value(Object unused, Object value) {
+									stream.next
+								}
+								
+								override error(Object unused, Throwable t) {
+									pipe.error(in, error)
+								}
+								
+								override complete() {
+									// do nothing
+								}
+								
+							}
+						} else {
+							pipe.error(in, error)
+						}
+					} catch(Throwable t) {
+						pipe.error(in, t)
+					}
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+				
 			}
-			
-			override complete() {
-				pipe.complete
-			}
-			
-		}
-		pipe
+		]
 	}
 
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
@@ -617,32 +667,32 @@ final class StreamExtensions {
 	/** Map an error back to a value. Swallows the error. */
 	@Cold @Backpressure
 	def static <ERROR extends Throwable, IN, OUT> Stream<IN, OUT> map(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>OUT mappingFn) {
-		val pipe = Pipe.connect(stream)
-		stream.observer = new Observer<IN, OUT> {
-			
-			override value(IN in, OUT value) {
-				pipe.value(in, value)
-			}
-			
-			override error(IN in, Throwable error) {
-				try {
-					if(error.matches(errorType)) {
-						val value = mappingFn.apply(in, error as ERROR)
-						pipe.value(in, value)
-					} else {
-						pipe.error(in, error)
-					}
-				} catch(Throwable t) {
-					pipe.error(in, t)
+		stream.operation [ pipe |
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					pipe.value(in, value)
 				}
+				
+				override error(IN in, Throwable error) {
+					try {
+						if(error.matches(errorType)) {
+							val value = mappingFn.apply(in, error as ERROR)
+							pipe.value(in, value)
+						} else {
+							pipe.error(in, error)
+						}
+					} catch(Throwable t) {
+						pipe.error(in, t)
+					}
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+				
 			}
-			
-			override complete() {
-				pipe.complete
-			}
-			
-		}
-		pipe
+		]
 	}
 
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
@@ -656,9 +706,9 @@ final class StreamExtensions {
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	@Cold @Backpressure
 	def static <ERROR extends Throwable, IN, OUT, IN2, PROMISE extends Promise<IN2, OUT>> Stream<IN, OUT> call(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>PROMISE onErrorPromiseFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.onErrorCall(stream, pipe, errorType, onErrorPromiseFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.onErrorCall(stream, pipe, errorType, onErrorPromiseFn)
+		]
 	}
 	
 	// BUFFERING ///////////////////////////////////////////////////////////////////////////////
@@ -768,9 +818,9 @@ final class StreamExtensions {
 
 	@Cold @Backpressure
 	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (IN, OUT)=>MAP mapFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.map(stream, pipe, mapFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.map(stream, pipe, mapFn)
+		]
 	}
 	
 	@Cold @Backpressure
@@ -843,31 +893,31 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> filter(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean filterFn) {
-		val pipe = Pipe.connect(stream)
-		val index = new AtomicLong(0)
-		val passed = new AtomicLong(0)
-		stream.observer = new Observer<IN, OUT> {
-			
-			override value(IN in, OUT value) {
-				val i = index.incrementAndGet
-				if(filterFn.apply(in, value, i, passed.get)) {
-					passed.incrementAndGet
-					pipe.value(in, value)
-				} else {
-					stream.next
+		stream.operation [ pipe |
+			val index = new AtomicLong(0)
+			val passed = new AtomicLong(0)
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					val i = index.incrementAndGet
+					if(filterFn.apply(in, value, i, passed.get)) {
+						passed.incrementAndGet
+						pipe.value(in, value)
+					} else {
+						stream.next
+					}
 				}
+				
+				override error(IN in, Throwable t) {
+					pipe.error(in, t)
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+				
 			}
-			
-			override error(IN in, Throwable t) {
-				pipe.error(in, t)
-			}
-			
-			override complete() {
-				pipe.complete
-			}
-			
-		}
-		pipe
+		]
 	}
 		
 	
@@ -946,9 +996,9 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> until(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean untilFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.until(stream, pipe, untilFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.until(stream, pipe, untilFn)
+		]
 	}
 	
 	 /**
@@ -985,24 +1035,24 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, Pair<Integer, OUT>> index(Stream<IN, OUT> stream) {
-		val pipe = Pipe.connect(stream)
-		val counter = new AtomicInteger(0)
-		stream.observer = new Observer<IN, OUT> {
+		stream.operation [ pipe |
+			val counter = new AtomicInteger(0)
+			stream.observer = new Observer<IN, OUT> {
 			
-			override value(IN in, OUT value) {
-				pipe.value(in, counter.incrementAndGet -> value)
+				override value(IN in, OUT value) {
+					pipe.value(in, counter.incrementAndGet -> value)
+				}
+				
+				override error(IN in, Throwable t) {
+					pipe.error(in, t)
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+			
 			}
-			
-			override error(IN in, Throwable t) {
-				pipe.error(in, t)
-			}
-			
-			override complete() {
-				pipe.complete
-			}
-			
-		}
-		pipe
+		]
 	}
 	
 	/** 
@@ -1071,26 +1121,26 @@ final class StreamExtensions {
 	@Cold @Backpressure
 	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, IN, OUT)=>REDUCED reducerFn) {
 		val reduced = new AtomicReference<REDUCED>(initial)
-		val newStream = Pipe.connect(stream)
-		stream.observer = new Observer<IN, OUT> {
-			
-			override value(IN in, OUT value) {
-				val result = reducerFn.apply(reduced.get, in, value)
-				reduced.set(result)
-				if(result != null) newStream.value(in, result)
-				else stream.next
+		stream.operation [ pipe |
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					val result = reducerFn.apply(reduced.get, in, value)
+					reduced.set(result)
+					if(result != null) pipe.value(in, result)
+					else stream.next
+				}
+				
+				override error(IN in, Throwable t) {
+					pipe.error(in, t)
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+				
 			}
-			
-			override error(IN in, Throwable t) {
-				newStream.error(in, t)
-			}
-			
-			override complete() {
-				newStream.complete
-			}
-			
-		}
-		newStream
+		]
 	}
 	
 	@Cold @Backpressure
@@ -1101,9 +1151,9 @@ final class StreamExtensions {
 	/** Flatten a stream of streams into a single stream. Expects streams to be ordered and preserves order, resolving one stream at a time. */
 	@Cold @NoBackpressure
 	def static <IN, IN2, OUT, STREAM extends Stream<IN2, OUT>> Stream<IN, OUT> flatten(Stream<IN, STREAM> stream) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.flatten(stream, pipe, 1)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.flatten(stream, pipe, 1)
+		]
 	}
 
 	// CALL AND PERFORM ///////////////////////////////////////////////////////////////////////
@@ -1116,9 +1166,9 @@ final class StreamExtensions {
 	 */
 	@Cold @Unsorted @Backpressure
 	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream, int maxConcurrency) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.flatten(stream, pipe, maxConcurrency)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.flatten(stream, pipe, maxConcurrency)
+		]
 	}
 
 	@Cold @Unsorted @Backpressure
@@ -1503,18 +1553,18 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> delay(Stream<IN, OUT> stream, Period delay, (Period)=>Task timerFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.delay(stream, pipe, delay, timerFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.delay(stream, pipe, delay, timerFn)
+		]
 	}
 
 	/**
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> Stream<IN, Stream<IN, OUT>> window(Stream<IN, OUT> stream, Period interval) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.window(stream, pipe, interval)
-		pipe as Stream<IN, Stream<IN, OUT>>
+		stream.operation [ pipe |
+			ObservableOperation.window(stream, pipe, interval)
+		]
 	}
 
 	/**
@@ -1530,9 +1580,9 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure @Lossy
 	def static <IN, OUT> throttle(Stream<IN, OUT> stream, Period minimumInterval) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.throttle(stream, pipe, minimumInterval)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.throttle(stream, pipe, minimumInterval)
+		]
 	}
 
 	/**
@@ -1543,9 +1593,9 @@ final class StreamExtensions {
 	 */
 	@Cold @Backpressure
 	def static <IN, OUT> ratelimit(Stream<IN, OUT> stream, Period minimumInterval, (Period)=>Task timerFn) {
-		val pipe = Pipe.connect(stream)
-		ObservableOperation.ratelimit(stream, pipe, minimumInterval, timerFn)
-		pipe
+		stream.operation [ pipe |
+			ObservableOperation.ratelimit(stream, pipe, minimumInterval, timerFn)
+		]
 	}
 
 	// ASSERTION ////////////////////////////////////////////////////////////////

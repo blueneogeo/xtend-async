@@ -13,21 +13,34 @@ import nl.kii.async.annotation.Hot
  */
 interface Publisher<T> {
 
+	/** Publish a single value to subscribers */
 	def void publish(T value)
 
+	/** Publish to subscribers that something went wrong */
 	def void publish(Throwable error)
 
+	/** 
+	 * Add a subscriber to values and errors from the publisher.
+	 * @return a stream that lets the subscriber respond to published values and 
+	 * errors from the publisher. Pausing the stream makes the publisher skip
+	 * the subscriber. Resuming resumes the values. Closing the stream unsubscribes.
+	 */
 	@Hot @NoBackpressure
 	def Stream<T, T> subscribe()
 
+	/** Start publishing. */
 	def void start()
 	
+	/** Stop publishing. */
 	def void stop()
 	
+	/** Lets you know if the publisher is started and not stopped. */
 	def boolean isPublishing()
 
+	/** The amount of subscribers to this publisher. */
 	def int getSubscriptionCount()
 
+	/** Unsubscribes all currently open subscriptions, closing all streams. */
 	def void closeSubscriptions()
 	
 }
