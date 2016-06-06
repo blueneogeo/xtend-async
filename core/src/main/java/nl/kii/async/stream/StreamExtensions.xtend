@@ -385,6 +385,7 @@ final class StreamExtensions {
 			
 			override complete() {
 				publisher.closeSubscriptions
+				stream.close
 			}
 			
 		}
@@ -412,6 +413,7 @@ final class StreamExtensions {
 			
 			override complete() {
 				output.complete
+				input.close
 				task.complete
 			}
 			
@@ -459,6 +461,7 @@ final class StreamExtensions {
 			
 			override complete() {
 				output.complete
+				input.close
 				task.complete
 			}
 			
@@ -569,6 +572,8 @@ final class StreamExtensions {
 					} else {
 						// all streams have completed, we are done
 						target.complete
+						// make sure we close all merged streams
+						for(stream: streams) { stream.close }
 					}
 				}
 				
@@ -740,7 +745,9 @@ final class StreamExtensions {
 					ready.set(false)
 					value(nextValue.key, nextValue.value)
 					// we have one more slot in the queue now, so resume the stream if it was paused
-					if(!stream.isOpen) stream.resume
+					if(!stream.isOpen) {
+						stream.resume
+					}
 				} else if(completed.get) {
 					// the stream was completed, so now that all values were streamed, complete the pipe as well
 					complete
@@ -1255,6 +1262,7 @@ final class StreamExtensions {
 			override complete() {
 				// stream.close
 				task.complete
+				stream.close
 			}
 			
 		}
@@ -1311,6 +1319,7 @@ final class StreamExtensions {
 				} else {
 					promise.error(counter.get, new Exception('no value came from the stream to reduce'))
 				}
+				stream.close
 			}
 			
 		}
@@ -1427,6 +1436,7 @@ final class StreamExtensions {
 			}
 			
 			override complete() {
+				stream.close
 				promise.value(null, false)
 			}
 			
@@ -1531,10 +1541,12 @@ final class StreamExtensions {
 			}
 			
 			override complete() {
+				stream.close
 				if(!promise.fulfilled && last.get != null) {
 					promise.value(last.get.key, last.get.value)
-					stream.close
-				} else promise.error(null, new Exception('stream closed without passing a value, no last entry found.'))
+				} else {
+					promise.error(null, new Exception('stream closed without passing a value, no last entry found.'))
+				}
 			}
 			
 		}

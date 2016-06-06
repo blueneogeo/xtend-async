@@ -61,6 +61,9 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 		open = false
 		onClose
 		controlListener?.close
+		// disconnect from listeners
+		observer = null
+		controlListener = null
 	}
 
 	override pause() {

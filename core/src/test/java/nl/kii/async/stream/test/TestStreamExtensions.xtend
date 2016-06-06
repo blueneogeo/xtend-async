@@ -195,8 +195,6 @@ class TestStreamExtensions {
 		// now the data should be buffered... up to 5 messages
 		val result = buffered.collect.await
 		result <=> #[1, 2, 3, 4, 5]
-		// the buffer was cleared, the sink is open for values again
-		sink.isOpen <=> true
 	}
 	
 	@Test
@@ -395,7 +393,7 @@ class TestStreamExtensions {
 			.window(50.ms)
 			.effect [ windowCount.incrementAndGet ]
 			.flatten
-			.count.await(5.min)
+			.count.await(30.secs)
 		assertEquals(50, count)
 		// timing depends on the runner
 		// assertEquals(10, windowCount.get)
