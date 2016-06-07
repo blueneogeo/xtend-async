@@ -142,7 +142,7 @@ final class ObservableOperation {
 	}
 	
 	/** this method was necessary to allow the wildcard generics in the flatten method */
-	private def static <IN, OUT> observe(Observable<IN, OUT> observable, (IN, OUT)=>void onValue, (IN, Throwable)=>void onError, =>void onComplete) {
+	package def static <IN, OUT> observe(Observable<IN, OUT> observable, (IN, OUT)=>void onValue, (IN, Throwable)=>void onError, =>void onComplete) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {

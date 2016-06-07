@@ -2,6 +2,7 @@ package nl.kii.async.promise
 
 /**
  * An input promises a value at some point in time.
+ * An input is a Deferred, meaning it is thread-safe.
  */
 class Input<IN> extends Deferred<IN, IN> implements Promise<IN, IN> {
 	

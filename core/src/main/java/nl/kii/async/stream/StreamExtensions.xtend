@@ -93,8 +93,9 @@ final class StreamExtensions {
 		}
 	}
 
-
-	/** Create a stream sink of a certain type, without support for backpressure. */
+	/** Create a stream sink of a certain type, without support for backpressure.
+	 * This version without specifying the OUT type allows you to use the Xtend
+	 * inferrer to infer the types for you. */
 	@Cold @Backpressure
 	def static <OUT> Sink<OUT> newSink() {
 		new Sink<OUT> {
@@ -114,6 +115,42 @@ final class StreamExtensions {
 	@Cold @Backpressure
 	def static <OUT> Sink<OUT> sink(Class<OUT> type) {
 		new Sink<OUT> {
+			
+			override onNext() {
+				// do nothing, no support for backpressure
+			}
+			
+			override onClose() {
+				// do nothing
+			}
+			
+		}
+	}
+
+	/** 
+	 * Create a stream source of a certain type, without support for backpressure.
+	 * This version without specifying IN and OUT types allows you to use the Xtend
+	 * inferrer to infer the types for you.
+	 */
+	@Cold @Backpressure
+	def static <IN, OUT> Source<IN, OUT> newSource() {
+		new Source<IN, OUT> {
+			
+			override onNext() {
+				// do nothing, no support for backpressure
+			}
+			
+			override onClose() {
+				// do nothing
+			}
+			
+		}
+	}
+
+	/** Create a stream source of a certain type, without support for backpressure. */
+	@Cold @Backpressure
+	def static <IN, OUT> Source<IN, OUT> source(Class<IN> inType, Class<OUT> outType) {
+		new Source<IN, OUT> {
 			
 			override onNext() {
 				// do nothing, no support for backpressure

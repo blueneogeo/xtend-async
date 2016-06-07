@@ -4,6 +4,7 @@ import nl.kii.async.observable.Observer
 
 /** 
  * A deferred promises a result, based on an incoming request.
+ * A Deferred is thread-safe.
  */
 class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 
@@ -20,7 +21,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		fulfilled = true
 		if(observer != null) {
 			observer.value(in, value)
-			observer.complete
+			onCompleted
 		} else {
 			cachedValue = in -> value
 		}
@@ -31,14 +32,23 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		rejected = true
 		if(observer != null) {
 			observer.error(in, t)
-			observer.complete
+			onCompleted
 		} else {
 			cachedError = in -> t
 		}
 	}
 	
 	override synchronized complete() {
-		// not supported
+		// do nothing, because only value and error can complete a promise!
+	}
+	
+	/** Called internally, so the observer.complete is called, and we can clean up a bit */
+	protected def onCompleted() {
+		observer?.complete
+		// clean up after we are done
+		observer = null
+		cachedValue = null
+		cachedError = null
 	}
 
 	override synchronized isPending() {
@@ -57,11 +67,13 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		this.observer = observer
 		// if we already have a value or error, push it through immediately
 		if(cachedValue != null) {
+			fulfilled = true
 			observer.value(cachedValue.key, cachedValue.value)
-			observer.complete
+			onCompleted
 		} else if(cachedError != null) {
+			rejected = true
 			observer.error(cachedError.key, cachedError.value)
-			observer.complete
+			onCompleted
 		}
 	}
 	override synchronized next() {
