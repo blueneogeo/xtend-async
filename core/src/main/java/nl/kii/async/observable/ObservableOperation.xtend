@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.NoBackpressure
@@ -20,6 +19,7 @@ import nl.kii.util.Period
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
+import nl.kii.async.annotation.Controlled
 
 final class ObservableOperation {
 
@@ -63,7 +63,7 @@ final class ObservableOperation {
 	
 	// COMBINE /////////////////////////////////////////////////////////////////////////////////
 
-	@Hot @Backpressure @Unsorted
+	@Hot @Controlled @Unsorted
 	def static <IN, OUT> void merge(Observer<IN, OUT> observer, Observable<IN, OUT>... observables) {
 		val completed = new AtomicInteger(0)
 		for(observable : observables) {
@@ -93,7 +93,7 @@ final class ObservableOperation {
 
 	// UNTIL ///////////////////////////////////////////////////////////////////////////////////
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> void until(Observable<IN, OUT> observable, Observer<IN, OUT> observer, (IN, OUT, Long, Long)=>boolean stopObservingFn) {
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)
@@ -121,7 +121,7 @@ final class ObservableOperation {
 
 	// MAPPING /////////////////////////////////////////////////////////////////////////////////
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, MAP> void map(Observable<IN, OUT> observable, Observer<IN, MAP> observer, (IN, OUT)=>MAP mapFn) {
 		observable.observer = new Observer<IN, OUT> {
 			override value(IN in, OUT value) {
@@ -274,7 +274,7 @@ final class ObservableOperation {
 		*/
 	}
 
-	@Cold @Backpressure	
+	@Cold @Controlled	
 	def static <IN1, IN2, OUT> mapInput(Observable<IN1, OUT> observable, Observer<IN2, OUT> observer, (IN1, Opt<OUT>)=>IN2 inputMapFn) {
 		observable.observer = new Observer<IN1, OUT> {
 			
@@ -297,7 +297,7 @@ final class ObservableOperation {
 	
 	// ERROR HANDLING //////////////////////////////////////////////////////////////////////////
 	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, E extends Throwable> void onError(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<E> errorClass, boolean swallow, (IN, E)=>void onErrorFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
@@ -329,7 +329,7 @@ final class ObservableOperation {
 		}
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> void onErrorMap(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<ERROR> errorClass, boolean swallow, (IN, ERROR)=>OUT onErrorMapFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
@@ -358,7 +358,7 @@ final class ObservableOperation {
 	}
 	
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <ERROR extends Throwable, IN, OUT, IN2> void onErrorCall(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<ERROR> errorType, (IN, ERROR)=>Promise<IN2, OUT> onErrorCallFn) {
 		val completed = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
@@ -426,7 +426,7 @@ final class ObservableOperation {
 	 * Better than using stream.perform [ timerFn.apply(period) ] since uncontrolled streams then can be completed before
 	 * all values have been pushed.
 	 */	
-	@Cold @Backpressure	
+	@Cold @Controlled	
 	def static <IN, OUT> delay(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period delay, (Period)=>Task timerFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
@@ -520,7 +520,7 @@ final class ObservableOperation {
 	 * Stream only [amount] values per [period]. Anything more will be rejected and the next value asked.
 	 * Errors and complete are streamed immediately.
 	 */
-	@Cold @Backpressure	
+	@Cold @Controlled	
 	def static <IN, OUT> throttle(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval) {
 		observable.observer = new Observer<IN, OUT> {
 
@@ -550,7 +550,7 @@ final class ObservableOperation {
 	 * Stream only [amount] values per [period]. Anything more will be buffered until available. 
 	 * Requires a buffered stream to work.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> ratelimit(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval, (Period)=>Task timerFn) {
 		observable.observer = new Observer<IN, OUT> {
 

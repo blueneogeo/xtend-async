@@ -5,9 +5,7 @@ import java.lang.annotation.Target
 /** 
  * Stream methods annotated with NoBackpressure mean that you lose backpressure handling by using this stream.
  * <p>
- * This means that while normally streams will wait until you ask 'next' to get the next item from the stream,
- * streams annotated with Uncontrolled may push items to you at their own discretion. Uncontrolled streams
- * do not mind how busy the handlers are (the pressure the handlers are under), and may overload the handlers.
+ * Backpressure means you can pause and resume a stream. Streams without backpressure cannot be paused and resumed.
  */
 @Target(METHOD)
 annotation NoBackpressure {

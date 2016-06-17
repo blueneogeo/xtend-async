@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.annotation.Backpressure
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.Lossy
@@ -35,6 +34,7 @@ import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import java.util.Date
+import nl.kii.async.annotation.Controlled
 
 final class StreamExtensions {
 
@@ -45,7 +45,7 @@ final class StreamExtensions {
 	 * meaning that the next value will only be requested when the stream requests
 	 * a next value.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> Stream<OUT, OUT> stream(Iterator<? extends OUT> iterator) {
 		new Sink<OUT> {
 			override onNext() {
@@ -67,7 +67,7 @@ final class StreamExtensions {
 	 * meaning that the next value will only be requested when the stream requests
 	 * a next value.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> Stream<OUT, OUT> stream(Iterable<? extends OUT> iterable) {
 		iterable.iterator.stream
 	}
@@ -76,7 +76,7 @@ final class StreamExtensions {
 	 * Create a stream out of a closure. Every time the stream calls for the next value,
 	 * it will call the closure. If the closure returns null, the stream will complete.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> Stream<OUT, OUT> stream(=>OUT nextValueFn) {
 		new Sink<OUT> {
 			
@@ -96,7 +96,7 @@ final class StreamExtensions {
 	/** Create a stream sink of a certain type, without support for backpressure.
 	 * This version without specifying the OUT type allows you to use the Xtend
 	 * inferrer to infer the types for you. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> Sink<OUT> newSink() {
 		new Sink<OUT> {
 			
@@ -112,7 +112,7 @@ final class StreamExtensions {
 	}
 
 	/** Create a stream sink of a certain type, without support for backpressure. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> Sink<OUT> sink(Class<OUT> type) {
 		new Sink<OUT> {
 			
@@ -132,7 +132,7 @@ final class StreamExtensions {
 	 * This version without specifying IN and OUT types allows you to use the Xtend
 	 * inferrer to infer the types for you.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Source<IN, OUT> newSource() {
 		new Source<IN, OUT> {
 			
@@ -148,7 +148,7 @@ final class StreamExtensions {
 	}
 
 	/** Create a stream source of a certain type, without support for backpressure. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Source<IN, OUT> source(Class<IN> inType, Class<OUT> outType) {
 		new Source<IN, OUT> {
 			
@@ -168,7 +168,7 @@ final class StreamExtensions {
 	 * @param timerFn function that can be given a period and returns a task which completes after that period
 	 * @param interval the period between values from the periodic stream
 	 */
-	 @Cold @Backpressure
+	 @Cold @Controlled
 	 def static <OUT> Stream<Long, Long> periodic((Period)=>Task timerFn, Period interval) {
 	 		timerFn.periodic(interval, 0)
 	}
@@ -179,7 +179,7 @@ final class StreamExtensions {
 	 * @param interval the period between values from the periodic stream
 	 * @param maxAmount the maximum amount of values to emit
 	 */
-	 @Cold @Backpressure
+	 @Cold @Controlled
 	 def static <OUT> Stream<Long, Long> periodic((Period)=>Task timerFn, Period interval, int maxAmount) {
 	 	val sink = new Sink<Long> {
 	 		val that = this
@@ -247,7 +247,7 @@ final class StreamExtensions {
 	 * you need to catch the error within the stream chain.
 	 * @return a task that either completes when the stream completes/closes, or that has an error.
 	 */	
-	@Hot @Backpressure
+	@Hot @Controlled
 	def static <IN, OUT> Task start(Stream<IN, OUT> stream) {
 		stream.asTask => [ stream.next ]
 	}
@@ -258,7 +258,7 @@ final class StreamExtensions {
 	 * Wraps synchronize calls around a stream, making it thread-safe.
 	 * This comes at a small performance cost.
 	 */
-	@Cold @Backpressure @MultiThreaded
+	@Cold @Controlled @MultiThreaded
 	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream) {
 		val pipe = new Pipe<IN, OUT> {
 			
@@ -356,7 +356,7 @@ final class StreamExtensions {
 	 * @param stream the stream to operate on
 	 * @param operationFn a closure that passes a new Pipe that has been preconfigured to 
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT1, OUT2> Stream<IN, OUT2> operation(Stream<IN, OUT1> stream, (Pipe<IN, OUT2>)=>void operationFn) {
 		val pipe = new Pipe<IN, OUT2> {
 
@@ -391,7 +391,7 @@ final class StreamExtensions {
 	 * Observe a stream with an observer, without touching the stream itself.
 	 * Allows you to have more than one observer of a stream.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> observeWith(Stream<IN, OUT> stream, Observer<IN, OUT>... observers) {
 		stream.operation [ pipe |
 			ObservableOperation.observeWith(stream, #[pipe] + observers.toList)
@@ -435,7 +435,7 @@ final class StreamExtensions {
 	 * Connect the output of one stream to another stream. Retains flow control. 
 	 * @return a task that completes once the streams are completed or closed
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Task pipe(Stream<IN, OUT> input, Source<IN, OUT> output) {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
@@ -483,7 +483,7 @@ final class StreamExtensions {
 	 * easier to couple to other streams (since they do not need to match type).
 	 * @return a task that completes once the streams are completed or closed
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Task forward(Stream<IN, OUT> input, Source<?, OUT> output) {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
@@ -538,13 +538,13 @@ final class StreamExtensions {
 	// MERGING /////////////////////////////////////////////////////////////////////////////////
 	
 	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> void push(Source<OUT, OUT> source, List<? extends OUT> values) {
 		merge(source, values.iterator.stream)
 	} 
 
 	/** Push a list of values onto a stream. Will make sure this list is nicely iterated. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <OUT> void push(Source<OUT, OUT> source, Iterable<? extends OUT> values) {
 		merge(source, values.stream)
 	}
@@ -556,7 +556,7 @@ final class StreamExtensions {
 	 * stream, and when it finishes, move onto the next. In effect it will concatinate the streams
 	 * into a single stream.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> merge(Stream<IN, OUT>... streams) {
 		val currentStreamIndex = new AtomicInteger(0)
 		val currentStream = new AtomicReference<Stream<IN, OUT>>(streams.head) 
@@ -622,39 +622,39 @@ final class StreamExtensions {
 	
 	// ERROR HANDLING //////////////////////////////////////////////////////////////////////////
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, boolean swallow, (IN, ERROR)=>void errorFn) {
 		stream.operation [ pipe |
 			ObservableOperation.onError(stream, pipe, errorClass, swallow, errorFn)
 		]
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (IN, ERROR)=>void errorFn) {
 		stream.on(errorClass, false, errorFn)
 	}	
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (ERROR)=>void errorFn) {
 		stream.on(errorClass, false) [ in, error | errorFn.apply(error) ]
 	}	
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> effect(Stream<IN, OUT> stream, Class<ERROR> errorClass, (ERROR)=>void errorFn) {
 		stream.on(errorClass, true) [ in, error | errorFn.apply(error) ]
 	}	
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> effect(Stream<IN, OUT> stream, Class<ERROR> errorClass, (IN, ERROR)=>void errorFn) {
 		stream.on(errorClass, true, errorFn)
 	}
 	
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <ERROR extends Throwable, IN, OUT, PROMISE extends Promise<Object, Object>> perform(Stream<IN, OUT> stream, Class<ERROR> errorType, (ERROR)=>PROMISE handler) {
 		stream.perform(errorType) [ i, e | handler.apply(e) ]
 	}
 	
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <ERROR extends Throwable, IN, OUT, PROMISE extends Promise<Object, Object>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>PROMISE handler) {
 		stream.operation [ pipe |
 			stream.observer = new Observer<IN, OUT> {
@@ -701,13 +701,13 @@ final class StreamExtensions {
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
 
 	/** Map an error back to a value. Swallows the error. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <ERROR extends Throwable, IN, OUT> map(Stream<IN, OUT> stream, Class<ERROR> errorType, (ERROR)=>OUT mappingFn) {
 		stream.map(errorType) [ input, err | mappingFn.apply(err) ]
 	}
 
 	/** Map an error back to a value. Swallows the error. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <ERROR extends Throwable, IN, OUT> Stream<IN, OUT> map(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>OUT mappingFn) {
 		stream.operation [ pipe |
 			stream.observer = new Observer<IN, OUT> {
@@ -740,13 +740,13 @@ final class StreamExtensions {
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <ERROR extends Throwable, IN, IN2, OUT, PROMISE extends Promise<IN2, OUT>> Stream<IN, OUT> call(Stream<IN, OUT> stream, Class<ERROR> errorType, (ERROR)=>PROMISE onErrorPromiseFn) {
 		stream.call(errorType) [ IN in, ERROR err | onErrorPromiseFn.apply(err) as Promise<Object, OUT> ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <ERROR extends Throwable, IN, OUT, IN2, PROMISE extends Promise<IN2, OUT>> Stream<IN, OUT> call(Stream<IN, OUT> stream, Class<ERROR> errorType, (IN, ERROR)=>PROMISE onErrorPromiseFn) {
 		stream.operation [ pipe |
 			ObservableOperation.onErrorCall(stream, pipe, errorType, onErrorPromiseFn)
@@ -766,7 +766,7 @@ final class StreamExtensions {
 	 * @param maxSize the maximum size of the buffer before it pauses the stream. 
 	 * 	Set to 0 or negative to disable buffering and return the original stream
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> buffer(Stream<IN, OUT> stream, int maxSize) {
 		if(maxSize <= 0) return stream
 		val Queue<Pair<IN, OUT>> buffer = Queues.newArrayDeque
@@ -860,24 +860,24 @@ final class StreamExtensions {
 	
 	// MAPPING AND EFFECT //////////////////////////////////////////////////////////////////////
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (IN, OUT)=>MAP mapFn) {
 		stream.operation [ pipe |
 			ObservableOperation.map(stream, pipe, mapFn)
 		]
 	}
 	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (OUT)=>MAP mapFn) {
 		stream.map [ in, out | mapFn.apply(out) ]
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> effect(Stream<IN, OUT> stream, (OUT)=>void effectFn) {
 		stream.map [ in, out | effectFn.apply(out) return out ]
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> effect(Stream<IN, OUT> stream, (IN, OUT)=>void effectFn) {
 		stream.map [ in, out | effectFn.apply(in, out) return out ]
 	}
@@ -888,7 +888,7 @@ final class StreamExtensions {
 	 * The input mapping function is passed both an input and an output parameter. The output
 	 * is only available when a normal value comes in, and not for errors.
 	 */	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN1, IN2, OUT> Stream<IN2, OUT> mapInput(Stream<IN1, OUT> stream, (IN1, Opt<OUT>)=>IN2 inputMapFn) {
 		val pipe = new Pipe<IN2, OUT> {
 
@@ -921,7 +921,7 @@ final class StreamExtensions {
 	/** 
 	 * Transform the input of a stream based on the existing input.
 	 */	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN1, IN2, OUT> Stream<IN2, OUT> mapInput(Stream<IN1, OUT> stream, (IN1)=>IN2 inputMapFn) {
 		stream.mapInput [ in1, out | inputMapFn.apply(in1) ]
 	}
@@ -935,7 +935,7 @@ final class StreamExtensions {
 	 * items passed by this filter so far. Both of these numbers
 	 * are reset by a finish.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> filter(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean filterFn) {
 		stream.operation [ pipe |
 			val index = new AtomicLong(0)
@@ -969,7 +969,7 @@ final class StreamExtensions {
 	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> filter(Stream<IN, OUT> stream, (OUT)=>boolean filterFn) {
 		stream.filter [ in, out, index, passed | filterFn.apply(out) ]
 	}
@@ -978,7 +978,7 @@ final class StreamExtensions {
 	 * Filter items in a stream to only the ones that the filterFn
 	 * returns a true for.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> filter(Stream<IN, OUT> stream, (IN, OUT)=>boolean filterFn) {
 		stream.filter [ in, out, index, passed | filterFn.apply(in, out) ]
 	}
@@ -990,13 +990,13 @@ final class StreamExtensions {
 	 * items passed by this filter so far. Both of these numbers
 	 * are reset by a finish.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> filter(Stream<IN, OUT> stream, (OUT, Long, Long)=>boolean filterFn) {
 		stream.filter [ in, out, index, passed | filterFn.apply(out, index, passed) ]
 	}
 
 	/** Disposes undefined optionals and continues the stream with the remaining optionals unboxed. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> filterDefined(Stream<IN, Opt<OUT>> stream) {
 		stream.filter [ defined ].map [ value ]
 	}
@@ -1006,7 +1006,7 @@ final class StreamExtensions {
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> until(Stream<IN, OUT> stream, (OUT)=>boolean untilFn) {
 		stream.until [ in, out, index, passed | untilFn.apply(out) ]
 	}
@@ -1016,7 +1016,7 @@ final class StreamExtensions {
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> until(Stream<IN, OUT> stream, (IN, OUT)=>boolean untilFn) {
 		stream.until [ in, out, index, passed | untilFn.apply(in, out) ]
 	}
@@ -1026,7 +1026,7 @@ final class StreamExtensions {
 	 * It is exclusive, meaning that if the value from the
 	 * stream matches the untilFn, that value will not be passed.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> until(Stream<IN, OUT> stream, (IN, OUT, Long)=>boolean untilFn) {
 		stream.until [ in, out, index, passed | untilFn.apply(in, out, index) ]
 	}
@@ -1038,7 +1038,7 @@ final class StreamExtensions {
 	 * @param untilFn a function that gets the stream value input, output, index and the amount of passed values so far.
 	 * @return a new substream that contains all the values up to the moment untilFn was called and an additional level 0 finish.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> until(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean untilFn) {
 		stream.operation [ pipe |
 			ObservableOperation.until(stream, pipe, untilFn)
@@ -1049,12 +1049,12 @@ final class StreamExtensions {
 	  * Skips the head and returns a stream of the trailing entries.
 	  * Alias for Stream.skip(1) 
 	  */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> tail(Stream<IN, OUT> stream) {
 		stream.skip(1)
 	}
 	
-	@Cold @Backpressure
+	@Cold @Controlled
 	/**
 	 * Skip an amount of items from the stream, and process only the ones after that.
 	 */
@@ -1062,7 +1062,7 @@ final class StreamExtensions {
 		stream.filter [ it, index, passed | index > amount ] 
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	/**
 	 * Take only a set amount of items from the stream. 
 	 */
@@ -1077,7 +1077,7 @@ final class StreamExtensions {
 	 * value from the original stream, push a pair of count->value.
 	 * Finish(0) resets the count.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, Pair<Integer, OUT>> index(Stream<IN, OUT> stream) {
 		stream.operation [ pipe |
 			val counter = new AtomicInteger(0)
@@ -1102,7 +1102,7 @@ final class StreamExtensions {
 	/** 
 	 * Flatten a stream of lists of items into a stream of the items in those lists.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> separate(Stream<IN, List<OUT>> stream) {
 		val ignoreNextCount = new AtomicInteger(0)
 		val pipe = new Pipe<IN, OUT> {
@@ -1162,7 +1162,7 @@ final class StreamExtensions {
 		pipe
 	}
 	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, IN, OUT)=>REDUCED reducerFn) {
 		val reduced = new AtomicReference<REDUCED>(initial)
 		stream.operation [ pipe |
@@ -1187,7 +1187,7 @@ final class StreamExtensions {
 		]
 	}
 	
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, OUT)=>REDUCED reducerFn) {
 		stream.scan(initial) [ p, r, it | reducerFn.apply(p, it) ]
 	}
@@ -1208,41 +1208,41 @@ final class StreamExtensions {
 	 * automatically, making it a hot stream.
 	 * @param maxConcurrency sets how many deferred processes get resolved in parallel. 0 for unlimited.
 	 */
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream, int maxConcurrency) {
 		stream.operation [ pipe |
 			ObservableOperation.flatten(stream, pipe, maxConcurrency)
 		]
 	}
 
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (IN, OUT)=>PROMISE mapFn) {
 		stream.map(mapFn).resolve(maxConcurrency)
 	}
 
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (IN, OUT)=>PROMISE mapFn) {
 		stream.map(mapFn).resolve(1)
 	}
 
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>PROMISE mapFn) {
 		stream.call(maxConcurrency) [ in, out | mapFn.apply(out) ]
 	}
 
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>PROMISE mapFn) {
 		stream.call(1) [ in, out | mapFn.apply(out) ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(1) [ in, value | promiseFn.apply(value).map [ value ] ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
@@ -1251,7 +1251,7 @@ final class StreamExtensions {
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(concurrency) [ in, value | promiseFn.apply(value).map [ value ] ]
 	}
@@ -1260,7 +1260,7 @@ final class StreamExtensions {
 	 * Perform some asynchronous side-effect action based on the stream.
 	 * Perform at most 'concurrency' calls in parallel.
 	 */
-	@Cold @Unsorted @Backpressure
+	@Cold @Unsorted @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (IN, OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(concurrency) [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
@@ -1600,7 +1600,7 @@ final class StreamExtensions {
 	 * Better than using stream.perform [ timerFn.apply(period) ] since uncontrolled streams then can be completed before
 	 * all values have been pushed.
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> delay(Stream<IN, OUT> stream, Period delay, (Period)=>Task timerFn) {
 		stream.operation [ pipe |
 			ObservableOperation.delay(stream, pipe, delay, timerFn)
@@ -1609,7 +1609,7 @@ final class StreamExtensions {
 
 	/**
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, Stream<IN, OUT>> window(Stream<IN, OUT> stream, Period interval) {
 		stream.operation [ pipe |
 			ObservableOperation.window(stream, pipe, interval)
@@ -1618,7 +1618,7 @@ final class StreamExtensions {
 
 	/**
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled @Lossy
 	def static <IN, OUT> sample(Stream<IN, OUT> stream, Period interval) {
 		stream.window(interval).map [ window | window.last ].resolve(1)
 	}
@@ -1627,7 +1627,7 @@ final class StreamExtensions {
 	 * Stream only [amount] values per [period]. Anything more will be rejected and the next value asked.
 	 * Errors and complete are streamed immediately.
 	 */
-	@Cold @Backpressure @Lossy
+	@Cold @Controlled @Lossy
 	def static <IN, OUT> throttle(Stream<IN, OUT> stream, Period minimumInterval) {
 		stream.operation [ pipe |
 			ObservableOperation.throttle(stream, pipe, minimumInterval)
@@ -1640,7 +1640,7 @@ final class StreamExtensions {
 	 * <p>
 	 * If you use ratelimit with an uncontrolled input stream, you will need to buffer that stream. 
 	 */
-	@Cold @Backpressure
+	@Cold @Controlled
 	def static <IN, OUT> ratelimit(Stream<IN, OUT> stream, Period minimumInterval, (Period)=>Task timerFn) {
 		stream.operation [ pipe |
 			ObservableOperation.ratelimit(stream, pipe, minimumInterval, timerFn)
