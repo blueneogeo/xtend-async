@@ -194,15 +194,15 @@ final class PromiseExtensions {
 	}
 	
 	// MAPPING AND EFFECTS ///////////////////////////////////////////////////////////
+	
+	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, (OUT)=>MAP mapFn) {
+		promise.map [ in, out | mapFn.apply(out) ]
+	}
 
 	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, (IN, OUT)=>MAP mapFn) {
 		val newPromise = new Deferred<IN, MAP>
 		ObservableOperation.map(promise, newPromise, mapFn)
 		newPromise
-	}
-	
-	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, (OUT)=>MAP mapFn) {
-		promise.map [ in, out | mapFn.apply(out) ]
 	}
 
 	def static <IN, OUT> Promise<IN, OUT> effect(Promise<IN, OUT> promise, (OUT)=>void effectFn) {
@@ -229,12 +229,12 @@ final class PromiseExtensions {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, ?> mapFn) {
-		promise.call [ in, value | mapFn.apply(in, value).map [ value ] ]
-	}
-
 	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (OUT)=>Promise<?, ?> mapFn) {
 		promise.call [ in, value | mapFn.apply(value).map [ value ] ]
+	}
+
+	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, ?> mapFn) {
+		promise.call [ in, value | mapFn.apply(in, value).map [ value ] ]
 	}
 	
 	/** 

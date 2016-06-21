@@ -598,13 +598,13 @@ final class StreamExtensions {
 	}
 
 	@Cold @Controlled
-	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (IN, ERROR)=>void errorFn) {
-		stream.on(errorClass, false, errorFn)
+	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (ERROR)=>void errorFn) {
+		stream.on(errorClass, false) [ in, error | errorFn.apply(error) ]
 	}	
 
 	@Cold @Controlled
-	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (ERROR)=>void errorFn) {
-		stream.on(errorClass, false) [ in, error | errorFn.apply(error) ]
+	def static <IN, OUT, ERROR extends Throwable> Stream<IN, OUT> on(Stream<IN, OUT> stream, Class<ERROR> errorClass, (IN, ERROR)=>void errorFn) {
+		stream.on(errorClass, false, errorFn)
 	}	
 
 	@Cold @Controlled
@@ -827,17 +827,17 @@ final class StreamExtensions {
 	}
 	
 	// MAPPING AND EFFECT //////////////////////////////////////////////////////////////////////
+	
+	@Cold @Controlled
+	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (OUT)=>MAP mapFn) {
+		stream.map [ in, out | mapFn.apply(out) ]
+	}
 
 	@Cold @Controlled
 	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (IN, OUT)=>MAP mapFn) {
 		stream.operation [ pipe |
 			ObservableOperation.map(stream, pipe, mapFn)
 		]
-	}
-	
-	@Cold @Controlled
-	def static <IN, OUT, MAP> Stream<IN, MAP> map(Stream<IN, OUT> stream, (OUT)=>MAP mapFn) {
-		stream.map [ in, out | mapFn.apply(out) ]
 	}
 
 	@Cold @Controlled
@@ -848,6 +848,14 @@ final class StreamExtensions {
 	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> effect(Stream<IN, OUT> stream, (IN, OUT)=>void effectFn) {
 		stream.map [ in, out | effectFn.apply(in, out) return out ]
+	}
+
+	/** 
+	 * Transform the input of a stream based on the existing input.
+	 */	
+	@Cold @Controlled
+	def static <IN1, IN2, OUT> Stream<IN2, OUT> mapInput(Stream<IN1, OUT> stream, (IN1)=>IN2 inputMapFn) {
+		stream.mapInput [ in1, out | inputMapFn.apply(in1) ]
 	}
 
 	/** 
@@ -885,52 +893,8 @@ final class StreamExtensions {
 		ObservableOperation.mapInput(stream, pipe, inputMapFn)
 		pipe
 	}
-
-	/** 
-	 * Transform the input of a stream based on the existing input.
-	 */	
-	@Cold @Controlled
-	def static <IN1, IN2, OUT> Stream<IN2, OUT> mapInput(Stream<IN1, OUT> stream, (IN1)=>IN2 inputMapFn) {
-		stream.mapInput [ in1, out | inputMapFn.apply(in1) ]
-	}
 	
 	// FILTERING //////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Filter items in a stream to only the ones that the filterFn
-	 * returns a true for. This version also counts the number of
-	 * items passed into the stream (the index) and the number of
-	 * items passed by this filter so far. Both of these numbers
-	 * are reset by a finish.
-	 */
-	@Cold @Controlled
-	def static <IN, OUT> Stream<IN, OUT> filter(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean filterFn) {
-		stream.operation [ pipe |
-			val index = new AtomicLong(0)
-			val passed = new AtomicLong(0)
-			stream.observer = new Observer<IN, OUT> {
-				
-				override value(IN in, OUT value) {
-					val i = index.incrementAndGet
-					if(filterFn.apply(in, value, i, passed.get)) {
-						passed.incrementAndGet
-						pipe.value(in, value)
-					} else {
-						stream.next
-					}
-				}
-				
-				override error(IN in, Throwable t) {
-					pipe.error(in, t)
-				}
-				
-				override complete() {
-					pipe.complete
-				}
-				
-			}
-		]
-	}
 		
 	
 	/**
@@ -967,6 +931,43 @@ final class StreamExtensions {
 	@Cold @Controlled
 	def static <IN, OUT> filterDefined(Stream<IN, Opt<OUT>> stream) {
 		stream.filter [ defined ].map [ value ]
+	}
+
+
+	/**
+	 * Filter items in a stream to only the ones that the filterFn
+	 * returns a true for. This version also counts the number of
+	 * items passed into the stream (the index) and the number of
+	 * items passed by this filter so far. Both of these numbers
+	 * are reset by a finish.
+	 */
+	@Cold @Controlled
+	def static <IN, OUT> Stream<IN, OUT> filter(Stream<IN, OUT> stream, (IN, OUT, Long, Long)=>boolean filterFn) {
+		stream.operation [ pipe |
+			val index = new AtomicLong(0)
+			val passed = new AtomicLong(0)
+			stream.observer = new Observer<IN, OUT> {
+				
+				override value(IN in, OUT value) {
+					val i = index.incrementAndGet
+					if(filterFn.apply(in, value, i, passed.get)) {
+						passed.incrementAndGet
+						pipe.value(in, value)
+					} else {
+						stream.next
+					}
+				}
+				
+				override error(IN in, Throwable t) {
+					pipe.error(in, t)
+				}
+				
+				override complete() {
+					pipe.complete
+				}
+				
+			}
+		]
 	}
 
 	/**
@@ -1131,6 +1132,11 @@ final class StreamExtensions {
 	}
 	
 	@Cold @Controlled
+	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, OUT)=>REDUCED reducerFn) {
+		stream.scan(initial) [ p, r, it | reducerFn.apply(p, it) ]
+	}
+
+	@Cold @Controlled
 	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, IN, OUT)=>REDUCED reducerFn) {
 		val reduced = new AtomicReference<REDUCED>(initial)
 		stream.operation [ pipe |
@@ -1155,11 +1161,6 @@ final class StreamExtensions {
 		]
 	}
 	
-	@Cold @Controlled
-	def static <IN, OUT, REDUCED> Stream<IN, REDUCED> scan(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, OUT)=>REDUCED reducerFn) {
-		stream.scan(initial) [ p, r, it | reducerFn.apply(p, it) ]
-	}
-
 	/** Flatten a stream of streams into a single stream. Expects streams to be ordered and preserves order, resolving one stream at a time. */
 	@Cold @NoBackpressure
 	def static <IN, IN2, OUT, STREAM extends Stream<IN2, OUT>> Stream<IN, OUT> flatten(Stream<IN, STREAM> stream) {
@@ -1183,6 +1184,16 @@ final class StreamExtensions {
 		]
 	}
 
+	@Cold @Controlled
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>PROMISE mapFn) {
+		stream.call(1) [ in, out | mapFn.apply(out) ]
+	}
+
+	@Cold @Unsorted @Controlled
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>PROMISE mapFn) {
+		stream.call(maxConcurrency) [ in, out | mapFn.apply(out) ]
+	}
+
 	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (IN, OUT)=>PROMISE mapFn) {
 		stream.map(mapFn).resolve(maxConcurrency)
@@ -1193,26 +1204,10 @@ final class StreamExtensions {
 		stream.map(mapFn).resolve(1)
 	}
 
-	@Cold @Unsorted @Controlled
-	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>PROMISE mapFn) {
-		stream.call(maxConcurrency) [ in, out | mapFn.apply(out) ]
-	}
-
-	@Cold @Controlled
-	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>PROMISE mapFn) {
-		stream.call(1) [ in, out | mapFn.apply(out) ]
-	}
-
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(1) [ in, value | promiseFn.apply(value).map [ value ] ]
-	}
-
-	/** Perform some side-effect action based on the stream. */
-	@Cold @Controlled
-	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<?, ?> promiseFn) {
-		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
 
 	/** 
@@ -1222,6 +1217,12 @@ final class StreamExtensions {
 	@Cold @Unsorted @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (OUT)=>Promise<?, ?> promiseFn) {
 		stream.call(concurrency) [ in, value | promiseFn.apply(value).map [ value ] ]
+	}
+
+	/** Perform some side-effect action based on the stream. */
+	@Cold @Controlled
+	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<?, ?> promiseFn) {
+		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
 
 	/** 
