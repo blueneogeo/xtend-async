@@ -22,7 +22,7 @@ class TestPromiseExtensions {
 	
 	@Test
 	def void testFuture() {
-		val promise = Integer.promise
+		val promise = new Input<Integer>
 		val future = promise.asFuture
 		promise << 2
 		future.done.assertTrue
@@ -31,7 +31,7 @@ class TestPromiseExtensions {
 
 	@Test
 	def void testFutureError() {
-		val promise = Integer.promise
+		val promise = new Input<Integer>
 		val future = promise.asFuture
 		promise.error(new Exception)
 		try {
@@ -255,7 +255,7 @@ class TestPromiseExtensions {
 	@Test
 	def void testPromiseWithLaterError2() {
 		foundError = false
-		val p = int.promise
+		val p = new Input<Integer>
 		p
 			.map [ it / 0 ]
 			.then [ Assert.fail('it/0 should not succeed') ]

@@ -111,22 +111,6 @@ final class StreamExtensions {
 		}
 	}
 
-	/** Create a stream sink of a certain type, without support for backpressure. */
-	@Cold @Controlled
-	def static <OUT> Sink<OUT> sink(Class<OUT> type) {
-		new Sink<OUT> {
-			
-			override onNext() {
-				// do nothing, no support for backpressure
-			}
-			
-			override onClose() {
-				// do nothing
-			}
-			
-		}
-	}
-
 	/** 
 	 * Create a stream source of a certain type, without support for backpressure.
 	 * This version without specifying IN and OUT types allows you to use the Xtend
@@ -134,22 +118,6 @@ final class StreamExtensions {
 	 */
 	@Cold @Controlled
 	def static <IN, OUT> Source<IN, OUT> newSource() {
-		new Source<IN, OUT> {
-			
-			override onNext() {
-				// do nothing, no support for backpressure
-			}
-			
-			override onClose() {
-				// do nothing
-			}
-			
-		}
-	}
-
-	/** Create a stream source of a certain type, without support for backpressure. */
-	@Cold @Controlled
-	def static <IN, OUT> Source<IN, OUT> source(Class<IN> inType, Class<OUT> outType) {
 		new Source<IN, OUT> {
 			
 			override onNext() {
@@ -484,7 +452,7 @@ final class StreamExtensions {
 	 * @return a task that completes once the streams are completed or closed
 	 */
 	@Cold @Controlled
-	def static <IN, OUT> Task forward(Stream<IN, OUT> input, Source<?, OUT> output) {
+	def static <IN, OUT> Task pipe(Stream<IN, OUT> input, Sink<OUT> output) {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
 			

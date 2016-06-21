@@ -181,7 +181,7 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testBuffer() {
-		val sink = int.sink
+		val sink = newSink
 		// create a buffer on the sink
 		val buffered = sink.buffer(5)
 		// and already push in data before we do anything with it

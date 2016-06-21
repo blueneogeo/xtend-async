@@ -14,7 +14,7 @@ class TestStreamErrorHandling {
 	
 	@Test(expected=ExecutionException)
 	def void testUncaughtErrorsStopTheStream() {
-		val errors = String.sink;
+		val errors = newSink;
 		(1..10).iterator.stream
 			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
@@ -25,7 +25,7 @@ class TestStreamErrorHandling {
 
 	@Test
 	def void testCatchingErrors() {
-		val errors = String.sink;
+		val errors = newSink;
 		(1..10).stream
 			.map [ 1/(it-5)*0 + it ] // 5 gives a /0 exception
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception

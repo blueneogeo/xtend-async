@@ -1,7 +1,6 @@
 package nl.kii.async.promise
 
 import java.util.List
-import java.util.Map
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -22,26 +21,11 @@ final class PromiseExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////////////
 	
-	/** Create a promise of the given type */
-	def static <T> promise(Class<T> type) {
-		new Input<T>
+	/** Create a new input, letting you use type inference from the rest of your code to find the type. */
+	def static <OUT> newInput() {
+		new Input<OUT>
 	}
-
-	/** Create a promise of a pair */
-	def static <K, V> promisePair(Pair<Class<K>, Class<V>> type) {
-		new Input<Pair<K, V>>
-	}
-
-	/** Create a promise of a list of the given type */
-	def static <OUT> promiseList(Class<OUT> type) {
-		new Input<List<OUT>>
-	}
-
-	/** Create a promise of a map of the given key and value types */
-	def static <K, V> promiseMap(Pair<Class<K>, Class<V>> type) {
-		new Input<Map<K, V>>
-	}
-
+	
 	/** Create a fulfilled promise of the passed value */
 	def static <OUT> promise(OUT value) {
 		new Input<OUT>(value)
@@ -328,15 +312,15 @@ final class PromiseExtensions {
 	}
 
 	/** Take the output value of a promise and set it to an input when it is fulfilled */
-	def static <IN, OUT> void fulfills(Promise<IN, OUT> promise, Deferred<?, OUT> deferred) {
+	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Input<OUT> input) {
 		promise.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {
-				deferred.value(null, value)
+				input.value(null, value)
 			}
 			
 			override error(IN in, Throwable t) {
-				deferred.error(null, t)
+				input.error(null, t)
 			}
 			
 			override complete() {
