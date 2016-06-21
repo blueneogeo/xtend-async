@@ -35,6 +35,7 @@ import static extension nl.kii.util.ThrowableExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import java.util.Date
 import nl.kii.async.annotation.Controlled
+import nl.kii.async.annotation.Uncontrolled
 
 final class StreamExtensions {
 
@@ -366,7 +367,7 @@ final class StreamExtensions {
 		]
 	}
 
-	@Cold @NoBackpressure
+	@Cold @Uncontrolled @NoBackpressure
 	def static <IN, OUT> Publisher<OUT> publisher(Stream<IN, OUT> stream) {
 		val publisher = new BasicPublisher<OUT> {
 			
@@ -1646,7 +1647,7 @@ final class StreamExtensions {
 	 * @param interval the period between values pushed onto the stream
 	 * @param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
 	 */
-	@Cold @MultiThreaded
+	@Cold @Uncontrolled @MultiThreaded
 	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval, int limit) {
 		new Sink<Long> {
 
@@ -1692,7 +1693,7 @@ final class StreamExtensions {
 	 * @param executor the scheduler to use
 	 * @param interval the period between values pushed onto the stream
 	 */
-	@Cold @MultiThreaded
+	@Cold @Uncontrolled @MultiThreaded
 	def static Stream<Long, Long> periodic(ScheduledExecutorService executor, Period interval) {
 		executor.periodic(interval, 0)
 	}
