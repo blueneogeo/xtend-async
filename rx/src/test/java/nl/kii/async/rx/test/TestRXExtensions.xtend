@@ -14,7 +14,7 @@ class TestRXExtensions {
 	static var counter = 0
 	
 	@Test
-	def void testRXRecursion() {
+	def void testRxObservableToStream() {
 		val iterations = 1_000
 		// create an observable
 		val observable = Observable.from(1..iterations)
@@ -22,6 +22,16 @@ class TestRXExtensions {
 		val count = observable.stream.count
 		// now all the data from the observable should have been counted
 		assertEquals(iterations, count.await as int)
+	}
+
+	@Test
+	def void testRxObservableToPromise() {
+		val iterations = 2
+		// create an observable
+		val observable = Observable.from(1..iterations)
+		// now all the first entry from the observable should have been promised
+		val first = observable.promise.await
+		assertEquals(1, first)
 	}
 	
 }

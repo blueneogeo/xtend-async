@@ -1,49 +1,18 @@
 package nl.kii.async.rx
 
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Uncontrolled
-import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Input
 import nl.kii.async.promise.Promise
 import nl.kii.async.stream.Controllable
 import nl.kii.async.stream.Sink
 import nl.kii.async.stream.Stream
 import rx.Observable
-import rx.subjects.AsyncSubject
 
 import static nl.kii.async.stream.StreamExtensions.*
 
 class RXExtensions {
-
-	/**
-	 * Basic implementation of conversion of an xtend-async Stream to an rx.Observable.
-	 * TODO: implement correct backpressure and async support
-	 */
-	@Hot @Uncontrolled @NoBackpressure 	
-	def static <IN, OUT> Observable<OUT> toRXObservable(Stream<IN, OUT> stream) {
-		val subject = AsyncSubject.create
-		stream.observer = new Observer<IN, OUT> {
-			
-			override value(IN in, OUT value) {
-				subject.onNext(value)
-				stream.next
-			}
-			
-			override error(IN in, Throwable t) {
-				subject.onError(t)
-				stream.next
-			}
-			
-			override complete() {
-				subject.onCompleted
-				stream.close
-			}
-			
-		}
-		subject
-	}
 	
 	/**
 	 * Basic implementation of piping an rx.Observable to an xtend-async stream.

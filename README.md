@@ -14,13 +14,13 @@ Some features are:
 - fast, and threadsafe when you tell it to
 - streams and promises are integrated and work with each other and use nearly the exact same syntax
 - clear source code, the base Stream and Promise classes are as simple as possible. All features are added with Xtend extensions. This lets you add your own operators easily, as well as easily debug code.
-- streams support back pressure, meaning that you can indicate when a listener is ready to process a next item from a stream
+- streams are controlled and support back pressure, meaning that you can indicate when a listener is ready to process a next item from a stream
 - streams and promises in xtend-stream encapsulate errors thrown in your handlers and propagate them so you can listen for then
 - streams and promises keep a reference to the input, letting you for example respond to a request without leaving the stream or promise chain.
 
 ## What is a stream
 
-A stream of data is like a list, but where the items come in not all at once, but one by one. 
+A stream of data is like a list, where the items come in not all at once, but one by one.
 
 ## Creating a stream
 
@@ -45,6 +45,9 @@ You can also create any stream using a Sink as follows:
 		override onClose() { }
 	}
 
+or:
+
+	val sink = newSink()
 
 A Sink is a Stream. Sink has a method *push(value)* that allows you to push something into the stream:
 
