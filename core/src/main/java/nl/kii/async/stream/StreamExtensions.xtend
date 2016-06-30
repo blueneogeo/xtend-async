@@ -221,6 +221,69 @@ final class StreamExtensions {
 		stream.asTask => [ stream.next ]
 	}
 	
+	// CONCURRENCY /////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * This operator will try to pull the maxConcurrentProcesses amount of values from the stream
+	 * at the same time (by calling stream.next). This way, you can set that you want that amount
+	 * of values to be processed in parallel.
+	 * <p>
+	 * This only works with controlled streams, uncontrolled streams will behave as normal and simply
+	 * push their values through.
+	 */	
+	@Cold @Controlled
+	def static <IN, OUT> Stream<IN, OUT> parallel(Stream<IN, OUT> stream, int maxConcurrentProcesses) {
+		val processes = new AtomicInteger(0)
+
+		val pipe = new Pipe<IN, OUT> {
+
+			override next() {
+				processes.decrementAndGet 
+				stream.next
+			}
+
+			override void close() {
+				super.close
+				stream.close
+			}
+			
+			override pause() {
+				stream.pause
+			}
+			
+			override resume() {
+				stream.resume
+				stream.next
+			}
+			
+			override isOpen() {
+				stream.isOpen
+			}
+			
+		}
+		
+		stream.observer = new Observer<IN, OUT> {
+			
+			override value(IN in, OUT value) {
+				pipe.value(in, value)
+				while(processes.incrementAndGet < maxConcurrentProcesses) {
+					stream.next
+				}
+			}
+			
+			override error(IN in, Throwable t) {
+				pipe.error(in, t)
+			}
+			
+			override complete() {
+				pipe.complete
+			}
+			
+		}
+
+		pipe
+	}	
+
 	// SYNCHRONIZATION /////////////////////////////////////////////////////////////////////////
 	
 	/**
@@ -488,6 +551,36 @@ final class StreamExtensions {
 			
 			override close() {
 				input.close
+			}
+			
+		}
+		task
+	}
+	
+	/** 
+	 * Connect the output of one stream to the input of a pipe. 
+	 * <p>
+	 * Since the pipe you connect to cannot be controlled (you need a source for that),
+	 * you lose backpressure and control, it simply forwards incoming values.
+	 * @return a task that completes once the streams are completed or closed
+	 */
+	@Cold @Uncontrolled @NoBackpressure
+	def static <IN, OUT> Task forward(Stream<IN, OUT> input, Pipe<IN, OUT> output) {
+		val task = new Task
+		input.observer = new Observer<IN, OUT> {
+			
+			override value(IN in, OUT value) {
+				output.value(null, value)
+			}
+			
+			override error(IN in, Throwable t) {
+				output.error(null, t)
+			}
+			
+			override complete() {
+				output.complete
+				input.close
+				task.complete
 			}
 			
 		}

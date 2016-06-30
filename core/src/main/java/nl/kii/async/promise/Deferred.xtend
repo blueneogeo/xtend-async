@@ -38,7 +38,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 	
-	override synchronized complete() {
+	override complete() {
 		// do nothing, because only value and error can complete a promise!
 	}
 	
@@ -76,7 +76,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 			onCompleted
 		}
 	}
-	override synchronized next() {
+	override next() {
 		// do nothing by default, since promises have no flow control
 	}
 	
