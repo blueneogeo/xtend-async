@@ -144,7 +144,7 @@ class TestStreamExtensions {
 		(1..3).stream.scan(1) [ last, in, out | last + out ].collect.await <=> #[2, 4, 7]
 	}
 
-	@Test
+	@Test(timeout=1000)
 	def void testFlatten() {
 		#[1..3, 4..6, 7..10]
 			.map[stream(it)] // create a list of 3 streams
@@ -369,7 +369,7 @@ class TestStreamExtensions {
 		assertEquals(10, count)
 	}
 
-	@Test
+	@Test(timeout=5000)
 	def void testWindow() {
 		val windowCount = new AtomicInteger
 		val count = schedulers.periodic(60.ms / 5, 50)
@@ -382,7 +382,7 @@ class TestStreamExtensions {
 		// assertEquals(10, windowCount.get)
 	}
 
-	@Test
+	@Test(timeout=5000)
 	def void testWindowWorksWithBuffer() {
 		val windowCount = new AtomicInteger
 		val count = schedulers.periodic(60.ms / 5, 50)
@@ -396,7 +396,7 @@ class TestStreamExtensions {
 		// assertEquals(10, windowCount.get)
 	}
 
-	@Test
+	@Test(timeout=5000)
 	def void testSample() {
 		val samples = schedulers.periodic(60.ms / 5, 50)
 			.sample(50.ms)

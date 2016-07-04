@@ -20,6 +20,7 @@ import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import nl.kii.async.annotation.Controlled
+import nl.kii.async.annotation.Uncontrolled
 
 final class ObservableOperation {
 
@@ -142,7 +143,7 @@ final class ObservableOperation {
 	}
 	
 	/** this method was necessary to allow the wildcard generics in the flatten method */
-	package def static <IN, OUT> observe(Observable<IN, OUT> observable, (IN, OUT)=>void onValue, (IN, Throwable)=>void onError, =>void onComplete) {
+	def static <IN, OUT> observe(Observable<IN, OUT> observable, (IN, OUT)=>void onValue, (IN, Throwable)=>void onError, =>void onComplete) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {
@@ -160,10 +161,10 @@ final class ObservableOperation {
 		} 
 	}
 	
-	@Cold @Unsorted @NoBackpressure
-	def static <IN, OUT> flatten(Observable<IN, ? extends Observable<?, OUT>> observable, Observer<IN, OUT> observer, int maxConcurrency) {
-		val isFinished = new AtomicBoolean(false)
-		val processes = new AtomicInteger(0)
+	@Cold @Unsorted @Uncontrolled
+	def static <IN, OUT> flatten(Observable<IN, ? extends Observable<?, OUT>> observable, Observer<IN, OUT> observer) {
+		val isComplete = new AtomicBoolean(false)
+		val openProcesses = new AtomicInteger(0)
 
 		observable.observe(
 			// onValue
@@ -181,98 +182,30 @@ final class ObservableOperation {
 					],
 					// onComplete
 					[
-						// if we have space for more parallel processes, ask for the next value
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) {
+						// if the higher level observable completed, then we are done, tell the higher level observer 
+						if(openProcesses.decrementAndGet == 0 && isComplete.compareAndSet(true, false)) {
 							observer.complete
-						} 
+						}
 					]
 				)
 				// we are starting to process this inner observable
-				processes.incrementAndGet
+				openProcesses.incrementAndGet
 				innerObservable.next
-				// if we have space for more parallel processes, ask for the next value
-				if(maxConcurrency > processes.get || maxConcurrency == 0) observable.next
 			],
 			// onError
 			[ in, error | observer.error(in, error) ],
 			// onComplete
 			[
-				if(processes.get == 0) {
+				if(openProcesses.get == 0) {
 					// we are not parallel processing, you may inform the listening stream
 					observer.complete
 				} else {
 					// we are still busy, so remember to call finish when we are done
-					isFinished.set(true)
+					isComplete.set(true)
 				}
 			]
 		)
-
-		/* This code did not run, the IN2 parameter is the problem.
-		observable.observer = new Observer<IN, Observable<IN2, OUT>> {
-			
-			override value(IN in, Observable<IN2, OUT> innerObservable) {
-				
-				innerObservable.observe(
-					[ ignore, value |
-						observer.value(in, value)
-						innerObservable.next
-					],
-					[ ignore, error |
-						observer.error(in, error)
-						innerObservable.next						
-					],
-					[
-						// if we have space for more parallel processes, ask for the next value
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) {
-							observer.complete
-						} 
-					]
-				)
-				
-				innerObservable.observer = new Observer<IN2, OUT> {
-					
-					override value(IN2 unused, OUT value) {
-						observer.value(in, value)
-						innerObservable.next
-					}
-					
-					override error(IN2 unused, Throwable t) {
-						observer.error(in, t)
-						innerObservable.next
-					}
-					
-					override complete() {
-						// if we have space for more parallel processes, ask for the next value
-						if(processes.decrementAndGet == 0 && isFinished.compareAndSet(true, false)) {
-							observer.complete
-						} 
-					}
-					
-				}
-				// we are starting to process this inner observable
-				processes.incrementAndGet
-				innerObservable.next
-				// if we have space for more parallel processes, ask for the next value
-				if(maxConcurrency > processes.get || maxConcurrency == 0) observable.next
-			}
-			
-			override error(IN in, Throwable t) {
-				observer.error(in, t)
-			}
-			
-			override complete() {
-				if(processes.get == 0) {
-					// we are not parallel processing, you may inform the listening stream
-					observer.complete
-				} else {
-					// we are still busy, so remember to call finish when we are done
-					isFinished.set(true)
-				}
-			}
-			
-		}
-		*/
-	}
+	}	
 
 	@Cold @Controlled	
 	def static <IN1, IN2, OUT> mapInput(Observable<IN1, OUT> observable, Observer<IN2, OUT> observer, (IN1, Opt<OUT>)=>IN2 inputMapFn) {

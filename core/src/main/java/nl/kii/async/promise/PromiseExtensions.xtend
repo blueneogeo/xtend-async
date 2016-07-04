@@ -90,7 +90,7 @@ final class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends Promise<?, ?>> promises) {
-		promises.stream.map[it.asTask].resolve(0).start
+		promises.stream.parallel(0).map[it.asTask].resolve.start
 	}
 	
 	/** 
@@ -267,7 +267,7 @@ final class PromiseExtensions {
 	
 	def static <IN, OUT> Promise<IN, OUT> flatten(Promise<IN, ? extends Promise<?, OUT>> promise) {
 		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.flatten(promise, newPromise, 1)
+		ObservableOperation.flatten(promise, newPromise)
 		newPromise
 	}
 	

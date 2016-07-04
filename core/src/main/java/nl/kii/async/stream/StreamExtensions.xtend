@@ -1256,10 +1256,10 @@ final class StreamExtensions {
 	}
 	
 	/** Flatten a stream of streams into a single stream. Expects streams to be ordered and preserves order, resolving one stream at a time. */
-	@Cold @NoBackpressure
+	@Cold @Uncontrolled
 	def static <IN, IN2, OUT, STREAM extends Stream<IN2, OUT>> Stream<IN, OUT> flatten(Stream<IN, STREAM> stream) {
 		stream.operation [ pipe |
-			ObservableOperation.flatten(stream, pipe, 1)
+			ObservableOperation.flatten(stream, pipe)
 		]
 	}
 
@@ -1272,62 +1272,39 @@ final class StreamExtensions {
 	 * @param maxConcurrency sets how many deferred processes get resolved in parallel. 0 for unlimited.
 	 */
 	@Cold @Unsorted @Controlled
-	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream, int maxConcurrency) {
+	def static <IN, OUT> Stream<IN, OUT> resolve(Stream<IN, ? extends Promise<?, OUT>> stream) {
 		stream.operation [ pipe |
-			ObservableOperation.flatten(stream, pipe, maxConcurrency)
+			ObservableOperation.flatten(stream, pipe)
 		]
 	}
 
 	@Cold @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (OUT)=>PROMISE mapFn) {
-		stream.call(1) [ in, out | mapFn.apply(out) ]
+		stream.call [ in, out | mapFn.apply(out) ]
 	}
 
 	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (OUT)=>PROMISE mapFn) {
-		stream.call(maxConcurrency) [ in, out | mapFn.apply(out) ]
-	}
-
-	@Cold @Unsorted @Controlled
-	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, int maxConcurrency, (IN, OUT)=>PROMISE mapFn) {
-		stream.map(mapFn).resolve(maxConcurrency)
+		stream.call [ in, out | mapFn.apply(out) ]
 	}
 
 	@Cold @Unsorted @Controlled
 	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Stream<IN, MAP> call(Stream<IN, OUT> stream, (IN, OUT)=>PROMISE mapFn) {
-		stream.map(mapFn).resolve(1)
+		stream.map(mapFn).resolve
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (OUT)=>Promise<?, ?> promiseFn) {
-		stream.call(1) [ in, value | promiseFn.apply(value).map [ value ] ]
-	}
-
-	/** 
-	 * Perform some asynchronous side-effect action based on the stream.
-	 * Perform at most 'concurrency' calls in parallel.
-	 */
-	@Cold @Unsorted @Controlled
-	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (OUT)=>Promise<?, ?> promiseFn) {
-		stream.call(concurrency) [ in, value | promiseFn.apply(value).map [ value ] ]
+		stream.call [ in, value | promiseFn.apply(value).map [ value ] ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, (IN, OUT)=>Promise<?, ?> promiseFn) {
-		stream.call(1) [ in, value | promiseFn.apply(in, value).map [ value ] ]
+		stream.call [ in, value | promiseFn.apply(in, value).map [ value ] ]
 	}
 
-	/** 
-	 * Perform some asynchronous side-effect action based on the stream.
-	 * Perform at most 'concurrency' calls in parallel.
-	 */
-	@Cold @Unsorted @Controlled
-	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, int concurrency, (IN, OUT)=>Promise<?, ?> promiseFn) {
-		stream.call(concurrency) [ in, value | promiseFn.apply(in, value).map [ value ] ]
-	}
-	
 	// REDUCTION /////////////////////////////////////////////////////////////////////////////
 
 	/** 
@@ -1683,7 +1660,7 @@ final class StreamExtensions {
 	 */
 	@Cold @Controlled @Lossy
 	def static <IN, OUT> sample(Stream<IN, OUT> stream, Period interval) {
-		stream.window(interval).map [ window | window.last ].resolve(1)
+		stream.window(interval).map [ window | window.last ].resolve
 	}
 	
 	/**

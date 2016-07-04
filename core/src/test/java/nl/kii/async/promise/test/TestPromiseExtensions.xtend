@@ -106,7 +106,7 @@ class TestPromiseExtensions {
 		assertTrue(all.fulfilled)
 	}
 
-	@Test
+	@Test(timeout=500)
 	def void testAllOperator() {
 		allDone = false
 		t2Done = false
