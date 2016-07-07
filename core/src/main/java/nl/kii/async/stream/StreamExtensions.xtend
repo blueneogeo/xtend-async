@@ -233,11 +233,12 @@ final class StreamExtensions {
 	 */	
 	@Cold @Controlled
 	def static <IN, OUT> Stream<IN, OUT> parallel(Stream<IN, OUT> stream, int maxConcurrentProcesses) {
-		val processes = new AtomicInteger(0)
+		val processes = new AtomicInteger(1) // since we start a stream with next and we decrement on next, start on 1
 
 		val pipe = new Pipe<IN, OUT> {
 
 			override next() {
+				// assumption: when we call next, we finished the previous process
 				processes.decrementAndGet 
 				stream.next
 			}
@@ -265,10 +266,9 @@ final class StreamExtensions {
 		stream.observer = new Observer<IN, OUT> {
 			
 			override value(IN in, OUT value) {
+				val open = processes.incrementAndGet
 				pipe.value(in, value)
-				while(processes.incrementAndGet < maxConcurrentProcesses) {
-					stream.next
-				}
+				if(open < maxConcurrentProcesses) stream.next
 			}
 			
 			override error(IN in, Throwable t) {
