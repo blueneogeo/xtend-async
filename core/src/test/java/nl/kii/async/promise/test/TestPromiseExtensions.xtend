@@ -6,15 +6,16 @@ import nl.kii.async.annotation.Async
 import nl.kii.async.annotation.Atomic
 import nl.kii.async.promise.Input
 import nl.kii.async.promise.Task
+import org.junit.Assert
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
 
+import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.DateExtensions.*
-import static extension org.junit.Assert.*
 import static extension nl.kii.util.JUnitExtensions.*
-import org.junit.Assert
+import static extension org.junit.Assert.*
 
 class TestPromiseExtensions {
 	
@@ -241,7 +242,7 @@ class TestPromiseExtensions {
 		]
 	}
 	
-	@Test(expected=ExecutionException)
+	@Test(expected=ArithmeticException)
 	def void testPromiseErrorChaining() {
 		new Input(1)
 			.map [it - 1]

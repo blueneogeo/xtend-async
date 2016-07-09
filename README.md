@@ -18,6 +18,8 @@ Some features are:
 - streams and promises in xtend-stream encapsulate errors thrown in your handlers and propagate them so you can listen for then
 - streams and promises keep a reference to the input, letting you for example respond to a request without leaving the stream or promise chain.
 
+# XTEND-ASYNC-CORE
+
 ## What is a stream
 
 A stream of data is like a list, where the items come in not all at once, but one by one.
@@ -133,3 +135,87 @@ Finally, the *Stream.start()* method does two things. First of all it will perfo
 to start the stream initially. Then for each incoming value, it will also call stream.next. In other
 words, the start method starts off the stream and makes sure it keeps asking for the next value after
 a value arrives.
+
+# XTEND-ASYNC-FIBERS
+
+Fibers are like Threads: they let you do things in the background. The xtend-async-fibers project uses the [Quasar library](http://docs.paralleluniverse.co/quasar/).
+
+Fibers are made for non-blocking code. They are great for processing a lot of parallel requests in the background, because unlike Threads, Fibers are really light and provide little overhead.
+
+If you need to do heavy lifting, let a fiber delegate to a Thread pool instead.
+
+The big benefit of using Fibers is that it lets you work with non-blocking asynchronous code as if it were blocking code. You can perform some asynchronous call that returns a Promise or Task, and simply wait for the result, without a closure. An error you can simply catch with a normal try/catch as well.
+
+However this waiting is non-blocking, what actually happens is that the code suspends when you do the await, and another Fiber can be run. This background magic is made possible using continuations, through byte code injection. For more information, see [what are fibers and why should you care](http://zeroturnaround.com/rebellabs/what-are-fibers-and-why-you-should-care/).
+
+## Usage
+
+Say that you have a method which loads a webpage and returns a promise of that page as a string:
+
+	httploader.loadPage(String url) returns Promise<String, String>
+
+If we normally want to use this and then print the result, we have to do something like this:
+
+	httploader.loadPage('www.cnn.com')
+		.then [ println('loaded page ' + it ]
+		.on(Exception) [ println('something went wrong') ]
+
+In other words, asynchronous code forces us to define handlers for both values and errors, and the next line of code is executed immediately.
+
+### Await
+
+The xtend-async-fiber library lets you write this asynchronous code as if it were synchronous:
+
+	import static extension nl.kii.async.fibers.FiberExtensions.*
+	…
+	try {
+		println(httploader.loadpage('www.cnn.com').await)
+	} catch(Exception e) {
+		println('something went wrong')
+	}
+
+Note that this reuses the httploader.loadpage method, nothing needs to be changed in the existing codebase.
+
+The change is the .await method, which takes any promise, waits for the result by blocking the current fiber, and when it has the result, returns that result. If the promise has an error, it will throw that error, so you can catch it using try / catch.
+
+We can now also load many pages one by one:
+
+	val pages = #{
+		'cnn' -> httploader.loadpage('www.cnn.com').await,
+		'verge' -> httploader.loadpage('www.theverge.com').await,
+		'yahoo' -> httploader.loadpage('www.yahoo.com').await 
+	}
+	println(pages.get('verge'))
+
+### Async
+
+To perform an operation in the background, use the async method. For example:
+
+	import static extension nl.kii.async.fibers.FiberExtensions.*
+	…
+	async [ 'this happens second' ]
+	println('this happens first')
+
+The async static method returns a Promise<?, OUT> where out is the return type of the closure. This means you can do this:
+
+	val promise = async [ 1 + 1 ]
+	promise.then [ println(it) ]
+	println('this happens before 2 gets printed')
+
+You can use await to block the async process until you have the result you wanted:
+
+	val task = async [ println('this happens second') ]
+	println('this happens first')
+	await(task)
+	println('this happens third')
+
+The combination of async and await is powerful and gives you control over when you have what information.
+
+## Limitations and Requirements
+
+Bytecode injection is necessary for the Fibers to run. To have this code injected, two things are required:
+
+1. All methods that contain suspendable code (in our case, code that calls .await) must either throw SuspendExecution or be annotated with @Suspendable. Any methods that use this method in turn must also be suspendable.
+2. When running the code, it must be instrumented. The easiest way to do this is with a java agent, which you provide to the JVM when starting the Java program. [More information here](http://docs.paralleluniverse.co/quasar/#instrumentation).
+
+

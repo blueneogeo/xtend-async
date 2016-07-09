@@ -144,3 +144,27 @@ project('rx') {
     testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
   }
 }
+
+project( 'fibers' ) {
+
+    configurations {
+        quasar
+    }
+
+    dependencies {
+      quasar "co.paralleluniverse:quasar-core:0.7.3@jar"
+      compile project( ':core' )
+      provided "co.paralleluniverse:quasar-core:0.7.5"
+      testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+    } 
+
+    tasks.withType(Test) {
+      jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+      jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+    }
+
+    // applicationDefaultJvmArgs = [
+    //     "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+    // ]
+
+}

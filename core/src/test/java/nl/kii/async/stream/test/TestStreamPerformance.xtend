@@ -4,7 +4,7 @@ import org.junit.Test
 
 import static org.junit.Assert.*
 
-import static extension nl.kii.async.promise.PromiseExtensions.*
+import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 

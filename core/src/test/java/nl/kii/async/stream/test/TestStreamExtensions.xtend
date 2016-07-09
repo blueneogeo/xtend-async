@@ -8,7 +8,7 @@ import org.junit.Test
 import static java.util.concurrent.Executors.*
 import static org.junit.Assert.*
 
-import static extension nl.kii.async.promise.PromiseExtensions.*
+import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*

@@ -1,18 +1,18 @@
 package nl.kii.async.stream.test
 
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
 import org.junit.Test
 
-import static extension nl.kii.async.promise.PromiseExtensions.*
+import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*
-import java.util.concurrent.Executors
 
 class TestStreamErrorHandling {
 
 	val executor = Executors.newSingleThreadExecutor
 	
-	@Test(expected=ExecutionException)
+	@Test(expected=ArithmeticException)
 	def void testUncaughtErrorsStopTheStream() {
 		val errors = newSink;
 		(1..10).iterator.stream
