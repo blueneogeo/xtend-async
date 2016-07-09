@@ -16,7 +16,7 @@ class TestFiberExtensions {
 	 * Tests that we can do some asynchronous operation and wait for it, and the value being returned
 	 * all the way out into the outer result.
 	 */
-	@Test(timeout=5000) @Suspendable
+	@Test(timeout=5000)
 	def void testAsyncAwait() {
 		var result = callBlocking [
 			// here is our real test, we do something asynchronously, and then await that result
@@ -32,7 +32,7 @@ class TestFiberExtensions {
 	 * just like values do. The ExpectedException in the inner async is always thrown and escalates all
 	 * the way out to the calling test.
 	 */
-	@Test(expected=ExpectedException, timeout=5000) @Suspendable
+	@Test(expected=ExpectedException, timeout=5000)
 	def void testAwaitingErrors() {
 		callBlocking [
 			wait(1.sec)
@@ -42,7 +42,7 @@ class TestFiberExtensions {
 	
 	static class ExpectedException extends Exception { }
 
-	@Test(timeout=5000) @Suspendable
+	@Test(timeout=6000)
 	def void testLoop() {
 		val list = callBlocking [
 			val list = newLinkedList()
@@ -63,9 +63,7 @@ class TestFiberExtensions {
 	 * from the outer async has completed. 
 	 */
 	package def <T> T callBlocking(SuspendableCallable<T> function) {
-		BlockingExtensions.await(
-			async(function)
-		)
+		BlockingExtensions.await(async(function))
 	}
 	
 }
