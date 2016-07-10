@@ -26,7 +26,15 @@ class FiberExtensions {
 	 */
 	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
-		async(null, function)
+		val input = new Input<OUT>
+		new Fiber [
+			try {
+				input.set(function.run)
+			} catch(Throwable t) {
+				input.error(t)
+			} 
+		].start
+		input
 	}
 
 	/**
