@@ -10,11 +10,13 @@ import nl.kii.async.promise.Input
 import nl.kii.async.promise.Promise
 import nl.kii.util.Period
 import co.paralleluniverse.strands.Strand
+import co.paralleluniverse.fibers.FiberScheduler
 
 class FiberExtensions {
 	
 	/**
-	 * Perform a function in the background using a Fiber. 
+	 * Perform a function in the background using a Fiber.
+	 * Uses the default fiber scheduler. 
 	 * <p>
 	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
 	 * the Suspendable annotation or have a throws SuspendedException.
@@ -24,8 +26,23 @@ class FiberExtensions {
 	 */
 	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
+		async(null, function)
+	}
+
+	/**
+	 * Perform a function in the background using a Fiber.
+	 * Uses the specified scheduler.
+	 * <p>
+	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
+	 * the Suspendable annotation or have a throws SuspendedException.
+	 * <p> 
+	 * @Param function the function to perform, which returns a value
+	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
+	 */
+	@Suspendable
+	def static <OUT> Promise<OUT, OUT> async(FiberScheduler scheduler, SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
-		new Fiber [
+		new Fiber(scheduler) [
 			try {
 				input.set(function.run)
 			} catch(Throwable t) {

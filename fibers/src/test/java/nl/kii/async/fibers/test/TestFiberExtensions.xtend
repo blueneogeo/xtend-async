@@ -1,6 +1,5 @@
 package nl.kii.async.fibers.test
 
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
 import nl.kii.async.promise.BlockingExtensions
 import org.junit.Test
