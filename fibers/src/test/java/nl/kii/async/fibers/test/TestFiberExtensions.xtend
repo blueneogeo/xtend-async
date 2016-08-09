@@ -35,7 +35,7 @@ class TestFiberExtensions {
 	def void testAwaitingErrors() {
 		callBlocking [
 			wait(1.sec)
-			if(Class.name != null) throw new ExpectedException
+			throw new ExpectedException
 		]
 	}
 	

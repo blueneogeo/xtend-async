@@ -1,6 +1,5 @@
 package nl.kii.async.stream.test
 
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import org.junit.Test
 

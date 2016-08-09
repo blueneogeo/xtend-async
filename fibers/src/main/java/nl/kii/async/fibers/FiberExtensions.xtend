@@ -11,6 +11,8 @@ import nl.kii.async.promise.Promise
 import nl.kii.util.Period
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.fibers.FiberScheduler
+import co.paralleluniverse.strands.SuspendableRunnable
+import nl.kii.async.promise.Task
 
 class FiberExtensions {
 	
@@ -38,6 +40,30 @@ class FiberExtensions {
 	}
 
 	/**
+	 * Perform an action in the background using a Fiber.
+	 * Uses the default fiber scheduler. 
+	 * <p>
+	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
+	 * the Suspendable annotation or have a throws SuspendedException.
+	 * <p> 
+	 * @Param action to perform
+	 * @Return a task that completes when the action completes, or has an error if the action threw an error
+	 */
+	@Suspendable
+	def static <OUT> Task async(SuspendableRunnable action) {
+		val task = new Task
+		new Fiber [
+			try {
+				action.run
+				task.complete
+			} catch(Throwable t) {
+				task.error(t)
+			} 
+		].start
+		task
+	}
+
+	/**
 	 * Perform a function in the background using a Fiber.
 	 * Uses the specified scheduler.
 	 * <p>
@@ -58,6 +84,30 @@ class FiberExtensions {
 			} 
 		].start
 		input
+	}
+
+	/**
+	 * Perform an action in the background using a Fiber.
+	 * Uses the specified scheduler. 
+	 * <p>
+	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
+	 * the Suspendable annotation or have a throws SuspendedException.
+	 * <p> 
+	 * @Param action to perform
+	 * @Return a task that completes when the action completes, or has an error if the action threw an error
+	 */
+	@Suspendable
+	def static <OUT> Task async(FiberScheduler scheduler, SuspendableRunnable action) {
+		val task = new Task
+		new Fiber(scheduler) [
+			try {
+				action.run
+				task.complete
+			} catch(Throwable t) {
+				task.error(t)
+			} 
+		].start
+		task
 	}
 
 	/**
