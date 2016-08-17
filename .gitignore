@@ -98,3 +98,9 @@ build/
 
 mods/
 logs/
+
+## Gradle
+
+gradle/wrapper/gradle-wrapper.properties
+gradlew
+gradlew.bat

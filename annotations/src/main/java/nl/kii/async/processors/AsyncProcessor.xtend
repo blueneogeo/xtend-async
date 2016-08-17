@@ -40,6 +40,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 			for(typeParameter : method.typeParameters) {
 				addTypeParameter(typeParameter.simpleName, typeParameter.upperBounds)
 			}
+			addAnnotation(Async.newAnnotationReference)
 			static = method.static
 			docComment = method.docComment
 			visibility = method.visibility
@@ -82,6 +83,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 			for(typeParameter : method.typeParameters) {
 				addTypeParameter(typeParameter.simpleName, typeParameter.upperBounds)
 			}
+			addAnnotation(Async.newAnnotationReference)
 			static = method.static
 			docComment = method.docComment
 			visibility = method.visibility

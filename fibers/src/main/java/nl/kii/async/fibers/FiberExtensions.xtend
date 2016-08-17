@@ -120,10 +120,10 @@ class FiberExtensions {
 	 * @Throws Throwable any error coming from the promise when it fails
 	 */
 	@Suspendable
-	def static <IN, OUT> OUT await(Promise<IN, OUT> promise) {
+	def static <OUT> OUT await(Promise<?, OUT> promise) {
 		await(promise, null)
 	}
-
+	
 	/**
 	 * Waits by calling Strand.sleep for the indicated period.
 	 * Since a strand can be both a thread and a fiber, it can work in both circumstances.
@@ -133,7 +133,7 @@ class FiberExtensions {
 	def static void wait(Period delay) {
 		Strand.sleep(delay.ms)
 	}
-
+	
 	/**
 	 * Suspends the fiber until the promise completes, then gives you the value from the promise.
 	 * <p>

@@ -20,6 +20,9 @@ buildscript {
   }
 }
 
+task wrapper(type: Wrapper) {
+		gradleVersion = '2.14'
+}
 
 // CONFIGURE ALL SUBPROJECTS ///////////////////////////////////////////////////
 subprojects {
@@ -34,6 +37,7 @@ subprojects {
   targetCompatibility = javaVersion
 
   eclipse.project.name = rootProject.name + '-' + project.name
+  tasks.eclipse.dependsOn(cleanEclipse)
 
   repositories {
     mavenLocal()
@@ -78,7 +82,7 @@ subprojects {
   task install( dependsOn: publishToMavenLocal )
 
   jar {
-    baseName rootProject.name + '-' + project.name 
+    baseName rootProject.name + '-' + project.name
   }
 
   jacoco {
@@ -102,7 +106,7 @@ subprojects {
           asNode().dependencies.'*'.each() {
             it.scope*.value = 'compile'
           }
-        }     
+        }
       }
     }
     repositories {
@@ -130,13 +134,6 @@ project('core') {
   }
 }
 
-project('collections') {
-  dependencies {
-    compile project(':core')
-    testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
-  }
-}
-
 project('rx') {
   dependencies {
     compile project(':core')
@@ -152,11 +149,11 @@ project( 'fibers' ) {
     }
 
     dependencies {
-      quasar "co.paralleluniverse:quasar-core:0.7.3@jar"
+      quasar "co.paralleluniverse:quasar-core:${quasarVersion}@jar"
       compile project( ':core' )
-      provided "co.paralleluniverse:quasar-core:0.7.5"
+      provided "co.paralleluniverse:quasar-core:${quasarVersion}"
       testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
-    } 
+    }
 
     tasks.withType(Test) {
       // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
@@ -171,6 +168,33 @@ project( 'fibers' ) {
       scanAndInstrument(sourceSets.test, [configurations.provided, configurations.runtime])
     }
 
+}
+
+project('collections') {
+
+    configurations {
+        quasar
+    }
+
+    dependencies {
+        compile project(':fibers')
+        provided "co.paralleluniverse:quasar-core:${quasarVersion}"
+        testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+    }
+
+    tasks.withType(Test) {
+      // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+      jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+    }
+    
+    compileJava.doLast {
+      scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
+    }
+    
+    compileTestJava.doLast {
+      scanAndInstrument(sourceSets.test, [configurations.provided, configurations.runtime])
+    }
+    
 }
 
 // scan and instrument java files for suspendable code (for quasar fiber support)
