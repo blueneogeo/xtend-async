@@ -1,0 +1,6 @@
+java.util.Iterator.next
+java.util.Iterator.hasNext
+java.lang.Iterable.*
+java.util.function.Consumer.accept
+java.util.function.Consumer.andThen
+java.lang.Iterable.forEach

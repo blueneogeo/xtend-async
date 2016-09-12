@@ -72,6 +72,16 @@ subprojects {
     }
   }
 
+  test {
+      testLogging {
+          error {
+            showStackTraces true
+            exceptionFormat "full"
+          }
+          events "passed", "skipped", "failed", "standardOut", "standardError"
+      }
+  }
+
   task install( dependsOn: publishToMavenLocal )
 
   jar {
@@ -151,6 +161,7 @@ project( 'fibers' ) {
     tasks.withType(Test) {
       // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
       jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+      jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
     }
 
     compileJava.doLast {
@@ -159,6 +170,13 @@ project( 'fibers' ) {
 
     compileTestJava.doLast {
       scanAndInstrument(sourceSets.test, [configurations.provided, configurations.runtime])
+    }
+    
+    task serviceAgent {
+      description 'Prints the Eclipse VM parameters necessary to run JUnit tests'
+      doLast {
+        println "-javaagent:${configurations.quasar.asPath}"
+      }
     }
 
 }

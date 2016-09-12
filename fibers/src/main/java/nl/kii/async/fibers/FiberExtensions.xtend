@@ -2,19 +2,60 @@ package nl.kii.async.fibers
 
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberAsync
+import co.paralleluniverse.fibers.FiberScheduler
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
+import co.paralleluniverse.strands.SuspendableRunnable
 import java.util.concurrent.TimeUnit
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Input
 import nl.kii.async.promise.Promise
-import nl.kii.util.Period
-import co.paralleluniverse.strands.Strand
-import co.paralleluniverse.fibers.FiberScheduler
-import co.paralleluniverse.strands.SuspendableRunnable
 import nl.kii.async.promise.Task
+import nl.kii.async.stream.Stream
+import nl.kii.util.Period
 
 class FiberExtensions {
+
+	@Suspendable
+	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
+		val promise = new Input<OUT>
+		stream.observer = new Observer<IN, OUT> {
+			
+			@Suspendable
+			override value(IN in, OUT value) {
+				promise.set(value)
+			}
+			
+			@Suspendable
+			override error(IN in, Throwable t) {
+				promise.error(t)
+			}
+			
+			@Suspendable
+			override complete() {
+				stream.close
+			}
+			
+		}
+		stream.next
+		if(!stream.open) return null
+		// ask for the next value from the stream and wait for the promise to resolve
+		// Fiber.currentFiber().scheduler.async [ stream.next ]
+		promise.await
+	}
+
+	@Suspendable
+	def static <T> awaitEach(Stream<?, T> stream) {
+		new Iterable<T> {
+			
+			@Suspendable
+			override iterator() {
+				new StreamIterator(stream)
+			}
+			
+		}
+	}
 	
 	/**
 	 * Perform a function in the background using a Fiber.
