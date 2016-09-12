@@ -19,6 +19,7 @@ import org.eclipse.xtend.lib.macro.declaration.MutableMethodDeclaration
 import org.eclipse.xtend.lib.macro.declaration.TypeReference
 
 import static extension nl.kii.util.annotation.ActiveAnnotationTools.*
+import co.paralleluniverse.fibers.Suspendable
 
 class AwaitPromisesProcessor extends CopyMethodsProcessor {
 
@@ -70,6 +71,8 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 			val isTask = Task.newTypeReference.isAssignableFrom(originalMethod.returnType)
 			// remove the first parameter if we have an instance extension method
 			val newParameters = if(!originalMethod.static) parameters.tail else parameters
+			// make it suspendable
+			addAnnotation(Suspendable.newAnnotationReference)			
 			// create the body
 			body = '''
 				«IF !isTask»return «ENDIF»«FiberExtensions».await(
@@ -90,6 +93,8 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 			returnType = StreamIterator.ref(resultType.add(types))
 			// remove the first parameter if we have an instance extension method
 			val newParameters = if(!originalMethod.static) parameters.tail else parameters
+			// make it suspendable
+			addAnnotation(Suspendable.newAnnotationReference)
 			// create the body
 			body = '''
 				return new «returnType»(
