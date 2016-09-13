@@ -1,7 +1,7 @@
 package nl.kii.async.fibers.annotation.processors
 
+import co.paralleluniverse.fibers.Suspendable
 import nl.kii.async.fibers.FiberExtensions
-import nl.kii.async.fibers.StreamIterator
 import nl.kii.async.fibers.annotation.AwaitPromises
 import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
@@ -19,7 +19,6 @@ import org.eclipse.xtend.lib.macro.declaration.MutableMethodDeclaration
 import org.eclipse.xtend.lib.macro.declaration.TypeReference
 
 import static extension nl.kii.util.annotation.ActiveAnnotationTools.*
-import co.paralleluniverse.fibers.Suspendable
 
 class AwaitPromisesProcessor extends CopyMethodsProcessor {
 
@@ -90,14 +89,14 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 		targetClass.addMethodCopy(originalCls, originalMethod, newMethodNameStripped, true, true) [ extension newMethod, types |
 			val instanceName = originalCls.simpleName.toFirstLower + 'Instance'
 			// we return an iterator of the stream
-			returnType = StreamIterator.ref(resultType.add(types))
+			returnType = Iterable.ref(resultType.add(types))
 			// remove the first parameter if we have an instance extension method
 			val newParameters = if(!originalMethod.static) parameters.tail else parameters
 			// make it suspendable
 			addAnnotation(Suspendable.newAnnotationReference)
 			// create the body
 			body = '''
-				return new «returnType»(
+				return «FiberExtensions».awaitEach(
 					«if(originalMethod.static) originalCls.name else instanceName».«originalMethod.simpleName»(«FOR newParameter : newParameters SEPARATOR ', '»«newParameter.simpleName»«ENDFOR»)
 				);
 			'''
