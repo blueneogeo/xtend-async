@@ -36,7 +36,7 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 					it.originalCls = originalCls
 					it.originalMethod = originalMethod
 					it.resultType = promiseType
-					methodNameBegin = annotation.getStringValue('methodNameBegin')
+					methodNameBegin = annotation.getStringValue('promiseMethodNameBegin')
 					methodNameRemove = annotation.getStringValue('methodNameStrip')
 				]
 			} else {
@@ -46,7 +46,7 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 						it.originalCls = originalCls
 						it.originalMethod = originalMethod
 						it.resultType = streamType
-						methodNameBegin = annotation.getStringValue('methodNameBegin')
+						methodNameBegin = annotation.getStringValue('streamMethodNameBegin')
 						methodNameRemove = annotation.getStringValue('methodNameStrip')
 					]
 				} else if(annotation.getBooleanValue('copyOtherStaticMethods')) {

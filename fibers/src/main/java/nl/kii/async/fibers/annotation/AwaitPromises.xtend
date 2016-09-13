@@ -33,10 +33,13 @@ annotation AwaitPromises {
 	 */
 	String[] ignoredMethods = #[]
 
-	/** Add this text in front of the new method */
-	String methodNameBegin = ''
+	/** Add this text in front of new promise returning methods */
+	String promiseMethodNameBegin = 'do'
 
-	/** Add some text at the end of the new method */
+	/** Add this text in front of new stream returning methods */
+	String streamMethodNameBegin = 'for'
+
+	/** Remove any text from method names that match this regular expression */
 	String methodNameStrip = 'Async|Stream'
 	
 }
