@@ -18,8 +18,6 @@ import org.eclipse.xtend.lib.macro.declaration.MutableClassDeclaration
 import org.eclipse.xtend.lib.macro.declaration.MutableMethodDeclaration
 import org.eclipse.xtend.lib.macro.declaration.TypeReference
 
-import static extension nl.kii.util.annotation.ActiveAnnotationTools.*
-
 class AwaitPromisesProcessor extends CopyMethodsProcessor {
 
 	override getAnnotationType() {
