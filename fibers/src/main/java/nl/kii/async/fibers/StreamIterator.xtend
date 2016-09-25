@@ -31,6 +31,7 @@ class StreamIterator<T> implements Iterator<T> {
 		else stream.awaitNext
 	}
 	
+	@Deprecated
 	override remove() {
 		throw new UnsupportedOperationException('you cannot remove items from a stream iterator')
 	}

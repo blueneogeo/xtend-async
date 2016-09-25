@@ -10,7 +10,7 @@ import nl.kii.async.fibers.annotation.processors.AwaitPromisesProcessor
  * methods that await using a Fiber, into the annotated class.
  */
 @Target(TYPE)
-@Repeatable(ConvertVertxHandlersValues)
+@Repeatable(AwaitPromisesValues)
 @Active(AwaitPromisesProcessor)
 annotation AwaitPromises {
 
@@ -37,15 +37,15 @@ annotation AwaitPromises {
 	String promiseMethodNameBegin = 'do'
 
 	/** Add this text in front of new stream returning methods */
-	String streamMethodNameBegin = 'for'
+	String streamMethodNameBegin = 'each'
 
 	/** Remove any text from method names that match this regular expression */
-	String methodNameStrip = 'Async|Stream'
+	String methodNameStrip = 'Async|HandlerStream|Stream'
 	
 }
 
 @Target(TYPE)
-annotation ConvertVertxHandlersValues {
+annotation AwaitPromisesValues {
 	
 	AwaitPromises[] value
 	
