@@ -46,7 +46,7 @@ class TestStreamErrorHandling {
 	def void testAsyncMappingErrors() {
 		(1..10).stream
 			.effect [ if(it == 3 || it == 5) throw new Exception ]
-			.call(Throwable) [ executor.promise [ Thread.sleep(100) return 0 ] ]
+			.call(Throwable) [ executor.promise [ return 0 ] ]
 			.collect
 			.await <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
 	}

@@ -199,14 +199,15 @@ def scanAndInstrument(project, sset, updateSuspendables, configs) {
         classpath: cp
     )
     ant.scanSuspendables(
-        auto: (updateSuspendables == true),
+        auto: (updateSuspendables == 'true'),
         suspendablesFile: "$sset.output.resourcesDir/META-INF/suspendables",
         supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
         append: true) {
         fileset(dir: sset.output.classesDir)
     }
 
-    if(updateSuspendables == true) {
+    if(updateSuspendables == 'true') {
+      println('Copying suspendables and suspendable-supers to Java META-INF dir (property updateSuspendables).')
       copy {
           from "$sset.output.resourcesDir/META-INF"
           into "$project.projectDir/src/main/java/META-INF"
