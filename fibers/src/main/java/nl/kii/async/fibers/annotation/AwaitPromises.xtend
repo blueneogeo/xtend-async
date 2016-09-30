@@ -27,6 +27,13 @@ annotation AwaitPromises {
 	boolean copyOtherStaticMethods = true
 	
 	/** 
+	 * Should we also create blocking iteration methods on streams?
+	 * You should not create eachStreamMethods for now, until some instrumentation issues have been fixed.
+	 */
+	@Deprecated
+	boolean createStreamEachMethods = false
+	
+	/** 
 	 * Method signatures to ignore.
 	 * Use the format "[methodname]([fulltypename],...)" (from MethodSignature.toString())
 	 * For example: "equals(java.lang.Object)"

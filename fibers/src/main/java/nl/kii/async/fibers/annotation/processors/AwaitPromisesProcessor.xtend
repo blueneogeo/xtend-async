@@ -38,7 +38,7 @@ class AwaitPromisesProcessor extends CopyMethodsProcessor {
 				]
 			} else {
 				val streamType = originalMethod.returnType.getStreamTypeParameter(context)?.add(originalMethod.typeParameters)
-				if(streamType != null) {
+				if(streamType != null &&  annotation.getBooleanValue('createStreamEachMethods')) {
 					targetClass.doCopyAsStreamIteratorMethod(context) [
 						it.originalCls = originalCls
 						it.originalMethod = originalMethod

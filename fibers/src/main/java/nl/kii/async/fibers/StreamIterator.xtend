@@ -1,15 +1,16 @@
 package nl.kii.async.fibers
 
 import co.paralleluniverse.fibers.Suspendable
+import java.util.Iterator
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.stream.Stream
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
-import java.util.Iterator
 
 /**
  * An iterator implementation that awaits each value from the stream.
  */
+@Deprecated
 class StreamIterator<T> implements Iterator<T> {
 	
 	val Stream<?, T> stream
