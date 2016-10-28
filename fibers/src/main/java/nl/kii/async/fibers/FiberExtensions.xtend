@@ -14,6 +14,7 @@ import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
 import nl.kii.async.stream.Stream
 import nl.kii.util.Period
+import co.paralleluniverse.fibers.SuspendExecution
 
 class FiberExtensions {
 
@@ -70,16 +71,23 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
-	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
-		new Fiber [
-			try {
-				input.set(function.run)
-			} catch(Throwable t) {
-				input.error(t)
+		
+		new Fiber(new SuspendableRunnable {
+			
+			override run() throws SuspendExecution, InterruptedException {
+				try {
+					input.set(function.run)
+				} catch(SuspendExecution suspend) {
+					throw suspend
+				} catch(Throwable t) {
+					input.error(t)
+				}
 			} 
-		].start
+
+		}).start
+		
 		input
 	}
 
@@ -93,17 +101,24 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
-	@Suspendable
 	def static <OUT> Task async(SuspendableRunnable action) {
 		val task = new Task
-		new Fiber [
-			try {
-				action.run
-				task.complete
-			} catch(Throwable t) {
-				task.error(t)
+
+		new Fiber(new SuspendableRunnable {
+			
+			override run() throws SuspendExecution, InterruptedException {
+				try {
+					action.run
+					task.complete
+				} catch(SuspendExecution suspend) {
+					throw suspend
+				} catch(Throwable t) {
+					task.error(t)
+				}
 			} 
-		].start
+
+		}).start
+
 		task
 	}
 
@@ -117,16 +132,23 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
-	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(FiberScheduler scheduler, SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
-		new Fiber(scheduler) [
-			try {
-				input.set(function.run)
-			} catch(Throwable t) {
-				input.error(t)
+
+		new Fiber(scheduler, new SuspendableRunnable {
+			
+			override run() throws SuspendExecution, InterruptedException {
+				try {
+					input.set(function.run)
+				} catch(SuspendExecution suspend) {
+					throw suspend
+				} catch(Throwable t) {
+					input.error(t)
+				}
 			} 
-		].start
+
+		}).start
+
 		input
 	}
 
@@ -140,17 +162,24 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
-	@Suspendable
 	def static <OUT> Task async(FiberScheduler scheduler, SuspendableRunnable action) {
 		val task = new Task
-		new Fiber(scheduler) [
-			try {
-				action.run
-				task.complete
-			} catch(Throwable t) {
-				task.error(t)
+		
+		new Fiber(scheduler, new SuspendableRunnable {
+			
+			override run() throws SuspendExecution, InterruptedException {
+				try {
+					action.run
+					task.complete
+				} catch(SuspendExecution suspend) {
+					throw suspend
+				} catch(Throwable t) {
+					task.error(t)
+				}
 			} 
-		].start
+
+		}).start
+
 		task
 	}
 
