@@ -1,6 +1,7 @@
 package nl.kii.async.promise
 
 import nl.kii.async.observable.Observable
+import co.paralleluniverse.fibers.Suspendable
 
 /**
  * A promise is an observable that outputs only a single value.
@@ -16,6 +17,7 @@ import nl.kii.async.observable.Observable
  * have access to the input of these transformations, it keeps
  * track of and retains the IN. Normally only the OUT changes.
  */
+@Suspendable
 interface Promise<IN, OUT> extends Observable<IN, OUT> {
 
 	def boolean isPending()

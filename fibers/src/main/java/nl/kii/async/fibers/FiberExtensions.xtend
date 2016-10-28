@@ -18,7 +18,6 @@ import nl.kii.util.Period
 class FiberExtensions {
 
 	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
-	@Deprecated
 	@Suspendable
 	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
 		val promise = new Input<OUT>
@@ -197,10 +196,12 @@ class FiberExtensions {
 			override protected requestAsync() {
 				promise.observer = new Observer<IN, OUT> {
 					
+					@Suspendable
 					override value(IN in, OUT value) {
 						asyncCompleted(value)
 					}
 					
+					@Suspendable
 					override error(Object in, Throwable t) {
 						asyncFailed(t)
 					}

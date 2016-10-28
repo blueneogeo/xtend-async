@@ -1,11 +1,12 @@
 package nl.kii.async.promise
 
 import nl.kii.async.observable.Observer
+import co.paralleluniverse.fibers.Suspendable
 
 /** 
  * A deferred promises a result, based on an incoming request.
- * A Deferred is thread-safe.
  */
+@Suspendable
 class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 
 	protected boolean fulfilled = false
@@ -16,7 +17,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	protected Pair<IN, OUT> cachedValue
 	protected Pair<IN, Throwable> cachedError
 
-	override synchronized value(IN in, OUT value) {
+	override value(IN in, OUT value) {
 		if(!pending) return;
 		fulfilled = true
 		if(observer != null) {
@@ -27,7 +28,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 
-	override synchronized error(IN in, Throwable t) {
+	override error(IN in, Throwable t) {
 		if(!pending) return;
 		rejected = true
 		if(observer != null) {
@@ -51,19 +52,19 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		cachedError = null
 	}
 
-	override synchronized isPending() {
+	override isPending() {
 		!fulfilled && !rejected
 	}
 	
-	override synchronized isFulfilled() {
+	override isFulfilled() {
 		this.fulfilled
 	}
 	
-	override synchronized isRejected() {
+	override isRejected() {
 		this.rejected
 	}
 
-	override synchronized setObserver(Observer<IN, OUT> observer) {
+	override setObserver(Observer<IN, OUT> observer) {
 		this.observer = observer
 		// if we already have a value or error, push it through immediately
 		if(cachedValue != null) {
@@ -80,6 +81,6 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		// do nothing by default, since promises have no flow control
 	}
 	
-	override synchronized toString() '''Promise { status: «IF fulfilled»fulfilled«ELSEIF rejected»rejected«ELSE»unfulfilled«ENDIF», «IF cachedValue!=null»value: «cachedValue»«ELSEIF cachedError != null»error: «cachedError»«ENDIF», observed: «observer!=null» }'''
+	override toString() '''Promise { status: «IF fulfilled»fulfilled«ELSEIF rejected»rejected«ELSE»unfulfilled«ENDIF», «IF cachedValue!=null»value: «cachedValue»«ELSEIF cachedError != null»error: «cachedError»«ENDIF», observed: «observer!=null» }'''
 	
 }

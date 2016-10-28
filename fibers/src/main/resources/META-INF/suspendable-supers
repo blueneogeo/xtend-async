@@ -17,9 +17,4 @@ org.eclipse.xtext.xbase.lib.Functions$Function3.apply
 org.eclipse.xtext.xbase.lib.Functions$Function4.apply
 org.eclipse.xtext.xbase.lib.Functions$Function5.apply
 org.eclipse.xtext.xbase.lib.Functions$Function6.apply
-nl.kii.async.observable.Observer.*
-nl.kii.async.observable.Observable.*
-nl.kii.async.promise.Promise.*
-nl.kii.async.stream.Stream.*
-nl.kii.async.stream.Controllable.*
-nl.kii.async.publish.Publisher.*
+

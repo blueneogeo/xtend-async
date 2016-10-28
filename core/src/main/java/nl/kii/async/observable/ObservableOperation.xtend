@@ -21,7 +21,10 @@ import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import nl.kii.async.annotation.Controlled
 import nl.kii.async.annotation.Uncontrolled
+import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.fibers.SuspendExecution
 
+@Suspendable
 final class ObservableOperation {
 
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
@@ -36,6 +39,8 @@ final class ObservableOperation {
 				for(observer : observers) {
 					try {
 						observer.value(in, value)
+					} catch(SuspendExecution suspend) {
+						throw suspend
 					} catch(Throwable t) {
 						observer.error(in, t)
 					}
@@ -45,6 +50,8 @@ final class ObservableOperation {
 				for(observer : observers) {
 					try {
 						observer.error(in, t)
+					} catch(SuspendExecution suspend) {
+						throw suspend
 					} catch(Throwable t2) {
 						// let errors of error handling die quietly
 					}
@@ -54,6 +61,8 @@ final class ObservableOperation {
 				for(observer : observers) {
 					try {
 						observer.complete
+					} catch(SuspendExecution suspend) {
+						throw suspend
 					} catch(Throwable t) {
 						observer.error(null, t)
 					}
@@ -129,6 +138,8 @@ final class ObservableOperation {
 				try {
 					val mapped = mapFn.apply(in, value)
 					observer.value(in, mapped)
+				} catch(SuspendExecution suspend) {
+					throw suspend
 				} catch(Throwable t) {
 					observer.error(in, t)
 				}
@@ -250,6 +261,8 @@ final class ObservableOperation {
 					} else {
 						observer.error(in, t)
 					}
+				} catch(SuspendExecution suspend) {
+					throw suspend
 				} catch(Exception e) {
 					 observer.error(in, t)
 				}
@@ -278,6 +291,8 @@ final class ObservableOperation {
 					} else {
 						observer.error(in, error)
 					}
+				} catch(SuspendExecution suspend) {
+					throw suspend
 				} catch(Throwable t) {
 					observer.error(in, t)
 				}
@@ -325,6 +340,8 @@ final class ObservableOperation {
 							}
 							
 						}
+					} catch(SuspendExecution suspend) {
+						throw suspend
 					} catch(Throwable t) {
 						observer.error(in, t)
 						// if the stream completed and this was the last process, we are done

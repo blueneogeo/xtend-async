@@ -5,11 +5,13 @@ import nl.kii.async.stream.Controllable
 import nl.kii.async.stream.Sink
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Hot
+import co.paralleluniverse.fibers.Suspendable
 
 /**
  * Simple but fully functional implementation of a publisher.
  * Automatically publishes directly, no flow control, not threadsafe.
  */
+@Suspendable
 class BasicPublisher<T> implements Publisher<T> {
 	
 	var publishing = false
@@ -51,18 +53,22 @@ class BasicPublisher<T> implements Publisher<T> {
 		}
 		source.controllable = new Controllable {
 			
+			@Suspendable
 			override next() {
 				// basic publisher has no flow control support
 			}
 			
+			@Suspendable
 			override pause() {
 				subscriptions.remove(source)
 			}
 			
+			@Suspendable
 			override resume() {
 				subscriptions.add(source)
 			}
 			
+			@Suspendable
 			override close() {
 				subscriptions.remove(source)
 			}

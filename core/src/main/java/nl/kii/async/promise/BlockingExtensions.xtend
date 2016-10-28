@@ -9,6 +9,7 @@ import java.util.concurrent.TimeoutException
 import nl.kii.async.annotation.Blocking
 import nl.kii.async.annotation.MultiThreaded
 import nl.kii.util.Period
+import co.paralleluniverse.fibers.instrument.DontInstrument
 
 class BlockingExtensions {
 	
@@ -17,6 +18,7 @@ class BlockingExtensions {
 	
 	/** Wrap the promise into a future that can block. */
 	@Blocking
+	@DontInstrument
 	def static <IN, OUT> Future<OUT> asFuture(Promise<IN, OUT> promise) {
 		new PromisedFuture(promise)
 	}
@@ -26,6 +28,7 @@ class BlockingExtensions {
 	 * @throws TimeoutException when the process was waiting for longer than the passed timeout period
 	 */
 	@Blocking
+	@DontInstrument
 	def static <IN, OUT> await(Promise<IN, OUT> promise, Period timeout) throws TimeoutException {
 		try {
 			new PromisedFuture(promise).get(timeout.ms, TimeUnit.MILLISECONDS)
@@ -43,6 +46,7 @@ class BlockingExtensions {
 	 * @throws TimeoutException when the process was waiting for longer than the passed timeout period
 	 */
 	@Blocking
+	@DontInstrument
 	def static <IN, OUT> await(Promise<IN, OUT> promise) throws TimeoutException {
 		try {
 			new PromisedFuture(promise).get
@@ -65,6 +69,7 @@ class BlockingExtensions {
 	 * service.promise [| return doSomeHeavyLifting ].then [ println('result:' + it) ]
 	 */
 	@MultiThreaded
+	@DontInstrument
 	def static <IN, OUT> Promise<OUT, OUT> promise(ExecutorService service, Callable<OUT> callable) {
 		val promise = new Input<OUT>
 		val Runnable processor = [|
@@ -87,6 +92,7 @@ class BlockingExtensions {
 	 * service.promise [| doSomeHeavyLifting ].then [ println('done!') ]
 	 */
 	@MultiThreaded
+	@DontInstrument
 	def static Task task(ExecutorService service, Runnable runnable) {
 		val task = new Task
 		val Runnable processor = [|
@@ -106,6 +112,7 @@ class BlockingExtensions {
 	 * A timer function takes a period and returns a task that completes when that period has expired.
 	 */
 	@MultiThreaded
+	@DontInstrument
 	def static (Period)=>Task timerFn(ScheduledExecutorService executor) {
 		[ period |
 			val task = new Task

@@ -1,6 +1,7 @@
 package nl.kii.async.stream
 
 import nl.kii.async.observable.Observable
+import co.paralleluniverse.fibers.Suspendable
 
 /** 
  * A source pushes values into a stream, and manages the flow
@@ -21,6 +22,7 @@ import nl.kii.async.observable.Observable
  * <li>If you do not need pass input, use Sink\<OUT\> instead. 
  * <li>Source is NOT threadsafe! Use StreamExtensions.synchronize to make threadsafe.
  */
+@Suspendable
 abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, OUT> {
 
 	var open = true

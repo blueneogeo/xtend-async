@@ -3,6 +3,7 @@ package nl.kii.async.publish
 import nl.kii.async.stream.Stream
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Hot
+import co.paralleluniverse.fibers.Suspendable
 
 /**
  * A Publisher acts like a stream that you can subscribe to.
@@ -11,6 +12,7 @@ import nl.kii.async.annotation.Hot
  * A user subscribes by calling the subscribe() method and listening
  * to the returned stream. The user unsubscribes by closing the stream. 
  */
+@Suspendable
 interface Publisher<T> {
 
 	/** Publish a single value to subscribers */

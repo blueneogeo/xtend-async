@@ -7,7 +7,9 @@ import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.stream.StreamExtensions.*
+import co.paralleluniverse.fibers.Suspendable
 
+@Suspendable
 final class PromiseExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////////////
@@ -52,14 +54,17 @@ final class PromiseExtensions {
 		}
 		promise.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				task.complete
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				task.error(t)
 			}
 			
+			@Suspendable
 			override complete() {
 				task.complete
 			}
@@ -101,14 +106,17 @@ final class PromiseExtensions {
 		for(promise : promises) {
 			promise.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					task.complete
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					task.error(null, t)
 				}
 				
+				@Suspendable
 				override complete() {
 					task.complete
 				}
@@ -268,14 +276,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void completes(Promise<IN, OUT> promise, Task task) {
 		promise.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				task.complete
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				task.error(t)
 			}
 			
+			@Suspendable
 			override complete() {
 				task.complete
 			}
@@ -287,14 +298,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Deferred<IN, OUT> deferred) {
 		promise.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				deferred.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				deferred.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				// do nothing
 			}
@@ -306,14 +320,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Input<OUT> input) {
 		promise.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				input.value(null, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				input.error(null, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				// do nothing
 			}

@@ -2,15 +2,4 @@ org.eclipse.xtext.xbase.lib.MapExtensions.*
 org.eclipse.xtext.xbase.lib.ArrayExtensions.*
 org.eclipse.xtext.xbase.lib.ListExtensions.*
 org.eclipse.xtext.xbase.lib.IterableExtensions.*
-nl.kii.async.observable.ObservableOperation.*
-nl.kii.async.promise.Task.*
-nl.kii.async.promise.PromiseExtensions.*
-nl.kii.async.promise.BlockingExtensions.*
-nl.kii.async.stream.Source.*
-nl.kii.async.stream.Sink.*
-nl.kii.async.publish.BasicPublisher.*
-nl.kii.async.promise.PromiseExtensions.*
-nl.kii.async.stream.StreamExtensions.*
-nl.kii.async.stream.Pipe.*
-nl.kii.async.stream.Sink.*
-nl.kii.async.stream.Source.*
+

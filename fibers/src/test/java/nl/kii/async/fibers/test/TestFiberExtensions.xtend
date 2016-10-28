@@ -67,51 +67,44 @@ class TestFiberExtensions {
 		BlockingExtensions.await(async(function))
 	}
 
-	/* FIX: iterate has issues with instrumentation!
-	@Test(timeout=6000)
-	def void testStreamAwaitNext() {
-		val stream = (1..10).iterator.stream
-		blocking [
-			for(value : stream.awaitEach) {
-				println(value)
-			}
-			println('done!')
-			null
-		]
-	}
-	*/
-
-	/*
-	 * So far it seems a Quasar problem, for some reason Iterator<T> will not be instrumented correctly,
-	 * and the test will give an exception in Eclipse with the agent instrumentor, but NOT when testing
-	 * from Gradle! However the Gradle test also breaks when trying to use a .forEach [ println(it) ],
-	 * even through the forEach is not running any blocking code.
-	 * 
-	 * Solution for now seems to be to awaitNext instead on a stream.
-	 * 
-	@Test(timeout=6000)
-	def void testAwaitControlledStream() {
-		val stream = newSink
-		async [ 
-			for(i : 1..10) {
-				wait(150.ms)
-				stream.push(i)
-			}
-			stream.complete
-		]
-		blocking [
-			for(i : stream.iterate) {
-				println(i)
-			}
-			null
-		]
-	}
-	*/
-	
-	/*
-	def static <T> StreamIterable<T> iterate(Stream<?, T> stream) {
-		new StreamIterable(stream)
-	}
-	*/
+//	@Ignore
+//	@Test(timeout=6000)
+//	def void testStreamAwaitNext() {
+//		val stream = (1..10).iterator.stream
+//		blocking [
+//			for(value : stream.awaitEach) {
+//				println(value)
+//			}
+//			println('done!')
+//			null
+//		]
+//	}
+//
+//	/*
+//	 * So far it seems a Quasar problem, for some reason Iterator<T> will not be instrumented correctly,
+//	 * and the test will give an exception in Eclipse with the agent instrumentor, but NOT when testing
+//	 * from Gradle! However the Gradle test also breaks when trying to use a .forEach [ println(it) ],
+//	 * even through the forEach is not running any blocking code.
+//	 * 
+//	 * Solution for now seems to be to awaitNext instead on a stream.
+//	 */ 
+//	@Ignore
+//	@Test(timeout=6000)
+//	def void testAwaitControlledStream() {
+//		val stream = newSink
+//		async [ 
+//			for(i : 1..10) {
+//				wait(150.ms)
+//				stream.push(i)
+//			}
+//			stream.complete
+//		]
+//		blocking [
+//			for(i : stream.awaitEach) {
+//				println(i)
+//			}
+//			null
+//		]
+//	}
 	
 }

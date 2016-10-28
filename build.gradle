@@ -51,7 +51,13 @@ subprojects {
     }
   }
 
+  configurations {
+    quasar
+  }
+
   dependencies {
+    quasar "co.paralleluniverse:quasar-core:${quasarVersion}@jar"
+    provided "co.paralleluniverse:quasar-core:${quasarVersion}"
     compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
@@ -71,6 +77,21 @@ subprojects {
       options.addStringOption( 'Xdoclint:none', '-quiet' )
     }
   }
+
+  tasks.withType(Test) {
+    // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+    jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+    jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
+  }
+    
+  compileJava.doLast {
+    scanAndInstrument(project, sourceSets.main, updateSuspendables, [configurations.provided, configurations.runtime])
+  }
+    
+  compileTestJava.doLast {
+    scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
+  }
+    
 
   test {
       testLogging {
@@ -155,14 +176,8 @@ project('collections') {
 
 project( 'fibers' ) {
 
-    configurations {
-        quasar
-    }
-
     dependencies {
-      quasar "co.paralleluniverse:quasar-core:${quasarVersion}@jar"
       compile project( ':core' )
-      provided "co.paralleluniverse:quasar-core:${quasarVersion}"
       testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
     }
 

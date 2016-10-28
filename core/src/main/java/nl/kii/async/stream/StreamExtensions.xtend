@@ -1,6 +1,8 @@
 package nl.kii.async.stream
 
+import co.paralleluniverse.fibers.Suspendable
 import com.google.common.collect.Queues
+import java.util.Date
 import java.util.Iterator
 import java.util.List
 import java.util.Map
@@ -13,10 +15,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Cold
+import nl.kii.async.annotation.Controlled
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.Lossy
 import nl.kii.async.annotation.MultiThreaded
 import nl.kii.async.annotation.NoBackpressure
+import nl.kii.async.annotation.Uncontrolled
 import nl.kii.async.annotation.Unsorted
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
@@ -29,14 +33,14 @@ import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
+import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.IterableExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-import static extension nl.kii.util.DateExtensions.*
-import java.util.Date
-import nl.kii.async.annotation.Controlled
-import nl.kii.async.annotation.Uncontrolled
+import co.paralleluniverse.fibers.instrument.DontInstrument
+import co.paralleluniverse.fibers.SuspendExecution
 
+@Suspendable
 final class StreamExtensions {
 
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
@@ -49,6 +53,8 @@ final class StreamExtensions {
 	@Cold @Controlled
 	def static <OUT> Stream<OUT, OUT> stream(Iterator<? extends OUT> iterator) {
 		new Sink<OUT> {
+			
+			@Suspendable
 			override onNext() {
 				if(iterator.hasNext) {
 					// value instead of push saves a call on the stacktrace
@@ -58,6 +64,8 @@ final class StreamExtensions {
 					complete
 				}
 			}
+			
+			@Suspendable
 			override onClose() {
 			}
 		}
@@ -81,12 +89,14 @@ final class StreamExtensions {
 	def static <OUT> Stream<OUT, OUT> stream(=>OUT nextValueFn) {
 		new Sink<OUT> {
 			
+			@Suspendable
 			override onNext() {
 				// value instead of push saves a call on the stacktrace
 				val nextValue = nextValueFn.apply
 				if(nextValue != null) value(nextValue, nextValue) else complete
 			}
 			
+			@Suspendable
 			override onClose() {
 				// do nothing
 			}
@@ -101,10 +111,12 @@ final class StreamExtensions {
 	def static <OUT> Sink<OUT> newSink() {
 		new Sink<OUT> {
 			
+			@Suspendable
 			override onNext() {
 				// do nothing, no support for backpressure
 			}
 			
+			@Suspendable
 			override onClose() {
 				// do nothing
 			}
@@ -121,10 +133,12 @@ final class StreamExtensions {
 	def static <IN, OUT> Source<IN, OUT> newSource() {
 		new Source<IN, OUT> {
 			
+			@Suspendable
 			override onNext() {
 				// do nothing, no support for backpressure
 			}
 			
+			@Suspendable
 			override onClose() {
 				// do nothing
 			}
@@ -156,6 +170,7 @@ final class StreamExtensions {
 		 	val counter = new AtomicLong(0)
 		 	val last = new AtomicReference<Date>
 			
+			@Suspendable
 			override onNext() {
 				if(maxAmount > 0 && counter.get >= maxAmount) {
 					this.complete
@@ -173,15 +188,18 @@ final class StreamExtensions {
 					// fire off with a delay
 					timerFn.apply(interval - expiredSinceLastPush).observer = new Observer<Void, Void> {
 						
+						@Suspendable
 						override value(Void in, Void value) {
 							last.set(now)
 							that.push(counter.get)
 						}
 						
+						@Suspendable
 						override error(Void in, Throwable t) {
 							that.push(t)
 						}
 						
+						@Suspendable
 						override complete() {
 							// do nothing
 						}
@@ -190,16 +208,19 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override resume() {
 				super.resume
 				started.set(false)
 				next
 			}
 			
+			@Suspendable
 			override pause() {
 				super.pause
 			}
 			
+			@Suspendable
 			override onClose() {
 				close
 			}
@@ -237,26 +258,31 @@ final class StreamExtensions {
 
 		val pipe = new Pipe<IN, OUT> {
 
+			@Suspendable
 			override next() {
 				// assumption: when we call next, we finished the previous process
 				processes.decrementAndGet 
 				stream.next
 			}
 
+			@Suspendable
 			override void close() {
 				super.close
 				stream.close
 			}
 			
+			@Suspendable
 			override pause() {
 				stream.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				stream.resume
 				stream.next
 			}
 			
+			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
@@ -265,16 +291,19 @@ final class StreamExtensions {
 		
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				val open = processes.incrementAndGet
 				pipe.value(in, value)
 				if(open < maxConcurrentProcesses) stream.next
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				pipe.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				pipe.complete
 			}
@@ -290,22 +319,26 @@ final class StreamExtensions {
 	 * Wraps synchronize calls around a stream, making it thread-safe.
 	 * This comes at a small performance cost.
 	 */
-	@Cold @Controlled @MultiThreaded
+	@Cold @Controlled @MultiThreaded @DontInstrument
 	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream) {
 		val pipe = new Pipe<IN, OUT> {
 			
+			@DontInstrument
 			override synchronized isOpen() {
 				stream.isOpen
 			}
 			
+			@DontInstrument
 			override synchronized next() {
 				stream.next
 			}
 			
+			@DontInstrument
 			override synchronized pause() {
 				stream.pause
 			}
 			
+			@DontInstrument
 			override synchronized resume() {
 				stream.resume
 			}
@@ -313,14 +346,17 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
+			@DontInstrument
 			override synchronized value(IN in, OUT value) {
 				pipe.value(in, value)
 			}
 			
+			@DontInstrument
 			override synchronized error(IN in, Throwable t) {
 				pipe.error(in, t)
 			}
 			
+			@DontInstrument
 			override synchronized complete() {
 				pipe.complete
 			}
@@ -392,24 +428,29 @@ final class StreamExtensions {
 	def static <IN, OUT1, OUT2> Stream<IN, OUT2> operation(Stream<IN, OUT1> stream, (Pipe<IN, OUT2>)=>void operationFn) {
 		val pipe = new Pipe<IN, OUT2> {
 
+			@Suspendable
 			override next() { 
 				stream.next
 			}
 
+			@Suspendable
 			override void close() {
 				super.close
 				stream.close
 			}
 			
+			@Suspendable
 			override pause() {
 				stream.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				stream.resume
 				stream.next
 			}
 			
+			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
@@ -434,6 +475,7 @@ final class StreamExtensions {
 	def static <IN, OUT> Publisher<OUT> publisher(Stream<IN, OUT> stream) {
 		val publisher = new BasicPublisher<OUT> {
 			
+			@Suspendable
 			override start() {
 				super.start
 				stream.next
@@ -442,16 +484,19 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				publisher.publish(value)
 				stream.next
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable error) {
 				publisher.publish(error)
 				stream.next
 			}
 			
+			@Suspendable
 			override complete() {
 				publisher.closeSubscriptions
 				stream.close
@@ -472,14 +517,17 @@ final class StreamExtensions {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				output.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				output.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				output.complete
 				input.close
@@ -489,18 +537,22 @@ final class StreamExtensions {
 		}
 		output.controllable = new Controllable {
 			
+			@Suspendable
 			override next() {
 				input.next
 			}
 			
+			@Suspendable
 			override pause() {
 				input.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				input.resume
 			}
 			
+			@Suspendable
 			override close() {
 				input.close
 			}
@@ -520,14 +572,17 @@ final class StreamExtensions {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				output.value(null, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				output.error(null, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				output.complete
 				input.close
@@ -537,18 +592,22 @@ final class StreamExtensions {
 		}
 		output.controllable = new Controllable {
 			
+			@Suspendable
 			override next() {
 				input.next
 			}
 			
+			@Suspendable
 			override pause() {
 				input.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				input.resume
 			}
 			
+			@Suspendable
 			override close() {
 				input.close
 			}
@@ -569,14 +628,17 @@ final class StreamExtensions {
 		val task = new Task
 		input.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				output.value(null, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				output.error(null, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				output.complete
 				input.close
@@ -625,21 +687,25 @@ final class StreamExtensions {
 		
 		val target = new Source<IN, OUT> {
 			
+			@Suspendable
 			override onNext() {
 				currentStream.get.next
 			}
 			
+			@Suspendable
 			override onClose() {
 				for(stream : streams) {
 					stream.close
 				}
 			}
 			
+			@Suspendable
 			override pause() {
 				super.pause
 				streams.forEach [ pause ]
 			}
 			
+			@Suspendable
 			override resume() {
 				super.resume
 				streams.forEach [ resume ]
@@ -650,14 +716,17 @@ final class StreamExtensions {
 		for(stream : streams) {
 			stream.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					target.value(in, value)
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					target.error(in, t)
 				}
 				
+				@Suspendable
 				override complete() {
 					// we are done with the current stream, move to the next
 					val newIndex = currentStreamIndex.incrementAndGet
@@ -721,10 +790,12 @@ final class StreamExtensions {
 		stream.operation [ pipe |
 			stream.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					pipe.value(in, value)
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable error) {
 					try {
 						if(error.matches(errorType)) {
@@ -747,11 +818,14 @@ final class StreamExtensions {
 						} else {
 							pipe.error(in, error)
 						}
+					} catch(SuspendExecution suspend) {
+						throw suspend						
 					} catch(Throwable t) {
 						pipe.error(in, t)
 					}
 				}
 				
+				@Suspendable
 				override complete() {
 					pipe.complete
 				}
@@ -774,10 +848,12 @@ final class StreamExtensions {
 		stream.operation [ pipe |
 			stream.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					pipe.value(in, value)
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable error) {
 					try {
 						if(error.matches(errorType)) {
@@ -786,11 +862,14 @@ final class StreamExtensions {
 						} else {
 							pipe.error(in, error)
 						}
+					} catch(SuspendExecution suspend) {
+						throw suspend
 					} catch(Throwable t) {
 						pipe.error(in, t)
 					}
 				}
 				
+				@Suspendable
 				override complete() {
 					pipe.complete
 				}
@@ -836,6 +915,7 @@ final class StreamExtensions {
 		val completed = new AtomicBoolean(false)
 		val pipe = new Pipe<IN, OUT> {
 			
+			@Suspendable
 			override next() {
 				// get the next value from the queue to stream
 				val nextValue = buffer.poll
@@ -858,19 +938,23 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
 			
+			@Suspendable
 			override pause() {
 				stream.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				stream.resume
 				stream.next
 			}
 			
+			@Suspendable
 			override close() {
 				super.close
 				stream.close
@@ -879,6 +963,7 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(buffer.empty && ready.compareAndSet(true, false)) {
 					// if there is nothing in the buffer and the pipe is ready, push it out immediately
@@ -904,10 +989,12 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				pipe.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				if(buffer.empty) {
 					pipe.complete
@@ -962,23 +1049,28 @@ final class StreamExtensions {
 	def static <IN1, IN2, OUT> Stream<IN2, OUT> mapInput(Stream<IN1, OUT> stream, (IN1, Opt<OUT>)=>IN2 inputMapFn) {
 		val pipe = new Pipe<IN2, OUT> {
 
+			@Suspendable
 			override next() { 
 				stream.next
 			}
 
+			@Suspendable
 			override close() {
 				super.close
 				stream.close
 			}
 			
+			@Suspendable
 			override pause() {
 				stream.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				stream.resume
 			}
 			
+			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
@@ -1042,6 +1134,7 @@ final class StreamExtensions {
 			val passed = new AtomicLong(0)
 			stream.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					val i = index.incrementAndGet
 					if(filterFn.apply(in, value, i, passed.get)) {
@@ -1052,10 +1145,12 @@ final class StreamExtensions {
 					}
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					pipe.error(in, t)
 				}
 				
+				@Suspendable
 				override complete() {
 					pipe.complete
 				}
@@ -1146,14 +1241,17 @@ final class StreamExtensions {
 			val counter = new AtomicInteger(0)
 			stream.observer = new Observer<IN, OUT> {
 			
+				@Suspendable
 				override value(IN in, OUT value) {
 					pipe.value(in, counter.incrementAndGet -> value)
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					pipe.error(in, t)
 				}
 				
+				@Suspendable
 				override complete() {
 					pipe.complete
 				}
@@ -1170,6 +1268,7 @@ final class StreamExtensions {
 		val ignoreNextCount = new AtomicInteger(0)
 		val pipe = new Pipe<IN, OUT> {
 			
+			@Suspendable
 			override next() {
 				// ignore one less next until there is nothing left to ignore
 				if(ignoreNextCount.decrementAndGet <= 0) {
@@ -1179,18 +1278,22 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
 			
+			@Suspendable
 			override pause() {
 				stream.pause
 			}
 			
+			@Suspendable
 			override resume() {
 				stream.resume
 			}
 			
+			@Suspendable
 			override close() {
 				super.close
 				stream.close
@@ -1199,6 +1302,7 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, List<OUT>> {
 			
+			@Suspendable
 			override value(IN in, List<OUT> list) {
 				// push all values in the list separately onto the stream
 				// however we need to take into account that the listening
@@ -1213,10 +1317,12 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				pipe.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				pipe.complete
 			}
@@ -1236,6 +1342,7 @@ final class StreamExtensions {
 		stream.operation [ pipe |
 			stream.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					val result = reducerFn.apply(reduced.get, in, value)
 					reduced.set(result)
@@ -1243,10 +1350,12 @@ final class StreamExtensions {
 					else stream.next
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					pipe.error(in, t)
 				}
 				
+				@Suspendable
 				override complete() {
 					pipe.complete
 				}
@@ -1316,6 +1425,7 @@ final class StreamExtensions {
 			
 			val started = new AtomicBoolean(false)
 			
+			@Suspendable
 			override next() {
 				// allow this only once
 				if(started.compareAndSet(false, true)) {
@@ -1326,16 +1436,19 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				// do nothing with the value, just ask for the next one
 				stream.next
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				// stream.close
 				task.error(t)
 			}
 			
+			@Suspendable
 			override complete() {
 				// stream.close
 				task.complete
@@ -1364,6 +1477,7 @@ final class StreamExtensions {
 	def static <IN, OUT, REDUCED> Promise<Long, REDUCED> reduce(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, IN, OUT)=>REDUCED reducerFn) {
 		val promise = new Deferred<Long, REDUCED> {
 			
+			@Suspendable
 			override next() {
 				stream.next
 			}
@@ -1373,6 +1487,7 @@ final class StreamExtensions {
 		val counter = new AtomicLong
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				try {
 					counter.incrementAndGet
@@ -1382,11 +1497,13 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				reduced.set(null)
 				promise.error(counter.get, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				val result = reduced.get
 				if(result != null) { 
@@ -1498,6 +1615,7 @@ final class StreamExtensions {
 		val promise = new Deferred<IN, Boolean>
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(testFn.apply(value)) {	
 					promise.value(in, true)
@@ -1507,11 +1625,13 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				promise.error(in, t)
 				stream.close
 			}
 			
+			@Suspendable
 			override complete() {
 				stream.close
 				promise.value(null, false)
@@ -1558,6 +1678,7 @@ final class StreamExtensions {
 	def static <IN, OUT> Promise<IN, OUT> first(Stream<IN, OUT> stream, (IN, OUT)=>boolean testFn) {
 		val promise = new Deferred<IN, OUT> {
 			
+			@Suspendable
 			override next() {
 				stream.next
 			}
@@ -1565,6 +1686,7 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(testFn.apply(in, value)) {	
 					promise.value(in, value)
@@ -1574,11 +1696,13 @@ final class StreamExtensions {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				promise.error(in, t)
 				stream.close
 			}
 			
+			@Suspendable
 			override complete() {
 				if(!promise.fulfilled) {
 					promise.error(null, new Exception('StreamExtensions.first: no value was streamed before the stream was closed.'))
@@ -1599,6 +1723,7 @@ final class StreamExtensions {
 	def static <IN, OUT> Promise<IN, OUT> last(Stream<IN, OUT> stream) {
 		val promise = new Deferred<IN, OUT> {
 			
+			@Suspendable
 			override next() {
 				stream.next
 			}
@@ -1608,15 +1733,18 @@ final class StreamExtensions {
 		
 		stream.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(!promise.fulfilled) last.set(in->value) 
 				stream.next
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				stream.next
 			}
 			
+			@Suspendable
 			override complete() {
 				stream.close
 				if(!promise.fulfilled && last.get != null) {
@@ -1732,23 +1860,27 @@ final class StreamExtensions {
 			val repeaterFn = [| executor.scheduleAtFixedRate(pushFn, 0, interval.ms, TimeUnit.MILLISECONDS) ]
 			val repeater = new AtomicReference<ScheduledFuture<?>>
 			
+			@Suspendable
 			override onNext() {
 				if(repeater.get == null) {
 					repeater.set(repeaterFn.apply)
 				}
 			}
 			
+			@Suspendable
 			override onClose() {
 				super.close
 				repeater.get?.cancel(true)
 			}
 			
+			@Suspendable
 			override pause() {
 				super.pause
 				repeater.get?.cancel(true)
 				repeater.set(null)
 			}
 
+			@Suspendable
 			override resume() {
 				super.resume
 				super.next

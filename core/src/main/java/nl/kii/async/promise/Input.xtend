@@ -1,9 +1,12 @@
 package nl.kii.async.promise
 
+import co.paralleluniverse.fibers.Suspendable
+
 /**
  * An input promises a value at some point in time.
  * An input is a Deferred, meaning it is thread-safe.
  */
+@Suspendable
 class Input<IN> extends Deferred<IN, IN> implements Promise<IN, IN> {
 	
 	/** Create a new unfulfilled promise */
