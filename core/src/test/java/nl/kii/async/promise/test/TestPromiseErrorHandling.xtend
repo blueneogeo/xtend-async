@@ -1,11 +1,11 @@
 package nl.kii.async.promise.test
 
 import nl.kii.async.annotation.Atomic
+import nl.kii.async.promise.Input
 import org.junit.Test
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*
-import nl.kii.async.promise.Input
 
 class TestPromiseErrorHandling {
 	

@@ -71,6 +71,7 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
+	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
 		
@@ -101,6 +102,7 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
+	@Suspendable
 	def static <OUT> Task async(SuspendableRunnable action) {
 		val task = new Task
 
@@ -132,6 +134,7 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
+	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(FiberScheduler scheduler, SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
 
@@ -162,6 +165,7 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
+	@Suspendable
 	def static <OUT> Task async(FiberScheduler scheduler, SuspendableRunnable action) {
 		val task = new Task
 		

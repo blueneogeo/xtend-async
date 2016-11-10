@@ -17,6 +17,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	protected Pair<IN, OUT> cachedValue
 	protected Pair<IN, Throwable> cachedError
 
+	@Suspendable
 	override value(IN in, OUT value) {
 		if(!pending) return;
 		fulfilled = true
@@ -27,7 +28,8 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 			cachedValue = in -> value
 		}
 	}
-
+	
+	@Suspendable
 	override error(IN in, Throwable t) {
 		if(!pending) return;
 		rejected = true
@@ -39,11 +41,13 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 	
+	@Suspendable
 	override complete() {
 		// do nothing, because only value and error can complete a promise!
 	}
 	
 	/** Called internally, so the observer.complete is called, and we can clean up a bit */
+	@Suspendable
 	protected def onCompleted() {
 		observer?.complete
 		// clean up after we are done
@@ -77,6 +81,8 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 			onCompleted
 		}
 	}
+	
+	@Suspendable
 	override next() {
 		// do nothing by default, since promises have no flow control
 	}

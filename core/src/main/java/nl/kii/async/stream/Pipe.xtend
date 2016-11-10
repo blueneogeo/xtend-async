@@ -7,7 +7,6 @@ import co.paralleluniverse.fibers.SuspendExecution
 /* 
  * A pipe is a controllable stream connection. It is the basic building block for building stream chains.
  */
-@Suspendable
 abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 
 	volatile protected Observer<IN, OUT> output
@@ -16,6 +15,7 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 		this.output = observer
 	}
 	
+	@Suspendable
 	override value(IN in, OUT value) {
 		if(output == null) return;
 		try {
@@ -27,12 +27,14 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 		}
 	}
 	
+	@Suspendable
 	override error(IN in, Throwable t) {
 		if(output == null) return;
 		// if something goes wrong, let the exception escalate 
 		output.error(in, t)
 	}
 	
+	@Suspendable
 	override complete() {
 		if(output == null) return;
 		try {
@@ -46,6 +48,7 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 		}
 	}
 	
+	@Suspendable
 	override close() {
 		// allow garbage collect
 		output = null

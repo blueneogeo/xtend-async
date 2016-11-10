@@ -12,13 +12,14 @@ import co.paralleluniverse.fibers.Suspendable
  * A user subscribes by calling the subscribe() method and listening
  * to the returned stream. The user unsubscribes by closing the stream. 
  */
-@Suspendable
 interface Publisher<T> {
 
 	/** Publish a single value to subscribers */
+	@Suspendable
 	def void publish(T value)
 
 	/** Publish to subscribers that something went wrong */
+	@Suspendable
 	def void publish(Throwable error)
 
 	/** 
@@ -43,6 +44,7 @@ interface Publisher<T> {
 	def int getSubscriptionCount()
 
 	/** Unsubscribes all currently open subscriptions, closing all streams. */
+	@Suspendable
 	def void closeSubscriptions()
 	
 }

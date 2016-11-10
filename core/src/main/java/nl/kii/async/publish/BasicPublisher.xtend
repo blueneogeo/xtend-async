@@ -11,7 +11,6 @@ import co.paralleluniverse.fibers.Suspendable
  * Simple but fully functional implementation of a publisher.
  * Automatically publishes directly, no flow control, not threadsafe.
  */
-@Suspendable
 class BasicPublisher<T> implements Publisher<T> {
 	
 	var publishing = false
@@ -30,6 +29,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		publishing
 	}
 	
+	@Suspendable
 	override publish(T value) {
 		if(!publishing) return;
 		for(subscription : subscriptions) {
@@ -37,6 +37,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		}
 	}
 	
+	@Suspendable
 	override publish(Throwable error) {
 		if(!publishing) return;
 		for(subscription : subscriptions) {
@@ -82,6 +83,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		subscriptions.size
 	}
 	
+	@Suspendable
 	override closeSubscriptions() {
 		for(subscription : subscriptions) {
 			subscription.complete

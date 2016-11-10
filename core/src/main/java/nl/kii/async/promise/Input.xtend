@@ -6,7 +6,6 @@ import co.paralleluniverse.fibers.Suspendable
  * An input promises a value at some point in time.
  * An input is a Deferred, meaning it is thread-safe.
  */
-@Suspendable
 class Input<IN> extends Deferred<IN, IN> implements Promise<IN, IN> {
 	
 	/** Create a new unfulfilled promise */
@@ -14,20 +13,22 @@ class Input<IN> extends Deferred<IN, IN> implements Promise<IN, IN> {
 	
 	/** Create an already completed promise */
 	new(IN value) {
-		set(value)
+		cachedValue = value -> value
 	}
 	
 	/** Create an already failed promise */
 	new(Throwable t) {
-		error(t)
+		cachedError = null -> t
 	}
 	
 	/** Set the value of the input */
+	@Suspendable
 	def set(IN value) {
 		value(value, value)
 	}
 	
 	/** Tell the input that the promise has failed to deliver, and why */
+	@Suspendable
 	def error(Throwable t) {
 		error(null, t)
 	}

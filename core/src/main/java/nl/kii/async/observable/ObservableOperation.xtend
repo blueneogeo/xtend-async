@@ -24,7 +24,6 @@ import nl.kii.async.annotation.Uncontrolled
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.SuspendExecution
 
-@Suspendable
 final class ObservableOperation {
 
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
@@ -35,6 +34,8 @@ final class ObservableOperation {
 	@Cold @NoBackpressure
 	def static <IN, OUT> observeWith(Observable<IN, OUT> observable, Observer<IN, OUT>... observers) {
 		observable.observer = new Observer<IN, OUT> {
+			
+			@Suspendable
 			override value(IN in, OUT value) {
 				for(observer : observers) {
 					try {
@@ -46,6 +47,8 @@ final class ObservableOperation {
 					}
 				}
 			}
+			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				for(observer : observers) {
 					try {
@@ -57,6 +60,8 @@ final class ObservableOperation {
 					}
 				}
 			}
+			
+			@Suspendable
 			override complete() {
 				for(observer : observers) {
 					try {
@@ -79,16 +84,19 @@ final class ObservableOperation {
 		for(observable : observables) {
 			observable.observer = new Observer<IN, OUT> {
 				
+				@Suspendable
 				override value(IN in, OUT value) {
 					observer.value(in, value)
 					observable.next
 				}
 				
+				@Suspendable
 				override error(IN in, Throwable t) {
 					observer.error(in, t)
 					observable.next
 				}
 				
+				@Suspendable
 				override complete() {
 					// complete when all observables are complete
 					if(completed.incrementAndGet >= observables.size) {
@@ -109,6 +117,7 @@ final class ObservableOperation {
 		val passed = new AtomicLong(0)
 		observable.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(stopObservingFn.apply(in, value, index.incrementAndGet, passed.get)) {
 					observer.complete
@@ -118,10 +127,12 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -134,6 +145,8 @@ final class ObservableOperation {
 	@Cold @Controlled
 	def static <IN, OUT, MAP> void map(Observable<IN, OUT> observable, Observer<IN, MAP> observer, (IN, OUT)=>MAP mapFn) {
 		observable.observer = new Observer<IN, OUT> {
+			
+			@Suspendable
 			override value(IN in, OUT value) {
 				try {
 					val mapped = mapFn.apply(in, value)
@@ -144,9 +157,13 @@ final class ObservableOperation {
 					observer.error(in, t)
 				}
 			}
+			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
+			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -157,14 +174,17 @@ final class ObservableOperation {
 	def static <IN, OUT> observe(Observable<IN, OUT> observable, (IN, OUT)=>void onValue, (IN, Throwable)=>void onError, =>void onComplete) {
 		observable.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				onValue.apply(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				onError.apply(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				onComplete.apply
 			}
@@ -222,16 +242,19 @@ final class ObservableOperation {
 	def static <IN1, IN2, OUT> mapInput(Observable<IN1, OUT> observable, Observer<IN2, OUT> observer, (IN1, Opt<OUT>)=>IN2 inputMapFn) {
 		observable.observer = new Observer<IN1, OUT> {
 			
+			@Suspendable
 			override value(IN1 in1, OUT value) {
 				val in2 = inputMapFn.apply(in1, value.option)
 				observer.value(in2, value)
 			}
 			
+			@Suspendable
 			override error(IN1 in1, Throwable t) {
 				val in2 = inputMapFn.apply(in1, none)
 				observer.error(in2, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -245,10 +268,12 @@ final class ObservableOperation {
 	def static <IN, OUT, E extends Throwable> void onError(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<E> errorClass, boolean swallow, (IN, E)=>void onErrorFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				observer.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				try {
 					if(errorClass.isAssignableFrom(t.class)) {
@@ -268,6 +293,7 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -279,10 +305,12 @@ final class ObservableOperation {
 	def static <IN, OUT, ERROR extends Throwable> void onErrorMap(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<ERROR> errorClass, boolean swallow, (IN, ERROR)=>OUT onErrorMapFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				observer.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable error) {
 				try {
 					if(error.matches(errorClass)) {
@@ -298,6 +326,7 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -312,10 +341,12 @@ final class ObservableOperation {
 		val processes = new AtomicInteger(0)
 		observable.observer = new Observer<IN, OUT> {
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				observer.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable error) {
 				if(error.matches(errorType)) {
 					// start a new async process by calling the mapFn
@@ -354,6 +385,7 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override complete() {
 				// the observable is complete
 				completed.set(true)
@@ -383,11 +415,13 @@ final class ObservableOperation {
 			val timers = new AtomicInteger
 			val completed = new AtomicBoolean
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				timers.incrementAndGet
 				val task = timerFn.apply(delay)
 				task.observer = new Observer<Void, Void> {
 					
+					@Suspendable
 					override value(Void ignore, Void ignore2) {
 						val openTimers = timers.decrementAndGet 
 						observer.value(in, value)
@@ -396,10 +430,12 @@ final class ObservableOperation {
 						}
 					}
 					
+					@Suspendable
 					override error(Void ignore, Throwable t) {
 						observer.error(in, t)
 					}
 					
+					@Suspendable
 					override complete() {
 						// do nothing
 					}
@@ -407,10 +443,12 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				if(completed.compareAndSet(false, true)) {
 					if(timers.get == 0) {
@@ -432,6 +470,7 @@ final class ObservableOperation {
 			val lastValueMoment = new AtomicReference<Date>
 			val currentObservable = new AtomicReference<Source<IN, OUT>>	
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				val windowExpired = (lastValueMoment.get == null || now - lastValueMoment.get > interval)
 				if(windowExpired || currentObservable.get == null) {
@@ -454,10 +493,12 @@ final class ObservableOperation {
 				currentObservable.get.value(in, value)
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				currentObservable.get?.complete
 				observer.complete
@@ -476,6 +517,7 @@ final class ObservableOperation {
 
 			val lastValueMoment = new AtomicReference<Date>	
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				if(lastValueMoment.get == null || now - lastValueMoment.get > minimumInterval) {
 					lastValueMoment.set(now())
@@ -485,10 +527,12 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				observer.complete
 			}
@@ -508,6 +552,7 @@ final class ObservableOperation {
 			val timing = new AtomicBoolean
 			val completed = new AtomicBoolean
 			
+			@Suspendable
 			override value(IN in, OUT value) {
 				val now = new Date
 				if(lastValueMoment.get == null) {
@@ -549,10 +594,12 @@ final class ObservableOperation {
 				}
 			}
 			
+			@Suspendable
 			override error(IN in, Throwable t) {
 				observer.error(in, t)
 			}
 			
+			@Suspendable
 			override complete() {
 				if(completed.compareAndSet(false, true)) {
 					if(!timing.get) {

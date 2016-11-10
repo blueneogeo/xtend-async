@@ -1,5 +1,7 @@
 // SETUP BUILDSCRIPT ///////////////////////////////////////////////////////////
+
 buildscript {
+
   repositories {
     jcenter()
     maven {
@@ -18,6 +20,7 @@ buildscript {
     classpath 'org.xtext:xtext-gradle-plugin:1.0.5'
     classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:3.0.3'
   }
+  
 }
 
 task wrapper(type: Wrapper) {
@@ -25,6 +28,7 @@ task wrapper(type: Wrapper) {
 }
 
 // CONFIGURE ALL SUBPROJECTS ///////////////////////////////////////////////////
+
 subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'nebula.provided-base'
@@ -38,6 +42,8 @@ subprojects {
 
   eclipse.project.name = rootProject.name + '-' + project.name
   tasks.eclipse.dependsOn(cleanEclipse)
+
+  xtend { preferences = [ 'useJavaCompilerCompliance':true ] }
 
   repositories {
     mavenLocal()
@@ -79,20 +85,11 @@ subprojects {
   }
 
   tasks.withType(Test) {
-    // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+    jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
     jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
     jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
   }
     
-  compileJava.doLast {
-    scanAndInstrument(project, sourceSets.main, updateSuspendables, [configurations.provided, configurations.runtime])
-  }
-    
-  compileTestJava.doLast {
-    scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
-  }
-    
-
   test {
       testLogging {
           error {
@@ -185,14 +182,6 @@ project( 'fibers' ) {
       // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
       jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
       jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
-    }
-
-    compileJava.doLast {
-      scanAndInstrument(project, sourceSets.main, updateSuspendables, [configurations.provided, configurations.runtime])
-    }
-    
-    compileTestJava.doLast {
-      scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
     }
 
     task serviceAgent {

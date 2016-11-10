@@ -10,21 +10,24 @@ import co.paralleluniverse.fibers.Suspendable
  * control by only pushing in new values when onNext() is
  * called.
  */
-@Suspendable
 abstract class Sink<IN> extends Source<IN, IN> {
 
 	/** What to do when the stream is asking for a next value */
+	@Suspendable
 	abstract override void onNext()
 
-	/** What to do when the stream is being closed */	
+	/** What to do when the stream is being closed */
+	@Suspendable	
 	abstract override void onClose()
 
 	/** Send a value into the stream */
+	@Suspendable
 	def push(IN value) {
 		value(value, value)
 	}
 	
 	/** Send an error into the stream */
+	@Suspendable
 	def push(Throwable t) {
 		error(null, t)
 	}

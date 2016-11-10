@@ -40,7 +40,6 @@ import static extension nl.kii.util.ThrowableExtensions.*
 import co.paralleluniverse.fibers.instrument.DontInstrument
 import co.paralleluniverse.fibers.SuspendExecution
 
-@Suspendable
 final class StreamExtensions {
 
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
@@ -237,7 +236,7 @@ final class StreamExtensions {
 	 * you need to catch the error within the stream chain.
 	 * @return a task that either completes when the stream completes/closes, or that has an error.
 	 */	
-	@Hot @Controlled
+	@Hot @Controlled @Suspendable
 	def static <IN, OUT> Task start(Stream<IN, OUT> stream) {
 		stream.asTask => [ stream.next ]
 	}
@@ -368,36 +367,42 @@ final class StreamExtensions {
 	// OPERATORS ///////////////////////////////////////////////////////////////////////////////
 	
 	/** Add a value to a stream */
+	@Suspendable
 	def static <IN> >> (IN input, Sink<IN> sink) {
 		sink.push(input)
 		sink
 	}
 	
 	/** Add a value to a stream */
+	@Suspendable
 	def static <IN> << (Sink<IN> sink, IN input) {
 		sink.push(input)
 		sink
 	}
 
 	/** Add a list of values to a stream */
+	@Suspendable
 	def static <IN> >> (List<IN> values, Sink<IN> sink) {
 		for(value : values) sink.push(value)
 		sink
 	}
 	
 	/** Add a list of values to a stream */
+	@Suspendable
 	def static <IN> << (Sink<IN> sink, List<IN> values) {
 		for(value : values) sink.push(value)
 		sink
 	}
 	
 	/** Lets you easily pass an error to the stream using the >> operator */
+	@Suspendable
 	def static <IN> >> (Throwable t, Sink<IN> sink) {
 		sink.push(t)
 		sink
 	}
 
 	/** Lets you easily pass an error to the stream using the << operator */
+	@Suspendable
 	def static <IN> << (Sink<IN> sink, Throwable t) {
 		sink.push(t)
 		sink
@@ -802,14 +807,17 @@ final class StreamExtensions {
 							val promise = handler.apply(in, error as ERROR)
 							promise.observer = new Observer<Object, Object> {
 								
+								@Suspendable
 								override value(Object unused, Object value) {
 									stream.next
 								}
 								
+								@Suspendable
 								override error(Object unused, Throwable t) {
 									pipe.error(in, error)
 								}
 								
+								@Suspendable
 								override complete() {
 									// do nothing
 								}
@@ -1070,7 +1078,6 @@ final class StreamExtensions {
 				stream.resume
 			}
 			
-			@Suspendable
 			override isOpen() {
 				stream.isOpen
 			}
@@ -1463,7 +1470,7 @@ final class StreamExtensions {
 	 * Reduce a stream of values to a single value, and pass a counter in the function.
 	 * Errors in the stream are suppressed.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT, REDUCED> Promise<Long, REDUCED> reduce(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, OUT)=>REDUCED reducerFn) {
 		stream.reduce(initial) [ reduced, in, out | reducerFn.apply(reduced, out) ]	
 	}
@@ -1473,7 +1480,7 @@ final class StreamExtensions {
 	 * Errors in the stream are suppressed.
 	 * @return a promise that has the amount the amount of items that were processed as input, and the reduced value as output. 
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT, REDUCED> Promise<Long, REDUCED> reduce(Stream<IN, OUT> stream, REDUCED initial, (REDUCED, IN, OUT)=>REDUCED reducerFn) {
 		val promise = new Deferred<Long, REDUCED> {
 			
@@ -1524,7 +1531,7 @@ final class StreamExtensions {
 	/**
 	 * Promises a list of all items from a stream. Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> collect(Stream<IN, OUT> stream) {
 		stream.reduce(newArrayList as List<OUT>) [ list, it | list.concat(it) ]
 	}
@@ -1532,7 +1539,7 @@ final class StreamExtensions {
 	/**
 	 * Promises a map of all inputs and outputs from a stream. Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> Promise<Long, Map<IN, OUT>> collectInOut(Stream<IN, OUT> stream) {
 		stream.reduce(newHashMap as Map<IN, OUT>) [ list, in, out | list.put(in, out) list ]
 	}
@@ -1542,7 +1549,7 @@ final class StreamExtensions {
 	 * <pre>
 	 * (1..3).stream.join('-').then [ println(it) ] // prints 1-2-3
 	 */	
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> join(Stream<IN, OUT> stream, String separator) {
 		stream.reduce('') [ acc, it | acc + (if(acc != '') separator else '') + it.toString ]
 	}
@@ -1550,7 +1557,7 @@ final class StreamExtensions {
 	/**
 	 * Add the value of all the items in the stream until a finish.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT extends Number> sum(Stream<IN, OUT> stream) {
 		stream.reduce(0D) [ acc, it | acc + doubleValue ]
 	}
@@ -1558,7 +1565,7 @@ final class StreamExtensions {
 	/**
 	 * Average the items in the stream until a finish.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT extends Number> average(Stream<IN, OUT> stream) {
 		stream
 			.index
@@ -1569,7 +1576,7 @@ final class StreamExtensions {
 	/**
 	 * Count the number of items passed in the stream until a finish.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> count(Stream<IN, OUT> stream) {
 		stream.reduce(0) [ acc, it | acc + 1 ]
 	}
@@ -1578,7 +1585,7 @@ final class StreamExtensions {
 	 * Gives the maximum value found on the stream.
 	 * Values must implement Comparable
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> max(Stream<IN, OUT> stream) {
 		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
 	}
@@ -1587,12 +1594,12 @@ final class StreamExtensions {
 	 * Gives the minimum value found on the stream.
 	 * Values must implement Comparable
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> min(Stream<IN, OUT> stream) {
 		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
 	}
 
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> all(Stream<IN, OUT> stream, (OUT)=>boolean testFn) {
 		stream.reduce(true) [ acc, it | acc && testFn.apply(it) ]
 	}
@@ -1601,7 +1608,7 @@ final class StreamExtensions {
 	 * Promises true if no stream values match the test function.
 	 * Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> none(Stream<IN, OUT> stream, (OUT)=>boolean testFn) {
 		stream.reduce(true) [ acc, it | acc && !testFn.apply(it) ]
 	}
@@ -1610,7 +1617,7 @@ final class StreamExtensions {
 	 * Promises true if any of the values match the passed testFn.
 	 * Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> any(Stream<IN, OUT> stream, (OUT)=>boolean testFn) {
 		val promise = new Deferred<IN, Boolean>
 		stream.observer = new Observer<IN, OUT> {
@@ -1647,7 +1654,7 @@ final class StreamExtensions {
 	  * Alias for Stream.first
 	  * Closes the stream once it has the value or an error.
 	  */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> Promise<IN, OUT> head(Stream<IN, OUT> stream) {
 		stream.first [ true ]
 	}
@@ -1656,7 +1663,7 @@ final class StreamExtensions {
 	  * Start the stream and promise the first value coming from the stream.
 	  * Closes the stream once it has the value or an error.
 	  */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> Promise<IN, OUT> first(Stream<IN, OUT> stream) {
 		stream.first [ true ]
 	}
@@ -1665,7 +1672,7 @@ final class StreamExtensions {
 	 * Promises the first value that matches the testFn.
 	 * Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> first(Stream<IN, OUT> stream, (OUT)=>boolean testFn) {
 		stream.first [ r, it | testFn.apply(it) ]
 	}
@@ -1674,7 +1681,7 @@ final class StreamExtensions {
 	 * Promises the first value that matches the testFn.
 	 * Starts the stream.
 	 */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> Promise<IN, OUT> first(Stream<IN, OUT> stream, (IN, OUT)=>boolean testFn) {
 		val promise = new Deferred<IN, OUT> {
 			
@@ -1719,7 +1726,7 @@ final class StreamExtensions {
 	  * Will keep asking next on the stream until it gets to the last value!
 	  * Skips any stream errors, and closes the stream when it is done.
 	  */
-	@Hot
+	@Hot @Suspendable
 	def static <IN, OUT> Promise<IN, OUT> last(Stream<IN, OUT> stream) {
 		val promise = new Deferred<IN, OUT> {
 			

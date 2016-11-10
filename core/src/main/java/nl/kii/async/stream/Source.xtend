@@ -22,7 +22,6 @@ import co.paralleluniverse.fibers.Suspendable
  * <li>If you do not need pass input, use Sink\<OUT\> instead. 
  * <li>Source is NOT threadsafe! Use StreamExtensions.synchronize to make threadsafe.
  */
-@Suspendable
 abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, OUT> {
 
 	var open = true
@@ -34,9 +33,11 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 	var Controllable controlListener
 	
 	/** What to do when the stream is asking for a next value */
+	@Suspendable
 	abstract def void onNext()
 
 	/** What to do when the stream is being closed */	
+	@Suspendable
 	abstract def void onClose()
 
 	/** 
@@ -46,6 +47,7 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 	 * case and the code will simply return. This allows the callstack to unwind and the while
 	 * loop to process the next item without growing the stack. 
 	 */
+	@Suspendable
 	override next() {
 		if(!open) return;
 		ready = true
@@ -59,6 +61,7 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 		busy = false
 	}
 	
+	@Suspendable
 	override close() {
 		open = false
 		onClose
@@ -68,11 +71,13 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 		controlListener = null
 	}
 
+	@Suspendable
 	override pause() {
 		paused = true
 		controlListener?.pause
 	}
 	
+	@Suspendable
 	override resume() {
 		paused = false
 		controlListener?.resume

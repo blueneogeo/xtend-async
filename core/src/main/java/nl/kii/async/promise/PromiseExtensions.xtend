@@ -1,13 +1,14 @@
 package nl.kii.async.promise
 
-import java.util.List
+import co.paralleluniverse.fibers.Suspendable
+import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
 import nl.kii.util.Opt
 import nl.kii.util.Period
 
-import static extension nl.kii.async.stream.StreamExtensions.*
-import co.paralleluniverse.fibers.Suspendable
+import static extension nl.kii.async.observable.ObservableOperation.*
+import co.paralleluniverse.fibers.instrument.DontInstrument
 
 @Suspendable
 final class PromiseExtensions {
@@ -29,7 +30,7 @@ final class PromiseExtensions {
 		new Deferred<IN, OUT> => [ value(from, value) ]
 	}
 	
-	/** Shortcut for quickly creating a completed task. Also useful for setting up a promise chain. */	
+	/** Shortcut for quickly creating a completed task. Also useful for setting up a promise chain. */
 	def static Task complete() {
 		new Task => [ 
 			complete
@@ -86,7 +87,18 @@ final class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends Promise<?, ?>> promises) {
-		promises.stream.parallel(0).map[it.asTask].resolve.start
+		// promises.stream.parallel(0).map[it.asTask].resolve.start // needs @Suspendable, below does not
+		val Task task = new Task
+		val count = new AtomicInteger(promises.size)
+		for(promise : promises) {
+			promise.observe(
+				[ in, it | if(count.decrementAndGet == 0) task.complete ], 
+				[ in, t | task.error(null, t) ], 
+				[ ]
+			)
+			promise.next
+		}
+		task
 	}
 	
 	/** 
@@ -101,7 +113,7 @@ final class PromiseExtensions {
 	 * Create a new Task that completes when any of the wrapped tasks are completed
 	 * Errors created by the promises are propagated into the resulting task
 	 */
-	def static <IN, OUT> Task any(List<? extends Promise<IN, OUT>> promises) {
+	def static <IN, OUT> Task any(Iterable<? extends Promise<IN, OUT>> promises) {
 		val Task task = new Task
 		for(promise : promises) {
 			promise.observer = new Observer<IN, OUT> {
@@ -130,6 +142,7 @@ final class PromiseExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
+	@Suspendable
 	def static <T> << (Input<T> promise, T value) {
 		promise.set(value)
 		promise
@@ -147,9 +160,49 @@ final class PromiseExtensions {
 	
 	// STARTING ///////////////////////////////////////////////////////////////////////
 	
+	@Suspendable
 	def static <IN, OUT> Task start(Promise<IN, OUT> promise) {
 		promise.next
 		promise.asTask
+	}
+	
+	// SYNCHRONIZATION /////////////////////////////////////////////////////////////////////////
+	
+	/** 
+	 * Synchronizes the output of a promise to some object you provide.
+	 * <p>
+	 * This lets you synchronize the output of multiple promises around a single object (for example, a stream).  
+	 */
+	def static <IN, OUT> Promise<IN, OUT> synchronize(Promise<IN, OUT> promise, Object mutex) {
+		val newPromise = new Deferred<IN, OUT>
+		
+		promise.observer = new Observer<IN, OUT> {
+			
+			@DontInstrument
+			override value(IN in, OUT value) {
+				synchronized (mutex) {
+					newPromise.value(in, value)
+				}
+				
+			}
+			
+			@DontInstrument
+			override error(IN in, Throwable t) {
+				synchronized (mutex) {
+					newPromise.error(in, t)
+				}
+			}
+			
+			@DontInstrument
+			override complete() {
+				synchronized (mutex) {
+					newPromise.complete
+				}
+			}
+			
+		}
+		
+		newPromise
 	}
 	
 	// ERROR HANDLING /////////////////////////////////////////////////////////////////	
@@ -353,6 +406,7 @@ final class PromiseExtensions {
 	 * Check on each value if the assert/check description is valid.
 	 * Throws an Exception with the check description if not.
 	 */
+	@Suspendable
 	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, (IN, OUT)=>boolean checkFn) {
 		stream.effect [ in, out |
 			if(!checkFn.apply(in, out)) throw new Exception(

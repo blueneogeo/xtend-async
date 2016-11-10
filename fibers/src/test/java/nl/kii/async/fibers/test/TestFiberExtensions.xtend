@@ -1,5 +1,6 @@
 package nl.kii.async.fibers.test
 
+import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
 import nl.kii.async.promise.BlockingExtensions
@@ -8,6 +9,7 @@ import org.junit.Test
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
+import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 
 class TestFiberExtensions {
@@ -18,7 +20,7 @@ class TestFiberExtensions {
 	 */
 	@Test(timeout=5000)
 	def void testAsyncAwait() {
-		var result = blocking [
+		var result = runOnFiber [
 			// here is our real test, we do something asynchronously, and then await that result
 			val result = async [ wait(500.ms) return 'hello2' ].await
 			println('got ' + result)
@@ -34,7 +36,7 @@ class TestFiberExtensions {
 	 */
 	@Test(expected=ExpectedException, timeout=5000)
 	def void testAwaitingErrors() {
-		blocking [
+		runOnFiber [
 			wait(1.sec)
 			throw new ExpectedException
 		]
@@ -44,7 +46,7 @@ class TestFiberExtensions {
 
 	@Test(timeout=6000)
 	def void testLoop() {
-		val list = blocking [
+		val list = runOnFiber [
 			val list = newLinkedList()
 			for(i : 1..10) {
 				wait(50.ms)
@@ -53,7 +55,33 @@ class TestFiberExtensions {
 			}
 			list
 		]
-		assertEquals((1..10).toList, list)
+		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list)
+	}
+
+	@Test
+	def void testStreamsAreFiberInjected() {
+		val count = runOnFiber [
+			(1..10).stream
+				.map [ a, b |
+					println(Fiber.currentFiber()?.id) 
+					// this will throw an exception if there is no fiber here
+					doSomethingFiberish
+					b
+				]
+				.call [
+					async [ doSomethingFiberish ]
+				]
+				// .perform [ async [ testSomeQuery4 ] ]
+//				.effect [ println('completed ' + it) ]
+				.count
+				.await
+		]
+		println('completed all ' + count)
+	}
+	
+	@Suspendable
+	def void doSomethingFiberish() {
+		Fiber.sleep(100)
 	}
 
 	/**
@@ -63,7 +91,7 @@ class TestFiberExtensions {
 	 * from the outer async has completed. 
 	 */
 	@Suspendable
-	package def <T> T blocking(SuspendableCallable<T> function) {
+	package def <T> T runOnFiber(SuspendableCallable<T> function) {
 		BlockingExtensions.await(async(function))
 	}
 
@@ -107,4 +135,22 @@ class TestFiberExtensions {
 //		]
 //	}
 	
+	@Test
+	def void getScheduler() {
+		for(i : 1..1) {
+			async [
+				println('S ' + i + ' ' + Fiber.currentFiber()?.id)
+				async [
+					println('A ' + i + ' ' + Fiber.currentFiber()?.id)
+					println('S2 ' + i + ' ' + Fiber.currentFiber()?.id)
+					async [
+						println('A2 ' + i + ' ' + Fiber.currentFiber()?.id)
+					]
+					println('E2 ' + i + ' ' + Fiber.currentFiber()?.id)
+				]
+				println('E ' + i + ' ' + Fiber.currentFiber()?.id)
+			]
+		}
+	}
+		
 }
