@@ -2,6 +2,7 @@ package nl.kii.async.fibers.test
 
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
 import nl.kii.async.promise.BlockingExtensions
 import org.junit.Test
@@ -10,7 +11,6 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
-import static extension nl.kii.util.DateExtensions.*
 
 class TestFiberExtensions {
 
@@ -22,7 +22,7 @@ class TestFiberExtensions {
 	def void testAsyncAwait() {
 		var result = runOnFiber [
 			// here is our real test, we do something asynchronously, and then await that result
-			val result = async [ wait(500.ms) return 'hello2' ].await
+			val result = async [ Strand.sleep(500) return 'hello2' ].await
 			println('got ' + result)
 			return result
 		]
@@ -37,7 +37,7 @@ class TestFiberExtensions {
 	@Test(expected=ExpectedException, timeout=5000)
 	def void testAwaitingErrors() {
 		runOnFiber [
-			wait(1.sec)
+			Strand.sleep(1000)
 			throw new ExpectedException
 		]
 	}
@@ -49,7 +49,7 @@ class TestFiberExtensions {
 		val list = runOnFiber [
 			val list = newLinkedList()
 			for(i : 1..10) {
-				wait(50.ms)
+				Strand.sleep(50)
 				list.add(i)
 				println(i)
 			}

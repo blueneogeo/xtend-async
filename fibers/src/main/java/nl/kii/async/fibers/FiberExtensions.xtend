@@ -49,13 +49,12 @@ class FiberExtensions {
 
 	/** Iterate a stream in a blocking way. For now, do not use until bytecode injection issues are resolved */
 	@Deprecated
-	@Suspendable
 	def static <T> awaitEach(Stream<?, T> stream) {
 		new Iterable<T> {
 			
 			@Suspendable
 			override iterator() {
-				new StreamIterator(stream)
+				new nl.kii.async.fibers.StreamIterator(stream)
 			}
 			
 		}
@@ -71,24 +70,20 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
-	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
-		
-		new Fiber(new SuspendableRunnable {
+		val fiber = new Fiber(new SuspendableRunnable {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
 					input.set(function.run)
-				} catch(SuspendExecution suspend) {
-					throw suspend
 				} catch(Throwable t) {
 					input.error(t)
 				}
 			} 
 
-		}).start
-		
+		})
+		fiber.start
 		input
 	}
 
@@ -102,25 +97,21 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
-	@Suspendable
 	def static <OUT> Task async(SuspendableRunnable action) {
 		val task = new Task
-
-		new Fiber(new SuspendableRunnable {
+		val fiber = new Fiber(new SuspendableRunnable {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
 					action.run
 					task.complete
-				} catch(SuspendExecution suspend) {
-					throw suspend
 				} catch(Throwable t) {
 					task.error(t)
 				}
 			} 
 
-		}).start
-
+		})
+		fiber.start
 		task
 	}
 
@@ -134,24 +125,19 @@ class FiberExtensions {
 	 * @Param function the function to perform, which returns a value
 	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
-	@Suspendable
 	def static <OUT> Promise<OUT, OUT> async(FiberScheduler scheduler, SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
-
-		new Fiber(scheduler, new SuspendableRunnable {
+		val fiber = new Fiber(scheduler, new SuspendableRunnable {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
 					input.set(function.run)
-				} catch(SuspendExecution suspend) {
-					throw suspend
 				} catch(Throwable t) {
 					input.error(t)
 				}
 			} 
-
-		}).start
-
+		})
+		fiber.start
 		input
 	}
 
@@ -165,25 +151,21 @@ class FiberExtensions {
 	 * @Param action to perform
 	 * @Return a task that completes when the action completes, or has an error if the action threw an error
 	 */
-	@Suspendable
 	def static <OUT> Task async(FiberScheduler scheduler, SuspendableRunnable action) {
 		val task = new Task
-		
-		new Fiber(scheduler, new SuspendableRunnable {
+		val fiber = new Fiber(scheduler, new SuspendableRunnable {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
 					action.run
 					task.complete
-				} catch(SuspendExecution suspend) {
-					throw suspend
 				} catch(Throwable t) {
 					task.error(t)
 				}
 			} 
 
-		}).start
-
+		})
+		fiber.start
 		task
 	}
 
@@ -207,7 +189,7 @@ class FiberExtensions {
 	 * @Param delay the delay period
 	 */
 	@Suspendable
-	def static void wait(Period delay) {
+	def static void sleep(Period delay) {
 		Strand.sleep(delay.ms)
 	}
 	
@@ -239,6 +221,7 @@ class FiberExtensions {
 						asyncFailed(t)
 					}
 					
+					@Suspendable
 					override complete() {
 						// do nothing
 					}
