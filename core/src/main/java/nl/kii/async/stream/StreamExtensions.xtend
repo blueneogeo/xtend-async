@@ -255,7 +255,9 @@ final class StreamExtensions {
 	 */	
 	@Hot @Controlled @Suspendable
 	def static <IN, OUT> Task start(Stream<IN, OUT> stream) {
-		stream.asTask => [ stream.next ]
+		val streamingTask = stream.asTask
+		stream.next
+		streamingTask
 	}
 	
 	// CONCURRENCY /////////////////////////////////////////////////////////////////////////////
@@ -1468,13 +1470,11 @@ final class StreamExtensions {
 			
 			@Suspendable
 			override error(IN in, Throwable t) {
-				// stream.close
 				task.error(t)
 			}
 			
 			@Suspendable
 			override complete() {
-				// stream.close
 				task.complete
 				stream.close
 			}
