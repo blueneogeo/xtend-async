@@ -409,6 +409,15 @@ class TestStreamExtensions {
 		// samples <=> #[5L, 10L, 15L, 20L, 25L, 30L, 35L, 40L, 45L, 50L]
 	}
 
+	@Test
+	def void testCountingStream() {
+		val list = Streams.newCountingStream
+			.take(5)
+			.collect
+			.await(1.sec)
+		assertArrayEquals(#[1, 2, 3, 4, 5], list)
+	}
+
 	// PARALLEL PROCESSING ////////////////////////////////////////////////////
 	
 	
