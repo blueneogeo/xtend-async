@@ -3,6 +3,7 @@ package nl.kii.async.stream.test
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.annotation.Atomic
 import nl.kii.async.stream.Sink
+import nl.kii.async.stream.Streams
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
@@ -10,6 +11,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
+import static extension nl.kii.async.stream.Streams.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*
 
@@ -44,7 +46,7 @@ class TestStreamExtensions {
 	@Test
 	def void testClosureStream() {
 		val range = (1..5).iterator
-		stream [ if(range.hasNext) range.next ] // null ends stream
+		newStream [ if(range.hasNext) range.next ] // null ends stream
 			.collect
 			.await <=> #[1, 2, 3, 4, 5]
 	}
@@ -181,7 +183,7 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testBuffer() {
-		val sink = newSink
+		val sink = Streams.newSink
 		// create a buffer on the sink
 		val buffered = sink.buffer(5)
 		// and already push in data before we do anything with it
@@ -319,7 +321,7 @@ class TestStreamExtensions {
 
 	@Test
 	def void testPeriodicUsingTimerFn() {
-		val results = schedulers.timerFn.periodic(1.sec / 100, 100)
+		val results = schedulers.timerFn.newPeriodicStream(1.sec / 100, 100)
 			.count
 			.await(2.secs)
 		assertEquals(100, results)

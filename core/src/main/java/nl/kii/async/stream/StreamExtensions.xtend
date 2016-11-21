@@ -44,6 +44,56 @@ final class StreamExtensions {
 
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
 
+
+	/** 
+	 * Deprecated: use Streams.newSink instead.
+	 * <p>
+	 * Create a stream sink of a certain type, without support for backpressure.
+	 * This version without specifying the OUT type allows you to use the Xtend
+	 * inferrer to infer the types for you. */
+	@Cold @Controlled
+	@Deprecated
+	def static <OUT> Sink<OUT> newSink() {
+		new Sink<OUT> {
+			
+			@Suspendable
+			override onNext() {
+				// do nothing, no support for backpressure
+			}
+			
+			@Suspendable
+			override onClose() {
+				// do nothing
+			}
+			
+		}
+	}
+
+	/** 
+	 * Deprecated: use Streams.newSource instead.
+	 * <p>
+	 * Create a stream source of a certain type, without support for backpressure.
+	 * This version without specifying IN and OUT types allows you to use the Xtend
+	 * inferrer to infer the types for you.
+	 */
+	@Cold @Controlled
+	@Deprecated
+	def static <IN, OUT> Source<IN, OUT> newSource() {
+		new Source<IN, OUT> {
+			
+			@Suspendable
+			override onNext() {
+				// do nothing, no support for backpressure
+			}
+			
+			@Suspendable
+			override onClose() {
+				// do nothing
+			}
+			
+		}
+	}
+
 	/** 
 	 * Create a stream out of an iterator. The iterator will be lazily evaluated,
 	 * meaning that the next value will only be requested when the stream requests
@@ -81,9 +131,12 @@ final class StreamExtensions {
 	}
 
 	/**
+	 * Deprecated: use Streams.newStream instead
+	 * <p>
 	 * Create a stream out of a closure. Every time the stream calls for the next value,
 	 * it will call the closure. If the closure returns null, the stream will complete.
 	 */
+	@Deprecated
 	@Cold @Controlled
 	def static <OUT> Stream<OUT, OUT> stream(=>OUT nextValueFn) {
 		new Sink<OUT> {
@@ -103,64 +156,28 @@ final class StreamExtensions {
 		}
 	}
 
-	/** Create a stream sink of a certain type, without support for backpressure.
-	 * This version without specifying the OUT type allows you to use the Xtend
-	 * inferrer to infer the types for you. */
-	@Cold @Controlled
-	def static <OUT> Sink<OUT> newSink() {
-		new Sink<OUT> {
-			
-			@Suspendable
-			override onNext() {
-				// do nothing, no support for backpressure
-			}
-			
-			@Suspendable
-			override onClose() {
-				// do nothing
-			}
-			
-		}
-	}
-
-	/** 
-	 * Create a stream source of a certain type, without support for backpressure.
-	 * This version without specifying IN and OUT types allows you to use the Xtend
-	 * inferrer to infer the types for you.
-	 */
-	@Cold @Controlled
-	def static <IN, OUT> Source<IN, OUT> newSource() {
-		new Source<IN, OUT> {
-			
-			@Suspendable
-			override onNext() {
-				// do nothing, no support for backpressure
-			}
-			
-			@Suspendable
-			override onClose() {
-				// do nothing
-			}
-			
-		}
-	}
-
 	/**
+	 * Deprecated: use Streams.newPeriodicStream instead.
+	 * <p>
 	 * Create a periodically emitting stream. The value in the stream is the count of the value, starting at 1.
 	 * @param timerFn function that can be given a period and returns a task which completes after that period
 	 * @param interval the period between values from the periodic stream
 	 */
+	 @Deprecated
 	 @Cold @Controlled
 	 def static <OUT> Stream<Long, Long> periodic((Period)=>Task timerFn, Period interval) {
 	 		timerFn.periodic(interval, 0)
 	}
 
 	/**
+	 * Deprecated: use Streams.newPeriodicStream instead.
+	 * <p>
 	 * Create a periodically emitting stream. The value in the stream is the count of the value, starting at 1.
 	 * @param timerFn function that can be given a period and returns a task which completes after that period
 	 * @param interval the period between values from the periodic stream
 	 * @param maxAmount the maximum amount of values to emit
 	 */
+	 @Deprecated
 	 @Cold @Controlled
 	 def static <OUT> Stream<Long, Long> periodic((Period)=>Task timerFn, Period interval, int maxAmount) {
 	 	val sink = new Sink<Long> {

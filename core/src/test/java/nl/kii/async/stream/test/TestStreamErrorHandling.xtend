@@ -3,6 +3,8 @@ package nl.kii.async.stream.test
 import java.util.concurrent.Executors
 import org.junit.Test
 
+import static nl.kii.async.stream.Streams.*
+
 import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*

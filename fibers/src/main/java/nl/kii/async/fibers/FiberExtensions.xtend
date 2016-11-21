@@ -208,20 +208,17 @@ class FiberExtensions {
 	def static <IN, OUT> OUT await(Promise<IN, OUT> promise, Period timeout) {
 		val waiter = new FiberAsync<OUT, Throwable> {
 			
-			override protected requestAsync() {
+			override requestAsync() {
 				promise.observer = new Observer<IN, OUT> {
 					
-					@Suspendable
 					override value(IN in, OUT value) {
 						asyncCompleted(value)
 					}
 					
-					@Suspendable
 					override error(Object in, Throwable t) {
 						asyncFailed(t)
 					}
 					
-					@Suspendable
 					override complete() {
 						// do nothing
 					}

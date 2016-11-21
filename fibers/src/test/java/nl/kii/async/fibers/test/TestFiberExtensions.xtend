@@ -11,6 +11,7 @@ import static org.junit.Assert.*
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
+import java.util.concurrent.Executors
 
 class TestFiberExtensions {
 
@@ -82,6 +83,26 @@ class TestFiberExtensions {
 	@Suspendable
 	def void doSomethingFiberish() {
 		Fiber.sleep(100)
+	}
+	
+	@Test
+	def void testAsyncWrapping() {
+		val executors = Executors.newScheduledThreadPool(3)
+		runOnFiber [
+			val task = async [
+				val task2 = async [
+					val task3 = BlockingExtensions.promise(executors) [
+						println('yay!')
+					]
+					task3.await
+					println('yay2!')
+				]
+				task2.await
+				println('yay3!')
+			]
+			task.await
+			println('yay4!')
+		]
 	}
 
 	/**
