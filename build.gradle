@@ -175,6 +175,7 @@ project( 'fibers' ) {
 
     dependencies {
       compile project( ':core' )
+      compile 'com.kimengi.util:xtend-tools-annotations:latest.release'
       testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
     }
 
