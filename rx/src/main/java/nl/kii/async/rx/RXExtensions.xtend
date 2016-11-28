@@ -8,9 +8,8 @@ import nl.kii.async.promise.Promise
 import nl.kii.async.stream.Controllable
 import nl.kii.async.stream.Sink
 import nl.kii.async.stream.Stream
+import nl.kii.async.stream.Streams
 import rx.Observable
-
-import static nl.kii.async.stream.StreamExtensions.*
 
 class RXExtensions {
 	
@@ -60,7 +59,7 @@ class RXExtensions {
 	 */
 	@Uncontrolled @NoBackpressure
 	def static <OUT> Stream<?, OUT> stream(Observable<OUT> observable) {
-		val sink = newSink
+		val sink = Streams.newSink
 		observable.pipe(sink)
 		sink
 	}
