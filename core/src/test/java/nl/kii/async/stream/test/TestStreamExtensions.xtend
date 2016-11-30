@@ -33,7 +33,7 @@ class TestStreamExtensions {
 
 	@Test
 	def void testListStream() {
-		#[1, 2, 3].iterator.stream
+		#[1, 2, 3].each
 			.map[it+1]
 			.collect
 			.block <=> #[2, 3, 4]

@@ -5,7 +5,6 @@ import java.util.concurrent.Executors
 import nl.kii.async.stream.Sink
 import org.junit.Test
 
-import static nl.kii.async.promise.Promises.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
