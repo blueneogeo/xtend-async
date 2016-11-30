@@ -1,5 +1,5 @@
 package nl.kii.async.fibers
-
+import static extension nl.kii.async.stream.StreamExtensions.*
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberAsync
 import co.paralleluniverse.fibers.FiberScheduler
@@ -16,7 +16,9 @@ import nl.kii.async.stream.Stream
 import nl.kii.util.Period
 import co.paralleluniverse.fibers.SuspendExecution
 
-class FiberExtensions {
+final class FiberExtensions {
+
+	private new() { }
 
 	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
 	@Suspendable
@@ -242,5 +244,31 @@ class FiberExtensions {
 		}
 		
 	}
+
+	/**
+	 * Suspends the fiber until all values of a stream have come in and collected into a list,
+	 * and the stream completed or closed.
+	 * Shortcut for the common stream.collect.await.
+	 * <p>
+	 * NOTE: This method can only be used from within another fibre, and within a method either
+	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
+	 */
+	@Suspendable
+	def static <OUT> list(Stream<?, OUT> stream) {
+		list(stream, null)
+	} 
+	
+	/**
+	 * Suspends the fiber until all values of a stream have come in and collected into a list,
+	 * and the stream completed or closed.
+	 * Shortcut for the common stream.collect.await.
+	 * <p>
+	 * NOTE: This method can only be used from within another fibre, and within a method either
+	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
+	 */
+	@Suspendable
+	def static <OUT> list(Stream<?, OUT> stream, Period timeout) {
+		stream.collect.await(timeout)
+	} 
 	
 }

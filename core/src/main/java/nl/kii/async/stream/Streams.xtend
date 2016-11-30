@@ -12,6 +12,12 @@ import nl.kii.async.promise.Task
 import nl.kii.util.Period
 
 import static extension nl.kii.util.DateExtensions.*
+import java.util.Iterator
+import java.util.concurrent.ScheduledExecutorService
+import nl.kii.async.annotation.Uncontrolled
+import nl.kii.async.annotation.MultiThreaded
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 /**
  * Creates new streams.
@@ -105,6 +111,42 @@ final class Streams {
 		}
 	}
 
+/** 
+	 * Create a stream out of an iterator. The iterator will be lazily evaluated,
+	 * meaning that the next value will only be requested when the stream requests
+	 * a next value.
+	 */
+	@Cold @Controlled
+	def static <OUT> Stream<OUT, OUT> newStream(Iterator<? extends OUT> iterator) {
+		new Sink<OUT> {
+			
+			@Suspendable
+			override onNext() {
+				if(iterator.hasNext) {
+					// value instead of push saves a call on the stacktrace
+					val nextValue = iterator.next
+					value(nextValue, nextValue)
+				} else {
+					complete
+				}
+			}
+			
+			@Suspendable
+			override onClose() {
+			}
+		}
+	}
+
+	/** 
+	 * Create a stream out of an iterable. The iterable will be lazily evaluated,
+	 * meaning that the next value will only be requested when the stream requests
+	 * a next value.
+	 */
+	@Cold @Controlled
+	def static <OUT> Stream<OUT, OUT> newStream(Iterable<? extends OUT> iterable) {
+		newStream(iterable.iterator)
+	}
+	
 	/**
 	 * Create a periodically emitting stream. The value in the stream is the count of the value, starting at 1.
 	 * @param timerFn function that can be given a period and returns a task which completes after that period
@@ -187,6 +229,68 @@ final class Streams {
 	 	}
 	 	sink
 	 }
-	 	
+	 
+	/**
+	 * <p>
+	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
+	 * Start the stream by calling next, after which it will auto-push values without needing next.
+	 * @param executor the scheduler to use
+	 * @param interval the period between values pushed onto the stream
+	 * @param limit the maximum amount of counts to stream. If set to 0 or less, it will stream forever.
+	 */
+	@Cold @Uncontrolled @MultiThreaded
+	def static Stream<Long, Long> newPeriodicStream(ScheduledExecutorService executor, Period interval, int limit) {
+		new Sink<Long> {
+
+			val counter = new AtomicLong(0)
+			val Runnable pushFn = [
+				this.push(counter.incrementAndGet)
+				if(limit > 0 && counter.get >= limit) {
+					complete
+					onClose
+				} 
+			]
+			val repeaterFn = [| executor.scheduleAtFixedRate(pushFn, 0, interval.ms, TimeUnit.MILLISECONDS) ]
+			val repeater = new AtomicReference<ScheduledFuture<?>>
+			
+			@Suspendable
+			override onNext() {
+				if(repeater.get == null) {
+					repeater.set(repeaterFn.apply)
+				}
+			}
+			
+			@Suspendable
+			override onClose() {
+				super.close
+				repeater.get?.cancel(true)
+			}
+			
+			@Suspendable
+			override pause() {
+				super.pause
+				repeater.get?.cancel(true)
+				repeater.set(null)
+			}
+
+			@Suspendable
+			override resume() {
+				super.resume
+				super.next
+			}
+			
+		}
+	}
+
+	/**
+	 * Create a stream that periodically pushes a count, starting at 1, upto the set limit.
+	 * Start the stream by calling next, after which it will auto-push values without needing next.
+	 * @param executor the scheduler to use
+	 * @param interval the period between values pushed onto the stream
+	 */
+	@Cold @Uncontrolled @MultiThreaded
+	def static Stream<Long, Long> newPeriodicStream(ScheduledExecutorService executor, Period interval) {
+		newPeriodicStream(executor, interval, 0)
+	}	 
 	
 }

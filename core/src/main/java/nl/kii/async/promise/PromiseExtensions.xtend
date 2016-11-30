@@ -15,19 +15,27 @@ final class PromiseExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////////////
 	
-	/** Create a new input, letting you use type inference from the rest of your code to find the type. */
+	/**
+	 * Deprecated: use Promises.newInput().
+	 * Create a new input, letting you use type inference from the rest of your code to find the type.
+	 */
+	@Deprecated
 	def static <OUT> newInput() {
-		new Input<OUT>
+		Promises.newInput
 	}
 	
 	/** Create a fulfilled promise of the passed value */
 	def static <OUT> promise(OUT value) {
-		new Input<OUT>(value)
+		Promises.newPromise(value)
 	}
 
-	/** Create a fulfilled promise of the passed input and value */
+	/**
+	 * Deprecated: use Promises.newPromise(from, value). 
+	 * Create a fulfilled promise of the passed input and value
+	 */
+	@Deprecated
 	def static <IN, OUT> promise(IN from, OUT value) {
-		new Deferred<IN, OUT> => [ value(from, value) ]
+		Promises.newPromise(from, value)
 	}
 	
 	/** Shortcut for quickly creating a completed task. Also useful for setting up a promise chain. */

@@ -7,16 +7,17 @@ import nl.kii.async.annotation.Atomic
 import nl.kii.async.promise.Input
 import nl.kii.async.promise.Task
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
+import static nl.kii.async.promise.Promises.*
 
 import static extension nl.kii.async.promise.BlockingExtensions.*
 import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.JUnitExtensions.*
 import static extension org.junit.Assert.*
-import org.junit.Ignore
 
 class TestPromiseExtensions {
 	
@@ -50,7 +51,7 @@ class TestPromiseExtensions {
 	def void testMap() {
 		val p = new Input(4)
 		val mapped = p.map [ it + 10 ]
-		14 <=> mapped.await
+		14 <=> mapped.block
 	}
 	
 	@Test
@@ -58,7 +59,7 @@ class TestPromiseExtensions {
 		val p1 = new Input(3)
 		val p2 = new Input<Input<Integer>> << p1
 		val flattened = p2.flatten
-		flattened.await <=> 3
+		flattened.block <=> 3
 	}
 	
 	// ENDPOINTS ////////////////////////////////////////////////////////////
@@ -68,7 +69,7 @@ class TestPromiseExtensions {
 	def void testAsync() {
 		val s = new Input(2)
 		val asynced = s.map [ power2(it) ].flatten
-		asynced.await <=> 4
+		asynced.block <=> 4
 	}
 	
 //	@Test
@@ -127,7 +128,7 @@ class TestPromiseExtensions {
 //		assertFalse(allDone)
 //		assertTrue(t2Done)
 		t3.complete 
-		a.await
+		a.block
 	}
 	
 	@Atomic boolean anyDone = false
@@ -167,7 +168,7 @@ class TestPromiseExtensions {
 	@Test
 	def void testWait() {
 		val exec = Executors.newSingleThreadScheduledExecutor
-		complete.delay(100.ms, exec.timerFn).then [ anyDone = true ]
+		complete.delay(100.ms, newTimer(exec)).then [ anyDone = true ]
 		assertFalse(anyDone) // only done after 100 ms
 		Thread.sleep(1000) // wait long enough
 		assertTrue(anyDone) // should be done now
@@ -177,7 +178,7 @@ class TestPromiseExtensions {
 	def void testPromiseChaining() {
 		val p = new Input(1)
 		val p2 = p.map [ return new Input(2) ].flatten
-		p2.await <=> 2
+		p2.block <=> 2
 	}
 
 	@Test def void testTaskChain() {
@@ -188,7 +189,7 @@ class TestPromiseExtensions {
 			.flatten
 			.map [ sayHello ]
 			.flatten
-			.await
+			.block
 	}
 
 	@Ignore // FIX: this should always succeed, but it sometimes hangs! 
@@ -222,7 +223,7 @@ class TestPromiseExtensions {
 			.effect [ println(it) ]
 			.call [ addOne ]
 			.effect [ println(it) ]
-		p.await <=> 15
+		p.block <=> 15
 	}
 
 	@Atomic boolean alwaysDone	
@@ -248,18 +249,18 @@ class TestPromiseExtensions {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [ addOne ]
-			.await
+			.block
 	}	
 	
 	val threads = newCachedThreadPool
 
 	def addOne(Integer n) {
-		threads.promise [ n + 1 ]
+		newPromise(threads) [ n + 1 ]
 	}
 	
 	@Async
 	def sayHello() {
-		threads.promise [ println('hello') ]
+		newPromise(threads) [ println('hello') ]
 	}
 	
 	@Test(expected=ArithmeticException)
@@ -268,7 +269,7 @@ class TestPromiseExtensions {
 			.map [it - 1]
 			.map [ 1 / it ] // creates /0 exception
 			.map [ it + 1]
-			.await
+			.block
 	}
 	
 	@Atomic boolean foundError
@@ -287,7 +288,7 @@ class TestPromiseExtensions {
 	
 	@Test
 	def void testRecursivePromise() {
-		faculty(5).await <=> 15
+		faculty(5).block <=> 15
 	}
 
 	def faculty(int i) {

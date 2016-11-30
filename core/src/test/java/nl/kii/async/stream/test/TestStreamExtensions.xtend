@@ -7,6 +7,7 @@ import nl.kii.async.stream.Streams
 import org.junit.Test
 
 import static java.util.concurrent.Executors.*
+import static nl.kii.async.promise.Promises.*
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.promise.BlockingExtensions.*
@@ -27,7 +28,7 @@ class TestStreamExtensions {
 		(5..7).stream
 			.map[it]
 			.collect
-			.await <=> #[5, 6, 7]
+			.block <=> #[5, 6, 7]
 	}
 
 	@Test
@@ -35,12 +36,12 @@ class TestStreamExtensions {
 		#[1, 2, 3].iterator.stream
 			.map[it+1]
 			.collect
-			.await <=> #[2, 3, 4]
+			.block <=> #[2, 3, 4]
 	}
 	
 	@Test
 	def void testListStreamForEmptyList() {
-		#[].iterator.stream.collect.await <=> #[]
+		#[].iterator.stream.collect.block <=> #[]
 	}
 	
 	@Test
@@ -48,7 +49,7 @@ class TestStreamExtensions {
 		val range = (1..5).iterator
 		newStream [ if(range.hasNext) range.next ] // null ends stream
 			.collect
-			.await <=> #[1, 2, 3, 4, 5]
+			.block <=> #[1, 2, 3, 4, 5]
 	}
 
 	@Test
@@ -57,14 +58,14 @@ class TestStreamExtensions {
 		val s2 = (11..20).stream
 		val s3 = #[21, 22, 23].iterator.stream
 		val merged = merge(s1, s2, s3)
-		23 <=> merged.effect [ println(it) ].count.await
+		23 <=> merged.effect [ println(it) ].count.block
 	}
 
 	// TRANSFORMATIONS ////////////////////////////////////////////////////////
 	
 	@Test
 	def void testMap() {
-		(1..3).stream.map [ it + 1 ].collect.await <=> #[2, 3, 4]
+		(1..3).stream.map [ it + 1 ].collect.block <=> #[2, 3, 4]
 	}
 	
 	@Test
@@ -73,51 +74,51 @@ class TestStreamExtensions {
 			.map [ it + 1 ]
 			.mapInput [ 'x' + it ]
 			.collectInOut
-			.await <=> #{ 'x1'->2, 'x2'->3, 'x3'->4 }
+			.block <=> #{ 'x1'->2, 'x2'->3, 'x3'->4 }
 	}
 	
 	@Test
 	def void testFilter() {
-		(1..5).stream.filter [it%2 == 0].collect.await <=> #[2, 4]
+		(1..5).stream.filter [it%2 == 0].collect.block <=> #[2, 4]
 	}
 	
 	// REDUCTIONS /////////////////////////////////////////////////////////////
 
 	@Test
 	def void testCollect() {
-		(1..3).stream.collect.await <=> #[1, 2, 3]
+		(1..3).stream.collect.block <=> #[1, 2, 3]
 	}
 	
 	@Test
 	def void testSum() {
-		(1..3).stream.map[it*2].sum.await <=> 2+4+6 as double
+		(1..3).stream.map[it*2].sum.block <=> 2+4+6 as double
 	}
 
 	@Test
 	def void testAvg() {
-		(0..4).stream.map[it+1].average.await <=> (1+2+3+4+5) / 5 as double
+		(0..4).stream.map[it+1].average.block <=> (1+2+3+4+5) / 5 as double
 	}
 
 	@Test
 	def void testMax() {
-		#[1, 6, 3, 4, 2, 5].iterator.stream.max.await <=> 6
+		#[1, 6, 3, 4, 2, 5].iterator.stream.max.block <=> 6
 	}
 	
 	@Test
 	def void testMin() {
-		#[6, 3, 4, 1, 2, 5].iterator.stream.min.await <=> 1
+		#[6, 3, 4, 1, 2, 5].iterator.stream.min.block <=> 1
 	}
 	
 	@Test
 	def void testAll() {
-		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it < 7 ].await <=> true
-		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it >= 7 ].await <=> false
+		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it < 7 ].block <=> true
+		#[6, 3, 4, 1, 2, 5].iterator.stream.all [ it >= 7 ].block <=> false
 	}
 
 	@Test
 	def void testNone() {
-		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it >= 7 ].await <=> true
-		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it < 7 ].await <=> false
+		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it >= 7 ].block <=> true
+		#[6, 3, 4, 1, 2, 5].iterator.stream.none [ it < 7 ].block <=> false
 	}
 
 	@Atomic int counter
@@ -128,22 +129,22 @@ class TestStreamExtensions {
 			.effect [ incCounter ]
 			.check('stop streaming after match found') [ counter != 5 ]
 			.first [ it % 2 == 0 ]
-			.await <=> 8 
+			.block <=> 8 
 	}
 
 	@Test
 	def void testCount() {
-		(1..3).stream.count.await <=> 3
+		(1..3).stream.count.block <=> 3
 	}
 	
 	@Test
 	def void testReduce() {
-		(1..3).stream.reduce(1) [ last, in, out | last + out ].await <=> 7
+		(1..3).stream.reduce(1) [ last, in, out | last + out ].block <=> 7
 	}
 
 	@Test
 	def void testScan() {
-		(1..3).stream.scan(1) [ last, in, out | last + out ].collect.await <=> #[2, 4, 7]
+		(1..3).stream.scan(1) [ last, in, out | last + out ].collect.block <=> #[2, 4, 7]
 	}
 
 	@Test(timeout=1000)
@@ -153,23 +154,23 @@ class TestStreamExtensions {
 			.iterator.stream // create a stream of 3 streams
 			.flatten // flatten into a single stream
 			.collect // collect into a single list
-			.await <=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+			.block <=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 	}
 
 	@Test
 	def void testUntil() {
-		(1..1_000_000_000).stream.until [ it > 2 ].collect.await <=> #[1, 2]
+		(1..1_000_000_000).stream.until [ it > 2 ].collect.block <=> #[1, 2]
 	}
 	
 	@Test
 	def void testTake() {
-		(1..1_000_000_000).stream.take(3).collect.await <=> #[1, 2, 3]
+		(1..1_000_000_000).stream.take(3).collect.block <=> #[1, 2, 3]
 	}
 	
 	@Test
 	def void testAnyMatch() {
-		#[false, false, true, false].iterator.stream.any[it].await <=> true
-		#[false, false, false, false].iterator.stream.any[it].await <=> false
+		#[false, false, true, false].iterator.stream.any[it].block <=> true
+		#[false, false, false, false].iterator.stream.any[it].block <=> false
 	}
 
 	@Test
@@ -178,7 +179,7 @@ class TestStreamExtensions {
 			.iterator.stream
 			.separate
 			.collect
-			.await <=> #[1, 2, 3, 4, 5]
+			.block <=> #[1, 2, 3, 4, 5]
 	}
 	
 	@Test
@@ -192,7 +193,7 @@ class TestStreamExtensions {
 		// we went over the buffer limit... the sink is paused
 		sink.isOpen <=> false
 		// now the data should be buffered... up to 5 messages
-		val result = buffered.collect.await
+		val result = buffered.collect.block
 		result <=> #[1, 2, 3, 4, 5]
 	}
 	
@@ -275,13 +276,13 @@ class TestStreamExtensions {
 	@Test
 	def void testFirst() {
 		val s = (1..3).iterator.stream
-		s.first.await <=> 1
+		s.first.block <=> 1
 	}
 
 	@Test
 	def void testLast() {
 		val s = (1..1_000_000).stream // will loop a million times upto the last...
-		s.last.await <=> 1_000_000
+		s.last.block <=> 1_000_000
 	}
 
 	@Test
@@ -290,7 +291,7 @@ class TestStreamExtensions {
 			.skip(3)
 			.take(5)
 			.collect
-			.await <=> #[4, 5, 6, 7, 8]
+			.block <=> #[4, 5, 6, 7, 8]
 	}
 	
 //	@Test
@@ -304,8 +305,8 @@ class TestStreamExtensions {
 		val times = 100
 		val period = 10.ms;
 		val count = (1..times).stream
-			.delay(period, schedulers.timerFn)
-			.count.await(times * (period + 10.ms)) // 10 msec for overhead 
+			.delay(period, newTimer(schedulers))
+			.count.block(times * (period + 10.ms)) // 10 msec for overhead 
 		assertEquals(times, count)
 		val waited = now - start
 		assertTrue(waited > times * period)
@@ -313,17 +314,18 @@ class TestStreamExtensions {
 
 	@Test
 	def void testPeriodicExecutor() {
-		val results = schedulers.periodic(1.sec / 100, 100)
+		val results = newPeriodicStream(schedulers, 1.sec / 100, 100)
 			.count
-			.await(2.secs)
+			.block(2.secs)
 		assertEquals(100, results)
 	}
 
 	@Test
 	def void testPeriodicUsingTimerFn() {
-		val results = schedulers.timerFn.newPeriodicStream(1.sec / 100, 100)
+		val results = newTimer(schedulers)
+			.newPeriodicStream(1.sec / 100, 100)
 			.count
-			.await(2.secs)
+			.block(2.secs)
 		assertEquals(100, results)
 	}
 
@@ -332,10 +334,10 @@ class TestStreamExtensions {
 		val fireAmount = 1000
 		val firePerSec = 500
 		val allowPerSec = 3
-		val count = schedulers.periodic(1.sec / firePerSec, fireAmount)
+		val count = newPeriodicStream(schedulers, 1.sec / firePerSec, fireAmount)
 			.throttle(1.sec / allowPerSec)
 			.effect [ println(it) ]
-			.count.await(fireAmount / firePerSec * 1.sec)
+			.count.block(fireAmount / firePerSec * 1.sec)
 		assertEquals(fireAmount / firePerSec * allowPerSec, count) // 100 / 50
 	}
 
@@ -344,10 +346,10 @@ class TestStreamExtensions {
 		val fireAmount = 100
 		val firePerSec = 50
 		val allowPerSec = 5
-		val count = schedulers.periodic(1.sec / firePerSec, fireAmount)
+		val count = newPeriodicStream(schedulers, 1.sec / firePerSec, fireAmount)
 			.buffer(10)
 			.throttle(1.sec / allowPerSec)
-			.count.await(fireAmount / firePerSec * 1.sec)
+			.count.block(fireAmount / firePerSec * 1.sec)
 		assertEquals(fireAmount / firePerSec * allowPerSec, count) // 100 / 50
 	}
 	
@@ -355,30 +357,30 @@ class TestStreamExtensions {
 	def void testRateLimitUnderControlledStream() {
 		val count = (1..10).stream
 			// .buffer(100) // buffering is unnecessary with a controlled stream
-			.ratelimit(100.ms, schedulers.timerFn)
+			.ratelimit(100.ms, newTimer(schedulers))
 			.effect [ println(it) ]
-			.count.await(1.min)
+			.count.block(1.min)
 		assertEquals(10, count)
 	}
 
 	@Test
 	def void testRateLimitUnderPeriodicStream() {
-		val count = schedulers.periodic(10.ms, 10)
+		val count = newPeriodicStream(schedulers, 10.ms, 10)
 			.buffer(100) // must buffer when the stream is uncontrolled
-			.ratelimit(100.ms, schedulers.timerFn)
+			.ratelimit(100.ms, newTimer(schedulers))
 			.effect [ println(it) ]
-			.count.await(1.min)
+			.count.block(1.min)
 		assertEquals(10, count)
 	}
 
 	@Test(timeout=5000)
 	def void testWindow() {
 		val windowCount = new AtomicInteger
-		val count = schedulers.periodic(60.ms / 5, 50)
+		val count = newPeriodicStream(schedulers, 60.ms / 5, 50)
 			.window(50.ms)
 			.effect [ windowCount.incrementAndGet ]
 			.flatten
-			.count.await(5.min)
+			.count.block(5.min)
 		assertEquals(50, count)
 		// timing depends on the runner
 		// assertEquals(10, windowCount.get)
@@ -387,12 +389,12 @@ class TestStreamExtensions {
 	@Test(timeout=5000)
 	def void testWindowWorksWithBuffer() {
 		val windowCount = new AtomicInteger
-		val count = schedulers.periodic(60.ms / 5, 50)
+		val count = newPeriodicStream(schedulers, 60.ms / 5, 50)
 			.buffer(10)
 			.window(50.ms)
 			.effect [ windowCount.incrementAndGet ]
 			.flatten
-			.count.await(30.secs)
+			.count.block(30.secs)
 		assertEquals(50, count)
 		// timing depends on the runner
 		// assertEquals(10, windowCount.get)
@@ -400,10 +402,10 @@ class TestStreamExtensions {
 
 	@Test(timeout=5000)
 	def void testSample() {
-		val samples = schedulers.periodic(60.ms / 5, 50)
+		val samples = newPeriodicStream(schedulers, 60.ms / 5, 50)
 			.sample(50.ms)
 			.effect [ println(it) ]
-			.collect.await(1.min)
+			.collect.block(1.min)
 		assertFalse(samples.isEmpty)
 		// timing depends on the runner
 		// samples <=> #[5L, 10L, 15L, 20L, 25L, 30L, 35L, 40L, 45L, 50L]
@@ -414,7 +416,7 @@ class TestStreamExtensions {
 		val list = Streams.newCountingStream
 			.take(5)
 			.collect
-			.await(1.sec)
+			.block(1.sec)
 		assertArrayEquals(#[1, 2, 3, 4, 5], list)
 	}
 

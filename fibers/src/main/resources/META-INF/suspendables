@@ -2,4 +2,3 @@ org.eclipse.xtext.xbase.lib.MapExtensions.*
 org.eclipse.xtext.xbase.lib.ArrayExtensions.*
 org.eclipse.xtext.xbase.lib.ListExtensions.*
 org.eclipse.xtext.xbase.lib.IterableExtensions.*
-

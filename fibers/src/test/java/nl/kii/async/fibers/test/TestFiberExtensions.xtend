@@ -4,16 +4,32 @@ import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
+import java.util.concurrent.Executors
 import nl.kii.async.promise.BlockingExtensions
+import nl.kii.async.promise.Promises
 import org.junit.Test
 
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
-import java.util.concurrent.Executors
 
 class TestFiberExtensions {
+
+	@Test
+	def void testIterablesAndGoogleInjections() {
+		runOnFiber [
+			val x = (1..10).stream
+				.map [ 
+					Fiber.sleep(50)
+					it
+				]
+				.filter [ it % 2 == 0 ]
+				.effect [ println(it) ]
+				.list
+			println(x)				
+		]
+	}
 
 	/**
 	 * Tests that we can do some asynchronous operation and wait for it, and the value being returned
@@ -91,7 +107,7 @@ class TestFiberExtensions {
 		runOnFiber [
 			val task = async [
 				val task2 = async [
-					val task3 = BlockingExtensions.promise(executors) [
+					val task3 = Promises.newTask(executors) [
 						println('yay!')
 					]
 					task3.await
@@ -113,7 +129,7 @@ class TestFiberExtensions {
 	 */
 	@Suspendable
 	package def <T> T runOnFiber(SuspendableCallable<T> function) {
-		BlockingExtensions.await(async(function))
+		BlockingExtensions.block(async(function))
 	}
 
 //	@Ignore

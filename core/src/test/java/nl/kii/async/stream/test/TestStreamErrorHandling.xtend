@@ -3,6 +3,7 @@ package nl.kii.async.stream.test
 import java.util.concurrent.Executors
 import org.junit.Test
 
+import static nl.kii.async.promise.Promises.*
 import static nl.kii.async.stream.Streams.*
 
 import static extension nl.kii.async.promise.BlockingExtensions.*
@@ -21,7 +22,7 @@ class TestStreamErrorHandling {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.on(Exception) [ errors << message ] // not filtering errors here
 			.collect // so this collect fails
-			.await <=> null
+			.block <=> null
 	}
 
 	@Test
@@ -32,7 +33,7 @@ class TestStreamErrorHandling {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.effect(Exception) [ message >> errors ] // filter errors here
 			.collect // so this collect succeeds
-			.await <=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
+			.block <=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
 	}
 	
 	@Test
@@ -41,16 +42,16 @@ class TestStreamErrorHandling {
 			.effect [ if(it == 3 || it == 5) throw new Exception ]
 			.map(Throwable) [ 0 ]
 			.collect
-			.await <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
+			.block <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
 	}
 	
 	@Test
 	def void testAsyncMappingErrors() {
 		(1..10).stream
 			.effect [ if(it == 3 || it == 5) throw new Exception ]
-			.call(Throwable) [ executor.promise [ return 0 ] ]
+			.call(Throwable) [ newPromise(executor) [ return 0 ] ]
 			.collect
-			.await <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
+			.block <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
 	}
 	
 }

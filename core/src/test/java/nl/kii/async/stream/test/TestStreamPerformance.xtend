@@ -45,7 +45,7 @@ class TestStreamPerformance {
 			.filter [ it % 2 == 0 ]
 			.map [ 'hello ' + it ]
 			.count
-			.await(10.secs)
+			.block(10.secs)
 		val streamEnd = System.currentTimeMillis
 		assertEquals(iterations / 2, streamResult)
 		val double streamTime = streamEnd - streamStart
