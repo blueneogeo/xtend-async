@@ -81,6 +81,16 @@ final class StreamExtensions {
 	 * Create a stream out of an iterator. The iterator will be lazily evaluated,
 	 * meaning that the next value will only be requested when the stream requests
 	 * a next value.
+	 */
+	@Cold @Controlled
+	def static <OUT> Stream<OUT, OUT> each(Iterator<? extends OUT> iterator) {
+		Streams.newStream(iterator)
+	}
+
+	/** 
+	 * Create a stream out of an iterator. The iterator will be lazily evaluated,
+	 * meaning that the next value will only be requested when the stream requests
+	 * a next value.
 	 * <p>
 	 * This is an alias for StreamExtensions.stream(iterator). If you use Java8,
 	 * the Collection.stream method overrides it, so this provides an alterative
