@@ -17,6 +17,18 @@ import static extension nl.kii.async.stream.StreamExtensions.*
 class TestFiberExtensions {
 
 	@Test
+	def void testSomething() {
+		runOnFiber [
+			(1..10).each
+				.parallel(3)
+				.effect [ println(it) ]
+				.call [ async [ Fiber.sleep(100) 1 ] ]
+				.start
+				.await
+		]
+	}
+	
+	@Test
 	def void testIterablesAndGoogleInjections() {
 		runOnFiber [
 			val x = (1..10).stream
