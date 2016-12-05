@@ -21,7 +21,7 @@ class TestRXExtensions {
 		// count the results from the observable using xtend-stream
 		val count = observable.stream.count
 		// now all the data from the observable should have been counted
-		assertEquals(iterations, count.await as int)
+		assertEquals(iterations, count.block as int)
 	}
 
 	@Test
@@ -30,7 +30,7 @@ class TestRXExtensions {
 		// create an observable
 		val observable = Observable.from(1..iterations)
 		// now all the first entry from the observable should have been promised
-		val first = observable.promise.await
+		val first = observable.promise.block
 		assertEquals(1, first)
 	}
 	
