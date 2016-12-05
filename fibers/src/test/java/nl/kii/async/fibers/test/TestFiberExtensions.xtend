@@ -2,7 +2,6 @@ package nl.kii.async.fibers.test
 
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
 import java.util.concurrent.Executors
 import nl.kii.async.promise.BlockingExtensions
@@ -18,29 +17,15 @@ class TestFiberExtensions {
 
 	@Test
 	def void testSomething() {
-		runOnFiber [
+		val list = runOnFiber [
 			(1..10).each
+				.perform [ async [ Fiber.sleep(100) ] ]
 				.parallel(3)
-				.effect [ println(it) ]
-				.call [ async [ Fiber.sleep(100) 1 ] ]
-				.start
+				.synchronize
+				.collect
 				.await
 		]
-	}
-	
-	@Test
-	def void testIterablesAndGoogleInjections() {
-		runOnFiber [
-			val x = (1..10).stream
-				.map [ 
-					Fiber.sleep(50)
-					it
-				]
-				.filter [ it % 2 == 0 ]
-				.effect [ println(it) ]
-				.list
-			println(x)				
-		]
+		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list.sort)
 	}
 
 	/**
@@ -51,7 +36,7 @@ class TestFiberExtensions {
 	def void testAsyncAwait() {
 		var result = runOnFiber [
 			// here is our real test, we do something asynchronously, and then await that result
-			val result = async [ Strand.sleep(500) return 'hello2' ].await
+			val result = async [ Fiber.sleep(500) return 'hello2' ].await
 			println('got ' + result)
 			return result
 		]
@@ -66,7 +51,7 @@ class TestFiberExtensions {
 	@Test(expected=ExpectedException, timeout=5000)
 	def void testAwaitingErrors() {
 		runOnFiber [
-			Strand.sleep(1000)
+			Fiber.sleep(1000)
 			throw new ExpectedException
 		]
 	}
@@ -78,7 +63,7 @@ class TestFiberExtensions {
 		val list = runOnFiber [
 			val list = newLinkedList()
 			for(i : 1..10) {
-				Strand.sleep(50)
+				Fiber.sleep(50)
 				list.add(i)
 				println(i)
 			}

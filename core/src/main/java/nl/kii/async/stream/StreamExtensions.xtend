@@ -242,7 +242,7 @@ final class StreamExtensions {
 	 * Wraps synchronize calls around a stream, making it thread-safe.
 	 * This comes at a small performance cost.
 	 */
-	@Cold @Controlled @MultiThreaded @DontInstrument
+	@Cold @Controlled @MultiThreaded //@DontInstrument
 	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream) {
 		val pipe = new Pipe<IN, OUT> {
 			

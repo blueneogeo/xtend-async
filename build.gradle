@@ -85,7 +85,7 @@ subprojects {
   }
 
   tasks.withType(Test) {
-    jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+    jvmArgs "-javaagent:${configurations.quasar.singleFile}=b" // =v, =d =b
     jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
     jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
   }

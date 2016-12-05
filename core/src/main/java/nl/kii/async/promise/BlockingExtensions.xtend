@@ -74,8 +74,6 @@ final class BlockingExtensions {
 	def static <IN, OUT> block(Promise<IN, OUT> promise) throws TimeoutException {
 		try {
 			new PromisedFuture(promise).get
-		} catch(SuspendExecution suspend) {
-			throw suspend
 		} catch(Throwable t) {
 			if(t.cause != null) {
 				throw t.cause
