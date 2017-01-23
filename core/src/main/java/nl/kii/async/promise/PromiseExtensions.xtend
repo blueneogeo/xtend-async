@@ -1,14 +1,17 @@
 package nl.kii.async.promise
 
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.fibers.instrument.DontInstrument
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.async.SuspendableProcedures.Procedure1
+import nl.kii.async.SuspendableProcedures.Procedure2
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
 import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.observable.ObservableOperation.*
-import co.paralleluniverse.fibers.instrument.DontInstrument
+import nl.kii.async.observable.Observable
 
 @Suspendable
 final class PromiseExtensions {
@@ -99,7 +102,7 @@ final class PromiseExtensions {
 		val Task task = new Task
 		val count = new AtomicInteger(promises.size)
 		for(promise : promises) {
-			promise.observe(
+			(promise as Promise<Object, Object>).observe(
 				[ in, it | if(count.decrementAndGet == 0) task.complete ], 
 				[ in, t | task.error(null, t) ], 
 				[ ]
@@ -215,11 +218,11 @@ final class PromiseExtensions {
 	
 	// ERROR HANDLING /////////////////////////////////////////////////////////////////	
 
-	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, (E)=>void onErrorFn) {
+	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, Procedure1<E> onErrorFn) {
 		promise.on(errorClass) [ in, out | onErrorFn.apply(out) ]
 	}
 
-	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, (IN, E)=>void onErrorFn) {
+	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, Procedure2<IN, E> onErrorFn) {
 		val newPromise = new Deferred<IN, OUT>
 		ObservableOperation.onError(promise, newPromise, errorClass, false, onErrorFn)
 		newPromise
@@ -325,9 +328,9 @@ final class PromiseExtensions {
 
 	// REDUCTION //////////////////////////////////////////////////////////////////////
 	
-	def static <IN, OUT> Promise<IN, OUT> flatten(Promise<IN, ? extends Promise<?, OUT>> promise) {
+	def static <IN, OUT, P extends Promise<?, OUT>> Promise<IN, OUT> flatten(Promise<IN, P> promise) {
 		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.flatten(promise, newPromise)
+		ObservableOperation.flatten(promise as Observable<IN, Promise<Object, OUT>>, newPromise)
 		newPromise
 	}
 	
