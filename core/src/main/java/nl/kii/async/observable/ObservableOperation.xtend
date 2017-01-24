@@ -28,6 +28,7 @@ import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 import nl.kii.async.SuspendableFunctions.Function1
 import nl.kii.async.SuspendableProcedures.Procedure0
+import nl.kii.async.annotation.Suspending
 
 final class ObservableOperation {
 
@@ -39,7 +40,7 @@ final class ObservableOperation {
 	 * Lets you observe with multiple observers at the same time.
 	 */
 	@Cold @NoBackpressure
-	def static <IN, OUT> observeWith(Observable<IN, OUT> observable, Observer<IN, OUT>... observers) {
+	def static <IN, OUT> observeWith(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT>... observers) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			@Suspendable
@@ -86,7 +87,7 @@ final class ObservableOperation {
 	// COMBINE /////////////////////////////////////////////////////////////////////////////////
 
 	@Hot @Controlled @Unsorted
-	def static <IN, OUT> void merge(Observer<IN, OUT> observer, Observable<IN, OUT>... observables) {
+	def static <IN, OUT> void merge(Observer<IN, OUT> observer, @Suspending Observable<IN, OUT>... observables) {
 		val completed = new AtomicInteger(0)
 		for(observable : observables) {
 			observable.observer = new Observer<IN, OUT> {
@@ -119,7 +120,7 @@ final class ObservableOperation {
 	// UNTIL ///////////////////////////////////////////////////////////////////////////////////
 
 	@Cold @Controlled
-	def static <IN, OUT> void until(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Function4<IN, OUT, Long, Long, Boolean> stopObservingFn) {
+	def static <IN, OUT> void until(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, @Suspending Function4<IN, OUT, Long, Long, Boolean> stopObservingFn) {
 		val index = new AtomicLong(0)
 		val passed = new AtomicLong(0)
 		observable.observer = new Observer<IN, OUT> {
@@ -150,7 +151,7 @@ final class ObservableOperation {
 	// MAPPING /////////////////////////////////////////////////////////////////////////////////
 
 	@Cold @Controlled
-	def static <IN, OUT, MAP> void map(Observable<IN, OUT> observable, Observer<IN, MAP> observer, Function2<IN, OUT, MAP> mapFn) {
+	def static <IN, OUT, MAP> void map(Observable<IN, OUT> observable, @Suspending Observer<IN, MAP> observer, @Suspending Function2<IN, OUT, MAP> mapFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			@Suspendable
@@ -178,7 +179,7 @@ final class ObservableOperation {
 	}
 	
 	/** this method was necessary to allow the wildcard generics in the flatten method */
-	def static <IN, OUT> observe(Observable<IN, OUT> observable, Procedure2<IN, OUT> onValue, Procedure2<IN, Throwable> onError, Procedure0 onComplete) {
+	def static <IN, OUT> observe(Observable<IN, OUT> observable, @Suspending Procedure2<IN, OUT> onValue, @Suspending Procedure2<IN, Throwable> onError, @Suspending Procedure0 onComplete) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			@Suspendable
@@ -200,7 +201,7 @@ final class ObservableOperation {
 	}
 	
 	@Cold @Unsorted @Uncontrolled
-	def static <IN, OUT, IN2, OBS extends Observable<IN2, OUT>> flatten(Observable<IN, OBS> observable, Observer<IN, OUT> observer) {
+	def static <IN, OUT, IN2, OBS extends Observable<IN2, OUT>> flatten(Observable<IN, OBS> observable, @Suspending Observer<IN, OUT> observer) {
 		val isComplete = new AtomicBoolean(false)
 		val openProcesses = new AtomicInteger(0)
 		
@@ -291,7 +292,7 @@ final class ObservableOperation {
 	}	
 
 	@Cold @Controlled	
-	def static <IN1, IN2, OUT> mapInput(Observable<IN1, OUT> observable, Observer<IN2, OUT> observer, Function2<IN1, Opt<OUT>, IN2> inputMapFn) {
+	def static <IN1, IN2, OUT> mapInput(Observable<IN1, OUT> observable, @Suspending Observer<IN2, OUT> observer, @Suspending Function2<IN1, Opt<OUT>, IN2> inputMapFn) {
 		observable.observer = new Observer<IN1, OUT> {
 			
 			@Suspendable
@@ -317,7 +318,7 @@ final class ObservableOperation {
 	// ERROR HANDLING //////////////////////////////////////////////////////////////////////////
 	
 	@Cold @Controlled
-	def static <IN, OUT, E extends Throwable> void onError(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<E> errorClass, boolean swallow, Procedure2<IN, E> onErrorFn) {
+	def static <IN, OUT, E extends Throwable> void onError(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Class<E> errorClass, boolean swallow, @Suspending Procedure2<IN, E> onErrorFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			@Suspendable
@@ -354,7 +355,7 @@ final class ObservableOperation {
 	}
 
 	@Cold @Controlled
-	def static <IN, OUT, ERROR extends Throwable> void onErrorMap(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<ERROR> errorClass, boolean swallow, Function2<IN, ERROR, OUT> onErrorMapFn) {
+	def static <IN, OUT, ERROR extends Throwable> void onErrorMap(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Class<ERROR> errorClass, boolean swallow, @Suspending Function2<IN, ERROR, OUT> onErrorMapFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			@Suspendable
@@ -388,7 +389,7 @@ final class ObservableOperation {
 	
 	/** Asynchronously map an error back to a value. Swallows the error. */
 	@Cold @Unsorted @Controlled
-	def static <ERROR extends Throwable, IN, OUT, IN2> void onErrorCall(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Class<ERROR> errorType, Function2<IN, ERROR, Promise<IN2, OUT>> onErrorCallFn) {
+	def static <ERROR extends Throwable, IN, OUT, IN2> void onErrorCall(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Class<ERROR> errorType, @Suspending Function2<IN, ERROR, Promise<IN2, OUT>> onErrorCallFn) {
 		val completed = new AtomicBoolean(false)
 		val processes = new AtomicInteger(0)
 		observable.observer = new Observer<IN, OUT> {
@@ -461,7 +462,7 @@ final class ObservableOperation {
 	 * all values have been pushed.
 	 */	
 	@Cold @Controlled	
-	def static <IN, OUT> delay(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period delay, Function1<Period, Task> timerFn) {
+	def static <IN, OUT> delay(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Period delay, @Suspending Function1<Period, Task> timerFn) {
 		observable.observer = new Observer<IN, OUT> {
 			
 			val timers = new AtomicInteger
@@ -516,7 +517,7 @@ final class ObservableOperation {
 	 * Cuts up the incoming observable into time windows. Each window is a stream of values.
 	 */
 	@Cold @NoBackpressure	
-	def static <IN, OUT> window(Observable<IN, OUT> observable, Observer<IN, Stream<IN, OUT>> observer, Period interval) {
+	def static <IN, OUT> window(Observable<IN, OUT> observable, @Suspending Observer<IN, Stream<IN, OUT>> observer, Period interval) {
 		observable.observer = new Observer<IN, OUT> {
 
 			val lastValueMoment = new AtomicReference<Date>
@@ -564,7 +565,7 @@ final class ObservableOperation {
 	 * Errors and complete are streamed immediately.
 	 */
 	@Cold @Controlled	
-	def static <IN, OUT> throttle(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval) {
+	def static <IN, OUT> throttle(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Period minimumInterval) {
 		observable.observer = new Observer<IN, OUT> {
 
 			val lastValueMoment = new AtomicReference<Date>	
@@ -597,7 +598,7 @@ final class ObservableOperation {
 	 * Requires a buffered stream to work.
 	 */
 	@Cold @Controlled
-	def static <IN, OUT> ratelimit(Observable<IN, OUT> observable, Observer<IN, OUT> observer, Period minimumInterval, Function1<Period, Task> timerFn) {
+	def static <IN, OUT> ratelimit(Observable<IN, OUT> observable, @Suspending Observer<IN, OUT> observer, Period minimumInterval, @Suspending Function1<Period, Task> timerFn) {
 		observable.observer = new Observer<IN, OUT> {
 
 			val lastValueMoment = new AtomicReference<Date>	

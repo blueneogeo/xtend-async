@@ -3,6 +3,7 @@ package nl.kii.async.stream
 import nl.kii.async.observable.Observer
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.SuspendExecution
+import nl.kii.async.annotation.Suspending
 
 /* 
  * A pipe is a controllable stream connection. It is the basic building block for building stream chains.
@@ -11,7 +12,7 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 
 	volatile protected Observer<IN, OUT> output
 	
-	override setObserver(Observer<IN, OUT> observer) {
+	override setObserver(@Suspending Observer<IN, OUT> observer) {
 		this.output = observer
 	}
 	

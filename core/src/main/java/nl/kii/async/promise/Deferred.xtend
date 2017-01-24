@@ -2,11 +2,11 @@ package nl.kii.async.promise
 
 import nl.kii.async.observable.Observer
 import co.paralleluniverse.fibers.Suspendable
+import nl.kii.async.annotation.Suspending
 
 /** 
  * A deferred promises a result, based on an incoming request.
  */
-@Suspendable
 class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 
 	protected boolean fulfilled = false
@@ -68,7 +68,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		this.rejected
 	}
 
-	override setObserver(Observer<IN, OUT> observer) {
+	override setObserver(@Suspending Observer<IN, OUT> observer) {
 		this.observer = observer
 		// if we already have a value or error, push it through immediately
 		if(cachedValue != null) {
