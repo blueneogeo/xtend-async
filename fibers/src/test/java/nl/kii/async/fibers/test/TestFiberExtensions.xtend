@@ -21,10 +21,10 @@ class TestFiberExtensions {
 			(1..10).each
 				.perform [ async [ Fiber.sleep(100) ] ]
 				.parallel(3)
-				.synchronize
 				.collect
 				.await
 		]
+		println(list)
 		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list.sort)
 	}
 

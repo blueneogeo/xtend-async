@@ -28,7 +28,8 @@ class TestStreamExtensions {
 		(5..7).stream
 			.map[it]
 			.collect
-			.block <=> #[5, 6, 7]
+			.block
+			.toList <=> #[5, 6, 7]
 	}
 
 	@Test
@@ -36,12 +37,13 @@ class TestStreamExtensions {
 		#[1, 2, 3].each
 			.map[it+1]
 			.collect
-			.block <=> #[2, 3, 4]
+			.block
+			.toList <=> #[2, 3, 4]
 	}
 	
 	@Test
 	def void testListStreamForEmptyList() {
-		#[].iterator.stream.collect.block <=> #[]
+		#[].iterator.stream.collect.block.toList <=> #[]
 	}
 	
 	@Test
@@ -49,7 +51,8 @@ class TestStreamExtensions {
 		val range = (1..5).iterator
 		newStream [ if(range.hasNext) range.next ] // null ends stream
 			.collect
-			.block <=> #[1, 2, 3, 4, 5]
+			.block
+			.toList <=> #[1, 2, 3, 4, 5]
 	}
 
 	@Test
@@ -65,7 +68,7 @@ class TestStreamExtensions {
 	
 	@Test
 	def void testMap() {
-		(1..3).stream.map [ it + 1 ].collect.block <=> #[2, 3, 4]
+		(1..3).stream.map [ it + 1 ].collect.block.toList <=> #[2, 3, 4]
 	}
 	
 	@Test
@@ -74,19 +77,20 @@ class TestStreamExtensions {
 			.map [ it + 1 ]
 			.mapInput [ 'x' + it ]
 			.collectInOut
-			.block <=> #{ 'x1'->2, 'x2'->3, 'x3'->4 }
+			.block
+			.toList <=> #[ 'x1'->2, 'x2'->3, 'x3'->4 ]
 	}
 	
 	@Test
 	def void testFilter() {
-		(1..5).stream.filter [it%2 == 0].collect.block <=> #[2, 4]
+		(1..5).stream.filter [it%2 == 0].collect.block.toList <=> #[2, 4]
 	}
 	
 	// REDUCTIONS /////////////////////////////////////////////////////////////
 
 	@Test
 	def void testCollect() {
-		(1..3).stream.collect.block <=> #[1, 2, 3]
+		(1..3).stream.collect.block.toList <=> #[1, 2, 3]
 	}
 	
 	@Test
@@ -144,7 +148,7 @@ class TestStreamExtensions {
 
 	@Test
 	def void testScan() {
-		(1..3).stream.scan(1) [ last, in, out | last + out ].collect.block <=> #[2, 4, 7]
+		(1..3).stream.scan(1) [ last, in, out | last + out ].collect.block.toList <=> #[2, 4, 7]
 	}
 
 	@Test(timeout=1000)
@@ -154,17 +158,18 @@ class TestStreamExtensions {
 			.iterator.stream // create a stream of 3 streams
 			.flatten // flatten into a single stream
 			.collect // collect into a single list
-			.block <=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+			.block
+			.toList <=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 	}
 
 	@Test
 	def void testUntil() {
-		(1..1_000_000_000).stream.until [ it > 2 ].collect.block <=> #[1, 2]
+		(1..1_000_000_000).stream.until [ it > 2 ].collect.block.toList <=> #[1, 2]
 	}
 	
 	@Test
 	def void testTake() {
-		(1..1_000_000_000).stream.take(3).collect.block <=> #[1, 2, 3]
+		(1..1_000_000_000).stream.take(3).collect.block.toList <=> #[1, 2, 3]
 	}
 	
 	@Test
@@ -179,7 +184,8 @@ class TestStreamExtensions {
 			.iterator.stream
 			.separate
 			.collect
-			.block <=> #[1, 2, 3, 4, 5]
+			.block
+			.toList <=> #[1, 2, 3, 4, 5]
 	}
 	
 	@Test
@@ -193,7 +199,7 @@ class TestStreamExtensions {
 		// we went over the buffer limit... the sink is paused
 		sink.isOpen <=> false
 		// now the data should be buffered... up to 5 messages
-		val result = buffered.collect.block
+		val result = buffered.collect.block.toList
 		result <=> #[1, 2, 3, 4, 5]
 	}
 	
@@ -291,7 +297,8 @@ class TestStreamExtensions {
 			.skip(3)
 			.take(5)
 			.collect
-			.block <=> #[4, 5, 6, 7, 8]
+			.block
+			.toList <=> #[4, 5, 6, 7, 8]
 	}
 	
 //	@Test
@@ -417,6 +424,7 @@ class TestStreamExtensions {
 			.take(5)
 			.collect
 			.block(1.sec)
+			.toList
 		assertArrayEquals(#[1, 2, 3, 4, 5], list)
 	}
 

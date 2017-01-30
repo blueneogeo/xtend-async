@@ -27,7 +27,7 @@ class TestStreamThreadSafety {
 		}
 		// listen on the output and count the results
 		input
-			.synchronize
+			.synchronize(this)
 			.effect [ counter = counter + 1 ]
 			.count
 			// .then [ println('got count ' + it) ]
@@ -66,7 +66,7 @@ class TestStreamThreadSafety {
 		// listen on the output and count the results
 		input
 			// .perform [ newPromise(executor) [ ] ] // for the executors pushing in FIX: NOT WORKING
-			.synchronize 
+			.synchronize(this)
 			.effect [ counter = counter + 1 ]
 			.count
 			.then [ println('got count ' + it) ]

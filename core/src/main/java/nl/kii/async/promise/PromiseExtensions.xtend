@@ -8,7 +8,6 @@ import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.observable.ObservableOperation.*
-import co.paralleluniverse.fibers.instrument.DontInstrument
 
 @Suspendable
 final class PromiseExtensions {
@@ -186,7 +185,6 @@ final class PromiseExtensions {
 		
 		promise.observer = new Observer<IN, OUT> {
 			
-			@DontInstrument
 			override value(IN in, OUT value) {
 				synchronized (mutex) {
 					newPromise.value(in, value)
@@ -194,14 +192,12 @@ final class PromiseExtensions {
 				
 			}
 			
-			@DontInstrument
 			override error(IN in, Throwable t) {
 				synchronized (mutex) {
 					newPromise.error(in, t)
 				}
 			}
 			
-			@DontInstrument
 			override complete() {
 				synchronized (mutex) {
 					newPromise.complete
