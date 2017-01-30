@@ -18,7 +18,7 @@ import org.eclipse.xtend.lib.macro.Active
  * the value before you perform the set operation:
  * 
  * <pre>
- * @Atomic val i = 10
+ * \@Atomic val i = 10
  * val j = (i = 11)
  * assertEquals(11, i)
  * assertEquals(10, j)
@@ -29,7 +29,7 @@ import org.eclipse.xtend.lib.macro.Active
  * modified value:
  * 
  * <pre>
- * @Atomic val number = 10
+ * \@Atomic val number = 10
  * assertEquals(11, incNumber)
  * </pre> 
  *

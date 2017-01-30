@@ -29,7 +29,7 @@ import org.eclipse.xtend.lib.macro.Active
  * increment(3).then [ println(it) ] // prints 4
  * </pre>
  * <p>
- * The created code by the @Asyc is a wrapper method that fills in the Promise for you
+ * The created code by the \@Asyc is a wrapper method that fills in the Promise for you
  * and performs the wrapper, and is like follows: 
  * </p>
  * <pre>

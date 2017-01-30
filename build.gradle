@@ -1,5 +1,7 @@
 // SETUP BUILDSCRIPT ///////////////////////////////////////////////////////////
+
 buildscript {
+
   repositories {
     jcenter()
     maven {
@@ -15,13 +17,18 @@ buildscript {
   }
 
   dependencies {
-    classpath 'org.xtext:xtext-gradle-plugin:1.0.2'
+    classpath 'org.xtext:xtext-gradle-plugin:1.0.5'
     classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:3.0.3'
   }
+  
 }
 
+task wrapper(type: Wrapper) {
+		gradleVersion = '2.14'
+}
 
 // CONFIGURE ALL SUBPROJECTS ///////////////////////////////////////////////////
+
 subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'nebula.provided-base'
@@ -34,19 +41,15 @@ subprojects {
   targetCompatibility = javaVersion
 
   eclipse.project.name = rootProject.name + '-' + project.name
+  tasks.eclipse.dependsOn(cleanEclipse)
+
+  xtend { preferences = [ 'useJavaCompilerCompliance':true ] }
 
   repositories {
     mavenLocal()
     mavenCentral()
     maven {
-      url "${artifactory_url}/libs-release"
-      credentials {
-        username artifactory_user
-        password artifactory_password
-      }
-    }
-    maven {
-      url "${artifactory_url}/libs-snapshot"
+      url "${artifactory_url}/main"
       credentials {
         username artifactory_user
         password artifactory_password
@@ -54,7 +57,13 @@ subprojects {
     }
   }
 
+  configurations {
+    quasar
+  }
+
   dependencies {
+    quasar "co.paralleluniverse:quasar-core:${quasarVersion}@jar"
+    provided "co.paralleluniverse:quasar-core:${quasarVersion}"
     compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
@@ -75,10 +84,26 @@ subprojects {
     }
   }
 
+  tasks.withType(Test) {
+    jvmArgs "-javaagent:${configurations.quasar.singleFile}=b" // =v, =d =b
+    jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+    jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
+  }
+    
+  test {
+      testLogging {
+          error {
+            showStackTraces true
+            exceptionFormat "full"
+          }
+          events "passed", "skipped", "failed", "standardOut", "standardError"
+      }
+  }
+
   task install( dependsOn: publishToMavenLocal )
 
   jar {
-    baseName rootProject.name + '-' + project.name 
+    baseName rootProject.name + '-' + project.name
   }
 
   jacoco {
@@ -102,12 +127,12 @@ subprojects {
           asNode().dependencies.'*'.each() {
             it.scope*.value = 'compile'
           }
-        }     
+        }
       }
     }
     repositories {
       maven {
-        url "${artifactory_url}/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+        url "${artifactory_url}/main-local"
         credentials {
           username artifactory_user
           password artifactory_password
@@ -117,10 +142,90 @@ subprojects {
   }
 }
 
-project( 'core' ) {
+project('annotations') {
   dependencies {
-    compile project( ':annotations' )
     compile 'com.kimengi.util:xtend-tools-core:latest.release'
+  }
+}
+
+project('core') {
+  dependencies {
+    compile project(':annotations')
     testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
   }
+}
+
+project('rx') {
+  dependencies {
+    compile project(':core')
+    compile 'io.reactivex:rxjava:1.1.3'
+    testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+  }
+}
+
+project('collections') {
+    dependencies {
+        compile project(':core')
+        testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+    }
+}
+
+
+project( 'fibers' ) {
+
+    dependencies {
+      compile project( ':core' )
+      compile 'com.kimengi.util:xtend-tools-annotations:latest.release'
+      testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
+    }
+
+    tasks.withType(Test) {
+      // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+      jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+      jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
+    }
+
+    task serviceAgent {
+      description 'Prints the Eclipse VM parameters necessary to run JUnit tests'
+      doLast {
+        println "-javaagent:${configurations.quasar.asPath}"
+      }
+    }
+
+}
+
+// scan and instrument java files for suspendable code (for quasar fiber support)
+def scanAndInstrument(project, sset, updateSuspendables, configs) {
+
+    def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
+
+    ant.taskdef(
+        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+        classpath: cp
+    )
+    ant.scanSuspendables(
+        auto: (updateSuspendables == 'true'),
+        suspendablesFile: "$sset.output.resourcesDir/META-INF/suspendables",
+        supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
+        append: true) {
+        fileset(dir: sset.output.classesDir)
+    }
+
+    if(updateSuspendables == 'true') {
+      println('Copying suspendables and suspendable-supers to Java META-INF dir (property updateSuspendables).')
+      copy {
+          from "$sset.output.resourcesDir/META-INF"
+          into "$project.projectDir/src/main/java/META-INF"
+          include 'suspendables'
+          include 'suspendable-supers'
+      }
+    }
+
+    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
+        classpath: cp)
+    ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+        fileset(dir: sset.output.classesDir) {
+            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+        }
+    }
 }
