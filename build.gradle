@@ -155,6 +155,12 @@ project('core') {
   }
 }
 
+project('event') {
+  dependencies {
+    compile project(':core')
+  }
+}
+
 project('rx') {
   dependencies {
     compile project(':core')
@@ -166,6 +172,7 @@ project('rx') {
 project('collections') {
     dependencies {
         compile project(':core')
+        compile project(':event')
         testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
     }
 }
