@@ -83,8 +83,6 @@ class EventProcessor extends AbstractFieldProcessor {
 		cls.addField(publisherFieldName) [
 			type = Publisher.newTypeReference(field.type)
 			visibility = Visibility.PROTECTED
-			final = true
-			initializer = '''new «BasicPublisher.newTypeReference(field.type)»()'''
 			transient = true
 		]
 		
@@ -93,27 +91,33 @@ class EventProcessor extends AbstractFieldProcessor {
 			val fieldParameterName = field.type.simpleName.toFirstLower
 			addParameter(fieldParameterName, field.type)
 			body = '''
-				if(!«publisherFieldName».isPublishing()) «publisherFieldName».start();
+				if(«publisherFieldName» == null) return;
 				«publisherFieldName».publish(«fieldParameterName»);
 			'''
 		]
 		
-		// add a method for listening to the method as a stream
-		cls.addMethod(field.simpleName + 'Stream') [
+		// add a method for listening to the method as a stream. It lazily initialises the event publisher.
+		val streamMethodName = field.simpleName + 'Stream'
+		
+		cls.addMethod(streamMethodName) [
 			addAnnotation(Hot.newAnnotationReference)
 			addAnnotation(Uncontrolled.newAnnotationReference)
 			returnType = Stream.newTypeReference(field.type, field.type)
 			body = '''
+				if(«publisherFieldName» == null) {
+					«publisherFieldName» = new «BasicPublisher.newTypeReference(field.type)»();
+					«publisherFieldName».start();
+				} 
 				return «publisherFieldName».subscribe();
 			'''
 		]
 
-		// add a method for listening to the method with a handler
+		// add a method for listening to the method with a handler. Wraps the stream method.
 		cls.addMethod('on' + field.simpleName.toFirstUpper) [
 			val handlerParameterName = field.simpleName + 'Handler' 
 			addParameter(handlerParameterName, Procedure1.newTypeReference(field.type))
 			body = '''
-				«StreamExtensions».start(«StreamExtensions».effect(«publisherFieldName».subscribe(), «handlerParameterName»));
+				«StreamExtensions».start(«StreamExtensions».effect(«streamMethodName»(), «handlerParameterName»));
 			'''
 		]
 
