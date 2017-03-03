@@ -26,8 +26,6 @@ import co.paralleluniverse.fibers.SuspendExecution
 
 final class ObservableOperation {
 
-	private new() { }
-
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
 
 	/** 

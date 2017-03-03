@@ -9,7 +9,6 @@ import nl.kii.util.Period
 
 import static extension nl.kii.async.observable.ObservableOperation.*
 
-@Suspendable
 final class PromiseExtensions {
 
 	// CREATION ///////////////////////////////////////////////////////////////////////

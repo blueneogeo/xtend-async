@@ -13,8 +13,6 @@ import nl.kii.util.Period
 
 final class BlockingExtensions {
 	
-	private new() { }
-	
 	// BLOCKING ///////////////////////////////////////////////////////////////////////
 	
 	/** Wrap the promise into a future that can block. */

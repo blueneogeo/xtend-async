@@ -18,8 +18,6 @@ import co.paralleluniverse.fibers.SuspendExecution
 
 final class FiberExtensions {
 
-	private new() { }
-
 	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
 	@Suspendable
 	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {

@@ -11,7 +11,7 @@ import nl.kii.async.stream.Stream
 import nl.kii.async.stream.Streams
 import rx.Observable
 
-class RXExtensions {
+final class RXExtensions {
 	
 	/**
 	 * Basic implementation of piping an rx.Observable to an xtend-async stream.

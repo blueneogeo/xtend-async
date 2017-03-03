@@ -37,8 +37,6 @@ import static extension nl.kii.util.ThrowableExtensions.*
 
 final class StreamExtensions {
 
-	private new() { }
-
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
 	
 	/** 

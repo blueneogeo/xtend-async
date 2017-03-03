@@ -81,6 +81,7 @@ class EventProcessor extends AbstractFieldProcessor {
 		
 		// add a publisher of the type of the field
 		cls.addField(publisherFieldName) [
+			primarySourceElement = field
 			type = Publisher.newTypeReference(field.type)
 			visibility = Visibility.PROTECTED
 			transient = true
@@ -88,6 +89,7 @@ class EventProcessor extends AbstractFieldProcessor {
 		
 		// add a method for publishing the event, with the name of the field, and as a parameter the type of the field
 		cls.addMethod(field.simpleName) [
+			primarySourceElement = field
 			val fieldParameterName = field.type.simpleName.toFirstLower
 			addParameter(fieldParameterName, field.type)
 			body = '''
@@ -100,6 +102,7 @@ class EventProcessor extends AbstractFieldProcessor {
 		val streamMethodName = field.simpleName + 'Stream'
 		
 		cls.addMethod(streamMethodName) [
+			primarySourceElement = field
 			addAnnotation(Hot.newAnnotationReference)
 			addAnnotation(Uncontrolled.newAnnotationReference)
 			returnType = Stream.newTypeReference(field.type, field.type)
@@ -114,6 +117,7 @@ class EventProcessor extends AbstractFieldProcessor {
 
 		// add a method for listening to the method with a handler. Wraps the stream method.
 		cls.addMethod('on' + field.simpleName.toFirstUpper) [
+			primarySourceElement = field
 			val handlerParameterName = field.simpleName + 'Handler' 
 			addParameter(handlerParameterName, Procedure1.newTypeReference(field.type))
 			body = '''
