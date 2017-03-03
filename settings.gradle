@@ -1,3 +1,4 @@
+rootProject.name = project
 include 'annotations'
 include 'core'
 include 'collections'
