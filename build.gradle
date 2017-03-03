@@ -62,8 +62,6 @@ subprojects {
   }
 
   dependencies {
-    quasar "co.paralleluniverse:quasar-core:${quasarVersion}@jar"
-    provided "co.paralleluniverse:quasar-core:${quasarVersion}"
     compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtendVersion}"
     testCompile "junit:junit:${junitVersion}"
   }
@@ -84,12 +82,6 @@ subprojects {
     }
   }
 
-  tasks.withType(Test) {
-    jvmArgs "-javaagent:${configurations.quasar.singleFile}=b" // =v, =d =b
-    jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
-    jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
-  }
-    
   test {
       testLogging {
           error {
@@ -174,65 +166,5 @@ project('collections') {
         compile project(':core')
         compile project(':event')
         testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
-    }
-}
-
-
-project( 'fibers' ) {
-
-    dependencies {
-      compile project( ':core' )
-      compile 'com.kimengi.util:xtend-tools-annotations:latest.release'
-      testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
-    }
-
-    tasks.withType(Test) {
-      // jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
-      jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
-      jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
-    }
-
-    task serviceAgent {
-      description 'Prints the Eclipse VM parameters necessary to run JUnit tests'
-      doLast {
-        println "-javaagent:${configurations.quasar.asPath}"
-      }
-    }
-
-}
-
-// scan and instrument java files for suspendable code (for quasar fiber support)
-def scanAndInstrument(project, sset, updateSuspendables, configs) {
-
-    def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
-
-    ant.taskdef(
-        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
-        classpath: cp
-    )
-    ant.scanSuspendables(
-        auto: (updateSuspendables == 'true'),
-        suspendablesFile: "$sset.output.resourcesDir/META-INF/suspendables",
-        supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
-        append: true) {
-        fileset(dir: sset.output.classesDir)
-    }
-
-    if(updateSuspendables == 'true') {
-      println('Copying suspendables and suspendable-supers to Java META-INF dir (property updateSuspendables).')
-      copy {
-          from "$sset.output.resourcesDir/META-INF"
-          into "$project.projectDir/src/main/java/META-INF"
-          include 'suspendables'
-          include 'suspendable-supers'
-      }
-    }
-
-    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
-        classpath: cp)
-    ant.instrumentation(verbose:'true', check:'true', debug:'true') {
-        fileset(dir: sset.output.classesDir) {
-            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
-        }
     }
 }

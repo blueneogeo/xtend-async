@@ -1,11 +1,10 @@
 package nl.kii.async.publish
 
 import java.util.Set
+import nl.kii.async.annotation.Hot
+import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.stream.Controllable
 import nl.kii.async.stream.Sink
-import nl.kii.async.annotation.NoBackpressure
-import nl.kii.async.annotation.Hot
-import co.paralleluniverse.fibers.Suspendable
 
 /**
  * Simple but fully functional implementation of a publisher.
@@ -29,7 +28,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		publishing
 	}
 	
-	@Suspendable
+	
 	override publish(T value) {
 		if(!publishing) return;
 		for(subscription : subscriptions) {
@@ -37,7 +36,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		}
 	}
 	
-	@Suspendable
+	
 	override publish(Throwable error) {
 		if(!publishing) return;
 		for(subscription : subscriptions) {
@@ -54,22 +53,22 @@ class BasicPublisher<T> implements Publisher<T> {
 		}
 		source.controllable = new Controllable {
 			
-			@Suspendable
+			
 			override next() {
 				// basic publisher has no flow control support
 			}
 			
-			@Suspendable
+			
 			override pause() {
 				subscriptions.remove(source)
 			}
 			
-			@Suspendable
+			
 			override resume() {
 				subscriptions.add(source)
 			}
 			
-			@Suspendable
+			
 			override close() {
 				subscriptions.remove(source)
 			}
@@ -83,7 +82,7 @@ class BasicPublisher<T> implements Publisher<T> {
 		subscriptions.size
 	}
 	
-	@Suspendable
+	
 	override closeSubscriptions() {
 		for(subscription : subscriptions) {
 			subscription.complete

@@ -1,7 +1,5 @@
 package nl.kii.async.promise
 
-import co.paralleluniverse.fibers.Suspendable
-
 /**
  * An input promises a value at some point in time.
  * An input is a Deferred, meaning it is thread-safe.
@@ -22,13 +20,11 @@ class Input<IN> extends Deferred<IN, IN> implements Promise<IN, IN> {
 	}
 	
 	/** Set the value of the input */
-	@Suspendable
 	def set(IN value) {
 		value(value, value)
 	}
 	
 	/** Tell the input that the promise has failed to deliver, and why */
-	@Suspendable
 	def error(Throwable t) {
 		error(null, t)
 	}

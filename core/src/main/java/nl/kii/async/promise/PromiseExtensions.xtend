@@ -1,6 +1,5 @@
 package nl.kii.async.promise
 
-import co.paralleluniverse.fibers.Suspendable
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
@@ -61,17 +60,17 @@ final class PromiseExtensions {
 		}
 		promise.observer = new Observer<IN, OUT> {
 			
-			@Suspendable
+			
 			override value(IN in, OUT value) {
 				task.complete
 			}
 			
-			@Suspendable
+			
 			override error(IN in, Throwable t) {
 				task.error(t)
 			}
 			
-			@Suspendable
+			
 			override complete() {
 				task.complete
 			}
@@ -93,7 +92,7 @@ final class PromiseExtensions {
 	 * Errors created by the tasks are propagated into the resulting task.
 	 */
 	def static Task all(Iterable<? extends Promise<?, ?>> promises) {
-		// promises.stream.parallel(0).map[it.asTask].resolve.start // needs @Suspendable, below does not
+		// promises.stream.parallel(0).map[it.asTask].resolve.start // needs , below does not
 		val Task task = new Task
 		val count = new AtomicInteger(promises.size)
 		for(promise : promises) {
@@ -124,17 +123,17 @@ final class PromiseExtensions {
 		for(promise : promises) {
 			promise.observer = new Observer<IN, OUT> {
 				
-				@Suspendable
+				
 				override value(IN in, OUT value) {
 					task.complete
 				}
 				
-				@Suspendable
+				
 				override error(IN in, Throwable t) {
 					task.error(null, t)
 				}
 				
-				@Suspendable
+				
 				override complete() {
 					task.complete
 				}
@@ -148,7 +147,7 @@ final class PromiseExtensions {
 	// OPERATORS //////////////////////////////////////////////////////////////
 	
 	/** Fulfill a promise */
-	@Suspendable
+	
 	def static <T> << (Input<T> promise, T value) {
 		promise.set(value)
 		promise
@@ -166,7 +165,7 @@ final class PromiseExtensions {
 	
 	// STARTING ///////////////////////////////////////////////////////////////////////
 	
-	@Suspendable
+	
 	def static <IN, OUT> Task start(Promise<IN, OUT> promise) {
 		promise.next
 		promise.asTask
@@ -332,17 +331,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void completes(Promise<IN, OUT> promise, Task task) {
 		promise.observer = new Observer<IN, OUT> {
 			
-			@Suspendable
+			
 			override value(IN in, OUT value) {
 				task.complete
 			}
 			
-			@Suspendable
+			
 			override error(IN in, Throwable t) {
 				task.error(t)
 			}
 			
-			@Suspendable
+			
 			override complete() {
 				task.complete
 			}
@@ -354,17 +353,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Deferred<IN, OUT> deferred) {
 		promise.observer = new Observer<IN, OUT> {
 			
-			@Suspendable
+			
 			override value(IN in, OUT value) {
 				deferred.value(in, value)
 			}
 			
-			@Suspendable
+			
 			override error(IN in, Throwable t) {
 				deferred.error(in, t)
 			}
 			
-			@Suspendable
+			
 			override complete() {
 				// do nothing
 			}
@@ -376,17 +375,17 @@ final class PromiseExtensions {
 	def static <IN, OUT> void pipe(Promise<IN, OUT> promise, Input<OUT> input) {
 		promise.observer = new Observer<IN, OUT> {
 			
-			@Suspendable
+			
 			override value(IN in, OUT value) {
 				input.value(null, value)
 			}
 			
-			@Suspendable
+			
 			override error(IN in, Throwable t) {
 				input.error(null, t)
 			}
 			
-			@Suspendable
+			
 			override complete() {
 				// do nothing
 			}
@@ -409,7 +408,7 @@ final class PromiseExtensions {
 	 * Check on each value if the assert/check description is valid.
 	 * Throws an Exception with the check description if not.
 	 */
-	@Suspendable
+	
 	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, (IN, OUT)=>boolean checkFn) {
 		stream.effect [ in, out |
 			if(!checkFn.apply(in, out)) throw new Exception(

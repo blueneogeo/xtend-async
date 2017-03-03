@@ -1,12 +1,11 @@
 package nl.kii.async.promise
 
 import nl.kii.async.observable.Observer
-import co.paralleluniverse.fibers.Suspendable
 
 /** 
  * A deferred promises a result, based on an incoming request.
  */
-@Suspendable
+
 class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 
 	protected boolean fulfilled = false
@@ -17,7 +16,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	protected Pair<IN, OUT> cachedValue
 	protected Pair<IN, Throwable> cachedError
 
-	@Suspendable
+	
 	override value(IN in, OUT value) {
 		if(!pending) return;
 		fulfilled = true
@@ -29,7 +28,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 	
-	@Suspendable
+	
 	override error(IN in, Throwable t) {
 		if(!pending) return;
 		rejected = true
@@ -41,13 +40,13 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 	
-	@Suspendable
+	
 	override complete() {
 		// do nothing, because only value and error can complete a promise!
 	}
 	
 	/** Called internally, so the observer.complete is called, and we can clean up a bit */
-	@Suspendable
+	
 	protected def onCompleted() {
 		observer?.complete
 		// clean up after we are done
@@ -82,7 +81,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		}
 	}
 	
-	@Suspendable
+	
 	override next() {
 		// do nothing by default, since promises have no flow control
 	}

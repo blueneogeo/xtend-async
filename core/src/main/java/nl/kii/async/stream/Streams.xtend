@@ -1,23 +1,22 @@
 package nl.kii.async.stream
 
-import co.paralleluniverse.fibers.Suspendable
 import java.util.Date
+import java.util.Iterator
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Controlled
+import nl.kii.async.annotation.MultiThreaded
+import nl.kii.async.annotation.Uncontrolled
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Task
 import nl.kii.util.Period
 
 import static extension nl.kii.util.DateExtensions.*
-import java.util.Iterator
-import java.util.concurrent.ScheduledExecutorService
-import nl.kii.async.annotation.Uncontrolled
-import nl.kii.async.annotation.MultiThreaded
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
 
 /**
  * Creates new streams.
@@ -32,14 +31,14 @@ final class Streams {
 	def static <OUT> Stream<OUT, OUT> newStream(=>OUT nextValueFn) {
 		new Sink<OUT> {
 			
-			@Suspendable
+			
 			override onNext() {
 				// value instead of push saves a call on the stacktrace
 				val nextValue = nextValueFn.apply
 				if(nextValue != null) value(nextValue, nextValue) else complete
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				// do nothing
 			}
@@ -54,12 +53,12 @@ final class Streams {
 	def static <OUT> Sink<OUT> newSink() {
 		new Sink<OUT> {
 			
-			@Suspendable
+			
 			override onNext() {
 				// do nothing, no support for backpressure
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				// do nothing
 			}
@@ -76,12 +75,12 @@ final class Streams {
 	def static <IN, OUT> Source<IN, OUT> newSource() {
 		new Source<IN, OUT> {
 			
-			@Suspendable
+			
 			override onNext() {
 				// do nothing, no support for backpressure
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				// do nothing
 			}
@@ -98,12 +97,12 @@ final class Streams {
 			
 			val counter = new AtomicLong
 			
-			@Suspendable
+			
 			override onNext() {
 				push(counter.incrementAndGet)
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				// do nothing
 			}
@@ -120,7 +119,7 @@ final class Streams {
 	def static <OUT> Stream<OUT, OUT> newStream(Iterator<? extends OUT> iterator) {
 		new Sink<OUT> {
 			
-			@Suspendable
+			
 			override onNext() {
 				if(iterator.hasNext) {
 					// value instead of push saves a call on the stacktrace
@@ -131,7 +130,7 @@ final class Streams {
 				}
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 			}
 		}
@@ -171,7 +170,7 @@ final class Streams {
 		 	val counter = new AtomicLong(0)
 		 	val last = new AtomicReference<Date>
 			
-			@Suspendable
+			
 			override onNext() {
 				if(maxAmount > 0 && counter.get >= maxAmount) {
 					this.complete
@@ -189,18 +188,18 @@ final class Streams {
 					// fire off with a delay
 					timerFn.apply(interval - expiredSinceLastPush).observer = new Observer<Void, Void> {
 						
-						@Suspendable
+						
 						override value(Void in, Void value) {
 							last.set(now)
 							that.push(counter.get)
 						}
 						
-						@Suspendable
+						
 						override error(Void in, Throwable t) {
 							that.push(t)
 						}
 						
-						@Suspendable
+						
 						override complete() {
 							// do nothing
 						}
@@ -209,19 +208,19 @@ final class Streams {
 				}
 			}
 			
-			@Suspendable
+			
 			override resume() {
 				super.resume
 				started.set(false)
 				next
 			}
 			
-			@Suspendable
+			
 			override pause() {
 				super.pause
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				close
 			}
@@ -253,27 +252,27 @@ final class Streams {
 			val repeaterFn = [| executor.scheduleAtFixedRate(pushFn, 0, interval.ms, TimeUnit.MILLISECONDS) ]
 			val repeater = new AtomicReference<ScheduledFuture<?>>
 			
-			@Suspendable
+			
 			override onNext() {
 				if(repeater.get == null) {
 					repeater.set(repeaterFn.apply)
 				}
 			}
 			
-			@Suspendable
+			
 			override onClose() {
 				super.close
 				repeater.get?.cancel(true)
 			}
 			
-			@Suspendable
+			
 			override pause() {
 				super.pause
 				repeater.get?.cancel(true)
 				repeater.set(null)
 			}
 
-			@Suspendable
+			
 			override resume() {
 				super.resume
 				super.next

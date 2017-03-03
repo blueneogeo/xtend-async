@@ -1,9 +1,8 @@
 package nl.kii.async.publish
 
-import nl.kii.async.stream.Stream
-import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Hot
-import co.paralleluniverse.fibers.Suspendable
+import nl.kii.async.annotation.NoBackpressure
+import nl.kii.async.stream.Stream
 
 /**
  * A Publisher acts like a stream that you can subscribe to.
@@ -15,11 +14,11 @@ import co.paralleluniverse.fibers.Suspendable
 interface Publisher<T> {
 
 	/** Publish a single value to subscribers */
-	@Suspendable
+	
 	def void publish(T value)
 
 	/** Publish to subscribers that something went wrong */
-	@Suspendable
+	
 	def void publish(Throwable error)
 
 	/** 
@@ -44,7 +43,7 @@ interface Publisher<T> {
 	def int getSubscriptionCount()
 
 	/** Unsubscribes all currently open subscriptions, closing all streams. */
-	@Suspendable
+	
 	def void closeSubscriptions()
 	
 }
