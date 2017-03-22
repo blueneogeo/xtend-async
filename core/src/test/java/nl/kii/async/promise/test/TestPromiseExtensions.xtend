@@ -239,7 +239,7 @@ class TestPromiseExtensions {
 			.call [ addOne ]
 			.call [ addOne ]
 			.call [
-				if(it != null) {
+				if(it !== null) {
 					println(it)
 					throw new Exception('help!')
 				} 

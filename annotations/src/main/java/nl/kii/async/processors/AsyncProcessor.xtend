@@ -23,7 +23,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 		val promiseParameter = method.parameters.filter[type.isPromiseType].head
 
 		// if there is no promise parameter, it must be in the return type
-		if(promiseParameter == null) {
+		if(promiseParameter === null) {
 			if(!method.returnType.inferred && !method.returnType.isPromiseType) {
 				method.addError('Methods annotated with @Async must either return a Task or Promise, or pass a Task or Promise in their parameters.')
 			}
@@ -57,7 +57,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 				}
 			}
 			// we must have found at least one task or promise to return
-			if(promise.get == null) {
+			if(promise.get === null) {
 				method.addError('Methods annotated with @Async must pass the Promise or Task to return in its parameters.')
 			} else {
 				returnType = promise.get.type
@@ -102,7 +102,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 				}
 			}
 			// we must have found at least one task or promise to return
-			if(promise.get == null) {
+			if(promise.get === null) {
 				method.addError('Methods annotated with @Async must pass the Promise or Task to return in its parameters.')
 			} else {
 				returnType = promise.get.type

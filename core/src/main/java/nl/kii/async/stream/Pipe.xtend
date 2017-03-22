@@ -17,7 +17,7 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 	
 	@Suspendable
 	override value(IN in, OUT value) {
-		if(output == null) return;
+		if(output === null) return;
 		try {
 			output.value(in, value)
 		} catch(SuspendExecution suspend) {
@@ -29,14 +29,14 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 	
 	@Suspendable
 	override error(IN in, Throwable t) {
-		if(output == null) return;
+		if(output === null) return;
 		// if something goes wrong, let the exception escalate 
 		output.error(in, t)
 	}
 	
 	@Suspendable
 	override complete() {
-		if(output == null) return;
+		if(output === null) return;
 		try {
 			output.complete
 			// no longer need the output reference
@@ -54,6 +54,6 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 		output = null
 	}
 	
-	override toString() '''Pipe(open: «open», observed: «output != null»)'''
+	override toString() '''Pipe(open: «open», observed: «output !== null»)'''
 	
 }
