@@ -21,7 +21,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	override value(IN in, OUT value) {
 		if(!pending) return;
 		fulfilled = true
-		if(observer !== null) {
+		if(observer != null) {
 			observer.value(in, value)
 			onCompleted
 		} else {
@@ -33,7 +33,7 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	override error(IN in, Throwable t) {
 		if(!pending) return;
 		rejected = true
-		if(observer !== null) {
+		if(observer != null) {
 			observer.error(in, t)
 			onCompleted
 		} else {
@@ -71,11 +71,11 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 	override setObserver(Observer<IN, OUT> observer) {
 		this.observer = observer
 		// if we already have a value or error, push it through immediately
-		if(cachedValue !== null) {
+		if(cachedValue != null) {
 			fulfilled = true
 			observer.value(cachedValue.key, cachedValue.value)
 			onCompleted
-		} else if(cachedError !== null) {
+		} else if(cachedError != null) {
 			rejected = true
 			observer.error(cachedError.key, cachedError.value)
 			onCompleted
@@ -87,6 +87,6 @@ class Deferred<IN, OUT> implements Observer<IN, OUT>, Promise<IN, OUT> {
 		// do nothing by default, since promises have no flow control
 	}
 	
-	override toString() '''Promise { status: «IF fulfilled»fulfilled«ELSEIF rejected»rejected«ELSE»unfulfilled«ENDIF», «IF cachedValue!==null»value: «cachedValue»«ELSEIF cachedError !== null»error: «cachedError»«ENDIF», observed: «observer!==null» }'''
+	override toString() '''Promise { status: «IF fulfilled»fulfilled«ELSEIF rejected»rejected«ELSE»unfulfilled«ENDIF», «IF cachedValue!=null»value: «cachedValue»«ELSEIF cachedError != null»error: «cachedError»«ENDIF», observed: «observer!=null» }'''
 	
 }

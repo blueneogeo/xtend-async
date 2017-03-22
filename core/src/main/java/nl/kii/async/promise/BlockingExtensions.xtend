@@ -1,5 +1,6 @@
 package nl.kii.async.promise
 
+import co.paralleluniverse.fibers.SuspendExecution
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -40,8 +41,10 @@ final class BlockingExtensions {
 	def static <IN, OUT> block(Promise<IN, OUT> promise, Period timeout) throws TimeoutException {
 		try {
 			new PromisedFuture(promise).get(timeout.ms, TimeUnit.MILLISECONDS)
+		} catch(SuspendExecution suspend) {
+			throw suspend
 		} catch(Throwable t) {
-			if(t.cause !== null) {
+			if(t.cause != null) {
 				throw t.cause
 			} else {
 				throw t
@@ -70,7 +73,7 @@ final class BlockingExtensions {
 		try {
 			new PromisedFuture(promise).get
 		} catch(Throwable t) {
-			if(t.cause !== null) {
+			if(t.cause != null) {
 				throw t.cause
 			} else {
 				throw t

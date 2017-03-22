@@ -228,13 +228,13 @@ final class FiberExtensions {
 			
 		}
 		try {
-			if(timeout !== null) {
+			if(timeout != null) {
 				waiter.run(timeout.ms, TimeUnit.MILLISECONDS)
 			} else {
 				waiter.run
 			}
 		} catch(Throwable t) {
-			if(t.cause !== null) {
+			if(t.cause != null) {
 				throw t.cause
 			} else {
 				throw t

@@ -855,7 +855,7 @@ final class StreamExtensions {
 			override next() {
 				// get the next value from the queue to stream
 				val nextValue = buffer.poll
-				if(nextValue !== null) {
+				if(nextValue != null) {
 					// we have a buffered value, stream it
 					ready.set(false)
 					value(nextValue.key, nextValue.value)
@@ -1281,7 +1281,7 @@ final class StreamExtensions {
 				override value(IN in, OUT value) {
 					val result = reducerFn.apply(reduced.get, in, value)
 					reduced.set(result)
-					if(result !== null) pipe.value(in, result)
+					if(result != null) pipe.value(in, result)
 					else stream.next
 				}
 				
@@ -1439,9 +1439,9 @@ final class StreamExtensions {
 			@Suspendable
 			override complete() {
 				val result = reduced.get
-				if(result !== null) { 
+				if(result != null) { 
 					promise.value(counter.get, result)
-				} else if(initial !== null) {
+				} else if(initial != null) {
 					promise.value(counter.get, initial)
 				} else {
 					promise.error(counter.get, new Exception('no value came from the stream to reduce'))
@@ -1513,7 +1513,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> max(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc !== null && acc.compareTo(out) > 0) acc else out ]
+		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc != null && acc.compareTo(out) > 0) acc else out ]
 	}
 
 	/**
@@ -1522,7 +1522,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> min(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc !== null && acc.compareTo(out) < 0) acc else out ]
+		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc != null && acc.compareTo(out) < 0) acc else out ]
 	}
 
 	@Hot @Suspendable
@@ -1680,7 +1680,7 @@ final class StreamExtensions {
 			@Suspendable
 			override complete() {
 				stream.close
-				if(!promise.fulfilled && last.get !== null) {
+				if(!promise.fulfilled && last.get != null) {
 					promise.value(last.get.key, last.get.value)
 				} else {
 					promise.error(null, new Exception('stream closed without passing a value, no last entry found.'))

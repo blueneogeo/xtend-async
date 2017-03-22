@@ -23,12 +23,12 @@ class StreamIterator<T> implements Iterator<T> {
 	@Suspendable
 	override hasNext() {
 		last.set(stream.awaitNext)
-		last.get !== null
+		last.get != null
 	}
 	
 	@Suspendable
 	override next() {
-		if(last.get !== null) last.get
+		if(last.get != null) last.get
 		else stream.awaitNext
 	}
 	

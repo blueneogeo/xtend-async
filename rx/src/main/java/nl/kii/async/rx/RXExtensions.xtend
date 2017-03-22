@@ -26,7 +26,7 @@ final class RXExtensions {
 		sink.controllable = new Controllable {
 			
 			override next() {
-				if(subscription.get === null) {
+				if(subscription.get == null) {
 					subscription.set(observable.subscribe(
 						[ sink.push(it) ],
 						[ sink.push(it) ],
