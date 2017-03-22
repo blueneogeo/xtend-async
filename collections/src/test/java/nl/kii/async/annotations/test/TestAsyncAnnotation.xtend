@@ -54,7 +54,7 @@ class TestAsyncAnnotation {
 	}
 
 	@Async(true) def printHello(Task task, String name) {
-		if(name == null) throw new Exception('name cannot be empty')
+		if(name === null) throw new Exception('name cannot be empty')
 		println('hello ' + name)
 		task.complete
 	}

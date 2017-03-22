@@ -29,7 +29,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	
 	override get(K key) {
 		val value = map.get(key)
-		if(value == null) new Input<V> => [ error(new NoSuchElementException('no value for key ' + key)) ]
+		if(value === null) new Input<V> => [ error(new NoSuchElementException('no value for key ' + key)) ]
 		else promise(map.get(key))
 	}
 	
@@ -46,7 +46,7 @@ class AsyncMapWrapper<K, V> implements AsyncMap<K, V> {
 	// copied from xtend-tools/IterableExtensions.toMap
 	private static def <K, V> Map<K, V> toMap(Iterable<Pair<K, V>> pairs) {
 		val map = newHashMap
-		if(pairs != null) pairs.forEach [ map.put(key, value) ]
+		if(pairs !== null) pairs.forEach [ map.put(key, value) ]
 		map
 	}
 	
