@@ -93,6 +93,6 @@ abstract class Source<IN, OUT> extends Pipe<IN, OUT> implements Observable<IN, O
 		controlListener = controllable
 	}
 
-	override toString() '''Source(open: «open», ready: «ready», observed: «output != null», controllable set: «controlListener != null»)'''
+	override toString() '''Source(open: «open», ready: «ready», observed: «output !== null», controllable set: «controlListener !== null»)'''
 
 }

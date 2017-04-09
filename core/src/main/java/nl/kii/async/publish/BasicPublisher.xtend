@@ -6,6 +6,7 @@ import nl.kii.async.stream.Sink
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Hot
 import co.paralleluniverse.fibers.Suspendable
+import nl.kii.async.stream.Streams
 
 /**
  * Simple but fully functional implementation of a publisher.
@@ -47,12 +48,8 @@ class BasicPublisher<T> implements Publisher<T> {
 	
 	@Hot @NoBackpressure
 	override subscribe() {
-		val source = new Sink<T> {
-			// note: below handlers are implemented in the controllable
-			override onNext() {}
-			override onClose() { }
-		}
-		source.controllable = new Controllable {
+		val stream = Streams.newSink
+		stream.controllable = new Controllable {
 			
 			@Suspendable
 			override next() {
@@ -61,22 +58,22 @@ class BasicPublisher<T> implements Publisher<T> {
 			
 			@Suspendable
 			override pause() {
-				subscriptions.remove(source)
+				subscriptions.remove(stream)
 			}
 			
 			@Suspendable
 			override resume() {
-				subscriptions.add(source)
+				subscriptions.add(stream)
 			}
 			
 			@Suspendable
 			override close() {
-				subscriptions.remove(source)
+				subscriptions.remove(stream)
 			}
 			
 		}
-		subscriptions.add(source)
-		source
+		subscriptions.add(stream)
+		stream
 	}
 	
 	override getSubscriptionCount() {

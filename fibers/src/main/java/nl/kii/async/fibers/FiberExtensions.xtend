@@ -1,12 +1,14 @@
 package nl.kii.async.fibers
-import static extension nl.kii.async.stream.StreamExtensions.*
+
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberAsync
 import co.paralleluniverse.fibers.FiberScheduler
+import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.SuspendableRunnable
+import java.util.List
 import java.util.concurrent.TimeUnit
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Input
@@ -14,7 +16,8 @@ import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
 import nl.kii.async.stream.Stream
 import nl.kii.util.Period
-import co.paralleluniverse.fibers.SuspendExecution
+
+import static extension nl.kii.async.stream.StreamExtensions.*
 
 final class FiberExtensions {
 
@@ -54,7 +57,7 @@ final class FiberExtensions {
 			
 			@Suspendable
 			override iterator() {
-				new nl.kii.async.fibers.StreamIterator(stream)
+				new StreamIterator(stream)
 			}
 			
 		}
@@ -228,13 +231,13 @@ final class FiberExtensions {
 			
 		}
 		try {
-			if(timeout != null) {
+			if(timeout !== null) {
 				waiter.run(timeout.ms, TimeUnit.MILLISECONDS)
 			} else {
 				waiter.run
 			}
 		} catch(Throwable t) {
-			if(t.cause != null) {
+			if(t.cause !== null) {
 				throw t.cause
 			} else {
 				throw t
@@ -265,8 +268,8 @@ final class FiberExtensions {
 	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
 	 */
 	@Suspendable
-	def static <OUT> list(Stream<?, OUT> stream, Period timeout) {
-		stream.collect.await(timeout)
+	def static <OUT> List<OUT> list(Stream<?, OUT> stream, Period timeout) {
+		newLinkedList(stream.collect.await(timeout))
 	} 
 	
 }

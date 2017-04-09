@@ -54,6 +54,6 @@ abstract class Pipe<IN, OUT> implements Observer<IN, OUT>, Stream<IN, OUT> {
 		output = null
 	}
 	
-	override toString() '''Pipe(open: «open», observed: «output != null»)'''
+	override toString() '''Pipe(open: «open», observed: «output !== null»)'''
 	
 }

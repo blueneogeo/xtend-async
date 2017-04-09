@@ -13,6 +13,7 @@ import org.eclipse.xtend.lib.macro.TransformationContext
 import org.eclipse.xtend.lib.macro.declaration.MutableFieldDeclaration
 import org.eclipse.xtend.lib.macro.declaration.Visibility
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure0
 
 /**
  * Add an Event listener to a class. This allows you to listen to events from this class
@@ -28,7 +29,8 @@ import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
  * <li>it removes the actual field, since it is only meant as instructive to the annotation
  * </ol>
  * <p>
- * 
+ * Note: If you make the Event of type Void, that makes it an untyped event, and you can call it without parameters.
+ * <p>
  * Example:
  * <p>
  * <pre>
@@ -77,6 +79,8 @@ class EventProcessor extends AbstractFieldProcessor {
 		
 		val cls = field.declaringType
 		val isInterface = findInterface(cls.qualifiedName) !== null
+		val hasPayload = field.type != Void.newTypeReference
+		val publisherType = if(hasPayload) field.type else Boolean.newTypeReference
 		
 		val publisherFieldName = '__' + field.simpleName + 'EventPublisher'
 
@@ -86,7 +90,7 @@ class EventProcessor extends AbstractFieldProcessor {
 			cls.addField(publisherFieldName) [
 				docComment = '''Internal publisher of «field.simpleName» events.'''
 				primarySourceElement = field
-				type = Publisher.newTypeReference(field.type)
+				type = Publisher.newTypeReference(publisherType)
 				visibility = Visibility.PROTECTED
 				transient = true
 			]
@@ -96,12 +100,19 @@ class EventProcessor extends AbstractFieldProcessor {
 			cls.addMethod(field.simpleName) [
 				docComment = '''Fire the «field.simpleName» event for any listeners.'''
 				primarySourceElement = field
-				val fieldParameterName = field.type.simpleName.toFirstLower
-				addParameter(fieldParameterName, field.type)
-				body = '''
-					if(«publisherFieldName» == null) return;
-					«publisherFieldName».publish(«fieldParameterName»);
-				'''
+				if(hasPayload) {
+					val fieldParameterName = field.type.simpleName.toFirstLower
+					addParameter(fieldParameterName, field.type)
+					body = '''
+						if(«publisherFieldName» == null) return;
+						«publisherFieldName».publish(«fieldParameterName»);
+					'''
+				} else {
+					body = '''
+						if(«publisherFieldName» == null) return;
+						«publisherFieldName».publish(true);
+					'''
+				}
 			]
 
 		}
@@ -110,15 +121,19 @@ class EventProcessor extends AbstractFieldProcessor {
 		val streamMethodName = field.simpleName + 'Stream'
 		
 		cls.addMethod(streamMethodName) [
-			docComment = '''Stream «field.simpleName» events as they occur. May be called by multiple listeners.'''
+			//primarySourceElement = field
+			docComment = '''
+				Stream «field.simpleName» events as they occur. May be called by multiple listeners. Close the stream to unsubscribe. 
+				Note: Failing to unsubscribe prevents the subscription to be garbage collected, which means you leak memory.
+			'''
 			if(!isInterface) primarySourceElement = field
 			addAnnotation(Hot.newAnnotationReference)
 			addAnnotation(Uncontrolled.newAnnotationReference)
-			returnType = Stream.newTypeReference(field.type, field.type)
+			returnType = Stream.newTypeReference(publisherType, publisherType)
 			if(!isInterface) {
 				body = '''
 					if(«publisherFieldName» == null) {
-						«publisherFieldName» = new «BasicPublisher.newTypeReference(field.type)»();
+						«publisherFieldName» = new «BasicPublisher.newTypeReference(publisherType)»();
 						«publisherFieldName».start();
 					} 
 					return «publisherFieldName».subscribe();
@@ -128,13 +143,27 @@ class EventProcessor extends AbstractFieldProcessor {
 
 		// add a method for listening to the method with a handler. Wraps the stream method.
 		cls.addMethod('on' + field.simpleName.toFirstUpper) [
-			docComment = '''Listen for «field.simpleName» events. May be called by multiple listeners.'''
+			primarySourceElement = cls
+			docComment = '''
+				Listen for «field.simpleName» events. May be called by multiple listeners.
+				Note: do not forget to stop listening, otherwise the listener is never released,
+				which means you leak memory.
+				@return unsubscribeFn. Call (.apply()) this Procedure to stop listening.
+			'''
 			if(!isInterface) primarySourceElement = field
-			val handlerParameterName = field.simpleName + 'Handler' 
-			addParameter(handlerParameterName, Procedure1.newTypeReference(field.type))
+			val handlerParameterName = field.simpleName + 'Handler'
+			addParameter(handlerParameterName, Procedure1.newTypeReference(publisherType))
+			returnType = Procedure0.newTypeReference
 			if(!isInterface) {
 				body = '''
-					«StreamExtensions».start(«StreamExtensions».effect(«streamMethodName»(), «handlerParameterName»));
+					«Stream.newTypeReference(publisherType, publisherType)» stream = «streamMethodName»();
+					«Stream.newTypeReference(publisherType, publisherType)» effect = «StreamExtensions».effect(stream, «handlerParameterName»);
+					«StreamExtensions».start(effect);
+					return new «Procedures.Procedure0»() {
+						@Override public void apply() {
+							effect.close();
+						}
+					};
 				'''
 			}
 		]
