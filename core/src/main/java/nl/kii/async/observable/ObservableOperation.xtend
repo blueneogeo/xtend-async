@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.SuspendableFunctions.Function1
 import nl.kii.async.SuspendableFunctions.Function2
 import nl.kii.async.SuspendableFunctions.Function4
 import nl.kii.async.SuspendableProcedures.Procedure2
@@ -14,6 +15,7 @@ import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Controlled
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.NoBackpressure
+import nl.kii.async.annotation.Suspending
 import nl.kii.async.annotation.Uncontrolled
 import nl.kii.async.annotation.Unsorted
 import nl.kii.async.promise.Promise
@@ -26,9 +28,6 @@ import nl.kii.util.Period
 import static extension nl.kii.util.DateExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-import nl.kii.async.SuspendableFunctions.Function1
-import nl.kii.async.SuspendableProcedures.Procedure0
-import nl.kii.async.annotation.Suspending
 
 final class ObservableOperation {
 
@@ -177,29 +176,7 @@ final class ObservableOperation {
 			}
 		}
 	}
-	
-	/** this method was necessary to allow the wildcard generics in the flatten method */
-	def static <IN, OUT> observe(Observable<IN, OUT> observable, @Suspending Procedure2<IN, OUT> onValue, @Suspending Procedure2<IN, Throwable> onError, @Suspending Procedure0 onComplete) {
-		observable.observer = new Observer<IN, OUT> {
-			
-			@Suspendable
-			override value(IN in, OUT value) {
-				onValue.apply(in, value)
-			}
-			
-			@Suspendable
-			override error(IN in, Throwable t) {
-				onError.apply(in, t)
-			}
-			
-			@Suspendable
-			override complete() {
-				onComplete.apply
-			}
-			
-		} 
-	}
-	
+		
 	@Cold @Unsorted @Uncontrolled
 	def static <IN, OUT, IN2, OBS extends Observable<IN2, OUT>> flatten(Observable<IN, OBS> observable, @Suspending Observer<IN, OUT> observer) {
 		val isComplete = new AtomicBoolean(false)
@@ -220,6 +197,7 @@ final class ObservableOperation {
 					@Suspendable
 					override error(Object ignore, Throwable error) {
 						observer.error(in, error)
+						innerObservable.next
 					}
 					
 					@Suspendable
@@ -230,6 +208,9 @@ final class ObservableOperation {
 					}
 					
 				}
+				
+				openProcesses.incrementAndGet
+				innerObservable.next
 			}
 			
 			@Suspendable
@@ -525,8 +506,8 @@ final class ObservableOperation {
 			
 			@Suspendable
 			override value(IN in, OUT value) {
-				val windowExpired = (lastValueMoment.get == null || now - lastValueMoment.get > interval)
-				if(windowExpired || currentObservable.get == null) {
+				val windowExpired = (lastValueMoment.get === null || now - lastValueMoment.get > interval)
+				if(windowExpired || currentObservable.get === null) {
 					currentObservable.get?.complete
 					lastValueMoment.set(now)
 					val newObservable = new Source<IN, OUT> {
@@ -572,7 +553,7 @@ final class ObservableOperation {
 			
 			@Suspendable
 			override value(IN in, OUT value) {
-				if(lastValueMoment.get == null || now - lastValueMoment.get > minimumInterval) {
+				if(lastValueMoment.get === null || now - lastValueMoment.get > minimumInterval) {
 					lastValueMoment.set(now())
 					observer.value(in, value)
 				} else {
@@ -608,7 +589,7 @@ final class ObservableOperation {
 			@Suspendable
 			override value(IN in, OUT value) {
 				val now = new Date
-				if(lastValueMoment.get == null) {
+				if(lastValueMoment.get === null) {
 					// we can send right away
 					observer.value(in, value)
 					lastValueMoment.set(now)

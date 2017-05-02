@@ -31,7 +31,7 @@ class TestStreamPerformance {
 		
 		println('stream is ' + streamTime / whileTime + ' times slower than a raw while loop.')
 		
-		// don't be more than 10 times slower
+		// don't be more than 20 times slower
 		assertTrue(streamTime / whileTime < 20) // has become more due to suspendable?
 	}
 
@@ -41,7 +41,8 @@ class TestStreamPerformance {
 		val streamStart = System.currentTimeMillis;
 		
 		// iterate a lot over a stream
-		val streamResult = (1..iterations).iterator.stream
+		val streamResult = (1..iterations)
+			.each
 			.filter [ it % 2 == 0 ]
 			.map [ 'hello ' + it ]
 			.count

@@ -36,7 +36,7 @@ final class Streams {
 			override onNext() {
 				// value instead of push saves a call on the stacktrace
 				val nextValue = nextValueFn.apply
-				if(nextValue != null) value(nextValue, nextValue) else complete
+				if(nextValue !== null) value(nextValue, nextValue) else complete
 			}
 			
 			@Suspendable
@@ -255,7 +255,7 @@ final class Streams {
 			
 			@Suspendable
 			override onNext() {
-				if(repeater.get == null) {
+				if(repeater.get === null) {
 					repeater.set(repeaterFn.apply)
 				}
 			}

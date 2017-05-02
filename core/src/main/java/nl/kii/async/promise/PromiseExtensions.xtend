@@ -3,15 +3,16 @@ package nl.kii.async.promise
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.instrument.DontInstrument
 import java.util.concurrent.atomic.AtomicInteger
+import nl.kii.async.SuspendableFunctions.Function1
+import nl.kii.async.SuspendableFunctions.Function2
 import nl.kii.async.SuspendableProcedures.Procedure1
 import nl.kii.async.SuspendableProcedures.Procedure2
+import nl.kii.async.annotation.Suspending
+import nl.kii.async.observable.Observable
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
 import nl.kii.util.Opt
 import nl.kii.util.Period
-
-import static extension nl.kii.async.observable.ObservableOperation.*
-import nl.kii.async.observable.Observable
 
 @Suspendable
 final class PromiseExtensions {
@@ -28,7 +29,7 @@ final class PromiseExtensions {
 	}
 	
 	/** Create a fulfilled promise of the passed value */
-	def static <OUT> promise(OUT value) {
+	def static <OUT> Promise<OUT, OUT> promise(OUT value) {
 		Promises.newPromise(value)
 	}
 
@@ -102,11 +103,20 @@ final class PromiseExtensions {
 		val Task task = new Task
 		val count = new AtomicInteger(promises.size)
 		for(promise : promises) {
-			(promise as Promise<Object, Object>).observe(
-				[ in, it | if(count.decrementAndGet == 0) task.complete ], 
-				[ in, t | task.error(null, t) ], 
-				[ ]
-			)
+			(promise as Promise<Object, Object>).observer = new Observer<Object, Object> {
+				
+				override value(Object in, Object value) {
+					if(count.decrementAndGet == 0) task.complete
+				}
+				
+				override error(Object in, Throwable t) {
+					task.error(null, t)
+				}
+				
+				override complete() {
+				}
+				
+			}
 			promise.next
 		}
 		task
@@ -218,11 +228,11 @@ final class PromiseExtensions {
 	
 	// ERROR HANDLING /////////////////////////////////////////////////////////////////	
 
-	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, Procedure1<E> onErrorFn) {
+	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, @Suspending Procedure1<E> onErrorFn) {
 		promise.on(errorClass) [ in, out | onErrorFn.apply(out) ]
 	}
 
-	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, Procedure2<IN, E> onErrorFn) {
+	def static <IN, OUT, E extends Throwable> Promise<IN, OUT> on(Promise<IN, OUT> promise, Class<E> errorClass, @Suspending Procedure2<IN, E> onErrorFn) {
 		val newPromise = new Deferred<IN, OUT>
 		ObservableOperation.onError(promise, newPromise, errorClass, false, onErrorFn)
 		newPromise
@@ -231,73 +241,70 @@ final class PromiseExtensions {
 	// MAP ERRORS INTO A VALUE ////////////////////////////////////////////////
 
 	/** Map an error back to a value. Swallows the error. */
-	def static <ERROR extends Throwable, IN, OUT> map(Promise<IN, OUT> promise, Class<ERROR> errorType, (ERROR)=>OUT onErrorMapFn) {
+	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> map(Promise<IN, OUT> promise, Class<ERROR> errorType, @Suspending Function1<ERROR, OUT> onErrorMapFn) {
 		promise.map(errorType) [ input, err | onErrorMapFn.apply(err) ]
 	}
 
 	/** Map an error back to a value. Swallows the error. */
-	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> map(Promise<IN, OUT> promise, Class<ERROR> errorClass, (IN, ERROR)=>OUT onErrorMapFn) {
-		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.onErrorMap(promise, newPromise, errorClass, true, onErrorMapFn)
-		newPromise
+	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> map(Promise<IN, OUT> promise, Class<ERROR> errorClass, @Suspending Function2<IN, ERROR, OUT> onErrorMapFn) {
+		new Deferred<IN, OUT> => [ ObservableOperation.onErrorMap(promise, it, errorClass, true, onErrorMapFn) ]
 	}
 
 	// ASYNCHRONOUSLY MAP ERRORS INTO A VALUE /////////////////////////////////
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> call(Promise<IN, OUT> stream, Class<ERROR> errorType, (ERROR)=>Promise<Object, OUT> onErrorPromiseFn) {
+	def static <ERROR extends Throwable, IN, OUT> Promise<IN, OUT> call(Promise<IN, OUT> stream, Class<ERROR> errorType, @Suspending Function1<ERROR, Promise<Object, OUT>> onErrorPromiseFn) {
 		stream.call(errorType) [ IN in, ERROR err | onErrorPromiseFn.apply(err) ]
 	}
 
 	/** Asynchronously map an error back to a value. Swallows the error. */
-	def static <ERROR extends Throwable, IN, OUT, IN2, PROMISE extends Promise<IN2, OUT>> Promise<IN, OUT> call(Promise<IN, OUT> promise, Class<ERROR> errorClass, (IN, ERROR)=>PROMISE onErrorPromiseFn) {
-		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.onErrorCall(promise, newPromise, errorClass, onErrorPromiseFn)
-		newPromise
+	def static <ERROR extends Throwable, IN, OUT, IN2> Promise<IN, OUT> call(Promise<IN, OUT> promise, Class<ERROR> errorClass, @Suspending Function2<IN, ERROR, Promise<IN2, OUT>> onErrorPromiseFn) {
+		new Deferred<IN, OUT> => [ ObservableOperation.onErrorCall(promise, it, errorClass, onErrorPromiseFn) ]
 	}
 	
 	// MAPPING AND EFFECTS ///////////////////////////////////////////////////////////
 	
-	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, (OUT)=>MAP mapFn) {
+	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, @Suspending Function1<OUT, MAP> mapFn) {
 		promise.map [ in, out | mapFn.apply(out) ]
 	}
 
-	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, (IN, OUT)=>MAP mapFn) {
-		val newPromise = new Deferred<IN, MAP>
-		ObservableOperation.map(promise, newPromise, mapFn)
-		newPromise
+	def static <IN, OUT, MAP> Promise<IN, MAP> map(Promise<IN, OUT> promise, @Suspending Function2<IN, OUT, MAP> mapFn) {
+		val d = new Deferred<IN, MAP>
+		ObservableOperation.map(promise, d, mapFn)
+		d
+		// new Deferred<IN, MAP> => [ ObservableOperation.map(promise, it, mapFn) ]
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> effect(Promise<IN, OUT> promise, (OUT)=>void effectFn) {
+	def static <IN, OUT> Promise<IN, OUT> effect(Promise<IN, OUT> promise, @Suspending Procedure1<OUT> effectFn) {
 		promise.map [ in, out | effectFn.apply(out) return out ]
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> effect(Promise<IN, OUT> promise, (IN, OUT)=>void effectFn) {
+	def static <IN, OUT> Promise<IN, OUT> effect(Promise<IN, OUT> promise, @Suspending Procedure2<IN, OUT> effectFn) {
 		promise.map [ in, out | effectFn.apply(in, out) return out ]
 	}
 
-	def static <IN, OUT> Task then(Promise<IN, OUT> promise, (OUT)=>void effectFn) {
+	def static <IN, OUT> Task then(Promise<IN, OUT> promise, @Suspending Procedure1<OUT> effectFn) {
 		promise.effect(effectFn).asTask
 	}
 
-	def static <IN, OUT> Task then(Promise<IN, OUT> promise, (IN, OUT)=>void effectFn) {
+	def static <IN, OUT> Task then(Promise<IN, OUT> promise, @Suspending Procedure2<IN, OUT> effectFn) {
 		promise.effect(effectFn).asTask
 	}
 
-	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, (OUT)=>PROMISE mapFn) {
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, @Suspending Function1<OUT, PROMISE> mapFn) {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, (IN, OUT)=>PROMISE mapFn) {
+	def static <IN, OUT, MAP, PROMISE extends Promise<?, MAP>> Promise<IN, MAP> call(Promise<IN, OUT> promise, @Suspending Function2<IN, OUT, PROMISE> mapFn) {
 		promise.map(mapFn).flatten
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (OUT)=>Promise<?, ?> mapFn) {
-		promise.call [ in, value | mapFn.apply(value).map [ value ] ]
+	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, @Suspending Function1<OUT, Promise<?, ?>> mapFn) {
+		promise.call [ in, value |  mapFn.apply(value).asTask.map [ value ] ]
 	}
 
-	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, (IN, OUT)=>Promise<?, ?> mapFn) {
-		promise.call [ in, value | mapFn.apply(in, value).map [ value ] ]
+	def static <IN, OUT> Promise<IN, OUT> perform(Promise<IN, OUT> promise, @Suspending Function2<IN, OUT, Promise<?, ?>> mapFn) {
+		promise.call [ in, value | mapFn.apply(in, value).asTask.map [ value ] ]
 	}
 	
 	/** 
@@ -307,31 +314,25 @@ final class PromiseExtensions {
 	 * is only available when a normal value comes in, and not for errors or finishes, in which
 	 * case it is none.
 	 */	
-	def static <IN1, IN2, OUT> Promise<IN2, OUT> mapInput(Promise<IN1, OUT> promise, (IN1, Opt<OUT>)=>IN2 inputMapFn) {
-		val newPromise = new Deferred<IN2, OUT>
-		ObservableOperation.mapInput(promise, newPromise, inputMapFn)
-		newPromise
+	def static <IN1, IN2, OUT> Promise<IN2, OUT> mapInput(Promise<IN1, OUT> promise, @Suspending Function2<IN1, Opt<OUT>, IN2> inputMapFn) {
+		new Deferred<IN2, OUT> => [ ObservableOperation.mapInput(promise, it, inputMapFn) ]
 	}
 	
 	/**  Transform the input of a promise based on the existing input. */	
-	def static <IN1, IN2, OUT> Promise<IN2, OUT> mapInput(Promise<IN1, OUT> promise, (IN1)=>IN2 inputMapFn) {
+	def static <IN1, IN2, OUT> Promise<IN2, OUT> mapInput(Promise<IN1, OUT> promise, @Suspending Function1<IN1, IN2> inputMapFn) {
 		promise.mapInput [ in1 | inputMapFn.apply(in1) ]
 	}
 
 	// TIME AND RETENTION /////////////////////////////////////////////////////////////
 	
-	def static <IN, OUT> Promise<IN, OUT> delay(Promise<IN, OUT> promise, Period delay, (Period)=>Task timerFn) {
-		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.delay(promise, newPromise, delay, timerFn)
-		newPromise
+	def static <IN, OUT> Promise<IN, OUT> delay(Promise<IN, OUT> promise, Period delay, @Suspending Function1<Period, Task> timerFn) {
+		new Deferred<IN, OUT> => [ ObservableOperation.delay(promise, it, delay, timerFn) ]
 	}
 
 	// REDUCTION //////////////////////////////////////////////////////////////////////
 	
-	def static <IN, OUT, P extends Promise<?, OUT>> Promise<IN, OUT> flatten(Promise<IN, P> promise) {
-		val newPromise = new Deferred<IN, OUT>
-		ObservableOperation.flatten(promise as Observable<IN, Promise<Object, OUT>>, newPromise)
-		newPromise
+	def static <IN, OUT, PROMISE extends Promise<?, OUT>> Promise<IN, OUT> flatten(Promise<IN, PROMISE> promise) {
+		new Deferred<IN, OUT> => [ ObservableOperation.flatten(promise as Observable<IN, Promise<Object, OUT>>, it) ]
 	}
 	
 	// FORWARDING /////////////////////////////////////////////////////////////////////
@@ -409,7 +410,7 @@ final class PromiseExtensions {
 	 * Check on each value if the assert/check description is valid.
 	 * Throws an Exception with the check description if not.
 	 */
-	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, (OUT)=>boolean checkFn) {
+	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, @Suspending Function1<OUT, Boolean> checkFn) {
 		stream.check(checkDescription) [ in, out | checkFn.apply(out) ]
 	}
 
@@ -418,7 +419,7 @@ final class PromiseExtensions {
 	 * Throws an Exception with the check description if not.
 	 */
 	@Suspendable
-	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, (IN, OUT)=>boolean checkFn) {
+	def static <IN, OUT> check(Promise<IN, OUT> stream, String checkDescription, @Suspending Function2<IN, OUT, Boolean> checkFn) {
 		stream.effect [ in, out |
 			if(!checkFn.apply(in, out)) throw new Exception(
 			'stream.check ("' + checkDescription + '") failed for checked value: ' + out + '. Input was: ' + in)

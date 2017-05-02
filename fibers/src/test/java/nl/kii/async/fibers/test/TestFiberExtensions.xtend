@@ -11,22 +11,10 @@ import org.junit.Test
 import static org.junit.Assert.*
 
 import static extension nl.kii.async.fibers.FiberExtensions.*
+import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.async.stream.StreamExtensions.*
 
 class TestFiberExtensions {
-
-	@Test
-	def void testSomething() {
-		val list = runOnFiber [
-			(1..10).each
-				.perform [ async [ Fiber.sleep(100) ] ]
-				.parallel(3)
-				.synchronize
-				.collect
-				.await
-		]
-		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list.sort)
-	}
 
 	/**
 	 * Tests that we can do some asynchronous operation and wait for it, and the value being returned
@@ -36,7 +24,7 @@ class TestFiberExtensions {
 	def void testAsyncAwait() {
 		var result = runOnFiber [
 			// here is our real test, we do something asynchronously, and then await that result
-			val result = async [ Fiber.sleep(500) return 'hello2' ].await
+			val result = async [ doSomethingFiberish return 'hello2' ].await
 			println('got ' + result)
 			return result
 		]
@@ -51,7 +39,7 @@ class TestFiberExtensions {
 	@Test(expected=ExpectedException, timeout=5000)
 	def void testAwaitingErrors() {
 		runOnFiber [
-			Fiber.sleep(1000)
+			doSomethingFiberish
 			throw new ExpectedException
 		]
 	}
@@ -63,13 +51,36 @@ class TestFiberExtensions {
 		val list = runOnFiber [
 			val list = newLinkedList()
 			for(i : 1..10) {
-				Fiber.sleep(50)
+				doSomethingFiberish
 				list.add(i)
 				println(i)
 			}
 			list
 		]
 		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list)
+	}
+
+	@Test
+	def void testPromisesCanSuspend() {
+		val input = Promises.newInput
+			input
+				.effect [ doSomethingFiberish ]  // fiber suspension in the effect
+				.then [ println(it) ]
+		runOnFiber [ input.set(10) 0 ]
+		assertTrue(input.fulfilled)
+	}
+
+
+	@Test
+	def void testFibersCanSuspendInStreamsAndPromises() {
+		val list = runOnFiber [
+			(1..10).each // convert to stream
+				.effect [ Fiber.sleep(50) ] // fiber suspension in the stream
+				.collect // convert to promise
+				// .effect [ Fiber.sleep(50) ] // fiber suspension in the promise
+				.await // suspension until result
+		]
+		assertEquals(#[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], list.sort)
 	}
 
 	@Test
@@ -85,12 +96,11 @@ class TestFiberExtensions {
 				.call [
 					async [ doSomethingFiberish ]
 				]
-				// .perform [ async [ testSomeQuery4 ] ]
-//				.effect [ println('completed ' + it) ]
 				.count
 				.await
 		]
 		println('completed all ' + count)
+		assertEquals(10, count)
 	}
 	
 	@Suspendable
@@ -105,17 +115,18 @@ class TestFiberExtensions {
 			val task = async [
 				val task2 = async [
 					val task3 = Promises.newTask(executors) [
-						println('yay!')
+						println('A')
 					]
 					task3.await
-					println('yay2!')
+					println('B')
 				]
 				task2.await
-				println('yay3!')
+				println('C')
 			]
 			task.await
-			println('yay4!')
+			println('D')
 		]
+		println('done')
 	}
 
 	/**
@@ -150,41 +161,40 @@ class TestFiberExtensions {
 //	 * 
 //	 * Solution for now seems to be to awaitNext instead on a stream.
 //	 */ 
-//	@Ignore
 //	@Test(timeout=6000)
 //	def void testAwaitControlledStream() {
 //		val stream = newSink
 //		async [ 
 //			for(i : 1..10) {
-//				wait(150.ms)
+//				Fiber.sleep(1000)
 //				stream.push(i)
 //			}
 //			stream.complete
 //		]
-//		blocking [
+//		runOnFiber [
 //			for(i : stream.awaitEach) {
 //				println(i)
 //			}
 //			null
 //		]
 //	}
-	
-	@Test
-	def void getScheduler() {
-		for(i : 1..1) {
-			async [
-				println('S ' + i + ' ' + Fiber.currentFiber()?.id)
-				async [
-					println('A ' + i + ' ' + Fiber.currentFiber()?.id)
-					println('S2 ' + i + ' ' + Fiber.currentFiber()?.id)
-					async [
-						println('A2 ' + i + ' ' + Fiber.currentFiber()?.id)
-					]
-					println('E2 ' + i + ' ' + Fiber.currentFiber()?.id)
-				]
-				println('E ' + i + ' ' + Fiber.currentFiber()?.id)
-			]
-		}
-	}
+//	
+//	@Test
+//	def void getScheduler() {
+//		for(i : 1..1) {
+//			async [
+//				println('S ' + i + ' ' + Fiber.currentFiber()?.id)
+//				async [
+//					println('A ' + i + ' ' + Fiber.currentFiber()?.id)
+//					println('S2 ' + i + ' ' + Fiber.currentFiber()?.id)
+//					async [
+//						println('A2 ' + i + ' ' + Fiber.currentFiber()?.id)
+//					]
+//					println('E2 ' + i + ' ' + Fiber.currentFiber()?.id)
+//				]
+//				println('E ' + i + ' ' + Fiber.currentFiber()?.id)
+//			]
+//		}
+//	}
 		
 }

@@ -150,9 +150,10 @@ class TestStreamExtensions {
 	@Test(timeout=1000)
 	def void testFlatten() {
 		#[1..3, 4..6, 7..10]
-			.map[stream(it)] // create a list of 3 streams
+			.map[println(it.start + '..' + it.end) stream(it)] // create a list of 3 streams
 			.iterator.stream // create a stream of 3 streams
 			.flatten // flatten into a single stream
+			.effect [ println(it) ]
 			.collect // collect into a single list
 			.block <=> #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 	}

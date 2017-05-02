@@ -2,7 +2,6 @@ package nl.kii.async.stream
 
 import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.fibers.instrument.DontInstrument
 import com.google.common.collect.Queues
 import java.util.Iterator
 import java.util.List
@@ -13,14 +12,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import nl.kii.async.SuspendableFunctions.Function0
+import nl.kii.async.SuspendableFunctions.Function1
+import nl.kii.async.SuspendableFunctions.Function2
+import nl.kii.async.SuspendableFunctions.Function3
+import nl.kii.async.SuspendableFunctions.Function4
+import nl.kii.async.SuspendableProcedures.Procedure1
+import nl.kii.async.SuspendableProcedures.Procedure2
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Controlled
 import nl.kii.async.annotation.Hot
 import nl.kii.async.annotation.Lossy
 import nl.kii.async.annotation.MultiThreaded
 import nl.kii.async.annotation.NoBackpressure
+import nl.kii.async.annotation.Suspending
 import nl.kii.async.annotation.Uncontrolled
 import nl.kii.async.annotation.Unsorted
+import nl.kii.async.observable.Observable
 import nl.kii.async.observable.ObservableOperation
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Deferred
@@ -35,15 +43,6 @@ import static extension nl.kii.async.promise.PromiseExtensions.*
 import static extension nl.kii.util.IterableExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
-import nl.kii.async.SuspendableProcedures.Procedure1
-import nl.kii.async.observable.Observable
-import nl.kii.async.SuspendableFunctions.Function2
-import nl.kii.async.SuspendableFunctions.Function1
-import nl.kii.async.SuspendableFunctions.Function3
-import nl.kii.async.SuspendableFunctions.Function0
-import nl.kii.async.SuspendableProcedures.Procedure2
-import nl.kii.async.SuspendableFunctions.Function4
-import nl.kii.async.annotation.Suspending
 
 final class StreamExtensions {
 
@@ -169,9 +168,7 @@ final class StreamExtensions {
 	 */	
 	@Hot @Controlled @Suspendable
 	def static <IN, OUT> Task start(Stream<IN, OUT> stream) {
-		val streamingTask = stream.asTask
-		stream.next
-		streamingTask
+		stream.asTask => [ stream.next ]
 	}
 	
 	// CONCURRENCY /////////////////////////////////////////////////////////////////////////////
@@ -255,22 +252,22 @@ final class StreamExtensions {
 	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream) {
 		val pipe = new Pipe<IN, OUT> {
 			
-			@DontInstrument
+			@Suspendable
 			override synchronized isOpen() {
 				stream.isOpen
 			}
 			
-			@DontInstrument
+			@Suspendable
 			override synchronized next() {
 				stream.next
 			}
 			
-			@DontInstrument
+			@Suspendable
 			override synchronized pause() {
 				stream.pause
 			}
 			
-			@DontInstrument
+			@Suspendable
 			override synchronized resume() {
 				stream.resume
 			}
@@ -278,17 +275,14 @@ final class StreamExtensions {
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
-			@DontInstrument
 			override synchronized value(IN in, OUT value) {
 				pipe.value(in, value)
 			}
 			
-			@DontInstrument
 			override synchronized error(IN in, Throwable t) {
 				pipe.error(in, t)
 			}
 			
-			@DontInstrument
 			override synchronized complete() {
 				pipe.complete
 			}
@@ -860,7 +854,7 @@ final class StreamExtensions {
 			override next() {
 				// get the next value from the queue to stream
 				val nextValue = buffer.poll
-				if(nextValue != null) {
+				if(nextValue !== null) {
 					// we have a buffered value, stream it
 					ready.set(false)
 					value(nextValue.key, nextValue.value)
@@ -1286,7 +1280,7 @@ final class StreamExtensions {
 				override value(IN in, OUT value) {
 					val result = reducerFn.apply(reduced.get, in, value)
 					reduced.set(result)
-					if(result != null) pipe.value(in, result)
+					if(result !== null) pipe.value(in, result)
 					else stream.next
 				}
 				
@@ -1345,13 +1339,13 @@ final class StreamExtensions {
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, @Suspending Function1<OUT, Promise<?, ?>> promiseFn) {
-		stream.call [ in, value | promiseFn.apply(value).map [ value ] ]
+		stream.call [ in, value | promiseFn.apply(value).asTask.map [ value ] ]
 	}
 
 	/** Perform some side-effect action based on the stream. */
 	@Cold @Controlled
 	def static <IN, OUT, PROMISE extends Promise<?, ?>> Stream<IN, OUT> perform(Stream<IN, OUT> stream, @Suspending Function2<IN, OUT, Promise<?, ?>> promiseFn) {
-		stream.call [ in, value | promiseFn.apply(in, value).map [ value ] ]
+		stream.call [ in, value | promiseFn.apply(in, value).asTask.map [ value ] ]
 	}
 
 	// REDUCTION /////////////////////////////////////////////////////////////////////////////
@@ -1444,9 +1438,9 @@ final class StreamExtensions {
 			@Suspendable
 			override complete() {
 				val result = reduced.get
-				if(result != null) { 
+				if(result !== null) { 
 					promise.value(counter.get, result)
-				} else if(initial != null) {
+				} else if(initial !== null) {
 					promise.value(counter.get, initial)
 				} else {
 					promise.error(counter.get, new Exception('no value came from the stream to reduce'))
@@ -1518,7 +1512,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> max(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc != null && acc.compareTo(it) > 0) acc else it ]
+		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc !== null && acc.compareTo(it) > 0) acc else it ]
 	}
 
 	/**
@@ -1527,7 +1521,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> min(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc != null && acc.compareTo(it) < 0) acc else it ]
+		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc !== null && acc.compareTo(it) < 0) acc else it ]
 	}
 
 	@Hot @Suspendable
@@ -1685,7 +1679,7 @@ final class StreamExtensions {
 			@Suspendable
 			override complete() {
 				stream.close
-				if(!promise.fulfilled && last.get != null) {
+				if(!promise.fulfilled && last.get !== null) {
 					promise.value(last.get.key, last.get.value)
 				} else {
 					promise.error(null, new Exception('stream closed without passing a value, no last entry found.'))

@@ -1,8 +1,9 @@
 package nl.kii.async.fibers
-import static extension nl.kii.async.stream.StreamExtensions.*
+
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberAsync
 import co.paralleluniverse.fibers.FiberScheduler
+import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
@@ -14,54 +15,13 @@ import nl.kii.async.promise.Promise
 import nl.kii.async.promise.Task
 import nl.kii.async.stream.Stream
 import nl.kii.util.Period
-import co.paralleluniverse.fibers.SuspendExecution
+
+import static extension nl.kii.async.stream.StreamExtensions.*
 
 final class FiberExtensions {
 
 	private new() { }
 
-	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
-	@Suspendable
-	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
-		val promise = new Input<OUT>
-		stream.observer = new Observer<IN, OUT> {
-			
-			@Suspendable
-			override value(IN in, OUT value) {
-				promise.set(value)
-			}
-			
-			@Suspendable
-			override error(IN in, Throwable t) {
-				promise.error(t)
-			}
-			
-			@Suspendable
-			override complete() {
-				stream.close
-			}
-			
-		}
-		stream.next
-		if(!stream.open) return null
-		// ask for the next value from the stream and wait for the promise to resolve
-		// Fiber.currentFiber().scheduler.async [ stream.next ]
-		promise.await
-	}
-
-	/** Iterate a stream in a blocking way. For now, do not use until bytecode injection issues are resolved */
-	@Deprecated
-	def static <T> awaitEach(Stream<?, T> stream) {
-		new Iterable<T> {
-			
-			@Suspendable
-			override iterator() {
-				new nl.kii.async.fibers.StreamIterator(stream)
-			}
-			
-		}
-	}
-	
 	/**
 	 * Perform a function in the background using a Fiber.
 	 * Uses the default fiber scheduler. 
@@ -230,13 +190,13 @@ final class FiberExtensions {
 			
 		}
 		try {
-			if(timeout != null) {
+			if(timeout !== null) {
 				waiter.run(timeout.ms, TimeUnit.MILLISECONDS)
 			} else {
 				waiter.run
 			}
 		} catch(Throwable t) {
-			if(t.cause != null) {
+			if(t.cause !== null) {
 				throw t.cause
 			} else {
 				throw t
@@ -270,5 +230,48 @@ final class FiberExtensions {
 	def static <OUT> list(Stream<?, OUT> stream, Period timeout) {
 		stream.collect.await(timeout)
 	} 
+
+	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
+	@Deprecated
+	@Suspendable
+	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
+		val promise = new Input<OUT>
+		stream.observer = new Observer<IN, OUT> {
+			
+			@Suspendable
+			override value(IN in, OUT value) {
+				promise.set(value)
+			}
+			
+			@Suspendable
+			override error(IN in, Throwable t) {
+				promise.error(t)
+			}
+			
+			@Suspendable
+			override complete() {
+				stream.close
+			}
+			
+		}
+		stream.next
+		if(!stream.open) return null
+		// ask for the next value from the stream and wait for the promise to resolve
+		// Fiber.currentFiber().scheduler.async [ stream.next ]
+		promise.await
+	}
+
+	/** Iterate a stream in a blocking way. For now, do not use until bytecode injection issues are resolved */
+	@Deprecated
+	def static <T> awaitEach(Stream<?, T> stream) {
+		new Iterable<T> {
+			
+			@Suspendable
+			override iterator() {
+				new StreamIterator(stream)
+			}
+			
+		}
+	}
 	
 }
