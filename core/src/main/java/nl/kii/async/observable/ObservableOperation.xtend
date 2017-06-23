@@ -472,8 +472,8 @@ final class ObservableOperation {
 			
 			@Suspendable
 			override value(IN in, OUT value) {
-				val windowExpired = (lastValueMoment.get == null || now - lastValueMoment.get > interval)
-				if(windowExpired || currentObservable.get == null) {
+				val windowExpired = (lastValueMoment.get === null || now - lastValueMoment.get > interval)
+				if(windowExpired || currentObservable.get === null) {
 					currentObservable.get?.complete
 					lastValueMoment.set(now)
 					val newObservable = new Source<IN, OUT> {
@@ -519,7 +519,7 @@ final class ObservableOperation {
 			
 			@Suspendable
 			override value(IN in, OUT value) {
-				if(lastValueMoment.get == null || now - lastValueMoment.get > minimumInterval) {
+				if(lastValueMoment.get === null || now - lastValueMoment.get > minimumInterval) {
 					lastValueMoment.set(now())
 					observer.value(in, value)
 				} else {
@@ -555,7 +555,7 @@ final class ObservableOperation {
 			@Suspendable
 			override value(IN in, OUT value) {
 				val now = new Date
-				if(lastValueMoment.get == null) {
+				if(lastValueMoment.get === null) {
 					// we can send right away
 					observer.value(in, value)
 					lastValueMoment.set(now)

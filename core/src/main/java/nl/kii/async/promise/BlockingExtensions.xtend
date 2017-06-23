@@ -44,7 +44,7 @@ final class BlockingExtensions {
 		} catch(SuspendExecution suspend) {
 			throw suspend
 		} catch(Throwable t) {
-			if(t.cause != null) {
+			if(t.cause !== null) {
 				throw t.cause
 			} else {
 				throw t
@@ -73,7 +73,7 @@ final class BlockingExtensions {
 		try {
 			new PromisedFuture(promise).get
 		} catch(Throwable t) {
-			if(t.cause != null) {
+			if(t.cause !== null) {
 				throw t.cause
 			} else {
 				throw t

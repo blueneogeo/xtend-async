@@ -27,7 +27,7 @@ class AsyncCached<T> {
 	}
 
 	def Promise<?, T> get() {
-		if (data == null || lastFetched == null || now - lastFetched > retainTime) {
+		if (data === null || lastFetched === null || now - lastFetched > retainTime) {
 			fetchFn.apply.effect [ value |
 				data = value
 				lastFetched = now

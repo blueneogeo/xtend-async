@@ -11,8 +11,6 @@ import static extension nl.kii.async.stream.StreamExtensions.*
 
 class TestRXExtensions {
 
-	static var counter = 0
-	
 	@Test
 	def void testRxObservableToStream() {
 		val iterations = 1_000

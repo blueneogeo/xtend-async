@@ -18,7 +18,6 @@ import static extension nl.kii.util.JUnitExtensions.*
 
 class TestStreamExtensions {
 
-	val threads = newCachedThreadPool
 	val schedulers = newScheduledThreadPool(5)
 
 	// CREATION ///////////////////////////////////////////////////////////////

@@ -23,7 +23,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 		val promiseParameter = method.parameters.filter[type.isPromiseType].head
 
 		// if there is no promise parameter, it must be in the return type
-		if(promiseParameter == null) {
+		if(promiseParameter === null) {
 			if(!method.returnType.inferred && !method.returnType.isPromiseType) {
 				method.addError('Methods annotated with @Async must either return a Task or Promise, or pass a Task or Promise in their parameters.')
 			}
@@ -34,7 +34,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 		method.declaringType.addMethod(method.simpleName) [
 			primarySourceElement = method
 			// copy properties
-			if(!method.typeParameters?.empty) {
+			if(method.typeParameters !== null && !method.typeParameters.empty) {
 				method.addError('Currently type parameters are not supported for @Async, because Xtend Active Annotation do not fully support typed parameters')
 			}
 			for(typeParameter : method.typeParameters) {
@@ -57,7 +57,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 				}
 			}
 			// we must have found at least one task or promise to return
-			if(promise.get == null) {
+			if(promise.get === null) {
 				method.addError('Methods annotated with @Async must pass the Promise or Task to return in its parameters.')
 			} else {
 				returnType = promise.get.type
@@ -76,7 +76,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 		]
 		// also add a new method that does the same but on a new thread from a passed executor
 		val async = method.findAnnotation(Async.newTypeReference.type)
-		if(!async?.getBooleanValue('value')) return;
+		if(async !== null && !async.getBooleanValue('value')) return;
 		method.declaringType.addMethod(method.simpleName) [
 			primarySourceElement = method
 			// copy properties
@@ -102,7 +102,7 @@ class AsyncProcessor extends AbstractMethodProcessor {
 				}
 			}
 			// we must have found at least one task or promise to return
-			if(promise.get == null) {
+			if(promise.get === null) {
 				method.addError('Methods annotated with @Async must pass the Promise or Task to return in its parameters.')
 			} else {
 				returnType = promise.get.type
