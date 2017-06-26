@@ -22,7 +22,8 @@ class TestStreamErrorHandling {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.on(Exception) [ errors << message ] // not filtering errors here
 			.collect // so this collect fails
-			.block <=> null
+			.block
+			.toList  <=> null
 	}
 
 	@Test
@@ -33,7 +34,8 @@ class TestStreamErrorHandling {
 			.map [ 1/(it-7)*0 + it ] // 7 also gives the exception
 			.effect(Exception) [ message >> errors ] // filter errors here
 			.collect // so this collect succeeds
-			.block <=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
+			.block
+			.toList <=> #[1, 2, 3, 4, 6, 8, 9, 10] // 5 and 7 are missing
 	}
 	
 	@Test
@@ -42,7 +44,8 @@ class TestStreamErrorHandling {
 			.effect [ if(it == 3 || it == 5) throw new Exception ]
 			.map(Throwable) [ 0 ]
 			.collect
-			.block <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
+			.block
+			.toList  <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
 	}
 	
 	@Test
@@ -51,7 +54,8 @@ class TestStreamErrorHandling {
 			.effect [ if(it == 3 || it == 5) throw new Exception ]
 			.call(Throwable) [ newPromise(executor) [ return 0 ] ]
 			.collect
-			.block <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
+			.block
+			.toList  <=> #[1, 2, 0, 4, 0, 6, 7, 8, 9, 10 ]
 	}
 	
 }

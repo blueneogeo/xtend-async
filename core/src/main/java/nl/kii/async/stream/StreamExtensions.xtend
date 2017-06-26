@@ -3,10 +3,11 @@ package nl.kii.async.stream
 import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
 import com.google.common.collect.Queues
+import java.util.Collection
 import java.util.Iterator
 import java.util.List
-import java.util.Map
 import java.util.Queue
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -40,13 +41,10 @@ import nl.kii.util.Opt
 import nl.kii.util.Period
 
 import static extension nl.kii.async.promise.PromiseExtensions.*
-import static extension nl.kii.util.IterableExtensions.*
 import static extension nl.kii.util.OptExtensions.*
 import static extension nl.kii.util.ThrowableExtensions.*
 
 final class StreamExtensions {
-
-	private new() { }
 
 	// CREATION ////////////////////////////////////////////////////////////////////////////////
 	
@@ -119,45 +117,6 @@ final class StreamExtensions {
 		Streams.newStream(iterable)
 	}
 
-	/**
-	 * Deprecated: use Streams.newStream instead
-	 * <p>
-	 * Create a stream out of a closure. Every time the stream calls for the next value,
-	 * it will call the closure. If the closure returns null, the stream will complete.
-	 */
-	@Deprecated
-	@Cold @Controlled
-	def static <OUT> Stream<OUT, OUT> stream(@Suspending Function0<OUT> nextValueFn) {
-		Streams.newStream(nextValueFn)
-	}
-
-	/**
-	 * Deprecated: use Streams.newPeriodicStream instead.
-	 * <p>
-	 * Create a periodically emitting stream. The value in the stream is the count of the value, starting at 1.
-	 * @param timerFn function that can be given a period and returns a task which completes after that period
-	 * @param interval the period between values from the periodic stream
-	 */
-	 @Deprecated
-	 @Cold @Controlled
-	 def static <OUT> Stream<Long, Long> periodic(Function1<Period, Task> timerFn, Period interval) {
-	 	Streams.newPeriodicStream(timerFn, interval)
-	}
-
-	/**
-	 * Deprecated: use Streams.newPeriodicStream instead.
-	 * <p>
-	 * Create a periodically emitting stream. The value in the stream is the count of the value, starting at 1.
-	 * @param timerFn function that can be given a period and returns a task which completes after that period
-	 * @param interval the period between values from the periodic stream
-	 * @param maxAmount the maximum amount of values to emit
-	 */
-	 @Deprecated
-	 @Cold @Controlled
-	 def static <OUT> Stream<Long, Long> periodic(@Suspending Function1<Period, Task> timerFn, Period interval, int maxAmount) {
-	 	Streams.newPeriodicStream(timerFn, interval, maxAmount)
-	 }
-
 	// STARTING ////////////////////////////////////////////////////////////////////////////////
 
 	/** 
@@ -168,7 +127,9 @@ final class StreamExtensions {
 	 */	
 	@Hot @Controlled @Suspendable
 	def static <IN, OUT> Task start(Stream<IN, OUT> stream) {
-		stream.asTask => [ stream.next ]
+		val task = stream.asTask
+		stream.next
+		task
 	}
 	
 	// CONCURRENCY /////////////////////////////////////////////////////////////////////////////
@@ -248,43 +209,53 @@ final class StreamExtensions {
 	 * Wraps synchronize calls around a stream, making it thread-safe.
 	 * This comes at a small performance cost.
 	 */
-	@Cold @Controlled @MultiThreaded //@DontInstrument
-	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream) {
+	@Cold @Controlled @MultiThreaded
+	def static <IN, OUT> Stream<IN, OUT> synchronize(Stream<IN, OUT> stream, Object mutex) {
 		val pipe = new Pipe<IN, OUT> {
 			
-			@Suspendable
-			override synchronized isOpen() {
-				stream.isOpen
+			override isOpen() {
+				synchronized (mutex) {
+					stream.isOpen
+				}
 			}
 			
-			@Suspendable
-			override synchronized next() {
-				stream.next
+			override next() {
+				synchronized (mutex) {
+					stream.next
+				}
 			}
 			
-			@Suspendable
-			override synchronized pause() {
-				stream.pause
+			override pause() {
+				synchronized (mutex) {
+					stream.pause
+				}
 			}
 			
-			@Suspendable
-			override synchronized resume() {
-				stream.resume
+			override resume() {
+				synchronized (mutex) {
+					stream.resume
+				}
 			}
 			
 		}
 		stream.observer = new Observer<IN, OUT> {
 			
-			override synchronized value(IN in, OUT value) {
-				pipe.value(in, value)
+			override value(IN in, OUT value) {
+				synchronized (mutex) {
+					pipe.value(in, value)
+				}
 			}
 			
-			override synchronized error(IN in, Throwable t) {
-				pipe.error(in, t)
+			override error(IN in, Throwable t) {
+				synchronized (mutex) {
+					pipe.error(in, t)
+				}
 			}
 			
-			override synchronized complete() {
-				pipe.complete
+			override complete() {
+				synchronized (mutex) {
+					pipe.complete
+				}
 			}
 			
 		}
@@ -1458,17 +1429,17 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT> collect(Stream<IN, OUT> stream) {
-		stream.reduce(newArrayList as List<OUT>) [ list, it | list.concat(it) ]
+		stream.reduce(new ConcurrentLinkedQueue as Collection<OUT>) [ list, in, out | list.add(out) list ]
 	}
 	
 	/**
 	 * Promises a map of all inputs and outputs from a stream. Starts the stream.
 	 */
 	@Hot @Suspendable
-	def static <IN, OUT> Promise<Long, Map<IN, OUT>> collectInOut(Stream<IN, OUT> stream) {
-		stream.reduce(newHashMap as Map<IN, OUT>) [ list, in, out | list.put(in, out) list ]
+	def static <IN, OUT> collectInOut(Stream<IN, OUT> stream) {
+		stream.reduce(new ConcurrentLinkedQueue<Pair<IN, OUT>> as Collection<Pair<IN, OUT>>) [ list, in, out | list.add(in -> out) list ]
 	}
-
+	
 	/**
 	 * Concatenate a lot of strings into a single string, separated by a separator string.
 	 * <pre>
@@ -1494,7 +1465,7 @@ final class StreamExtensions {
 	def static <IN, OUT extends Number> average(Stream<IN, OUT> stream) {
 		stream
 			.index
-			.reduce(0 -> 0D) [ acc, it | key -> (acc.value + value.doubleValue) ]
+			.reduce(0 -> 0D) [ acc, in, out | out.key -> (acc.value + out.value.doubleValue) ]
 			.map [ value / key ]
 	}
 	
@@ -1503,7 +1474,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT> count(Stream<IN, OUT> stream) {
-		stream.reduce(0) [ acc, it | acc + 1 ]
+		stream.reduce(0) [ acc, in, out | acc + 1 ]
 	}
 
 	/**
@@ -1512,7 +1483,7 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> max(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc !== null && acc.compareTo(it) > 0) acc else it ]
+		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc !== null && acc.compareTo(out) > 0) acc else out ]
 	}
 
 	/**
@@ -1521,12 +1492,12 @@ final class StreamExtensions {
 	 */
 	@Hot @Suspendable
 	def static <IN, OUT extends Comparable<OUT>> min(Stream<IN, OUT> stream) {
-		stream.reduce(null) [ Comparable<OUT> acc, it | if(acc !== null && acc.compareTo(it) < 0) acc else it ]
+		stream.reduce(null) [ Comparable<OUT> acc, in, out | if(acc !== null && acc.compareTo(out) < 0) acc else out ]
 	}
 
 	@Hot @Suspendable
-	def static <IN, OUT> all(Stream<IN, OUT> stream, @Suspending Function1<OUT, Boolean> testFn) {
-		stream.reduce(true) [ acc, it | acc && testFn.apply(it) ]
+	def static <IN, OUT> all(Stream<IN, OUT> stream, Function1<OUT, Boolean> testFn) {
+		stream.reduce(true) [ acc, in, out | acc && testFn.apply(out) ]
 	}
 
 	/**
@@ -1534,8 +1505,8 @@ final class StreamExtensions {
 	 * Starts the stream.
 	 */
 	@Hot @Suspendable
-	def static <IN, OUT> none(Stream<IN, OUT> stream, @Suspending Function1<OUT, Boolean> testFn) {
-		stream.reduce(true) [ acc, it | acc && !testFn.apply(it) ]
+	def static <IN, OUT> none(Stream<IN, OUT> stream, Function1<OUT, Boolean> testFn) {
+		stream.reduce(true) [ acc, in, out | acc && !testFn.apply(out) ]
 	}
 
 	/**

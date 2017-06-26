@@ -50,7 +50,7 @@ class AtomicProcessor extends AbstractFieldProcessor {
 		field.initializer = ['''new «atomicType.simpleName»(«defaultValue»)''']
 		field.final = true
 		field.simpleName = '_' + field.simpleName
-		
+		field.markAsRead
 		// add the setter
 		field.declaringType.addMethod('set' + fieldName.toFirstUpper) [
 			primarySourceElement = field

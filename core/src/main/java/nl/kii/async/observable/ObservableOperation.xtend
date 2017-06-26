@@ -31,8 +31,6 @@ import static extension nl.kii.util.ThrowableExtensions.*
 
 final class ObservableOperation {
 
-	private new() { }
-
 	// OBSERVATION /////////////////////////////////////////////////////////////////////////////
 
 	/** 

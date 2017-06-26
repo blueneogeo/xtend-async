@@ -2,22 +2,22 @@ package nl.kii.async.stream
 
 import co.paralleluniverse.fibers.Suspendable
 import java.util.Date
+import java.util.Iterator
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import nl.kii.async.annotation.Cold
 import nl.kii.async.annotation.Controlled
+import nl.kii.async.annotation.MultiThreaded
+import nl.kii.async.annotation.Uncontrolled
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Task
 import nl.kii.util.Period
 
 import static extension nl.kii.util.DateExtensions.*
-import java.util.Iterator
-import java.util.concurrent.ScheduledExecutorService
-import nl.kii.async.annotation.Uncontrolled
-import nl.kii.async.annotation.MultiThreaded
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
 
 /**
  * Creates new streams.

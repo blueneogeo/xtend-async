@@ -88,7 +88,7 @@ class TestFiberExtensions {
 		val count = runOnFiber [
 			(1..10).stream
 				.map [ a, b |
-					println(Fiber.currentFiber()?.id) 
+					println(Fiber.currentFiber().id) 
 					// this will throw an exception if there is no fiber here
 					doSomethingFiberish
 					b
@@ -178,23 +178,23 @@ class TestFiberExtensions {
 //			null
 //		]
 //	}
-//	
-//	@Test
-//	def void getScheduler() {
-//		for(i : 1..1) {
-//			async [
-//				println('S ' + i + ' ' + Fiber.currentFiber()?.id)
-//				async [
-//					println('A ' + i + ' ' + Fiber.currentFiber()?.id)
-//					println('S2 ' + i + ' ' + Fiber.currentFiber()?.id)
-//					async [
-//						println('A2 ' + i + ' ' + Fiber.currentFiber()?.id)
-//					]
-//					println('E2 ' + i + ' ' + Fiber.currentFiber()?.id)
-//				]
-//				println('E ' + i + ' ' + Fiber.currentFiber()?.id)
-//			]
-//		}
-//	}
+	
+	@Test
+	def void getScheduler() {
+		for(i : 1..1) {
+			async [
+				println('S ' + i + ' ' + Fiber.currentFiber().id)
+				async [
+					println('A ' + i + ' ' + Fiber.currentFiber().id)
+					println('S2 ' + i + ' ' + Fiber.currentFiber().id)
+					async [
+						println('A2 ' + i + ' ' + Fiber.currentFiber().id)
+					]
+					println('E2 ' + i + ' ' + Fiber.currentFiber().id)
+				]
+				println('E ' + i + ' ' + Fiber.currentFiber().id)
+			]
+		}
+	}
 		
 }

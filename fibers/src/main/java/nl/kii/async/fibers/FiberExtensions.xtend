@@ -8,6 +8,7 @@ import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.SuspendableRunnable
+import java.util.List
 import java.util.concurrent.TimeUnit
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Input
@@ -19,8 +20,6 @@ import nl.kii.util.Period
 import static extension nl.kii.async.stream.StreamExtensions.*
 
 final class FiberExtensions {
-
-	private new() { }
 
 	/**
 	 * Perform a function in the background using a Fiber.
@@ -227,8 +226,8 @@ final class FiberExtensions {
 	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
 	 */
 	@Suspendable
-	def static <OUT> list(Stream<?, OUT> stream, Period timeout) {
-		stream.collect.await(timeout)
+	def static <OUT> List<OUT> list(Stream<?, OUT> stream, Period timeout) {
+		newLinkedList(stream.collect.await(timeout))
 	} 
 
 	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
@@ -261,17 +260,4 @@ final class FiberExtensions {
 		promise.await
 	}
 
-	/** Iterate a stream in a blocking way. For now, do not use until bytecode injection issues are resolved */
-	@Deprecated
-	def static <T> awaitEach(Stream<?, T> stream) {
-		new Iterable<T> {
-			
-			@Suspendable
-			override iterator() {
-				new StreamIterator(stream)
-			}
-			
-		}
-	}
-	
 }

@@ -1,7 +1,6 @@
 package nl.kii.async.promise
 
 import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.fibers.instrument.DontInstrument
 import java.util.concurrent.atomic.AtomicInteger
 import nl.kii.async.SuspendableFunctions.Function1
 import nl.kii.async.SuspendableFunctions.Function2
@@ -199,7 +198,6 @@ final class PromiseExtensions {
 		
 		promise.observer = new Observer<IN, OUT> {
 			
-			@DontInstrument
 			override value(IN in, OUT value) {
 				synchronized (mutex) {
 					newPromise.value(in, value)
@@ -207,14 +205,12 @@ final class PromiseExtensions {
 				
 			}
 			
-			@DontInstrument
 			override error(IN in, Throwable t) {
 				synchronized (mutex) {
 					newPromise.error(in, t)
 				}
 			}
 			
-			@DontInstrument
 			override complete() {
 				synchronized (mutex) {
 					newPromise.complete
