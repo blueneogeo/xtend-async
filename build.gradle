@@ -95,12 +95,15 @@ subprojects {
   }
 
   tasks.withType(Test) {
-    jvmArgs "-javaagent:${configurations.quasar.singleFile}=b" // =v, =d =b
-    jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
+    // jvmArgs "-javaagent:${configurations.quasar.singleFile}=b" // =v, =d =b
+    // jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
     // jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
   }
-    
 
+  compileJava.doLast {
+    scanAndInstrument(project, sourceSets.main, updateSuspendables, [configurations.provided, configurations.runtime])
+  }
+  
   task install( dependsOn: publishToMavenLocal )
 
   jar {
@@ -187,19 +190,16 @@ project( 'fibers' ) {
       testCompile 'com.kimengi.util:xtend-tools-test:latest.release'
     }
 
+    compileTestJava.doLast {
+        scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
+    }
+  
+
     // tasks.withType(Test) {
     //   jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
     //   jvmArgs "-Dco.paralleluniverse.fibers.verifyInstrumentation=true"
     //   jvmArgs "-Dco.paralleluniverse.fibers.allowJdkInstrumentation=true"
     // }
-
-  // compileJava.doLast {
-  //   scanAndInstrument(project, sourceSets.main, updateSuspendables, [configurations.provided, configurations.runtime])
-  // }
-  //
-  // compileTestJava.doLast {
-  //   scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
-  // }
 
     task serviceAgent {
       description 'Prints the Eclipse VM parameters necessary to run JUnit tests'
