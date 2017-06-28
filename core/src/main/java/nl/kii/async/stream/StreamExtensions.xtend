@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import nl.kii.async.SuspendableFunctions.Function0
 import nl.kii.async.SuspendableFunctions.Function1
 import nl.kii.async.SuspendableFunctions.Function2
 import nl.kii.async.SuspendableFunctions.Function3
@@ -328,7 +327,7 @@ final class StreamExtensions {
 	 * @param operationFn a closure that passes a new Pipe that has been preconfigured to 
 	 */
 	@Cold @Controlled
-	def static <IN, OUT1, OUT2> Stream<IN, OUT2> operation(Stream<IN, OUT1> stream, @Suspending Procedure1<Pipe<IN, OUT2>> operationFn) {
+	def static <IN, OUT1, OUT2> Stream<IN, OUT2> operation(Stream<IN, OUT1> stream, (Pipe<IN, OUT2>)=>void operationFn) {
 		val pipe = new Pipe<IN, OUT2> {
 
 			@Suspendable

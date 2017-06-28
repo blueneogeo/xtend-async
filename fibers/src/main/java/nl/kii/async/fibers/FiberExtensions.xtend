@@ -37,12 +37,13 @@ final class FiberExtensions {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
-					input.set(function.run)
+					val result = function.run
+					input.set(result)
 				} catch(Throwable t) {
 					input.error(t)
 				}
-			} 
-
+			}
+			
 		})
 		fiber.start
 		input
@@ -92,7 +93,8 @@ final class FiberExtensions {
 			
 			override run() throws SuspendExecution, InterruptedException {
 				try {
-					input.set(function.run)
+					val result = function.run
+					input.set(result)
 				} catch(Throwable t) {
 					input.error(t)
 				}
@@ -229,35 +231,5 @@ final class FiberExtensions {
 	def static <OUT> List<OUT> list(Stream<?, OUT> stream, Period timeout) {
 		newLinkedList(stream.collect.await(timeout))
 	} 
-
-	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
-	@Deprecated
-	@Suspendable
-	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
-		val promise = new Input<OUT>
-		stream.observer = new Observer<IN, OUT> {
-			
-			@Suspendable
-			override value(IN in, OUT value) {
-				promise.set(value)
-			}
-			
-			@Suspendable
-			override error(IN in, Throwable t) {
-				promise.error(t)
-			}
-			
-			@Suspendable
-			override complete() {
-				stream.close
-			}
-			
-		}
-		stream.next
-		if(!stream.open) return null
-		// ask for the next value from the stream and wait for the promise to resolve
-		// Fiber.currentFiber().scheduler.async [ stream.next ]
-		promise.await
-	}
 
 }
