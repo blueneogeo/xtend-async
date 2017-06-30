@@ -26,8 +26,6 @@ class DelegateProcessor extends org.eclipse.xtend.lib.annotations.DelegateProces
 	
 	/**
 	 * @since 2.7
-	 * @noextend
-	 * @noreference
  	*/
  	@Beta
 	static class Util2 extends Util {

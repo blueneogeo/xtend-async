@@ -193,7 +193,7 @@ project( 'fibers' ) {
     compileTestJava.doLast {
         scanAndInstrument(project, sourceSets.test, updateSuspendables, [configurations.provided, configurations.runtime])
     }
-  
+
 
     // tasks.withType(Test) {
     //   jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
@@ -204,7 +204,7 @@ project( 'fibers' ) {
     task serviceAgent {
       description 'Prints the Eclipse VM parameters necessary to run JUnit tests'
       doLast {
-        println "-javaagent:${configurations.quasar.asPath}"
+        println "-javaagent:${configurations.quasar.asPath}=vx(io.vertx.ext.unit.impl)"
       }
     }
 

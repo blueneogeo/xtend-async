@@ -28,8 +28,8 @@ final class FiberExtensions {
 	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
 	 * the Suspendable annotation or have a throws SuspendedException.
 	 * <p> 
-	 * @Param function the function to perform, which returns a value
-	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
+	 * @param function the function to perform, which returns a value
+	 * @return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
 	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
@@ -56,8 +56,8 @@ final class FiberExtensions {
 	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
 	 * the Suspendable annotation or have a throws SuspendedException.
 	 * <p> 
-	 * @Param action to perform
-	 * @Return a task that completes when the action completes, or has an error if the action threw an error
+	 * @param action to perform
+	 * @return a task that completes when the action completes, or has an error if the action threw an error
 	 */
 	def static <OUT> Task async(SuspendableRunnable action) {
 		val task = new Task
@@ -84,8 +84,8 @@ final class FiberExtensions {
 	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
 	 * the Suspendable annotation or have a throws SuspendedException.
 	 * <p> 
-	 * @Param function the function to perform, which returns a value
-	 * @Return a promise of the value returned by the function, or has an error if the function threw an error
+	 * @param function the function to perform, which returns a value
+	 * @return a promise of the value returned by the function, or has an error if the function threw an error
 	 */
 	def static <OUT> Promise<OUT, OUT> async(FiberScheduler scheduler, SuspendableCallable<OUT> function) {
 		val input = new Input<OUT>
@@ -111,8 +111,8 @@ final class FiberExtensions {
 	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
 	 * the Suspendable annotation or have a throws SuspendedException.
 	 * <p> 
-	 * @Param action to perform
-	 * @Return a task that completes when the action completes, or has an error if the action threw an error
+	 * @param action to perform
+	 * @return a task that completes when the action completes, or has an error if the action threw an error
 	 */
 	def static <OUT> Task async(FiberScheduler scheduler, SuspendableRunnable action) {
 		val task = new Task
@@ -138,8 +138,8 @@ final class FiberExtensions {
 	 * NOTE: This method can only be used from within another fibre, and within a method either
 	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
 	 * <p> 
-	 * @Param promise the promise to wait to complete
-	 * @Throws Throwable any error coming from the promise when it fails
+	 * @param promise the promise to wait to complete
+	 * @throws Throwable any error coming from the promise when it fails
 	 */
 	@Suspendable
 	def static <OUT> OUT await(Promise<?, OUT> promise) {
@@ -149,7 +149,7 @@ final class FiberExtensions {
 	/**
 	 * Waits by calling Strand.sleep for the indicated period.
 	 * Since a strand can be both a thread and a fiber, it can work in both circumstances.
-	 * @Param delay the delay period
+	 * @param delay the delay period
 	 */
 	@Suspendable
 	def static void sleep(Period delay) {
@@ -162,10 +162,10 @@ final class FiberExtensions {
 	 * NOTE: This method can only be used from within another fibre, and within a method either
 	 * annotated with the Suspendable annotation, or if the method throws SuspendedException.
 	 * <p> 
-	 * @Param promise the promise to wait to complete
-	 * @Param timeout the maximum amount of time to wait for the promise to complete
-	 * @Throws TimeoutException if the timeout expires
-	 * @Throws Throwable any error coming from the promise when it fails
+	 * @param promise the promise to wait to complete
+	 * @param timeout the maximum amount of time to wait for the promise to complete
+	 * @throws TimeoutException if the timeout expires
+	 * @throws Throwable any error coming from the promise when it fails
 	 */
 	@Suspendable	
 	def static <IN, OUT> OUT await(Promise<IN, OUT> promise, Period timeout) {
@@ -231,5 +231,35 @@ final class FiberExtensions {
 	def static <OUT> List<OUT> list(Stream<?, OUT> stream, Period timeout) {
 		newLinkedList(stream.collect.await(timeout))
 	} 
+	
+	/** Await the next value from the stream. For now, do not use until bytecode injection issues are resolved */
+	@Deprecated
+	@Suspendable
+	def static <IN, OUT> OUT awaitNext(Stream<IN, OUT> stream) {
+		val promise = new Input<OUT>
+		stream.observer = new Observer<IN, OUT> {
+			
+			@Suspendable
+			override value(IN in, OUT value) {
+				promise.set(value)
+			}
+			
+			@Suspendable
+			override error(IN in, Throwable t) {
+				promise.error(t)
+			}
+			
+			@Suspendable
+			override complete() {
+				stream.close
+			}
+			
+		}
+		stream.next
+		if(!stream.open) return null
+		// ask for the next value from the stream and wait for the promise to resolve
+		// Fiber.currentFiber().scheduler.async [ stream.next ]
+		promise.await
+	}	
 
 }
