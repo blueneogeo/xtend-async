@@ -22,34 +22,6 @@ import static extension nl.kii.async.stream.StreamExtensions.*
 final class FiberExtensions {
 
 	/**
-	 * Perform a function in the background using a Fiber.
-	 * Uses the default fiber scheduler. 
-	 * <p>
-	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
-	 * the Suspendable annotation or have a throws SuspendedException.
-	 * <p> 
-	 * @param function the function to perform, which returns a value
-	 * @return a promise of the value returned by the function, or has an error if the function threw an error
-	 */
-	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
-		val input = new Input<OUT>
-		val fiber = new Fiber(new SuspendableRunnable {
-			
-			override run() throws SuspendExecution, InterruptedException {
-				try {
-					val result = function.run
-					input.set(result)
-				} catch(Throwable t) {
-					input.error(t)
-				}
-			}
-			
-		})
-		fiber.start
-		input
-	}
-
-	/**
 	 * Perform an action in the background using a Fiber.
 	 * Uses the default fiber scheduler. 
 	 * <p>
@@ -75,6 +47,34 @@ final class FiberExtensions {
 		})
 		fiber.start
 		task
+	}
+
+	/**
+	 * Perform a function in the background using a Fiber.
+	 * Uses the default fiber scheduler. 
+	 * <p>
+	 * NOTE: any method within the fiber that tries to suspend or await will have to be annotated with
+	 * the Suspendable annotation or have a throws SuspendedException.
+	 * <p> 
+	 * @param function the function to perform, which returns a value
+	 * @return a promise of the value returned by the function, or has an error if the function threw an error
+	 */
+	def static <OUT> Promise<OUT, OUT> async(SuspendableCallable<OUT> function) {
+		val input = new Input<OUT>
+		val fiber = new Fiber(new SuspendableRunnable {
+			
+			override run() throws SuspendExecution, InterruptedException {
+				try {
+					val result = function.run
+					input.set(result)
+				} catch(Throwable t) {
+					input.error(t)
+				}
+			}
+			
+		})
+		fiber.start
+		input
 	}
 
 	/**
