@@ -10,6 +10,13 @@ import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.SuspendableRunnable
 import java.util.List
 import java.util.concurrent.TimeUnit
+import nl.kii.async.SuspendableFunctions.Function1
+import nl.kii.async.SuspendableFunctions.Function2
+import nl.kii.async.SuspendableProcedures.Procedure1
+import nl.kii.async.SuspendableProcedures.Procedure2
+import nl.kii.async.annotation.Cold
+import nl.kii.async.annotation.Controlled
+import nl.kii.async.annotation.Suspending
 import nl.kii.async.observable.Observer
 import nl.kii.async.promise.Input
 import nl.kii.async.promise.Promise
@@ -261,5 +268,37 @@ final class FiberExtensions {
 		// Fiber.currentFiber().scheduler.async [ stream.next ]
 		promise.await
 	}	
+
+	/**
+	 * Perform a stream mapping operation with fiber blocking code.
+	 */
+	@Cold @Controlled
+	def static <IN, OUT> Stream<IN, OUT> async(Stream<IN, OUT> stream, @Suspending Procedure1<OUT> mapFn) {
+		stream.perform [ in, out | async [ mapFn.apply(out) ] ]
+	}
+
+	/**
+	 * Perform a stream mapping operation with fiber blocking code.
+	 */
+	@Cold @Controlled
+	def static <IN, OUT> Stream<IN, OUT> async(Stream<IN, OUT> stream, @Suspending Procedure2<IN, OUT> mapFn) {
+		stream.perform [ in, out | async [ mapFn.apply(in, out) ] ]
+	}
+	
+	/**
+	 * Perform a stream mapping operation with fiber blocking code.
+	 */
+	@Cold @Controlled
+	def static <IN, OUT, MAP> Stream<IN, MAP> async(Stream<IN, OUT> stream, @Suspending Function1<OUT, MAP> mapFn) {
+		stream.call [ in, out | async [ mapFn.apply(out) ] ]
+	}
+
+	/**
+	 * Perform a stream mapping operation with fiber blocking code.
+	 */
+	@Cold @Controlled
+	def static <IN, OUT, MAP> Stream<IN, MAP> async(Stream<IN, OUT> stream, @Suspending Function2<IN, OUT, MAP> mapFn) {
+		stream.call [ in, out | async [ mapFn.apply(in, out) ] ]
+	}
 
 }

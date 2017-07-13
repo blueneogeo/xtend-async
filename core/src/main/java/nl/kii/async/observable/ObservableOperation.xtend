@@ -219,46 +219,7 @@ final class ObservableOperation {
 			}
 			
 		}
-//		
-//		observable.observe(
-//			// onValue
-//			[ in, innerObservable |
-//				innerObservable.observe(
-//					// onValue
-//					[ ignore, value |
-//						observer.value(in, value)
-//						innerObservable.next
-//					],
-//					// onError
-//					[ ignore, error |
-//						observer.error(in, error)
-//						innerObservable.next						
-//					],
-//					// onComplete
-//					[
-//						// if the higher level observable completed, then we are done, tell the higher level observer 
-//						if(openProcesses.decrementAndGet == 0 && isComplete.compareAndSet(true, false)) {
-//							observer.complete
-//						}
-//					]
-//				)
-//				// we are starting to process this inner observable
-//				openProcesses.incrementAndGet
-//				innerObservable.next
-//			],
-//			// onError
-//			[ in, error | observer.error(in, error) ],
-//			// onComplete
-//			[
-//				if(openProcesses.get == 0) {
-//					// we are not parallel processing, you may inform the listening stream
-//					observer.complete
-//				} else {
-//					// we are still busy, so remember to call finish when we are done
-//					isComplete.set(true)
-//				}
-//			]
-//		)
+
 	}	
 
 	@Cold @Controlled	
