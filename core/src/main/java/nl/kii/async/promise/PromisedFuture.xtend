@@ -2,11 +2,12 @@ package nl.kii.async.promise
 
 import com.google.common.util.concurrent.AbstractFuture
 import nl.kii.async.observable.Observer
+import java.io.Serializable
 
 /**
  * Converts any promise into a Future for legacy and blocking code
  */
-class PromisedFuture<IN, OUT> extends AbstractFuture<OUT> {
+class PromisedFuture<IN, OUT> extends AbstractFuture<OUT> implements Serializable {
 	
 	new(Promise<IN, OUT> promise) {
 		promise.observer = new Observer<IN, OUT> {

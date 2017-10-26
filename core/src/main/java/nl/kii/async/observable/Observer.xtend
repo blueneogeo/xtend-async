@@ -1,12 +1,13 @@
 package nl.kii.async.observable
 
 import co.paralleluniverse.fibers.Suspendable
+import java.io.Serializable
 
 /** 
  * An observer observes a process. 
  * It can take in values, errors and when a process has completed.
  */
-interface Observer<IN, OUT> {
+interface Observer<IN, OUT> extends Serializable {
 
 	/** Tell the observer there is a new value, and what the input was that generated that value. */
 	@Suspendable

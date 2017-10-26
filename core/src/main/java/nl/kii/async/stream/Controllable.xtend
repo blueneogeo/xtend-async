@@ -1,9 +1,10 @@
 package nl.kii.async.stream
 
 import co.paralleluniverse.fibers.Suspendable
+import java.io.Serializable
 
 /** Making a something controllable indicates that you can control when values can be emitted. */
-interface Controllable {
+interface Controllable extends Serializable {
 
 	/** Ask for the next value */
 	@Suspendable

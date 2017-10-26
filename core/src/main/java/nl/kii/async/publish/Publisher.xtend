@@ -4,6 +4,7 @@ import nl.kii.async.stream.Stream
 import nl.kii.async.annotation.NoBackpressure
 import nl.kii.async.annotation.Hot
 import co.paralleluniverse.fibers.Suspendable
+import java.io.Serializable
 
 /**
  * A Publisher acts like a stream that you can subscribe to.
@@ -12,7 +13,7 @@ import co.paralleluniverse.fibers.Suspendable
  * A user subscribes by calling the subscribe() method and listening
  * to the returned stream. The user unsubscribes by closing the stream. 
  */
-interface Publisher<T> {
+interface Publisher<T> extends Serializable {
 
 	/** Publish a single value to subscribers */
 	@Suspendable
